@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0,user-scalable=yes,viewport-fit=cover"/>
+    <meta name="theme-color" content="#0f2744"/>
+
+    <!-- Standalone/installed-app behaviour: apple-mobile-web-app-capable covers
+         iOS Safari's "Add to Home Screen"; mobile-web-app-capable is the modern,
+         cross-browser equivalent Chrome/Android now honours. Both are needed —
+         neither alone covers both platforms — plus a proper manifest.json below,
+         which is what Android actually uses to decide whether "Add to Home
+         Screen" installs a real chromeless app vs. just a browser bookmark. -->
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+    <meta name="mobile-web-app-capable" content="yes"/>
+    <link rel="manifest" href="/manifest.json"/>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png"/>
+
+    <title>Overtime and Shift Tracker by Adam Stephens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,900;1,9..40,400&display=swap" rel="stylesheet"/>
+    <style>*{margin:0;padding:0;box-sizing:border-box}html,body,#root{height:100%;width:100%;background:#e2e8f0}</style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
