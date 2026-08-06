@@ -1,1 +1,16 @@
-
+{
+  "name": "Overtime and Shift Tracker by Adam Stephens",
+  "short_name": "OT Tracker",
+  "description": "Log overtime shifts, calculate pay at multiple rate tiers, track night work enhancements, protection allowances, and manage TOIL.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e2e8f0",
+  "theme_color": "#0f2744",
+  "icons": [
+    { "src": "/pwa-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/pwa-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/maskable-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
