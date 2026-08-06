@@ -1,0 +1,3947 @@
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+// ─── financial year — generated, not hardcoded ────────────────────────────────
+// Pay periods follow a fixed 4-4-5-4-4-5-4-4-5-4-4-5 week cycle (52 weeks/364
+// days every year, Monday to Sunday), shifting forward exactly 364 days each
+// year. This was reverse-engineered from two real years of the user's actual
+// pay records — 2022/23 and 2026/27, four years and exactly 208 weeks apart —
+// and reproduces all 24 known period boundaries from those years exactly.
+//
+// One thing this can't know: whether the force occasionally inserts a 53-week
+// year to stay aligned with the calendar (common in systems like this, every
+// 5-6 years or so) — neither known sample year had one, so there's no
+// evidence either way. If a future year's real dates ever come out different
+// from what this generates, the fix is a single override below, not a rewrite.
+const FY_ANCHOR_YEAR    = 2026;              // the "April" label's calendar year for the anchor
+const FY_ANCHOR_START   = '2026-02-09';      // verified: start of "April 2026", from the user's own spreadsheet
+const FY_WEEK_PATTERN   = [4,5,4,4,5,4,4,5,4,4,5,4]; // weeks per period, in order
+const FY_MONTH_LABELS   = ['April','May','June','July','August','September','October','November','December','January','February','March'];
+const FY_SHORT_LABELS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+
+// Known corrections for years where the simple 364-day rule doesn't hold —
+// e.g. a 53-week year. Empty for now since no such year has been confirmed;
+// add an entry here (fyStartCalendarYear -> explicit period list) if/when one is.
+const FY_OVERRIDES = {};
+
+const addDaysToISO = (iso, days) => {
+  const d = new Date(iso+'T12:00:00Z'); // noon UTC sidesteps DST edge cases
+  d.setUTCDate(d.getUTCDate()+days);
+  return d.toISOString().slice(0,10);
+};
+
+const generateFYPeriods = (fyStartCalendarYear) => {
+  if (FY_OVERRIDES[fyStartCalendarYear]) return FY_OVERRIDES[fyStartCalendarYear];
+  const yearOffset = fyStartCalendarYear - FY_ANCHOR_YEAR;
+  let cursor = addDaysToISO(FY_ANCHOR_START, yearOffset*364);
+  return FY_WEEK_PATTERN.map((weeks,i)=>{
+    const start = cursor;
+    const end = addDaysToISO(start, weeks*7-1);
+    const labelYear = i<9 ? fyStartCalendarYear : fyStartCalendarYear+1;
+    cursor = addDaysToISO(end, 1);
+    return { month:`${FY_MONTH_LABELS[i]} ${labelYear}`, short:FY_SHORT_LABELS[i], start, end };
+  });
+};
+
+// Which FY-start calendar year contains a given date — e.g. 2 Aug 2026 falls
+// within the year labelled "April 2026" onward, so this returns 2026.
+const getFYStartYearFor = (dateISO) => {
+  const daysSinceAnchor = Math.floor((new Date(dateISO+'T12:00:00Z') - new Date(FY_ANCHOR_START+'T12:00:00Z')) / 86400000);
+  return FY_ANCHOR_YEAR + Math.floor(daysSinceAnchor/364);
+};
+
+const CURRENT_FY_YEAR = getFYStartYearFor(new Date().toISOString().split('T')[0]);
+const PAY_PERIODS = generateFYPeriods(CURRENT_FY_YEAR);
+const FY_START = PAY_PERIODS[0].start;
+const FY_END   = PAY_PERIODS[11].end;
+const RATE_CHANGE_DATE = '2026-09-01'; // new pay rates + night enhancement from here — a real pay-award date, not a pattern to generate
+
+// ─── pay rates ────────────────────────────────────────────────────────────────
+// Pre-Sept salaries are post ÷ 1.035 (3.5% pay rise from 1 Sep 2026).
+// PC 1-3 pre-Sept use their own back-calculated figures (not Year 3 mapping).
+const PAY_RATES = {
+  Constable: {
+    'PC 1': {
+      salary: { pre:31159, post:32255 },
+      pre:    { base:14.95, r133:19.88, r150:22.43, r200:29.89 },
+      post:   { base:15.47, r133:20.58, r150:23.21, r200:30.94 },
+    },
+    'PC 2': {
+      salary: { pre:32470, post:33609 },
+      pre:    { base:15.57, r133:20.72, r150:23.36, r200:31.15 },
+      post:   { base:16.12, r133:21.44, r150:24.18, r200:32.24 },
+    },
+    'PC 3': {
+      salary: { pre:33786, post:34972 },
+      pre:    { base:16.20, r133:21.55, r150:24.31, r200:32.41 },
+      post:   { base:16.77, r133:22.30, r150:25.16, r200:33.54 },
+    },
+    'PC 4': {
+      salary: { pre:35104, post:36335 },
+      pre:    { base:16.86, r133:22.43, r150:25.24, r200:33.65 },
+      post:   { base:17.42, r133:23.17, r150:26.13, r200:34.84 },
+    },
+    'PC 5': {
+      salary: { pre:37737, post:39058 },
+      pre:    { base:18.13, r133:24.11, r150:27.13, r200:36.17 },
+      post:   { base:18.73, r133:24.91, r150:28.10, r200:37.46 },
+    },
+    'PC 6': {
+      salary: { pre:43036, post:44544 },
+      pre:    { base:20.68, r133:27.50, r150:30.94, r200:41.25 },
+      post:   { base:21.36, r133:28.41, r150:32.04, r200:42.72 },
+    },
+    'PC 7 (top)': {
+      salary: { pre:50255, post:52015 },
+      pre:    { base:24.14, r133:32.11, r150:36.13, r200:48.17 },
+      post:   { base:24.94, r133:33.17, r150:37.41, r200:49.88 },
+    },
+  },
+  Sergeant: {
+    'SGT 2 (on promotion)': {
+      salary: { pre:53567, post:55443 },
+      pre:    { base:25.73, r133:34.23, r150:38.51, r200:51.34 },
+      post:   { base:26.59, r133:35.36, r150:39.89, r200:53.18 },
+    },
+    'SGT 3': {
+      salary: { pre:54659, post:56573 },
+      pre:    { base:26.26, r133:34.93, r150:39.29, r200:52.39 },
+      post:   { base:27.13, r133:36.08, r150:40.70, r200:54.26 },
+    },
+    'SGT 4 (top)': {
+      salary: { pre:56206, post:58175 },
+      pre:    { base:27.01, r133:35.92, r150:40.40, r200:53.87 },
+      post:   { base:27.90, r133:37.11, r150:41.85, r200:55.80 },
+    },
+  },
+};
+
+const PA_RATES   = { None:0, PA1:40, PA2:90, PA3:125 };
+
+// ─── Record Shift Times (optional Notes convenience) ──────────────────────────
+const toMinutesOfDay = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+
+// A blank end-time equal to or earlier than start is treated as finishing the
+// following day — matches how the app already handles overnight night-work.
+const fmtShiftRange = (start, end) => {
+  if (!start || !end) return null;
+  const overnight = toMinutesOfDay(end) <= toMinutesOfDay(start);
+  return `${start}–${end}${overnight ? ' (next day)' : ''}`;
+};
+
+const SHIFT_TIMES_MARKER = '⏱ ';
+
+const generateShiftTimesLine = f => {
+  if (!f.recordShiftTimes) return null;
+  if (f.dutyType === 'rdw') {
+    const a = fmtShiftRange(f.actualStart, f.actualEnd);
+    if (!a) return null;
+    return SHIFT_TIMES_MARKER + `Rest Day Working (RDW)  |  Actual: ${a}`;
+  }
+  const r = fmtShiftRange(f.rosteredStart, f.rosteredEnd);
+  const a = fmtShiftRange(f.actualStart, f.actualEnd);
+  if (!r && !a) return null;
+  const parts = [];
+  if (r) parts.push(`Rostered: ${r}`);
+  if (a) parts.push(`Actual: ${a}`);
+  return SHIFT_TIMES_MARKER + parts.join('  |  ');
+};
+
+// ─── Overtime / night auto-calculation from rostered vs actual shift times ───
+// Overtime = how much longer the actual shift ran than the rostered one
+// (duration comparison, not a clock-window comparison — an early start that's
+// offset by an early finish of the same size produces zero overtime). On a
+// Rest Day Working (RDW) shift there's no roster to compare against, so the
+// whole actual shift is overtime.
+//
+// Night enhancement is calculated completely separately, over the WHOLE
+// actual shift regardless of the rostered/overtime split — any hour worked
+// 2000–0600 is paid at the enhanced rate, whether it happens to fall inside
+// the rostered portion of the shift or the overtime portion.
+const shiftDurationMinutes = (start, end) => {
+  if (!start || !end) return 0;
+  let s = toMinutesOfDay(start), e = toMinutesOfDay(end);
+  if (e <= s) e += 1440; // overnight
+  return e - s;
+};
+
+const calcAutoOTHours = f => {
+  const actualDur = shiftDurationMinutes(f.actualStart, f.actualEnd);
+  if (f.dutyType === 'rdw') return actualDur / 60;
+  const rosteredDur = shiftDurationMinutes(f.rosteredStart, f.rosteredEnd);
+  return Math.max(0, (actualDur - rosteredDur) / 60);
+};
+
+// Overlap, in minutes, between [startAbs,endAbs) and every recurring
+// 2000–0600 night band, checked a day either side to safely catch shifts
+// that start very early (catching the tail of the previous night) or run
+// very late (running into the following night).
+const nightBandOverlapMinutes = (startAbs, endAbs) => {
+  if (endAbs <= startAbs) return 0;
+  let total = 0;
+  const dayStart = Math.floor(startAbs / 1440) - 1;
+  const dayEnd   = Math.ceil(endAbs / 1440) + 1;
+  for (let d = dayStart; d <= dayEnd; d++) {
+    const bandStart = d*1440 + 20*60, bandEnd = bandStart + 10*60; // 20:00 → 06:00 next day
+    const os = Math.max(startAbs, bandStart), oe = Math.min(endAbs, bandEnd);
+    if (oe > os) total += oe - os;
+  }
+  return total;
+};
+
+const calcAutoNightHours = f => {
+  if (!f.actualStart || !f.actualEnd) return 0;
+  const startAbs = toMinutesOfDay(f.actualStart);
+  const endAbs = startAbs + shiftDurationMinutes(f.actualStart, f.actualEnd);
+  return Math.floor(nightBandOverlapMinutes(startAbs, endAbs) / 60);
+};
+
+// Which of the three overtime rate tiers a given field name/key maps to —
+// used to convert TOIL hours (worked) into TOIL hours (banked).
+const RATE_TIER_MULT = { hours133:1.33, hours150:1.5, hours200:2.0 };
+
+// ── display helpers — module scope, not inside the component, so they're
+// never at risk of being referenced before their own declaration executes
+// (e.g. from inside a useMemo defined earlier in the component body) ────────
+const fmt    = n=>`£${n.toFixed(2)}`;
+// Decimal hours → "HH.MM" where MM is minutes (0-59), not a decimal fraction —
+// e.g. 21.5 (21h 30m) → "21.30", not "21.50".
+const fmtHM  = n=>{
+  const sign = n<0 ? '-' : '';
+  const abs = Math.abs(n);
+  let h = Math.floor(abs);
+  let m = Math.round((abs-h)*60);
+  if (m===60) { h+=1; m=0; }
+  return `${sign}${h}.${String(m).padStart(2,'0')}`;
+};
+const fmtGBP = n=>`£${n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+const fmtD   = d=>new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+
+// Keeps the auto-generated shift-times line in sync with the top of Notes,
+// without disturbing anything else the person has typed underneath it.
+const syncShiftTimesIntoForm = f => {
+  const lines = (f.comments||'').split('\n');
+  const hasMarker = lines[0] && lines[0].startsWith(SHIFT_TIMES_MARKER);
+  const rest = hasMarker ? lines.slice(1).join('\n').replace(/^\n+/,'') : (f.comments||'');
+  const line = generateShiftTimesLine(f);
+  // Always a blank line after the generated line, even with nothing typed yet
+  // below it — that blank line is where the cursor gets placed once the
+  // actual shift end time is set.
+  const comments = line ? `${line}\n\n${rest}` : rest;
+  return { ...f, comments };
+};
+const PA_LABELS  = { None:'—', PA1:'£40', PA2:'£90', PA3:'£125' };
+
+// ─── Met Police allowances ────────────────────────────────────────────────────
+const LONDON_WEIGHTING = { pre:3150, post:3260 }; // pre/post 1 Sep 2026
+const LONDON_ALLOWANCE = 6588;                     // fixed p.a.
+
+// ─── UK income tax bands (2026/27) ────────────────────────────────────────────
+// Thresholds are pro-rated to the pay period, mirroring how cumulative PAYE
+// actually works: by period 6 you've had 6/12 of your personal allowance and
+// 6/12 of each band. Comparing cumulative pay against FULL annual thresholds
+// (the old approach) understated tax badly until the very end of the year.
+const calcUKIncomeTax = (cumGross, yearFraction=1) => {
+  const f = Math.max(1/365, Math.min(1, yearFraction));
+  // The £100k personal-allowance taper is an annual rule, so judge it on the
+  // annualised run-rate, then pro-rate the resulting allowance.
+  const annualised = cumGross / f;
+  let paAnnual = 12570;
+  if (annualised > 100000) paAnnual = Math.max(0, 12570 - Math.floor((annualised - 100000) / 2));
+  const pa = paAnnual * f;
+  const taxable = Math.max(0, cumGross - pa);
+  // Band widths are in TAXABLE income terms. The 40% band runs from £37,700
+  // to £125,140 of taxable income (width £87,440) — this is what makes the
+  // Additional Rate start exactly at £125,140 of total income once the
+  // allowance has fully tapered to zero, matching the official HMRC bands.
+  const basic = 37700 * f, higher = 87440 * f;
+  let tax = 0;
+  if (taxable > 0)             tax += Math.min(taxable, basic)          * 0.20;
+  if (taxable > basic)         tax += Math.min(taxable - basic, higher) * 0.40;
+  if (taxable > basic + higher) tax += (taxable - basic - higher)       * 0.45;
+  return tax;
+};
+
+// Same calculation, but the personal allowance is never tapered — used only
+// as a counterfactual to isolate how much of the year's tax bill is caused
+// specifically by crossing £100k. A standard payslip generally won't have
+// withheld this portion in real time (see the £100k Tax Impact card in
+// Settings), so it's the amount most likely to arrive later as a bill.
+const calcUKIncomeTaxNoTaper = (cumGross, yearFraction=1) => {
+  const f = Math.max(1/365, Math.min(1, yearFraction));
+  const pa = 12570 * f;
+  const taxable = Math.max(0, cumGross - pa);
+  const basic = 37700 * f, higher = 87440 * f;
+  let tax = 0;
+  if (taxable > 0)             tax += Math.min(taxable, basic)          * 0.20;
+  if (taxable > basic)         tax += Math.min(taxable - basic, higher) * 0.40;
+  if (taxable > basic + higher) tax += (taxable - basic - higher)       * 0.45;
+  return tax;
+};
+
+// ─── National Insurance (Class 1 employee, 2026/27) ───────────────────────────
+// Unlike income tax, NI for ordinary employees is worked out on each pay
+// period in isolation — it doesn't run cumulatively — so it's assessed on
+// that period's gross against per-period thresholds.
+const NI_PT  = 12570 / 12;  // primary threshold, monthly
+const NI_UEL = 50270 / 12;  // upper earnings limit, monthly
+const calcNI = periodGross => {
+  let ni = 0;
+  if (periodGross > NI_PT)  ni += Math.min(periodGross - NI_PT, NI_UEL - NI_PT) * 0.08;
+  if (periodGross > NI_UEL) ni += (periodGross - NI_UEL) * 0.02;
+  return ni;
+};
+
+// NI has no annual concept — it's assessed per pay period, which is exactly
+// why totals.ytdNI is built by summing each period's own NI rather than
+// feeding a lump YTD figure through calcNI (which expects one period's
+// gross against monthly thresholds, and would badly overstate NI if given
+// a whole year's money at once). This estimate exists only for the Forecast
+// figure, where there's no set of real periods to sum — it applies the
+// annual-equivalent thresholds directly to the projected annual gross, a
+// reasonable approximation for a full-year projection.
+const estimateAnnualNI = grossAnnual => {
+  const ptAnnual = 12570, uelAnnual = 50270;
+  let ni = 0;
+  if (grossAnnual > ptAnnual)  ni += Math.min(grossAnnual - ptAnnual, uelAnnual - ptAnnual) * 0.08;
+  if (grossAnnual > uelAnnual) ni += (grossAnnual - uelAnnual) * 0.02;
+  return ni;
+};
+
+// Full band-by-band income tax split for a given gross and year-fraction —
+// how much sits in the tax-free Personal Allowance, how much at 20%, 40%,
+// and 45%. Used for the £100k Tax Calculator's detailed breakdown. Summing
+// basicTax+higherTax+additionalTax always equals calcUKIncomeTax's result
+// for the same inputs — same underlying math, just itemised.
+const computeTaxBandBreakdown = (gross, yearFraction=1) => {
+  const f = Math.max(1/365, Math.min(1, yearFraction));
+  const annualised = gross / f;
+  let paAnnual = 12570;
+  if (annualised > 100000) paAnnual = Math.max(0, 12570 - Math.floor((annualised - 100000) / 2));
+  const pa = paAnnual * f;
+  const basicWidth = 37700 * f, higherWidth = 87440 * f;
+  const taxable = Math.max(0, gross - pa);
+  const basicAmt = Math.min(taxable, basicWidth);
+  const basicTax = basicAmt * 0.20;
+  const higherAmt = Math.max(0, Math.min(taxable - basicWidth, higherWidth));
+  const higherTax = higherAmt * 0.40;
+  const additionalAmt = Math.max(0, taxable - basicWidth - higherWidth);
+  const additionalTax = additionalAmt * 0.45;
+  return { pa, basicAmt, basicTax, higherAmt, higherTax, additionalAmt, additionalTax, totalTax: basicTax+higherTax+additionalTax };
+};
+
+// 2015 Police Pension Scheme member contribution tiers (England & Wales),
+// effective 1 April 2026 — The Police Pensions (Member Contributions)
+// (Amendment and Transitional Provisions) (England and Wales) Regulations
+// 2026 (S.I. 2026/267). The real rule sets a member's tier from their
+// "relevant pay" — actual pensionable earnings over the PREVIOUS scheme
+// year (or their current annual rate if newly joined or returning from a
+// long absence) — held fixed for the whole current year. This app has no
+// way to know last scheme year's actual earnings, so it approximates using
+// the CURRENT year's annualised pensionable pay instead. That's correct
+// for anyone whose pay hasn't changed much year over year, and is flagged
+// as an estimate in the UI for anyone it might not be (e.g. a recent
+// promotion). Pensionable pay is basic salary + London Weighting ONLY —
+// overtime, PA enhancements, and London Allowance are all non-pensionable.
+const pensionTierRate = annualPensionablePay => {
+  if (annualPensionablePay <= 37035) return 0.1288;
+  if (annualPensionablePay < 79588) return 0.1388;
+  return 0.1422;
+};
+const calcPensionContribution = (pensionablePay, yearFraction=1) => {
+  const f = Math.max(1/365, Math.min(1, yearFraction));
+  const annualised = pensionablePay / f;
+  const rate = pensionTierRate(annualised);
+  return { rate, amount: pensionablePay * rate };
+};
+
+// Named bands, used to tell the person plainly which bracket their overtime/PA
+// lands in, rather than a blended "effective %" figure.
+const TAX_BANDS = [
+  { name:'Personal Allowance', min:0,      rate:0  },
+  { name:'Basic Rate',         min:12570,  rate:20 },
+  { name:'Higher Rate',        min:50270,  rate:40 },
+  { name:'Additional Rate',    min:125140, rate:45 },
+];
+const getTaxBand = (cumulativeGross, yearFraction=1) => {
+  const f = Math.max(1/365, Math.min(1, yearFraction));
+  let band = TAX_BANDS[0];
+  for (const b of TAX_BANDS) { if (cumulativeGross >= b.min * f) band = b; else break; }
+  return band;
+};
+
+// Calculates the actual deductions on a slice of income stacked on top of what's
+// already been earned — split across bands exactly as the UK system works (if a
+// slice crosses from Basic into Higher Rate, only the portion above the
+// threshold is taxed at 40%, not the whole slice).
+//
+// Tax runs cumulatively across the year; NI is assessed on the pay period in
+// isolation. Both are layered the same way so the rate shown reflects what
+// actually comes off this money.
+const applyBandTax = (cumulativeBefore, amount, yearFraction=1, periodGrossBefore=null) => {
+  if (amount <= 0) return { tax:0, ni:0, net:0, rate:0, bandName:null };
+  const tax = calcUKIncomeTax(cumulativeBefore + amount, yearFraction)
+            - calcUKIncomeTax(cumulativeBefore, yearFraction);
+  const pg  = periodGrossBefore==null ? null : periodGrossBefore;
+  const ni  = pg==null ? 0 : (calcNI(pg + amount) - calcNI(pg));
+  const total = tax + ni;
+  const band = getTaxBand(cumulativeBefore + amount, yearFraction);
+  return { tax, ni, net: amount - total, rate: (total / amount) * 100, bandName: band.name };
+};
+
+// Splits an amount of income into the portions that fall within each tax band,
+// exactly as UK progressive tax works (e.g. the first £X at 0%, next £Y at 20%,
+// remainder at 40%). Used to break overtime hours down by which band they fall in.
+const splitAcrossBands = (cumulativeBefore, amount) => {
+  let remaining = amount, cursor = cumulativeBefore;
+  const portions = [];
+  for (let i=0; i<TAX_BANDS.length && remaining>0.005; i++){
+    const bandMin = TAX_BANDS[i].min;
+    const bandMax = i+1<TAX_BANDS.length ? TAX_BANDS[i+1].min : Infinity;
+    if (cursor >= bandMax) continue;
+    const capacity = bandMax - Math.max(cursor, bandMin);
+    const take = Math.min(remaining, capacity);
+    if (take > 0.005) {
+      portions.push({ name:TAX_BANDS[i].name, rate:TAX_BANDS[i].rate, amount:take });
+      cursor += take; remaining -= take;
+    }
+  }
+  return portions;
+};
+
+const daysInclusive = (a,b) => Math.round((new Date(b) - new Date(a)) / 86400000) + 1;
+
+// Builds a Monday-start week grid for a pay period, with null padding cells
+// before/after so the days line up correctly under Mo-Su column headers.
+const buildCalendarWeeks = (period) => {
+  const start = new Date(period.start+'T12:00:00');
+  const end   = new Date(period.end+'T12:00:00');
+  const startDow = (start.getDay()+6)%7; // Monday=0
+  const days = [];
+  for (let i=0;i<startDow;i++) days.push(null);
+  let cursor = new Date(start);
+  while (cursor <= end) { days.push(new Date(cursor)); cursor.setDate(cursor.getDate()+1); }
+  while (days.length%7!==0) days.push(null);
+  const weeks = [];
+  for (let i=0;i<days.length;i+=7) weeks.push(days.slice(i,i+7));
+  return weeks;
+};
+
+// ─── UK tax year (6 April – 5 April) ───────────────────────────────────────────
+// This is what actually governs personal allowance/tax band resets — it's
+// different from the force's own pay-year (which starts 9 Feb per PAY_PERIODS
+// above). For anything tax-related we anchor to the REAL tax year, not the
+// pay-year.
+const getUKTaxYearStart = dateStr => {
+  const d = new Date(dateStr);
+  const y = d.getFullYear();
+  const apr6ThisYear = `${y}-04-06`;
+  return dateStr >= apr6ThisYear ? apr6ThisYear : `${y-1}-04-06`;
+};
+const addYearMinusOneDay = dateStr => {
+  const d = new Date(dateStr);
+  d.setFullYear(d.getFullYear()+1);
+  d.setDate(d.getDate()-1);
+  return d.toISOString().split('T')[0];
+};
+// How far into the UK tax year CONTAINING this date we are, as a continuous
+// 0-1 fraction (6 Apr = just past 0, 5 Apr next year = 1). Used to pro-rate
+// annual PA/band thresholds for a specific date, regardless of which pay
+// period it happens to fall in.
+const taxYearFractionForDate = dateStr => {
+  const tys = getUKTaxYearStart(dateStr);
+  const days = Math.max(0, (new Date(dateStr) - new Date(tys))/86400000) + 1;
+  return Math.max(1/365, Math.min(1, days/365));
+};
+
+// Salary (and similar annual amounts like London Weighting/Allowance) is paid
+// monthly in the real world, not smoothly by the day. This accrues a full
+// month's pay for every calendar month that's fully completed within the
+// given range, and pro-rates only the partially-completed edge months —
+// so the YTD figure steps up once per payday rather than creeping up daily.
+const monthlySteppedAmount = (annualAmount, rangeStartStr, rangeEndStr) => {
+  if (!rangeStartStr || !rangeEndStr || rangeEndStr < rangeStartStr) return 0;
+  const monthly = annualAmount / 12;
+  const rangeStart = new Date(rangeStartStr);
+  const rangeEnd   = new Date(rangeEndStr);
+  let total = 0;
+  let cursor = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
+  while (cursor <= rangeEnd) {
+    const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+    const monthEnd   = new Date(cursor.getFullYear(), cursor.getMonth()+1, 0);
+    const daysInMonth = monthEnd.getDate();
+    const clipStart = monthStart < rangeStart ? rangeStart : monthStart;
+    const clipEnd   = monthEnd > rangeEnd ? rangeEnd : monthEnd;
+    if (clipEnd >= clipStart) {
+      const isFullMonth = clipStart.getTime()===monthStart.getTime() && clipEnd.getTime()===monthEnd.getTime();
+      if (isFullMonth) {
+        total += monthly;
+      } else {
+        const daysCounted = Math.round((clipEnd - clipStart)/86400000) + 1;
+        total += monthly * (daysCounted / daysInMonth);
+      }
+    }
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1);
+  }
+  return total;
+};
+
+// Same monthly-stepped accrual, but split at the 1 Sep 2026 pay rise so each
+// side uses its own annual rate.
+const monthlySteppedSplitBySept = (annualPre, annualPost, rangeStartStr, rangeEndStr) => {
+  if (!rangeStartStr || !rangeEndStr || rangeEndStr < rangeStartStr) return 0;
+  if (rangeEndStr < RATE_CHANGE_DATE)   return monthlySteppedAmount(annualPre, rangeStartStr, rangeEndStr);
+  if (rangeStartStr >= RATE_CHANGE_DATE) return monthlySteppedAmount(annualPost, rangeStartStr, rangeEndStr);
+  const d = new Date(RATE_CHANGE_DATE); d.setDate(d.getDate()-1);
+  const dayBeforeChange = d.toISOString().split('T')[0];
+  return monthlySteppedAmount(annualPre, rangeStartStr, dayBeforeChange) + monthlySteppedAmount(annualPost, RATE_CHANGE_DATE, rangeEndStr);
+};
+
+// Salary + London Weighting + London Allowance for one pay period, pro-rated
+// across the 1 Sep 2026 rate change if the period spans it.
+const periodBaseAmount = (p, svcData) => {
+  const totalDays = daysInclusive(p.start, p.end);
+  let preDays, postDays;
+  if (p.end < RATE_CHANGE_DATE) { preDays = totalDays; postDays = 0; }
+  else if (p.start >= RATE_CHANGE_DATE) { preDays = 0; postDays = totalDays; }
+  else {
+    const d = new Date(RATE_CHANGE_DATE); d.setDate(d.getDate() - 1);
+    preDays  = daysInclusive(p.start, d.toISOString().split('T')[0]);
+    postDays = totalDays - preDays;
+  }
+  const salary = svcData ? (preDays/365)*svcData.salary.pre + (postDays/365)*svcData.salary.post : 0;
+  const lw     = (preDays/365)*LONDON_WEIGHTING.pre + (postDays/365)*LONDON_WEIGHTING.post;
+  const la     = (totalDays/365)*LONDON_ALLOWANCE;
+  return salary + lw + la;
+};
+
+// ─── rate helper ──────────────────────────────────────────────────────────────
+// Returns the correct rate set for a given pay point and entry date.
+const getRates = (rank, service, date) => {
+  const empty = { base:0, r133:0, r150:0, r200:0 };
+  if (!rank || !service || !date) return empty;
+  const grp = PAY_RATES[rank];
+  if (!grp) return empty;
+  const svc = grp[service];
+  if (!svc) return empty;
+  return date >= RATE_CHANGE_DATE ? svc.post : svc.pre;
+};
+
+// ─── storage ──────────────────────────────────────────────────────────────────
+const KEYS = {
+  entries:'ajs_ot_entries', settings:'ajs_ot_settings',
+  backupCount:'ajs_ot_backupCount', backedUpAt:'ajs_ot_backedUpAt',
+  lastBackupReminder:'ajs_ot_lastBackupReminder',
+  defaultBreakdownView:'ajs_ot_defaultBreakdownView',
+  toilTaken:'ajs_ot_toilTaken',
+  lastSeenFYYear:'ajs_ot_lastSeenFYYear',
+  localOnlyMode:'ajs_ot_localOnlyMode',
+};
+const dualWrite = (key, val) => {
+  const s = JSON.stringify(val);
+  try { localStorage.setItem(key,s); }   catch(_){}
+  try { sessionStorage.setItem(key,s); } catch(_){}
+};
+const dualRead = (key, fb) => {
+  try { const v=localStorage.getItem(key);   if(v) return JSON.parse(v); } catch(_){}
+  try { const v=sessionStorage.getItem(key); if(v) return JSON.parse(v); } catch(_){}
+  return fb;
+};
+
+// ─── auth: supabase client ─────────────────────────────────────────────────────
+// PHASE 1 SCOPE: sign in / sign up / sign out / local-only mode only.
+// Entries, toilTaken and settings still live purely in localStorage at this
+// stage — nothing is encrypted or synced to Supabase yet. That's phase 2,
+// once the data-key wrap/unwrap functions exist, so a signed-in account
+// doesn't imply "your data is backed up" until that lands.
+let supabaseUrl, supabaseAnonKey;
+try {
+  supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+} catch(_){}
+// If the environment variables are missing or malformed, supabase stays null
+// rather than throwing — the app falls back to local-only behaviour instead
+// of a blank white screen. Every call site below checks for this.
+const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
+
+// Migrate settings if they contain old rank names from a previous version
+const migrateSettings = s => {
+  const def = { rank:'', service:'' };
+  if (!s) return def;
+  const validRanks = Object.keys(PAY_RATES);
+  if (!validRanks.includes(s.rank)) return def;
+  const validServices = Object.keys(PAY_RATES[s.rank]||{});
+  if (!validServices.includes(s.service)) return def;
+  return { rank:s.rank, service:s.service };
+};
+
+// ─── icon component ───────────────────────────────────────────────────────────
+const Ico = ({ n, s=20, c, w=2, f='none' }) => (
+  <svg width={s} height={s} viewBox="0 0 24 24" fill={f} stroke={c||'currentColor'}
+       strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+    {n==='home'  &&<><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>}
+    {n==='plus'  &&<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}
+    {n==='cog'   &&<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>}
+    {n==='edit'  &&<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>}
+    {n==='trash' &&<><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>}
+    {n==='save'  &&<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>}
+    {n==='clock' &&<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>}
+    {n==='cR'    &&<polyline points="9 18 15 12 9 6"/>}
+    {n==='cL'    &&<polyline points="15 18 9 12 15 6"/>}
+    {n==='cU'    &&<polyline points="18 15 12 9 6 15"/>}
+    {n==='cD'    &&<polyline points="6 9 12 15 18 9"/>}
+    {n==='list'  &&<><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></>}
+    {n==='star'  &&<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>}
+    {n==='cal'   &&<><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>}
+    {n==='bar'   &&<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>}
+    {n==='uPlus' &&<><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></>}
+    {n==='check' &&<polyline points="20 6 9 17 4 12"/>}
+    {n==='shield'&&<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>}
+    {n==='calc'  &&<><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M16 14h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M16 18h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></>}
+    {n==='tUp'   &&<><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>}
+    {n==='back'  &&<><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>}
+    {n==='undo'  &&<><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.31"/></>}
+    {n==='x'     &&<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>}
+    {n==='dl'    &&<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>}
+    {n==='ul'    &&<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>}
+    {n==='moon'  &&<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>}
+    {n==='mail'  &&<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></>}
+    {n==='table' &&<><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></>}
+    {n==='doc'   &&<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>}
+    {n==='share' &&<><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></>}
+    {n==='bell'  &&<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>}
+  </svg>
+);
+
+// ─── toast stack ──────────────────────────────────────────────────────────────
+// Original cartoon-style £50 note icon for the header. Deliberately generic —
+// no portrait, no Bank of England insignia, no reproduced security features —
+// just enough banknote "character" (gradient, see-through window motif,
+// guilloche-style texture, serif denomination) to read clearly at a glance.
+function ClockCashIcon({ width=28, height=19 }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 44 30" style={{flexShrink:0}}>
+      <defs>
+        <linearGradient id="noteGradFront" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#22c55e"/>
+          <stop offset="60%" stopColor="#16a34a"/>
+          <stop offset="100%" stopColor="#15803d"/>
+        </linearGradient>
+      </defs>
+
+      {/* clock */}
+      <circle cx="12" cy="13" r="10" fill="#fff" stroke="#1e3a5f" strokeWidth="2"/>
+      <g stroke="#1e3a5f" strokeWidth="1" strokeLinecap="round">
+        <line x1="12" y1="4.3" x2="12" y2="6"/>
+        <line x1="12" y1="20" x2="12" y2="21.7"/>
+        <line x1="3.3" y1="13" x2="5" y2="13"/>
+        <line x1="19" y1="13" x2="20.7" y2="13"/>
+      </g>
+      <line x1="12" y1="13" x2="12" y2="7.8" stroke="#1e3a5f" strokeWidth="1.7" strokeLinecap="round"/>
+      <line x1="12" y1="13" x2="15.6" y2="10.2" stroke="#2563eb" strokeWidth="1.7" strokeLinecap="round"/>
+      <circle cx="12" cy="13" r="1.1" fill="#1e3a5f"/>
+
+      {/* three-bill stack, overlapping the clock's bottom-right */}
+      <rect x="19" y="19" width="23" height="9" rx="1.6" fill="#136534" stroke="#0f3d21" strokeWidth="0.6"/>
+      <rect x="18" y="17" width="23" height="9" rx="1.6" fill="#178a41" stroke="#0f3d21" strokeWidth="0.6"/>
+      <rect x="17" y="15" width="23" height="9" rx="1.6" fill="url(#noteGradFront)" stroke="#0f3d21" strokeWidth="0.7"/>
+      <text x="28.5" y="23" textAnchor="middle" fontFamily="Georgia,'Times New Roman',serif" fontSize="10" fontWeight="900" fill="#f0fdf4">£</text>
+    </svg>
+  );
+}
+
+const TIME_HOURS = Array.from({length:24},(_,i)=>String(i).padStart(2,'0'));
+const TIME_MINUTES = ['00','15','30','45'];
+
+// Two small selects (hour, then minute) rather than one 96-option list —
+// picking "21" then "45" is much faster than scrolling to find "21:45".
+// Combines back into the same "HH:MM" string the rest of the app expects,
+// so nothing downstream needs to know the UI is split.
+function TimeSelect({ value, onChange }) {
+  const [h,m] = value ? value.split(':') : ['',''];
+  const selStyle = {flex:1,background:'#fff',border:'1px solid #dbeafe',padding:'9px 6px',borderRadius:'10px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'#0f172a',height:'42px'};
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
+      <select style={selStyle} value={h} onChange={e=>{
+        const newH = e.target.value;
+        onChange(newH ? `${newH}:${m||'00'}` : (m ? `00:${m}` : ''));
+      }}>
+        <option value="">HH</option>
+        {TIME_HOURS.map(t=><option key={t} value={t}>{t}</option>)}
+      </select>
+      <span style={{fontWeight:900,fontSize:'15px',color:'#94a3b8',flexShrink:0}}>:</span>
+      <select style={selStyle} value={m} onChange={e=>{
+        const newM = e.target.value;
+        onChange(h ? `${h}:${newM||'00'}` : (newM ? `00:${newM}` : ''));
+      }}>
+        <option value="">MM</option>
+        {TIME_MINUTES.map(t=><option key={t} value={t}>{t}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function ToastStack({ toasts, onDismiss }) {
+  return (
+    <div style={{position:'absolute',top:'72px',left:'50%',transform:'translateX(-50%)',zIndex:999,display:'flex',flexDirection:'column',gap:'7px',width:'calc(100% - 24px)',maxWidth:'390px',pointerEvents:'none'}}>
+      {toasts.map(t=>{
+        // 'alert' gets an enlarged layout — charcoal with a red accent bar, a
+        // bold title, an explanatory line and a full-width action button.
+        // Used where the app is redirecting the person rather than just
+        // confirming something, so it needs to actually stop them.
+        if(t.type==='alert'){
+          return (
+            <div key={t.id} style={{background:'#0f172a',color:'#fff',borderRadius:'16px',padding:'15px 16px 15px 13px',borderLeft:'5px solid #ef4444',boxShadow:'0 6px 26px rgba(15,23,42,0.42)',animation:'su 0.22s ease',pointerEvents:'all'}}>
+              <div style={{display:'flex',alignItems:'flex-start',gap:'11px',marginBottom:t.action?'12px':0}}>
+                <div style={{background:'rgba(239,68,68,0.22)',borderRadius:'10px',padding:'7px',flexShrink:0,display:'flex'}}>
+                  <Ico n="uPlus" s={17} c="#f87171" w={2.5}/>
+                </div>
+                <div style={{flex:1}}>
+                  {t.title&&<div style={{fontSize:'14px',fontWeight:900,marginBottom:'3px'}}>{t.title}</div>}
+                  <div style={{fontSize:'12px',fontWeight:600,color:'#cbd5e1',lineHeight:1.45}}>{t.message}</div>
+                </div>
+                {/* dismiss — purely to get the banner out of the way */}
+                <button onClick={()=>onDismiss&&onDismiss(t.id)} aria-label="Dismiss" style={{background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'8px',padding:'6px',cursor:'pointer',flexShrink:0,display:'flex',alignSelf:'flex-start'}}>
+                  <Ico n="x" s={14} c="#94a3b8"/>
+                </button>
+              </div>
+              {t.action&&<button onClick={t.action.fn} style={{background:'#ef4444',border:'none',borderRadius:'9px',padding:'10px',color:'#fff',fontWeight:900,fontSize:'11px',cursor:'pointer',fontFamily:'inherit',textTransform:'uppercase',letterSpacing:'0.5px',width:'100%'}}>{t.action.label}</button>}
+            </div>
+          );
+        }
+        return (
+          <div key={t.id} style={{background:t.type==='undo'?'#1e3a5f':t.type==='warn'?'#b45309':'#065f46',color:'#fff',borderRadius:'14px',padding:'11px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px',boxShadow:'0 4px 20px rgba(0,0,0,0.22)',animation:'su 0.22s ease',pointerEvents:'all'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'9px'}}>
+              {(t.type==='undo'||t.type==='warn')&&<Ico n={t.type==='undo'?'undo':'bell'} s={15} c="#fff"/>}
+              <span style={{fontSize:'13px',fontWeight:700}}>{t.message}</span>
+            </div>
+            {t.action&&<button onClick={t.action.fn} style={{background:'rgba(255,255,255,0.2)',border:'none',borderRadius:'8px',padding:'4px 10px',color:'#fff',fontWeight:900,fontSize:'11px',cursor:'pointer',fontFamily:'inherit',textTransform:'uppercase',letterSpacing:'0.5px',whiteSpace:'nowrap'}}>{t.action.label}</button>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── auth screens ───────────────────────────────────────────────────────────
+// Phase 1 scope: sign in, sign up, forgot-password request, and the
+// local-only escape hatch. Recovery-secret setup and real cloud sync of
+// entries/toilTaken/settings are phase 2, once the data-key wrap/unwrap
+// functions exist — signing up here does not yet mean data is backed up.
+function AuthScreens({ supabase, onContinueLocalOnly, addToast }) {
+  const [screen, setScreen]         = useState('signin'); // 'signin' | 'signup' | 'forgot'
+  const [email, setEmail]           = useState('');
+  const [password, setPassword]     = useState('');
+  const [password2, setPassword2]   = useState('');
+  const [busy, setBusy]             = useState(false);
+  const [error, setError]           = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+
+  const AS = {
+    page: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'#f8fafc',fontFamily:"'DM Sans',system-ui,sans-serif",color:'#0f172a',alignItems:'center',justifyContent:'center',padding:'24px 20px',boxSizing:'border-box'},
+    card: {width:'100%',background:'#fff',borderRadius:'18px',padding:'26px 22px 22px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid #f1f5f9',boxSizing:'border-box'},
+    brand:{display:'flex',alignItems:'center',gap:'10px',marginBottom:'22px'},
+    brandIcon:{width:'38px',height:'38px',borderRadius:'10px',flexShrink:0,background:'#2563eb',display:'flex',alignItems:'center',justifyContent:'center'},
+    brandName:{fontSize:'16px',fontWeight:900,lineHeight:1.2},
+    brandSub:{fontSize:'12px',color:'#94a3b8',marginTop:'1px',fontWeight:700},
+    tabs:{display:'flex',background:'#f8fafc',borderRadius:'12px',padding:'3px',marginBottom:'20px'},
+    label:{display:'block',fontSize:'12.5px',color:'#64748b',margin:'0 0 6px',fontWeight:700},
+    input:{width:'100%',background:'#f8fafc',border:'none',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',marginBottom:'14px'},
+    err:{fontSize:'12px',color:'#dc2626',margin:'-10px 0 14px',fontWeight:700},
+    btn:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'none',fontFamily:'inherit',fontSize:'15px',fontWeight:900,cursor:'pointer',background:'#2563eb',color:'#fff'},
+    btnGhost:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'1px solid #f1f5f9',fontFamily:'inherit',fontSize:'14px',fontWeight:700,cursor:'pointer',background:'#fff',color:'#64748b',marginTop:'10px'},
+    linkRow:{textAlign:'center',marginTop:'14px',fontSize:'13px',color:'#94a3b8',fontWeight:700},
+    link:{color:'#2563eb',cursor:'pointer'},
+    note:{display:'flex',gap:'9px',background:'#f5f3ff',borderRadius:'13px',padding:'12px 13px',marginBottom:'16px',fontSize:'12.5px',lineHeight:1.5,color:'#6d28d9',fontWeight:600},
+    divider:{display:'flex',alignItems:'center',gap:'10px',margin:'20px 0 16px',fontSize:'11.5px',color:'#94a3b8',fontWeight:700},
+  };
+  const tabStyle = active => ({flex:1,textAlign:'center',padding:'9px 0',fontSize:'14px',fontWeight:700,color:active?'#0f172a':'#94a3b8',borderRadius:'9px',cursor:'pointer',border:'none',background:active?'#fff':'transparent',fontFamily:'inherit',boxShadow:active?'0 1px 3px rgba(0,0,0,0.08)':'none'});
+
+  const validEmail = /\S+@\S+\.\S+/.test(email);
+
+  const handleSignIn = async () => {
+    setError('');
+    if (!validEmail) { setError('Enter a valid email address'); return; }
+    setBusy(true);
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (err) setError(err.message);
+  };
+
+  const handleSignUp = async () => {
+    setError('');
+    if (!validEmail) { setError('Enter a valid email address'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
+    if (password !== password2) { setError('Passwords do not match'); return; }
+    setBusy(true);
+    const { error: err } = await supabase.auth.signUp({ email, password });
+    setBusy(false);
+    if (err) { setError(err.message); return; }
+    if (addToast) addToast('Account created — cloud sync arrives in a future update', 'success', null, 5000, 'Welcome');
+  };
+
+  const handleForgotRequest = async () => {
+    setError('');
+    if (!validEmail) { setError('Enter a valid email address'); return; }
+    setBusy(true);
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+    setBusy(false);
+    if (err) { setError(err.message); return; }
+    setForgotSent(true);
+  };
+
+  return (
+    <div style={AS.page}>
+      <div style={AS.card}>
+        <div style={AS.brand}>
+          <div style={AS.brandIcon}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="8.5" stroke="#fff" strokeWidth="1.8"/>
+              <path d="M12 7.5V12l3 2" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <div style={AS.brandName}>OT Tracker</div>
+            <div style={AS.brandSub}>Overtime and Shift Tracker</div>
+          </div>
+        </div>
+
+        {screen !== 'forgot' && (
+          <div style={AS.tabs}>
+            <button style={tabStyle(screen==='signin')} onClick={()=>{ setScreen('signin'); setError(''); }}>Sign in</button>
+            <button style={tabStyle(screen==='signup')} onClick={()=>{ setScreen('signup'); setError(''); }}>Create account</button>
+          </div>
+        )}
+
+        {screen === 'signin' && (
+          <>
+            <label style={AS.label}>Email</label>
+            <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
+            <label style={AS.label}>Password</label>
+            <input style={AS.input} type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password"/>
+            {error && <div style={AS.err}>{error}</div>}
+            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignIn}>{busy?'Signing in…':'Sign in'}</button>
+            <div style={AS.linkRow}><span style={AS.link} onClick={()=>{ setScreen('forgot'); setError(''); setForgotSent(false); }}>Forgot password?</span></div>
+          </>
+        )}
+
+        {screen === 'signup' && (
+          <>
+            <div style={AS.note}>
+              <span>↻</span>
+              <span><b>Your existing data comes with you.</b> Cloud sync of shifts and TOIL is coming in a future update — for now, creating an account just gets you signed in.</span>
+            </div>
+            <label style={AS.label}>Email</label>
+            <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
+            <label style={AS.label}>Password</label>
+            <input style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
+            <label style={AS.label}>Confirm password</label>
+            <input style={AS.input} type="password" placeholder="••••••••" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
+            {error && <div style={AS.err}>{error}</div>}
+            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignUp}>{busy?'Creating…':'Create account'}</button>
+          </>
+        )}
+
+        {screen === 'forgot' && !forgotSent && (
+          <>
+            <div style={{fontSize:'17px',fontWeight:900,marginBottom:'6px'}}>Reset your password</div>
+            <div style={{fontSize:'13px',color:'#64748b',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>We'll email you a secure link to set a new password.</div>
+            <label style={AS.label}>Email</label>
+            <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
+            {error && <div style={AS.err}>{error}</div>}
+            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleForgotRequest}>{busy?'Sending…':'Send reset link'}</button>
+            <div style={AS.linkRow}><span style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Back to sign in</span></div>
+          </>
+        )}
+
+        {screen === 'forgot' && forgotSent && (
+          <>
+            <div style={{fontSize:'17px',fontWeight:900,marginBottom:'6px'}}>Check your email</div>
+            <div style={{fontSize:'13px',color:'#64748b',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>A reset link's on its way to {email}. Follow it to set a new password.</div>
+            <button style={AS.btnGhost} onClick={()=>{ setScreen('signin'); setError(''); setForgotSent(false); }}>Back to sign in</button>
+          </>
+        )}
+
+        {screen !== 'forgot' && (
+          <>
+            <div style={AS.divider}>or</div>
+            <button style={AS.btnGhost} onClick={onContinueLocalOnly}>Continue without an account</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── app ──────────────────────────────────────────────────────────────────────
+export default function App() {
+  const todayStr      = new Date().toISOString().split('T')[0];
+  const currPeriodIdx = PAY_PERIODS.findIndex(p=>todayStr>=p.start&&todayStr<=p.end);
+
+  const [tab,          setTab]          = useState('dashboard');
+  const [entries,      setEntries]      = useState(()=>dualRead(KEYS.entries,[]));
+  const [toilTaken,    setToilTaken]    = useState(()=>dualRead(KEYS.toilTaken,[]));
+  const [settings,     setSettings]     = useState(()=>migrateSettings(dualRead(KEYS.settings,null)));
+  const [expanded,     setExpanded]     = useState(null);
+  const [chartTap, setChartTap] = useState(null);     // {chart:'cum'|'mon', i, big}
+  const [chartModal, setChartModal] = useState(null); // 'cum' | 'mon' | null
+  const [payslipModalOpen, setPayslipModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState(null); // null (choosing) | 'pdf' | 'csv'
+  const [payslipMode, setPayslipMode] = useState('period'); // 'period' | 'custom' | 'financialYear'
+  const [payslipPeriodIdx, setPayslipPeriodIdx] = useState(null);
+  const [payslipFYYear, setPayslipFYYear] = useState(null); // calendar FY-start-year selected in 'financialYear' export mode
+  const [payslipStart, setPayslipStart] = useState('');
+  const [payslipEnd, setPayslipEnd] = useState('');
+  const [payslipPreview, setPayslipPreview] = useState(null); // { start, end, label, data } | null
+  const [sanitiseNotes, setSanitiseNotes] = useState(true); // blank the Notes column on CSV export by default — safer given notes may hold operationally sensitive detail
+  const [defaultBreakdownView, setDefaultBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'list'));
+  const [breakdownView, setBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'list')); // 'list' | 'calendar'
+  const [calPeriodIdx, setCalPeriodIdx] = useState(null); // set to currPeriodIdx on first render
+  const [selectedCalDay, setSelectedCalDay] = useState(null);
+  const [confirmCreateDay, setConfirmCreateDay] = useState(null);
+  const [focusEntryId, setFocusEntryId] = useState(null);
+  const [editing,      setEditing]      = useState(null);
+  const [wipeConf,     setWipeConf]     = useState(false);
+  const [confirmDel,   setConfirmDel]   = useState(null);
+  const [toasts,       setToasts]       = useState([]);
+  const [savedBadge,   setSavedBadge]   = useState(false);
+  const [lastBackedUp, setLastBackedUp] = useState(()=>dualRead(KEYS.backedUpAt,null));
+  const [session,      setSession]      = useState(null);
+  const [authLoading,  setAuthLoading]  = useState(true);
+  const [localOnlyMode,setLocalOnlyMode]= useState(()=>dualRead(KEYS.localOnlyMode,false));
+  const [showBackupReminder, setShowBackupReminder] = useState(false);
+  const [showFYRollover, setShowFYRollover] = useState(false);
+  const [fySummaryYear, setFySummaryYear] = useState(null); // calendar FY-start-year of the archived year being viewed, or null
+  const [fySummaryPrintMode, setFySummaryPrintMode] = useState(false); // true when opened via Financial Year export (all periods expanded, Print button shown)
+  const [archiveExpandedPeriod, setArchiveExpandedPeriod] = useState(null); // short label of the expanded period within that year, or null
+  const [trendsExpanded, setTrendsExpanded] = useState(false);
+  const [taxImpactExpanded, setTaxImpactExpanded] = useState(false);
+  const [homeGraphExpanded, setHomeGraphExpanded] = useState(false);
+  const [taxCalcActualDetailOpen, setTaxCalcActualDetailOpen] = useState(false);
+  const [taxCalcForecastDetailOpen, setTaxCalcForecastDetailOpen] = useState(false);
+  const [hourlyRatesExpanded, setHourlyRatesExpanded] = useState(false);
+  const [exportDataExpanded, setExportDataExpanded] = useState(false);
+  const [financialYearsExpanded, setFinancialYearsExpanded] = useState(false);
+  const [pulseBackupBtn, setPulseBackupBtn] = useState(false);
+
+  const mainRef   = useRef(null);
+  const fileRef   = useRef(null);
+  const monthRefs = useRef({});
+  const stickyRef = useRef(null);
+  const entryRefs = useRef({});
+  const notesRef = useRef(null);
+
+  const blankForm = { date:todayStr, reason:'', hours133:'', hours150:'', hours200:'', nightWorkHours:'', nightHours:'', paRate:'None', comments:'', recordShiftTimes:true, rosteredStart:'', rosteredEnd:'', actualStart:'', actualEnd:'', dutyType:'normal', otRateTier:'hours133', otAuto:true, nightAuto:true, takeAs:'pay', toilHours:'' };
+  const [form, setForm] = useState(blankForm);
+
+  // ── persist ────────────────────────────────────────────────────────────────
+  useEffect(()=>{
+    dualWrite(KEYS.entries,entries);
+  },[entries]);
+  useEffect(()=>{ dualWrite(KEYS.toilTaken,toilTaken); },[toilTaken]);
+  useEffect(()=>{ dualWrite(KEYS.settings,settings); },[settings]);
+
+  // ── auth session ──────────────────────────────────────────────────────────
+  // Checks for an existing session once on mount, then stays subscribed for
+  // sign-in/sign-out events for the lifetime of the app. Local-only mode
+  // (KEYS.localOnlyMode) bypasses this entirely — that flag, not the session,
+  // is what decides whether the auth gate below is shown.
+  useEffect(()=>{
+    if (!supabase) { setAuthLoading(false); return; }
+    let cancelled = false;
+    supabase.auth.getSession().then(({data})=>{
+      if (cancelled) return;
+      setSession(data.session);
+      setAuthLoading(false);
+    }).catch(()=>{
+      // Offline or unreachable — fall through to the auth gate rather than
+      // hang on "Loading…" forever. Local-only mode still works either way.
+      if (cancelled) return;
+      setSession(null);
+      setAuthLoading(false);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession)=>{
+      setSession(newSession);
+    });
+    return ()=>{ cancelled = true; listener.subscription.unsubscribe(); };
+  },[]);
+  useEffect(()=>{ if(mainRef.current) mainRef.current.scrollTop=0; },[tab]);
+
+  // Opening the Breakdown tab always returns to the starred default view.
+  // Switching views is treated as a temporary look, not a lasting preference —
+  // only the star changes what Breakdown opens on. The ref lets handleSave
+  // bypass this, since it deliberately targets a specific view and entry.
+  const skipBreakdownReset = useRef(false);
+  const taxImpactCardRef = useRef(null);
+  const scrollToTaxImpact = useRef(false); // set true only when tapped from Home's Tax Threshold card
+  useEffect(()=>{
+    if(tab!=='months') return;
+    if(skipBreakdownReset.current){ skipBreakdownReset.current=false; return; }
+    setBreakdownView(defaultBreakdownView);
+    if(defaultBreakdownView==='calendar') setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);
+  },[tab]);
+
+  // Scrolls Settings so the £100k Tax Impact card sits at the top — but only
+  // right after tapping through from Home's Tax Threshold tracker, not on an
+  // ordinary visit to Options. The small delay lets the card's just-expanded
+  // content finish laying out first, so the scroll target is stable.
+  useEffect(()=>{
+    if(tab!=='settings' || !scrollToTaxImpact.current) return;
+    scrollToTaxImpact.current = false;
+    setTimeout(()=>{ taxImpactCardRef.current?.scrollIntoView({behavior:'auto',block:'start'}); }, 60);
+  },[tab]);
+
+  // Collapse every expandable Options card the moment the person leaves the
+  // Options tab, so it's back to a clean, collapsed state next time they
+  // arrive — rather than remembering whatever was left open.
+  const prevTabRef = useRef(tab);
+  useEffect(()=>{
+    if(prevTabRef.current==='settings' && tab!=='settings'){
+      setTaxImpactExpanded(false);
+      setTaxCalcActualDetailOpen(false);
+      setTaxCalcForecastDetailOpen(false);
+      setHourlyRatesExpanded(false);
+      setExportDataExpanded(false);
+      setFinancialYearsExpanded(false);
+    }
+    prevTabRef.current = tab;
+  },[tab]);
+
+  // ── snap zoom back to default when switching tabs ───────────────────────────
+  // Pinch-zoom is allowed while browsing a tab. When the person switches tabs,
+  // this forces the browser to reprocess the viewport at scale=1. Simply
+  // mutating the meta tag's content attribute in place is often ignored by
+  // mobile browsers if they judge nothing "changed" — removing the tag from
+  // the DOM and reinserting it forces a genuine reprocess, which is the more
+  // reliable version of this technique. Held briefly before restoring the
+  // zoomable viewport so pinch still works next time.
+  useEffect(()=>{
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (!viewport || !viewport.parentNode) return;
+    const parent = viewport.parentNode;
+    const zoomable = 'width=device-width,initial-scale=1.0,maximum-scale=5.0,user-scalable=yes';
+    const locked   = 'width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no';
+
+    const forceReprocess = content => {
+      parent.removeChild(viewport);
+      viewport.setAttribute('content', content);
+      parent.appendChild(viewport);
+    };
+
+    forceReprocess(locked);
+    window.scrollTo(0,0);
+    const t = setTimeout(()=>{ forceReprocess(zoomable); }, 450);
+    return ()=>clearTimeout(t);
+  },[tab]);
+
+  // ── 14-day backup reminder ───────────────────────────────────────────────────
+  // Optional and dismissible — never blocks the app. Fires roughly every 14
+  // days, measured from whichever happened more recently: an actual backup,
+  // or the last time this reminder was shown/dismissed. First-ever use just
+  // sets a baseline rather than nagging immediately.
+  useEffect(()=>{
+    if (entries.length === 0) return;
+    const REMINDER_INTERVAL = 14*24*60*60*1000;
+    const lastReminder = dualRead(KEYS.lastBackupReminder, null);
+    const lastBackup   = dualRead(KEYS.backedUpAt, null);
+    const baseline = Math.max(lastReminder||0, lastBackup||0);
+    if (baseline === 0) { dualWrite(KEYS.lastBackupReminder, Date.now()); return; }
+    if (Date.now() - baseline >= REMINDER_INTERVAL) setShowBackupReminder(true);
+  },[]);
+
+  const dismissBackupReminder = () => {
+    dualWrite(KEYS.lastBackupReminder, Date.now());
+    setShowBackupReminder(false);
+  };
+
+  const goBackupNow = () => {
+    dualWrite(KEYS.lastBackupReminder, Date.now());
+    setShowBackupReminder(false);
+    setTab('settings');
+    setPulseBackupBtn(true);
+    setTimeout(()=>setPulseBackupBtn(false), 6000);
+  };
+
+  // ── financial year rollover ─────────────────────────────────────────────────
+  // Compares the FY the person last had the app open in against today's actual
+  // current FY (computed above). First-ever use just sets the baseline rather
+  // than announcing a "rollover" that never happened.
+  useEffect(()=>{
+    const lastSeen = dualRead(KEYS.lastSeenFYYear, null);
+    if (lastSeen === null) { dualWrite(KEYS.lastSeenFYYear, CURRENT_FY_YEAR); return; }
+    if (lastSeen < CURRENT_FY_YEAR) setShowFYRollover(true);
+  },[]);
+
+  const dismissFYRollover = () => {
+    dualWrite(KEYS.lastSeenFYYear, CURRENT_FY_YEAR);
+    setShowFYRollover(false);
+  };
+
+  // ── toasts ─────────────────────────────────────────────────────────────────
+  const addToast = useCallback((msg,type='success',action=null,dur=3500,title=null)=>{
+    const id=Date.now()+Math.random();
+    setToasts(t=>[...t,{id,message:msg,type,action,title}]);
+    setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),dur);
+  },[]);
+
+  const dismissToast = useCallback(id=>setToasts(t=>t.filter(x=>x.id!==id)),[]);
+
+  const saveSett = s=>{ setSettings(s); setSavedBadge(true); setTimeout(()=>setSavedBadge(false),2200); };
+
+  // ── entry calculator ───────────────────────────────────────────────────────
+  // Returns the gross pay components for a single entry using date-correct rates.
+  // Net is NOT calculated here — tax is applied per pay period on a cumulative
+  // marginal basis (see periodBreakdown in totals below), since a flat personal
+  // tax rate can't correctly reflect where each pound sits in the tax bands.
+  const calcEntry = useCallback((e)=>{
+    const r  = getRates(settings.rank, settings.service, e.date);
+    const h1 = parseFloat(e.hours133)||0;
+    const h2 = parseFloat(e.hours150)||0;
+    const h3 = parseFloat(e.hours200)||0;
+    const nh = parseFloat(e.nightHours)||0;
+    // TOIL hours (worked at e.otRateTier's rate, taken as time instead of
+    // pay) reduce the CASH overtime calculation only — h1/h2/h3 still
+    // reflect hours actually worked, so hours-worked totals stay correct.
+    const toilH = e.otRateTier ? (parseFloat(e.toilHours)||0) : 0;
+    const payH1 = e.otRateTier==='hours133' ? Math.max(0,h1-toilH) : h1;
+    const payH2 = e.otRateTier==='hours150' ? Math.max(0,h2-toilH) : h2;
+    const payH3 = e.otRateTier==='hours200' ? Math.max(0,h3-toilH) : h3;
+    const ot1 = payH1*r.r133, ot2 = payH2*r.r150, ot3 = payH3*r.r200;
+    const ot  = ot1+ot2+ot3;
+    const toilBanked = e.otRateTier ? toilH * RATE_TIER_MULT[e.otRateTier] : 0;
+    const night = nh * r.base * 0.10;          // 10% of base rate per night hour
+    const pa    = PA_RATES[e.paRate]||0;
+    const gross = ot + night + pa;
+    return { h1, h2, h3, payH1, payH2, payH3, ot1, ot2, ot3, nh, ot, night, pa, gross, r, toilH, toilBanked, otRateTier:e.otRateTier, takeAs:e.takeAs };
+  },[settings]);
+
+  // ── derived totals ─────────────────────────────────────────────────────────
+  const fyEntries = useMemo(()=>entries.filter(e=>e.date>=FY_START&&e.date<=FY_END),[entries]);
+  const yearsWithData = useMemo(()=>{
+    const set = new Set();
+    entries.forEach(e=>set.add(getFYStartYearFor(e.date)));
+    return [...set].filter(y=>y<CURRENT_FY_YEAR).sort((a,b)=>b-a);
+  },[entries]);
+
+  const totals = useMemo(()=>{
+    const svcData = settings.rank && settings.service ? PAY_RATES[settings.rank]?.[settings.service] : null;
+
+    // Anchored to the REAL UK tax year (6 Apr – 5 Apr), not the force's pay
+    // year (which starts 9 Feb) — HMRC resets personal allowance/bands on
+    // 6 April regardless of when the police pay calendar happens to start.
+    // Computed up front so the cascade below can use it.
+    const taxYearStart = getUKTaxYearStart(todayStr);
+    const taxYearEnd    = addYearMinusOneDay(taxYearStart);
+    const ytdRangeEnd   = todayStr <= taxYearEnd ? todayStr : taxYearEnd;
+
+    // ── build the period-by-period cumulative marginal cascade ────────────────
+    // For each period, in chronological order: add salary+LW+LA, then layer this
+    // period's overtime, then night enhancement, then PA on top of the running
+    // cumulative total. Each layer's tax is the difference in cumulative tax
+    // before/after it — i.e. the true marginal rate for that slice of income.
+    //
+    // The running total only ever accumulates periods that belong to the
+    // CURRENT UK tax year — a period is treated as belonging to whichever tax
+    // year contains its end date (matching how PAYE actually works: tax
+    // follows the pay date, not a smooth day-by-day split). The pay calendar
+    // starts 9 Feb, so exactly one period each year (the one ending before
+    // 6 April) falls in the previous, already-closed tax year; its own
+    // marginal tax is estimated as a fresh start from zero rather than folded
+    // into this year's cumulative, since this view has no visibility into
+    // whatever else was earned earlier in that prior year.
+    let cum = 0;
+    let totalGross=0, totalHrs=0;
+    const periodBreakdown = PAY_PERIODS.map((p,pIdx)=>{
+      const pE = fyEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
+      let ot=0, night=0, pa=0, hrs=0;
+      pE.forEach(e=>{
+        const c=calcEntry(e);
+        ot+=c.ot; night+=c.night; pa+=c.pa; hrs+=c.h1+c.h2+c.h3;
+      });
+
+      const baseAmt = periodBaseAmount(p, svcData); // salary + London Weighting + London Allowance
+      const inCurrentTaxYear = p.end >= taxYearStart;
+
+      // How far into the relevant tax year this period's end falls, as a
+      // continuous 0-1 fraction — used to pro-rate the annual PA/band
+      // thresholds down to "so far this year", exactly as cumulative PAYE
+      // does it. A period outside the current tax year gets its own span as
+      // the reference instead (there's no larger year to measure against).
+      const daysForFraction = inCurrentTaxYear
+        ? Math.max(0, (new Date(p.end) - new Date(taxYearStart))/86400000) + 1
+        : daysInclusive(p.start, p.end);
+      const yearFraction = Math.max(1/365, Math.min(1, daysForFraction/365));
+
+      let periodCum = inCurrentTaxYear ? cum : 0; // fresh start for a prior-tax-year period
+      periodCum += baseAmt;                        // taxed first, so OT stacks on top of it
+      let pGross = baseAmt;                         // this period's gross so far, for NI (unaffected by the tax-year split — NI has no annual concept)
+
+      const otResult    = applyBandTax(periodCum, ot,    yearFraction, pGross); periodCum += ot;    pGross += ot;
+      const nightResult = applyBandTax(periodCum, night, yearFraction, pGross); periodCum += night; pGross += night;
+      const paResult    = applyBandTax(periodCum, pa,    yearFraction, pGross); periodCum += pa;
+
+      if (inCurrentTaxYear) cum = periodCum; // only carry forward into the next period if this one belongs to the current tax year
+
+      totalGross += ot+night+pa; totalHrs += hrs;
+
+      return {
+        month:p.month, start:p.start, end:p.end,
+        baseAmt, ot, night, pa,
+        otResult, nightResult, paResult,
+        combinedGross: ot+night+pa,
+        combinedNet: otResult.net+nightResult.net+paResult.net,
+        cumAfter: periodCum,
+        inCurrentTaxYear,
+      };
+    });
+
+    const totalNet = periodBreakdown.reduce((s,pb)=>s+pb.combinedNet,0);
+    // Per-component YTD figures — same underlying otResult/nightResult/paResult
+    // used everywhere else, just summed by component instead of combined, so
+    // totalOTGross+totalNightGross+totalPAGross === totalGross by construction
+    // (same for the net figures), keeping this consistent with every other tab.
+    const totalOTGross    = periodBreakdown.reduce((s,pb)=>s+pb.ot,0);
+    const totalOTNet      = periodBreakdown.reduce((s,pb)=>s+pb.otResult.net,0);
+    const totalNightGross = periodBreakdown.reduce((s,pb)=>s+pb.night,0);
+    const totalNightNet   = periodBreakdown.reduce((s,pb)=>s+pb.nightResult.net,0);
+    const totalPAGross    = periodBreakdown.reduce((s,pb)=>s+pb.pa,0);
+    const totalPANet      = periodBreakdown.reduce((s,pb)=>s+pb.paResult.net,0);
+
+    const getP=i=>{
+      if(i<0||i>=periodBreakdown.length) return null;
+      const pb=periodBreakdown[i];
+      return{month:pb.month,start:pb.start,end:pb.end,gross:pb.combinedGross,net:pb.combinedNet};
+    };
+
+    const cumData = periodBreakdown.map(pb=>({short:PAY_PERIODS.find(p=>p.month===pb.month).short,cumulative:pb.cumAfter}));
+
+    // ── salary + allowances YTD (for the top Home summary card) ───────────────
+    // Anchored to the REAL UK tax year (6 Apr – 5 Apr), not the force's pay
+    // year (which starts 9 Feb) — HMRC resets personal allowance/bands on
+    // 6 April regardless of when the police pay calendar happens to start.
+    // Salary/allowances accrue in proper monthly instalments (stepping up
+    // once per completed month) rather than a smooth daily creep.
+    const todayD      = new Date(todayStr);
+    const fyStartD    = new Date(FY_START);
+    const fyEndD      = new Date(FY_END);
+    const effectiveEnd = todayD <= fyEndD ? todayD : fyEndD;
+    const daysElapsed  = Math.max(0, (effectiveEnd - fyStartD) / 86400000); // still used for "days into FY" label (police pay-year)
+
+    const taxYearDaysElapsed = Math.max(0, (new Date(ytdRangeEnd) - new Date(taxYearStart)) / 86400000);
+
+    const salaryYTD = svcData ? monthlySteppedSplitBySept(svcData.salary.pre, svcData.salary.post, taxYearStart, ytdRangeEnd) : 0;
+    const lwYTD     = monthlySteppedSplitBySept(LONDON_WEIGHTING.pre, LONDON_WEIGHTING.post, taxYearStart, ytdRangeEnd);
+    const laYTD     = monthlySteppedAmount(LONDON_ALLOWANCE, taxYearStart, ytdRangeEnd);
+
+    // Overtime/PA actually earned so far THIS TAX YEAR — excludes future-dated
+    // "Planned" entries, and excludes anything dated before the tax year
+    // started (which belongs to the previous tax year's allowance/bands).
+    let otPaidToDate = 0, otNightPaidToDate = 0, hrsToDate = 0;
+    fyEntries.forEach(e=>{
+      if (e.date >= taxYearStart && e.date <= todayStr) {
+        const c = calcEntry(e);
+        otPaidToDate += c.gross;
+        otNightPaidToDate += c.ot + c.night; // hourly-earned only, excludes flat PA
+        hrsToDate += c.h1 + c.h2 + c.h3;
+      }
+    });
+
+    // Break the to-date overtime/night money down by which tax band it falls
+    // in (stacked on top of salary+allowances), then convert each band's
+    // portion back to hours using the blended average £/hr for that money.
+    const avgHourlyRate = hrsToDate > 0 ? otNightPaidToDate / hrsToDate : 0;
+    const hoursByBand = splitAcrossBands(salaryYTD+lwYTD+laYTD, otNightPaidToDate)
+      .map(b => ({ ...b, hours: avgHourlyRate > 0 ? b.amount / avgHourlyRate : 0 }));
+
+    // Full UK tax year totals (for showing "earned so far / full year" progress),
+    // matching the same tax-year window and monthly-stepped method as above.
+    const lwAnnualTotal = monthlySteppedSplitBySept(LONDON_WEIGHTING.pre, LONDON_WEIGHTING.post, taxYearStart, taxYearEnd);
+    const laAnnualTotal = monthlySteppedAmount(LONDON_ALLOWANCE, taxYearStart, taxYearEnd);
+    const salaryAnnualTotal = svcData ? monthlySteppedSplitBySept(svcData.salary.pre, svcData.salary.post, taxYearStart, taxYearEnd) : 0;
+
+    const combinedGrossYTD = salaryYTD + lwYTD + laYTD + otPaidToDate;
+
+    // Deductions on what's actually been earned so far — no projection or
+    // extrapolation. Thresholds are pro-rated to how far through the UK tax
+    // year we are (6 Apr onward), not how far through the force's pay year
+    // (which starts 9 Feb, ~2 months earlier) — using the pay-year count here
+    // would overstate how much of the tax year has elapsed and understate
+    // every YTD-based figure below.
+    const taxYearFraction = Math.max(1/365, Math.min(1, taxYearDaysElapsed/365));
+    const ytdTax = calcUKIncomeTax(combinedGrossYTD, taxYearFraction);
+    // NI is assessed per pay period in isolation (no annual concept), so sum
+    // only the periods that actually fall within the current UK tax year —
+    // slicing by pay-period position would pull in periods 1-2 of the pay
+    // year, which run 9 Feb – ~5 Apr and belong to the previous tax year.
+    const ytdNI = periodBreakdown
+      .filter(pb => pb.end >= taxYearStart && pb.start <= todayStr)
+      .reduce((s,pb)=>s + calcNI(pb.baseAmt + pb.ot + pb.night + pb.pa), 0);
+    const combinedNetYTD = combinedGrossYTD - ytdTax - ytdNI;
+
+    const currentBand   = getTaxBand(combinedGrossYTD, taxYearFraction);
+    const taxBand        = currentBand.name;
+    const taxBandRate    = currentBand.rate;
+
+    // Same annualisation the tax functions use internally, surfaced here so
+    // the £100k tracker and the tax figures always agree with each other.
+    const projectedAnnualGross = combinedGrossYTD / taxYearFraction;
+    const taperExtraTax = projectedAnnualGross > 100000
+      ? calcUKIncomeTax(projectedAnnualGross, 1) - calcUKIncomeTaxNoTaper(projectedAnnualGross, 1)
+      : 0;
+
+    return{
+      totalGross, totalNet, totalHrs, cumData, periodBreakdown,
+      totalOTGross, totalOTNet, totalNightGross, totalNightNet, totalPAGross, totalPANet,
+      prev:getP(currPeriodIdx-1), curr:getP(currPeriodIdx), next:getP(currPeriodIdx+1),
+      salaryYTD, lwYTD, laYTD, lwAnnualTotal, laAnnualTotal, salaryAnnualTotal, combinedGrossYTD, combinedNetYTD,
+      ytdTax, ytdNI, taxBand, taxBandRate, daysElapsed, taxYearDaysElapsed, taxYearStart, hoursByBand,
+      projectedAnnualGross, taperExtraTax,
+    };
+  },[fyEntries,calcEntry,settings,currPeriodIdx,todayStr]);
+
+  // ── TOIL balance ───────────────────────────────────────────────────────────
+  // All-time running balance: every hour ever banked as TOIL (from any logged
+  // shift, in any year) minus every hour ever logged as taken. Deliberately
+  // NOT scoped to the financial year the way pay figures are — TOIL carries
+  // over, it doesn't reset with the tax year.
+  const toilLedger = useMemo(()=>{
+    const earned = entries
+      .filter(e=>e.otRateTier && (parseFloat(e.toilHours)||0) > 0)
+      .map(e=>{
+        const worked = parseFloat(e.toilHours)||0;
+        const dLabel = new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+        return {
+          id:'earn-'+e.id, date:e.date, type:'earned',
+          hours: calcEntry(e).toilBanked,
+          note: `${fmtHM(worked)}h OT @ ${RATE_TIER_MULT[e.otRateTier]}x — ${e.reason||'shift'} ${dLabel}`,
+        };
+      });
+    const taken = toilTaken.map(t=>({
+      id:'take-'+t.id, rawId:t.id, date:t.date, type:'taken',
+      hours: -(parseFloat(t.hours)||0), note: t.note||'TOIL taken',
+    }));
+    const combined = [...earned, ...taken].sort((a,b)=>a.date.localeCompare(b.date));
+    let running = 0;
+    const rows = combined.map(l=>{ running += l.hours; return {...l, balanceAfter:running}; });
+    return { rows, balance: running };
+  },[entries, toilTaken, calcEntry]);
+
+  // ── auto-calc effects for Record Shift Times ────────────────────────────────
+  // Keep the Overtime Hours figure in sync with rostered/actual times and duty
+  // type, unless the person has manually overridden it (form.otAuto false) —
+  // e.g. to add hours for a recall the times themselves don't capture.
+  useEffect(()=>{
+    if (!form.recordShiftTimes || !form.otAuto || !form.otRateTier) return;
+    const auto = Math.round(calcAutoOTHours(form)*100)/100;
+    const current = parseFloat(form[form.otRateTier])||0;
+    if (current===auto) return;
+    setForm(f=>({ ...f, [form.otRateTier]: auto ? String(auto) : '' }));
+  },[form.rosteredStart, form.rosteredEnd, form.actualStart, form.actualEnd, form.dutyType, form.otAuto, form.otRateTier, form.recordShiftTimes]);
+
+  // Night hours: the WHOLE actual shift, regardless of duty type — any hour
+  // worked 2000–0600 is paid, whether it's inside the rostered portion or the
+  // overtime portion of the shift.
+  useEffect(()=>{
+    if (!form.recordShiftTimes || !form.nightAuto) return;
+    const auto = calcAutoNightHours(form);
+    const current = parseFloat(form.nightHours)||0;
+    if (current===auto) return;
+    setForm(f=>({ ...f, nightHours: auto ? String(auto) : '', nightWorkHours: auto ? String(auto) : '' }));
+  },[form.actualStart, form.actualEnd, form.nightAuto, form.recordShiftTimes]);
+
+  // Which rate tier TOIL banking applies to — in auto-calc mode this is just
+  // form.otRateTier; in manual mode there's no rate-pill selector, so we look
+  // at which single hours133/150/200 box actually has something in it. If
+  // more than one tier is populated there's no single clear rate, so TOIL
+  // doesn't apply (Take As stays hidden and any TOIL split gets reset).
+  const manualSingleTier = (()=>{
+    const populated = ['hours133','hours150','hours200'].filter(k=>(parseFloat(form[k])||0)>0);
+    return populated.length===1 ? populated[0] : null;
+  })();
+  const effectiveTier = form.recordShiftTimes ? form.otRateTier : manualSingleTier;
+
+  // Keep toilHours tracking the Pay/TOIL/Mix choice: 'pay' → 0, 'toil' → the
+  // full total, 'mix' → whatever's been split, clamped if the total shrinks
+  // (e.g. the overtime hours were edited down after a Mix split was made).
+  useEffect(()=>{
+    if (!effectiveTier) {
+      if ((form.toilHours && form.toilHours!=='0') || form.takeAs!=='pay') {
+        setForm(f=>({...f, toilHours:'0', takeAs:'pay'}));
+      }
+      return;
+    }
+    // in manual mode, keep otRateTier pointing at whichever tier is actually
+    // populated, so the saved entry and calcEntry agree on which tier TOIL
+    // was taken from
+    if (form.otRateTier !== effectiveTier) { setForm(f=>({...f, otRateTier:effectiveTier})); return; }
+    const total = parseFloat(form[effectiveTier])||0;
+    const currentToil = parseFloat(form.toilHours)||0;
+    let target = currentToil;
+    if (form.takeAs==='pay') target = 0;
+    else if (form.takeAs==='toil') target = total;
+    else target = Math.min(currentToil, total); // mix — just clamp
+    if (target!==currentToil) setForm(f=>({ ...f, toilHours: target ? String(target) : '0' }));
+  },[effectiveTier, form.takeAs, form.hours133, form.hours150, form.hours200, form.toilHours, form.otRateTier]);
+
+  // ── live form preview ──────────────────────────────────────────────────────
+  // Shows the net for this shift as if logged right now — using the tax band
+  // that applies once this shift's total is added to everything already
+  // earned this FY (salary, allowances, other OT/PA).
+  const preview = useMemo(()=>{
+    const r  = getRates(settings.rank, settings.service, form.date||todayStr);
+    const h1 = parseFloat(form.hours133)||0;
+    const h2 = parseFloat(form.hours150)||0;
+    const h3 = parseFloat(form.hours200)||0;
+    const nh = parseFloat(form.nightHours)||0;
+    const toilH = form.otRateTier ? (parseFloat(form.toilHours)||0) : 0;
+    const payH1 = form.otRateTier==='hours133' ? Math.max(0,h1-toilH) : h1;
+    const payH2 = form.otRateTier==='hours150' ? Math.max(0,h2-toilH) : h2;
+    const payH3 = form.otRateTier==='hours200' ? Math.max(0,h3-toilH) : h3;
+    const ot    = payH1*r.r133 + payH2*r.r150 + payH3*r.r200;
+    const toilBanked = form.otRateTier ? toilH * RATE_TIER_MULT[form.otRateTier] : 0;
+    const night = nh * r.base * 0.10;
+    const pa    = PA_RATES[form.paRate]||0;
+    const gross = ot + night + pa;
+    // Use the pay period this shift falls in for NI (period-based, no annual
+    // concept), and the shift's own date for pro-rating tax thresholds —
+    // reflecting the right point in the UK tax year, not the pay calendar.
+    const d = form.date||todayStr;
+    const pIdx = PAY_PERIODS.findIndex(p=>d>=p.start&&d<=p.end);
+    const pb = pIdx>=0 ? totals.periodBreakdown[pIdx] : null;
+    const periodGrossBefore = pb ? pb.baseAmt + pb.ot + pb.night + pb.pa : 0;
+    const result = applyBandTax(totals.combinedGrossYTD, gross, taxYearFractionForDate(d), periodGrossBefore);
+    return { gross, net:result.net, night, toilBanked, has:gross>0||toilBanked>0 };
+  },[form, settings, todayStr, totals.combinedGrossYTD, totals.periodBreakdown, currPeriodIdx]);
+
+  // ── handlers ───────────────────────────────────────────────────────────────
+  const handleSave=()=>{
+    if(!form.date) return;
+
+    // One entry per date — if the date is already taken, point the person at
+    // the existing record rather than silently creating a second one.
+    const dupe = entries.find(e=>e.date===form.date && (!editing || e.id!==editing.id));
+    if(dupe){
+      const dStr = new Date(form.date+'T12:00:00').toLocaleDateString('en-GB');
+      addToast(
+        `You've already logged overtime for ${dStr}. Edit that record instead of creating a second one.`,
+        'alert',
+        {label:'Edit existing entry',fn:()=>startEdit(dupe)},
+        8000,
+        'Entry already exists'
+      );
+      return;
+    }
+
+    const targetDate = form.date;
+    // Trim trailing whitespace so the blank line left for the cursor after
+    // Record Shift Times doesn't get saved if the person never typed into it.
+    const cleanForm = { ...form, comments: (form.comments||'').replace(/\s+$/,'') };
+    let savedId, updatedEntries;
+    if(editing){
+      savedId = editing.id;
+      updatedEntries = entries.map(e=>e.id===editing.id?{...cleanForm,id:e.id}:e);
+      setEntries(updatedEntries);
+      addToast('Record updated');
+    } else {
+      savedId = Date.now().toString();
+      updatedEntries = [...entries,{...cleanForm,id:savedId}];
+      setEntries(updatedEntries);
+      addToast('Overtime logged');
+      // nudge backup every 5 entries
+      const count=(dualRead(KEYS.backupCount,0)||0)+1;
+      dualWrite(KEYS.backupCount,count);
+      if(count%5===0) setTimeout(()=>addToast(`${count} records logged — download a backup?`,'warn',{label:'Backup now',fn:handleExport},8000),800);
+    }
+
+    // Show the person the record they just saved, in whichever Breakdown view
+    // they've set as their default.
+    const periodIdx = PAY_PERIODS.findIndex(p=>targetDate>=p.start&&targetDate<=p.end);
+    const period = periodIdx>=0 ? PAY_PERIODS[periodIdx] : null;
+    skipBreakdownReset.current = true; // this navigation targets a specific entry
+
+    if(defaultBreakdownView==='calendar' && period){
+      setBreakdownView('calendar');
+      setCalPeriodIdx(periodIdx);
+      // open that day's detail popover so the entry is visible straight away
+      const dEntries = updatedEntries.filter(e=>e.date===targetDate);
+      const dayTotals = dEntries.reduce((acc,e)=>{
+        const c=calcEntry(e);
+        acc.hrs += c.h1+c.h2+c.h3;
+        if(c.nh>0) acc.night = true;
+        if(e.paRate && e.paRate!=='None') acc.pa = true;
+        return acc;
+      },{hrs:0,night:false,pa:false});
+      setSelectedCalDay({
+        ds: targetDate, dEntries, periodIdx,
+        totalHrs: dayTotals.hrs, hasNight: dayTotals.night, hasPA: dayTotals.pa, hasOT: true,
+      });
+      if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'});
+    } else {
+      setBreakdownView('list');
+      if(period) setExpanded(period.month);
+      setFocusEntryId(savedId);
+    }
+    setTab('months');
+
+    setForm({...blankForm,date:todayStr}); setEditing(null);
+  };
+
+  const startEdit=e=>{ setForm(e); setEditing(e); setTab('add'); };
+  const delEntry=id=>{
+    const d=entries.find(e=>e.id===id);
+    setEntries(prev=>prev.filter(x=>x.id!==id));
+    setConfirmDel(null);
+    addToast('Record deleted','undo',{label:'Undo',fn:()=>setEntries(prev=>[...prev,d])},7000);
+  };
+
+  const [toilTakenForm, setToilTakenForm] = useState({date:todayStr, hours:'', minutes:'00', note:''});
+  const addToilTaken = () => {
+    const wholeHours = parseInt(toilTakenForm.hours,10)||0;
+    const mins = parseInt(toilTakenForm.minutes,10)||0;
+    const hrs = wholeHours + mins/60;
+    if (!toilTakenForm.date || hrs<=0) { addToast('Enter a date and a positive number of hours','warn'); return; }
+    const resultingBalance = toilLedger.balance - hrs;
+    setToilTaken(prev=>[...prev, { id:Date.now().toString(), date:toilTakenForm.date, hours:hrs, note:toilTakenForm.note||'' }]);
+    setToilTakenForm({date:todayStr, hours:'', minutes:'00', note:''});
+    if (resultingBalance < 0) {
+      addToast(`Logged — balance is now ${fmtHM(resultingBalance)} h (more taken than earned)`,'warn');
+    } else {
+      addToast('TOIL taken logged');
+    }
+  };
+  const deleteToilTaken = id => {
+    const d = toilTaken.find(t=>t.id===id);
+    setToilTaken(prev=>prev.filter(t=>t.id!==id));
+    addToast('Entry removed','undo',{label:'Undo',fn:()=>setToilTaken(prev=>[...prev,d])},7000);
+  };
+
+  // Standard backup filename convention: OTbackup + day + 3-letter month +
+  // 2-digit year. e.g. 21 Sept 2026 -> "OTbackup21Sep26"
+  // Deliberately date-only: a second backup on the same day replaces the
+  // first, so you keep one current file per day rather than a cluttered folder.
+  const backupFileStamp = () => {
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${pad(d.getDate())}${months[d.getMonth()]}${String(d.getFullYear()).slice(-2)}`;
+  };
+
+  async function handleExport(){
+    const now=Date.now();
+    const filename = `OTbackup${backupFileStamp()}.json`;
+    const json = JSON.stringify({entries,settings,toilTaken,exportedAt:new Date().toISOString()}, null, 2);
+
+    const markSaved = () => {
+      dualWrite(KEYS.backupCount,0); dualWrite(KEYS.backedUpAt,now); setLastBackedUp(now);
+      dualWrite(KEYS.lastBackupReminder,now); setPulseBackupBtn(false);
+      addToast('Backup saved');
+    };
+
+    // Where supported (Chrome/Edge desktop), let the person choose the folder
+    // and confirm the filename. iOS Safari doesn't implement this API, so we
+    // fall back to a normal download — which on iOS still opens the share
+    // sheet and lets you pick Files/iCloud anyway.
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{ description:'Overtime & Shift Tracker backup', accept:{ 'application/json':['.json'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(json);
+        await writable.close();
+        markSaved();
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return; // person cancelled the dialog
+        // any other failure falls through to the standard download below
+      }
+    }
+
+    const blob = new Blob([json], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'),{href:url,download:filename}).click();
+    URL.revokeObjectURL(url);
+    markSaved();
+  }
+
+  // Exports all logged shifts as a CSV — opens directly in Excel/Google Sheets/Numbers.
+  function handleExportCSV(start, end, sanitise){
+    const esc = v => `"${String(v??'').replace(/"/g,'""')}"`;
+    const headers = [
+      'Date','Duty/Reason','1.33x Hours','1.5x Hours','2.0x Hours',
+      'Night Hours (Enhanced)','PA Rate','Gross (£)','Net (£)','Rate Applied','Notes'
+    ];
+    const inRange = e => (!start || e.date>=start) && (!end || e.date<=end);
+    const sorted = [...entries].filter(inRange).sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const rows = sorted.map(e=>{
+      const c = calcEntry(e);
+      // Use the pay period this entry falls in for NI (period-based), and
+      // the entry's own UK tax year for pro-rating income tax thresholds —
+      // 'prior' only sums entries within THAT SAME tax year, since anything
+      // from an earlier tax year doesn't belong in this year's cumulative.
+      const pIdx = PAY_PERIODS.findIndex(p=>e.date>=p.start&&e.date<=p.end);
+      const pb = pIdx>=0 ? totals.periodBreakdown[pIdx] : null;
+      const taxYearStartForE = getUKTaxYearStart(e.date);
+      const prior = entries.filter(x=>x.date>=taxYearStartForE && (x.date<e.date || (x.date===e.date && x.id<e.id)))
+        .reduce((sum,x)=>sum+calcEntry(x).gross,0);
+      const periodGrossBefore = pb ? pb.baseAmt : 0;
+      const result = applyBandTax(prior, c.gross, taxYearFractionForDate(e.date), periodGrossBefore);
+      return [
+        e.date, e.reason||'', c.h1||'', c.h2||'', c.h3||'',
+        c.nh||'', e.paRate!=='None'?e.paRate:'',
+        c.gross.toFixed(2), result.net.toFixed(2),
+        result.bandName ? `${result.bandName} (${result.rate.toFixed(1)}%)` : '',
+        sanitise ? '' : (e.comments||'')
+      ].map(esc).join(',');
+    });
+    const csv = [headers.map(esc).join(','), ...rows].join('\r\n');
+    const blob = new Blob(['\uFEFF'+csv], { type:'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const suffix = start&&end ? `_${start}_to_${end}` : `_${new Date().toISOString().split('T')[0]}`;
+    Object.assign(document.createElement('a'),{href:url,download:`OvertimeShiftTracker_Records${suffix}.csv`}).click();
+    URL.revokeObjectURL(url);
+    addToast('CSV exported');
+  }
+
+  const handleImport=ev=>{
+    const fr=new FileReader();
+    fr.onload=e=>{ const d=JSON.parse(e.target.result); setEntries(d.entries); setSettings(migrateSettings(d.settings)); setToilTaken(d.toilTaken||[]); setTab('dashboard'); addToast('Backup restored'); };
+    fr.readAsText(ev.target.files[0]);
+  };
+
+  const handleWipe=()=>{ setEntries([]); setToilTaken([]); saveSett({rank:'',service:''}); setWipeConf(false); setTab('dashboard'); };
+
+  // Scrolls the main container so a month card sits just below the sticky
+  // header. The header's height is measured live (it changes between views,
+  // since the month pills are only present in List View), so the card is
+  // never left partly hidden behind it.
+  const scrollToMonth = (month, smooth=true) => {
+    const el = monthRefs.current[month];
+    const cont = mainRef.current;
+    if (!el || !cont) return;
+    const stickyH = stickyRef.current ? stickyRef.current.offsetHeight : 58;
+    const top = cont.scrollTop + el.getBoundingClientRect().top - cont.getBoundingClientRect().top - stickyH - 8;
+    cont.scrollTo({ top: Math.max(0, top), behavior: smooth ? 'smooth' : 'auto' });
+  };
+
+  // Snaps List View to whichever period we're currently in. The delay lets
+  // React finish rendering first — switching views changes the sticky
+  // header's height, and arriving from another tab has to mount it entirely.
+  const snapToActiveMonth = (smooth=true, delay=90) => {
+    if (currPeriodIdx < 0) return; // today falls outside this financial year
+    const month = PAY_PERIODS[currPeriodIdx].month;
+    setTimeout(()=>scrollToMonth(month, smooth), delay);
+  };
+
+  const jumpTo=month=>{ setExpanded(month); setTimeout(()=>scrollToMonth(month),80); };
+
+  // After saving, scroll the newly created/updated record into view and give it
+  // a brief highlight, so the person can see their entry landed correctly.
+  useEffect(()=>{
+    if(!focusEntryId || tab!=='months' || breakdownView!=='list') return;
+    const t = setTimeout(()=>{
+      const el = entryRefs.current[focusEntryId];
+      const cont = mainRef.current;
+      if(el && cont){
+        const stickyH = stickyRef.current ? stickyRef.current.offsetHeight : 58;
+        const top = cont.scrollTop + el.getBoundingClientRect().top - cont.getBoundingClientRect().top - stickyH - 12;
+        cont.scrollTo({ top: Math.max(0, top), behavior:'smooth' });
+      }
+      setTimeout(()=>setFocusEntryId(null), 2200);
+    }, 220);
+    return ()=>clearTimeout(t);
+  },[focusEntryId, tab, breakdownView]);
+
+  // ── display helpers ────────────────────────────────────────────────────────
+  const fmtBackedUp=ts=>{
+    if(!ts) return null;
+    const diff=Math.floor((Date.now()-ts)/1000);
+    const date=new Date(ts), today=new Date();
+    if(diff<60) return 'Just now';
+    if(date.toDateString()===today.toDateString()) return date.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    if(date.toDateString()===new Date(today-86400000).toDateString()) return 'Yesterday';
+    return date.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  };
+
+  // Today's effective rates were shown on Home; now only surfaced in Options.
+
+  // ── styles ─────────────────────────────────────────────────────────────────
+  const S={
+    wrap: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'#f8fafc',fontFamily:"'DM Sans',system-ui,sans-serif",color:'#0f172a',position:'relative',boxShadow:'0 0 60px rgba(0,0,0,0.14)',overflow:'hidden'},
+    hdr:  {background:'#fff',padding:'13px 18px',borderBottom:'1px solid #e2e8f0',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,zIndex:10},
+    main: {flex:1,overflowY:'auto',overflowX:'hidden',minWidth:0,scrollbarWidth:'none',msOverflowStyle:'none'},
+    nav:  {background:'rgba(255,255,255,0.96)',backdropFilter:'blur(14px)',borderTop:'1px solid #e2e8f0',position:'absolute',bottom:0,width:'100%',padding:'7px 4px 12px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
+    nBtn: (a,add)=>({flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',padding:add?'9px 4px':'6px 4px',background:add?'#10b981':'transparent',color:add?'#fff':a?'#2563eb':'#94a3b8',borderRadius:add?'13px':'8px',border:'none',cursor:'pointer',transition:'all 0.18s',fontFamily:'inherit',boxShadow:add?'0 4px 14px rgba(16,185,129,0.4)':'none'}),
+    nLbl: {fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.5px',whiteSpace:'nowrap'},
+    card: {background:'#fff',borderRadius:'18px',padding:'18px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid #f1f5f9',marginBottom:'10px'},
+    dark: {background:'#0f2744',borderRadius:'18px',padding:'19px',boxShadow:'0 8px 28px rgba(15,39,68,0.28)',marginBottom:'10px',position:'relative',overflow:'hidden'},
+    lbl:  {display:'block',fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'7px'},
+    inp:  {width:'100%',background:'#f8fafc',border:'none',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a'},
+    ta:   {width:'100%',background:'#f8fafc',border:'none',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',resize:'none',boxSizing:'border-box',color:'#0f172a'},
+    sel:  {width:'100%',background:'#f8fafc',border:'1px solid #e2e8f0',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',appearance:'none'},
+  };
+
+  // ── Trends charts — shared between the inline (small) card and the
+  // enlarge modal (big), so both stay pixel-for-pixel consistent. Tapping a
+  // point shows a value callout; tapping it again (or a different point)
+  // swaps it out. Tooltip boxes use dominantBaseline:'middle' per line and
+  // explicit padding, rather than guessing baseline offsets, specifically so
+  // text can't spill outside the box regardless of font metrics.
+  const renderCumulativeChart = (big) => {
+    const data = totals.cumData, max = Math.max(...data.map(d=>d.cumulative), 200);
+    const W = big?520:330, H = big?260:150, pX = big?46:34, pY = big?20:12;
+    const eW = W-pX*2, eH = H-pY*2;
+    const fsAxis = big?11:8, fsLbl = big?11:8, ptR = big?6:4, lineW = big?3.5:2.5;
+    const pts = data.map((d,i)=>({x:pX+i*(eW/(data.length-1)), y:H-pY-(d.cumulative/max)*eH, val:d.cumulative, lbl:d.short}));
+    const path = pts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.y}`).join(' ');
+    const fillPath = `${path} L ${pts[pts.length-1].x} ${H-pY} L ${pts[0].x} ${H-pY} Z`;
+    const gradId = big?'cgBig':'cgSmall';
+    const tapPt = (chartTap && chartTap.chart==='cum' && chartTap.big===big) ? pts[chartTap.i] : null;
+    const toggle = i => setChartTap(t=>(t&&t.chart==='cum'&&t.i===i&&t.big===big)?null:{chart:'cum',i,big});
+
+    let tooltip = null;
+    if (tapPt) {
+      const tw = big?115:88;
+      const padTop = big?17:13, lineH = big?18:14, padBottom = big?10:8;
+      const th = padTop + lineH + padBottom;
+      let tx = tapPt.x - tw/2; if (tx<2) tx=2; if (tx+tw>W-2) tx=W-2-tw;
+      let ty = tapPt.y - th - 10; if (ty<2) ty = tapPt.y + 14;
+      tooltip = (
+        <g>
+          <rect x={tx} y={ty} width={tw} height={th} rx="7" fill="#1e3a5f"/>
+          <text x={tx+tw/2} y={ty+padTop} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?10:8,fontWeight:900,fill:'#93c5fd'}}>{tapPt.lbl}</text>
+          <text x={tx+tw/2} y={ty+padTop+lineH} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?13:11,fontWeight:900,fill:'#fff'}}>{fmtGBP(tapPt.val)}</text>
+        </g>
+      );
+    }
+
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',overflow:'visible'}} preserveAspectRatio="none">
+        <defs><linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2563eb"/><stop offset="100%" stopColor="#2563eb" stopOpacity="0"/></linearGradient></defs>
+        {[0,0.5,1].map(v=>(<g key={v}><line x1={pX} y1={H-pY-v*eH} x2={W-pX} y2={H-pY-v*eH} stroke="#f1f5f9" strokeWidth="1" strokeDasharray={v===0?'0':'3 4'}/><text x={pX-4} y={H-pY-v*eH} textAnchor="end" dominantBaseline="middle" style={{fontSize:fsAxis,fill:'#cbd5e1',fontWeight:700}}>£{Math.round(max*v)}</text></g>))}
+        {pts.map((p,i)=><text key={i} x={p.x} y={H-pY+(big?17:11)} textAnchor="middle" style={{fontSize:fsLbl,fill:'#94a3b8',fontWeight:900}}>{p.lbl}</text>)}
+        <path d={fillPath} fill={`url(#${gradId})`} opacity="0.22"/>
+        <path d={path} fill="none" stroke="#2563eb" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
+        {pts.map((p,i)=>(
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r={ptR} fill="#2563eb" stroke="white" strokeWidth="2" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
+            <circle cx={p.x} cy={p.y} r={ptR+8} fill="transparent" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
+          </g>
+        ))}
+        {tooltip}
+      </svg>
+    );
+  };
+
+  // Full financial year Overtime & PA totals — same card that used to live on
+  // Home, now shown at the end of both Summary views instead, since it's a
+  // whole-year figure and belongs alongside the rest of the year's detail
+  // rather than competing with Home's day-to-day figures.
+  const renderFYTotalsCard = () => (
+    <div style={{...S.card,background:'#2563eb',border:'none',marginTop:'9px',boxShadow:'0 6px 20px rgba(37,99,235,0.28)'}}>
+      <div style={{fontSize:'11px',fontWeight:900,color:'#dbeafe',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'10px'}}>Overtime & PA — FY {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'10px'}}>
+        <div>
+          <div style={{fontSize:'11px',fontWeight:900,color:'#bfdbfe',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'3px'}}>Gross OT</div>
+          <div style={{fontSize:'18px',fontWeight:900,color:'#fff'}}>{fmt(totals.totalGross)}</div>
+        </div>
+        <div>
+          <div style={{fontSize:'11px',fontWeight:900,color:'#bbf7d0',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'3px'}}>Net OT</div>
+          <div style={{fontSize:'18px',fontWeight:900,color:'#dcfce7'}}>{fmt(totals.totalNet)}</div>
+        </div>
+        <div>
+          <div style={{fontSize:'11px',fontWeight:900,color:'#bfdbfe',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'3px'}}>Hours</div>
+          <div style={{fontSize:'18px',fontWeight:900,color:'#fff',display:'flex',alignItems:'center',gap:'5px'}}><Ico n="clock" s={13} c="rgba(255,255,255,0.6)"/>{totals.totalHrs.toFixed(1)}</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderMonthlyChart = (big, dark=false) => {
+    const data = totals.periodBreakdown.map(pb=>({short:PAY_PERIODS.find(p=>p.month===pb.month).short, gross:pb.combinedGross, net:pb.combinedNet}));
+    const max = Math.max(...data.map(d=>d.gross), 200);
+    const W = big?520:330, H = big?300:170, pX = big?46:34, pY = big?20:12;
+    const eW = W-pX*2, eH = H-pY*2;
+    const fsAxis = big?11:8, fsLbl = big?11:8, ptR = big?6:3, lineW = big?3:2;
+    const pts = data.map((d,i)=>({x:pX+i*(eW/(data.length-1)), yG:H-pY-(d.gross/max)*eH, yN:H-pY-(d.net/max)*eH, g:d.gross, n:d.net, lbl:d.short}));
+    const gp = pts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.yG}`).join(' ');
+    const np = pts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.yN}`).join(' ');
+    const tapPt = (chartTap && chartTap.chart==='mon' && chartTap.big===big) ? pts[chartTap.i] : null;
+    const toggle = i => setChartTap(t=>(t&&t.chart==='mon'&&t.i===i&&t.big===big)?null:{chart:'mon',i,big});
+    // Dark variant sits on the navy Total Gross YTD card, so grid/label
+    // colours flip to bright blue-white instead of slate-on-white.
+    const gridStroke = dark ? 'rgba(255,255,255,0.08)' : '#f1f5f9';
+    const axisFill    = dark ? '#64748b' : '#cbd5e1';
+    const lblFill      = dark ? '#94a3b8' : '#94a3b8';
+    const dotStroke   = dark ? '#0f2744' : 'white';
+    const tooltipBg    = dark ? '#132f52' : '#1e3a5f';
+
+    let tooltip = null;
+    if (tapPt) {
+      const tw = big?150:114;
+      const padTop = big?16:12, lineH = big?17:14, padBottom = big?10:8;
+      const th = padTop + lineH*2 + padBottom;
+      let tx = tapPt.x - tw/2; if (tx<2) tx=2; if (tx+tw>W-2) tx=W-2-tw;
+      const topY = Math.min(tapPt.yG, tapPt.yN);
+      let ty = topY - th - 10; if (ty<2) ty = Math.max(tapPt.yG,tapPt.yN) + 14;
+      tooltip = (
+        <g>
+          <rect x={tx} y={ty} width={tw} height={th} rx="7" fill={tooltipBg}/>
+          <text x={tx+tw/2} y={ty+padTop} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?10:8,fontWeight:900,fill:'#93c5fd'}}>{tapPt.lbl}</text>
+          <text x={tx+tw/2} y={ty+padTop+lineH} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?11:9,fontWeight:800,fill:'#6ee7b7'}}>Gross {fmtGBP(tapPt.g)}</text>
+          <text x={tx+tw/2} y={ty+padTop+lineH*2} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?11:9,fontWeight:800,fill:'#fca5a5'}}>Net {fmtGBP(tapPt.n)}</text>
+        </g>
+      );
+    }
+
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',overflow:'visible'}} preserveAspectRatio="none">
+        {[0,0.5,1].map(v=>(<g key={v}><line x1={pX} y1={H-pY-v*eH} x2={W-pX} y2={H-pY-v*eH} stroke={gridStroke} strokeWidth="1" strokeDasharray={v===0?'0':'3 4'}/><text x={pX-4} y={H-pY-v*eH} textAnchor="end" dominantBaseline="middle" style={{fontSize:fsAxis,fill:axisFill,fontWeight:700}}>£{Math.round(max*v)}</text></g>))}
+        {pts.map((p,i)=><text key={i} x={p.x} y={H-pY+(big?17:11)} textAnchor="middle" style={{fontSize:fsLbl,fill:lblFill,fontWeight:900}}>{p.lbl}</text>)}
+        <path d={np} fill="none" stroke="#f87171" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
+        <path d={gp} fill="none" stroke="#34d399" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
+        {pts.map((p,i)=>(
+          <g key={i}>
+            <circle cx={p.x} cy={p.yG} r={ptR} fill="#34d399" stroke={dotStroke} strokeWidth="1.5" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
+            <circle cx={p.x} cy={p.yG} r={ptR+7} fill="transparent" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
+            <circle cx={p.x} cy={p.yN} r={ptR} fill="#f87171" stroke={dotStroke} strokeWidth="1.5" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
+            <circle cx={p.x} cy={p.yN} r={ptR+7} fill="transparent" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
+          </g>
+        ))}
+        {tooltip}
+      </svg>
+    );
+  };
+
+  // Payslip data for an arbitrary date range. Reuses the same tax/NI approach
+  // already used for the Log Overtime live preview: this range's gross is
+  // treated as a slice stacked on top of everything else logged this tax
+  // year (for cumulative income tax banding) and on top of the rest of its
+  // containing pay period (for NI, which resets each period). Whole-period
+  // exports are exact since they match how totals.periodBreakdown is built;
+  // custom ranges spanning multiple periods are a reasonable estimate.
+  const computePayslipData = (start, end) => {
+    // If the requested range reaches back before the tax year containing its
+    // end date, everything shown is clipped to that tax year only — keeping
+    // hours, PA counts, and gross/tax all describing the same scope, and
+    // keeping gross consistent with combinedGrossYTD below (which is itself
+    // scoped to the current tax year). clippedFrom is exposed so the PDF can
+    // show an honest note when this happens.
+    const taxYearStartForRange = getUKTaxYearStart(end);
+    const clipped = start < taxYearStartForRange;
+    const effectiveStart = clipped ? taxYearStartForRange : start;
+    const rangeEntries = entries.filter(e=>e.date>=effectiveStart&&e.date<=end).sort((a,b)=>a.date.localeCompare(b.date));
+    let ot=0, night=0, pa=0, hrs=0, toilBanked=0;
+    const rateHrs = { hours133:0, hours150:0, hours200:0 };
+    const paCounts = { PA1:0, PA2:0, PA3:0 };
+    rangeEntries.forEach(e=>{
+      const c = calcEntry(e);
+      ot += c.ot; night += c.night; pa += c.pa; hrs += c.h1+c.h2+c.h3; toilBanked += c.toilBanked;
+      rateHrs.hours133 += c.payH1; rateHrs.hours150 += c.payH2; rateHrs.hours200 += c.payH3;
+      if (e.paRate && e.paRate!=='None') paCounts[e.paRate] = (paCounts[e.paRate]||0)+1;
+    });
+    const gross = ot + night + pa;
+
+    // Pension — same principle as the Home £100k Tax Calculator: pensionable
+    // pay is basic salary + London Weighting only (overtime/PA/London
+    // Allowance are all non-pensionable), the tier is judged on the
+    // annualised YTD-through-this-report rate, and the contribution comes
+    // off pay BEFORE income tax, which is why it reduces the taxable
+    // cumulative baseline below — but never National Insurance.
+    const svcData = settings.rank && settings.service ? PAY_RATES[settings.rank]?.[settings.service] : null;
+    const tyFracForEnd = taxYearFractionForDate(end);
+    const pensionablePayYTDThroughEnd = svcData
+      ? monthlySteppedSplitBySept(svcData.salary.pre, svcData.salary.post, taxYearStartForRange, end) + monthlySteppedSplitBySept(LONDON_WEIGHTING.pre, LONDON_WEIGHTING.post, taxYearStartForRange, end)
+      : 0;
+    const pensionablePayForRange = svcData
+      ? monthlySteppedSplitBySept(svcData.salary.pre, svcData.salary.post, effectiveStart, end) + monthlySteppedSplitBySept(LONDON_WEIGHTING.pre, LONDON_WEIGHTING.post, effectiveStart, end)
+      : 0;
+    const pensionRate = pensionTierRate(pensionablePayYTDThroughEnd / tyFracForEnd);
+    const pensionYTDThroughEnd = pensionablePayYTDThroughEnd * pensionRate;
+    const pensionForRange = pensionablePayForRange * pensionRate;
+
+    const endIdx = PAY_PERIODS.findIndex(p=>end>=p.start&&end<=p.end);
+    const pb = endIdx>=0 ? totals.periodBreakdown[endIdx] : null;
+    const cumulativeBefore = Math.max(0, totals.combinedGrossYTD - gross - pensionYTDThroughEnd);
+    const periodGrossBefore = pb ? Math.max(0, (pb.baseAmt+pb.ot+pb.night+pb.pa) - gross) : 0; // NI stays on full gross, unaffected by pension
+    const result = applyBandTax(cumulativeBefore, gross, tyFracForEnd, periodGrossBefore);
+    const r = getRates(settings.rank, settings.service, end);
+
+    return { rangeEntries, ot, night, pa, hrs, toilBanked, rateHrs, paCounts, gross,
+      net:result.net, tax:result.tax, ni:result.ni, bandName:result.bandName, rate:result.rate, rates:r,
+      pensionForRange, pensionRate, pensionablePayForRange,
+      clippedFrom: clipped ? effectiveStart : null };
+  };
+
+  const handleGenerateExport = () => {
+    if (payslipMode==='financialYear') {
+      if (payslipFYYear==null) return;
+      const yPeriods = generateFYPeriods(payslipFYYear);
+      const start = yPeriods[0].start, end = yPeriods[11].end;
+      if (exportFormat==='csv') { handleExportCSV(start, end, sanitiseNotes); setPayslipModalOpen(false); return; }
+      // PDF: the current year's tax/NI figures are accurate (same context the
+      // rest of the app uses), so it gets the normal payslip-style report.
+      // A past year's cumulative context is stale, so — same reasoning as
+      // Archived Financial Years — it opens that gross-only, period-grouped
+      // view instead, now with a Print button for exactly this purpose.
+      if (payslipFYYear===CURRENT_FY_YEAR) {
+        setPayslipPreview({ start, end, label: `FY ${payslipFYYear}/${(payslipFYYear+1).toString().slice(-2)}`, data: computePayslipData(start, end) });
+      } else {
+        setArchiveExpandedPeriod(null);
+        setFySummaryPrintMode(true);
+        setFySummaryYear(payslipFYYear);
+      }
+      setPayslipModalOpen(false);
+      return;
+    }
+    let start, end, label;
+    if (payslipMode==='period' && payslipPeriodIdx!=null) {
+      const p = PAY_PERIODS[payslipPeriodIdx];
+      start = p.start; end = p.end; label = p.month;
+    } else if (payslipMode==='custom' && payslipStart && payslipEnd && payslipEnd>=payslipStart) {
+      start = payslipStart; end = payslipEnd; label = `${fmtD(start)} – ${fmtD(end)}`;
+    } else return;
+    if (exportFormat==='csv') { handleExportCSV(start, end, sanitiseNotes); setPayslipModalOpen(false); return; }
+    setPayslipPreview({ start, end, label, data: computePayslipData(start, end) });
+    setPayslipModalOpen(false);
+  };
+
+  // Archived-year data — grouped by pay period, individual entries included.
+  // Deliberately no tax/NI estimate: that math leans on the CURRENT year's
+  // cumulative gross and period breakdown, which isn't the right context for
+  // a past year — rather than produce a number that looks precise but isn't,
+  // this sticks to what can be stated correctly regardless of year (gross
+  // figures, hours, shift counts).
+  const computeArchivedYear = (year) => {
+    const yPeriods = generateFYPeriods(year);
+    let totalShifts = 0, totalGross = 0, totalHrs = 0, totalToilBanked = 0;
+    const periods = yPeriods.map(p=>{
+      const pEntries = entries.filter(e=>e.date>=p.start&&e.date<=p.end).sort((a,b)=>a.date.localeCompare(b.date));
+      let periodGross = 0;
+      const rows = pEntries.map(e=>{
+        const c = calcEntry(e);
+        periodGross += c.gross; totalHrs += c.h1+c.h2+c.h3; totalToilBanked += c.toilBanked;
+        return { id:e.id, date:e.date, reason:e.reason, gross:c.gross };
+      });
+      totalShifts += pEntries.length; totalGross += periodGross;
+      return { ...p, entries: rows, gross: periodGross };
+    }).filter(p=>p.entries.length>0);
+    return { year, start: yPeriods[0].start, end: yPeriods[11].end, totalShifts, totalGross, totalHrs, totalToilBanked, periods };
+  };
+
+  // ── auth gate ──────────────────────────────────────────────────────────────
+  // Placed after every hook above has already run (React's rules of hooks
+  // require that), so it's safe to branch the actual render here. Local-only
+  // mode and an active session both skip straight past this to the real app.
+  if (authLoading) {
+    return (
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',background:'#f8fafc'}}>
+        <span style={{fontSize:'13px',fontWeight:700,color:'#94a3b8',fontFamily:"'DM Sans',system-ui,sans-serif"}}>Loading…</span>
+      </div>
+    );
+  }
+  if (supabase && !session && !localOnlyMode) {
+    return (
+      <AuthScreens
+        supabase={supabase}
+        addToast={addToast}
+        onContinueLocalOnly={()=>{ dualWrite(KEYS.localOnlyMode,true); setLocalOnlyMode(true); }}
+      />
+    );
+  }
+
+  return (
+    <div style={S.wrap}>
+      <style>{`
+        *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        ::-webkit-scrollbar{display:none}
+        @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes su{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes urgentPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0);transform:scale(1)}25%{opacity:0.78;box-shadow:0 0 0 9px rgba(220,38,38,0.38);transform:scale(1.012)}50%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0);transform:scale(1)}75%{opacity:0.78;box-shadow:0 0 0 9px rgba(220,38,38,0.38);transform:scale(1.012)}}
+        @keyframes backupPulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}30%{box-shadow:0 0 0 8px rgba(37,99,235,0.35)}50%{box-shadow:0 0 0 0 rgba(37,99,235,0)}70%{box-shadow:0 0 0 8px rgba(37,99,235,0.35)}}
+        @keyframes subtlePulse{0%{opacity:0.5}20%{opacity:1}40%{opacity:0.5}60%{opacity:1}80%,100%{opacity:0.5}}
+        @keyframes entryFlash{0%{box-shadow:0 0 0 0 rgba(37,99,235,0.45)}60%{box-shadow:0 0 0 10px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
+        .entry-flash{animation:entryFlash 1.4s ease-out 2}
+        .star-tap{transition:transform 0.12s}
+        .star-tap:active{transform:scale(1.35)}
+        .hint-pulse{animation:subtlePulse 1.8s ease-in-out infinite}
+        .backup-pulse{animation:backupPulse 1.4s ease-in-out infinite}
+        .fi{animation:fi 0.22s ease}
+        .setup-pulse-urgent{animation:urgentPulse 1.5s ease-in-out infinite}
+        input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+        input:focus,select:focus,textarea:focus{outline:2px solid #2563eb;outline-offset:-2px}
+        input,select,textarea{font-size:16px}
+        button:active{opacity:0.8;transform:scale(0.96)}
+        input[type=date]{-webkit-appearance:none;appearance:none;color-scheme:light;line-height:1.2}
+        input[type=date]::-webkit-date-and-time-value{text-align:left}
+        input[type=date]::-webkit-datetime-edit{padding:0}
+        input[type=date]::-webkit-calendar-picker-indicator{background:transparent;cursor:pointer;opacity:0.55;padding:0;margin:0}
+        @media print{
+          .no-print{display:none !important}
+          .payslip-print-area{position:static !important;inset:auto !important;width:100% !important;max-width:none !important;max-height:none !important;overflow:visible !important;background:#fff !important;padding:0 !important}
+          .payslip-print-doc{box-shadow:none !important;border-radius:0 !important}
+          body,html{background:#fff !important}
+        }
+      `}</style>
+
+      <div className="no-print"><ToastStack toasts={toasts} onDismiss={dismissToast}/></div>
+
+      {/* ── header ── */}
+      <header className="no-print" style={S.hdr}>
+        <div style={{display:'flex',alignItems:'center',gap:'8px',minWidth:0}}>
+          <ClockCashIcon width={28} height={19}/>
+          <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0}}>
+            <span style={{fontSize:'19px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap'}}>Overtime &amp; Shift Tracker</span>
+            <span style={{fontSize:'13px',fontWeight:700,color:'#94a3b8',letterSpacing:'0.2px'}}>by Adam Stephens</span>
+          </div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:'5px',flexShrink:0}}>
+          <div style={{width:'6px',height:'6px',borderRadius:'50%',background:lastBackedUp?'#10b981':'#f59e0b',flexShrink:0}}/>
+          <span style={{fontSize:'9px',fontWeight:700,color:'#94a3b8',whiteSpace:'nowrap'}}>
+            {lastBackedUp?`Backed up ${fmtBackedUp(lastBackedUp)}`:'Not backed up'}
+          </span>
+        </div>
+      </header>
+
+      {/* ── 14-day backup reminder — optional, dismissible, never blocks the app ── */}
+      {showBackupReminder&&(
+        <div className="fi no-print" style={{background:'#eff6ff',borderBottom:'1px solid #bfdbfe',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15}}>
+          <div style={{background:'#dbeafe',borderRadius:'10px',padding:'7px',flexShrink:0}}><Ico n="shield" s={15} c="#2563eb"/></div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:900,fontSize:'12px',color:'#1e3a5f',marginBottom:'2px'}}>Time for a backup</div>
+            <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>It's been a couple of weeks — worth downloading a fresh backup of your records.</div>
+            <div style={{display:'flex',gap:'7px'}}>
+              <button onClick={goBackupNow} style={{background:'#2563eb',border:'none',borderRadius:'8px',padding:'6px 13px',fontWeight:900,fontSize:'10px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Back Up Now</button>
+              <button onClick={dismissBackupReminder} style={{background:'none',border:'none',padding:'6px 4px',fontWeight:700,fontSize:'10px',color:'#64748b',cursor:'pointer',fontFamily:'inherit'}}>Not now</button>
+            </div>
+          </div>
+          <button onClick={dismissBackupReminder} style={{background:'none',border:'none',cursor:'pointer',padding:'2px',flexShrink:0}}><Ico n="x" s={15} c="#94a3b8"/></button>
+        </div>
+      )}
+
+      {/* ── financial year rollover — one-time, dismissible, never blocks the app ── */}
+      {showFYRollover&&(
+        <div className="fi no-print" style={{background:'#eff6ff',borderBottom:'1px solid #bfdbfe',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15}}>
+          <div style={{background:'#dbeafe',borderRadius:'10px',padding:'7px',flexShrink:0}}><Ico n="star" s={15} c="#2563eb"/></div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:900,fontSize:'12px',color:'#1e3a5f',marginBottom:'2px'}}>Welcome to FY {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
+            <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>Your {CURRENT_FY_YEAR-1}/{CURRENT_FY_YEAR.toString().slice(-2)} year is complete — find it any time under Financial Years in Options.</div>
+            <div style={{display:'flex',gap:'7px'}}>
+              <button onClick={()=>{dismissFYRollover();setTab('settings');}} style={{background:'#2563eb',border:'none',borderRadius:'8px',padding:'6px 13px',fontWeight:900,fontSize:'10px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>View Last Year</button>
+              <button onClick={dismissFYRollover} style={{background:'none',border:'none',padding:'6px 4px',fontWeight:700,fontSize:'10px',color:'#64748b',cursor:'pointer',fontFamily:'inherit'}}>Got it</button>
+            </div>
+          </div>
+          <button onClick={dismissFYRollover} style={{background:'none',border:'none',cursor:'pointer',padding:'2px',flexShrink:0}}><Ico n="x" s={15} c="#94a3b8"/></button>
+        </div>
+      )}
+
+      <main ref={mainRef} className="no-print" style={S.main}>
+
+        {/* ══════════════════════════════════════════ DASHBOARD */}
+        {tab==='dashboard'&&(
+          <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
+            {!settings.rank&&(
+              <div className="setup-pulse-urgent" style={{background:'#fef2f2',border:'1.5px solid #fca5a5',borderRadius:'14px',padding:'13px 14px',marginBottom:'12px',display:'flex',gap:'11px',alignItems:'flex-start'}}>
+                <Ico n="uPlus" s={19} c="#dc2626"/>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:900,color:'#991b1b',fontSize:'13px',marginBottom:'3px'}}>Setup Required</div>
+                  <div style={{color:'#b91c1c',fontSize:'12px',marginBottom:'8px'}}>Configure your rank and pay in More..</div>
+                  <button onClick={()=>setTab('settings')} style={{background:'#fca5a5',border:'none',borderRadius:'8px',padding:'5px 11px',fontWeight:900,fontSize:'11px',color:'#7f1d1d',cursor:'pointer',fontFamily:'inherit'}}>Go to More.. →</button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Total combined earnings card — the main/first card, now with Tax Threshold merged in below a divider ── */}
+            <div style={S.dark}>
+              <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
+
+              {/* header */}
+              <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'3px'}}>
+                Total Gross YTD
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:'4px',marginBottom:'3px'}}>
+                <div style={{fontSize:'28px',fontWeight:900,color:'#fff',letterSpacing:'-2px',lineHeight:1}}>
+                  {settings.rank&&settings.service ? fmtGBP(totals.combinedGrossYTD) : '—'}
+                </div>
+                {settings.rank&&settings.service&&(
+                  <div onClick={()=>setHomeGraphExpanded(v=>!v)} style={{display:'flex',alignItems:'center',gap:'5px',background:homeGraphExpanded?'rgba(147,197,253,0.15)':'rgba(255,255,255,0.08)',border:`1px solid ${homeGraphExpanded?'rgba(147,197,253,0.4)':'rgba(255,255,255,0.15)'}`,borderRadius:'8px',padding:'6px 10px',cursor:'pointer',flexShrink:0}}>
+                    <Ico n="bar" s={13} c="#93c5fd"/>
+                    <span style={{fontSize:'9px',fontWeight:800,color:'#93c5fd'}}>{homeGraphExpanded?'Hide Graph':'Graph'}</span>
+                  </div>
+                )}
+              </div>
+              <div style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginBottom:'12px'}}>
+                {settings.rank&&settings.service
+                  ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)} tax year`
+                  : 'Set your rank & pay point in More..'}
+              </div>
+
+              {/* breakdown rows — London Weighting/Allowance shown as YTD out of full year */}
+              <div style={{borderTop:'1px solid rgba(255,255,255,0.08)',paddingTop:'10px',display:'flex',flexDirection:'column',gap:'6px'}}>
+                {[
+                  ['Base Salary',      totals.salaryYTD, null],
+                  ['London Weighting', settings.rank&&settings.service ? totals.lwYTD : null, totals.lwAnnualTotal],
+                  ['London Allowance', settings.rank&&settings.service ? totals.laYTD : null, totals.laAnnualTotal],
+                ].map(([label,val,fullYear])=>(
+                  <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span style={{fontSize:'13px',fontWeight:700,color:'#94a3b8'}}>{label}</span>
+                    <span style={{fontSize:'13px',fontWeight:900,color:val==null?'#475569':'#cbd5e1'}}>
+                      {val==null
+                        ? 'Set rank & pay point'
+                        : fullYear!=null
+                          ? <>{fmtGBP(val)}<span style={{color:'#64748b',fontWeight:700}}> / {fmtGBP(fullYear)}</span></>
+                          : fmtGBP(val)}
+                    </span>
+                  </div>
+                ))}
+                {[
+                  ['Overtime',        totals.totalOTGross,    totals.totalOTNet],
+                  ['PA',              totals.totalPAGross,    totals.totalPANet],
+                  ['Night Allowance', totals.totalNightGross, totals.totalNightNet],
+                ].map(([label,gross,net])=>(
+                  <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span style={{fontSize:'13px',fontWeight:700,color:'#94a3b8'}}>{label}</span>
+                    <span style={{fontSize:'13px',fontWeight:900,color:'#cbd5e1'}}>{fmtGBP(gross)}<span style={{color:'#6ee7b7',fontWeight:700}}> ({fmtGBP(net)})</span></span>
+                  </div>
+                ))}
+                <div style={{fontSize:'9.5px',fontWeight:600,color:'#cbd5e1',textAlign:'right',marginTop:'2px'}}>Figures in brackets, e.g. <span style={{color:'#6ee7b7'}}>(£xx.xx)</span>, are net</div>
+              </div>
+
+              {/* ── Gross Salary (Actual) — merged in below a divider, only this part is tappable ── */}
+              {settings.rank&&settings.service&&(()=>{
+                // Uses actual YTD gross, not a full-year projection — overtime
+                // is lumpy (a big month early on shouldn't make this look like
+                // you're miles over £100k if the rest of the year is quiet),
+                // so this shows where you genuinely stand today, not a guess
+                // at where the year might end up. The Forecast bar below is
+                // where the projection-based view lives instead.
+                const grossYTD = totals.combinedGrossYTD;
+                const over100k = grossYTD > 100000;
+                const paNow = over100k ? Math.max(0, 12570 - Math.floor((grossYTD-100000)/2)) : 12570;
+                const scaleMax = Math.max(125140, grossYTD*1.05);
+                const pct = v => Math.max(0, Math.min(100, (v/scaleMax)*100));
+                // Brightened versions of the usual green/amber/red so the
+                // zone colour stays readable against the dark card — same
+                // thresholds, same logic, just tuned for contrast.
+                const barColor = grossYTD>=100000 ? '#f87171' : grossYTD>=50270 ? '#fbbf24' : '#34d399';
+                const statusText = grossYTD>=125140 ? '+£125k — No PA' : grossYTD>=100000 ? '+£100k — PA tapering' : grossYTD>=50270 ? 'Higher rate' : 'Basic rate';
+                const markers = [
+                  { key:'pa',  value: paNow,  label: paNow===0 ? 'PA £0' : over100k ? `PA £${(paNow/1000).toFixed(1)}k` : 'PA £12.6k' },
+                  { key:'hr',  value: 50270,  label: '£50.3k' },
+                  { key:'100', value: 100000, label: '£100k' },
+                  { key:'125', value: 125140, label: '£125.1k' },
+                ];
+                return (
+                  <div onClick={()=>{scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} style={{borderTop:'1px solid rgba(255,255,255,0.08)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'26px'}}>
+                      <div style={{fontSize:'11px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px'}}>Gross Salary (Actual)</div>
+                      <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
+                    </div>
+
+                    <div style={{position:'relative',marginBottom:'16px'}}>
+                      <div style={{background:'rgba(255,255,255,0.12)',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
+                        <div style={{width:`${pct(grossYTD)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
+                      </div>
+                      {markers.map(m=>(
+                        <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'rgba(255,255,255,0.35)',transform:'translateX(-1px)'}}>
+                          <div style={{position:'absolute',top:'17px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',fontWeight:800,color:'#93c5fd',whiteSpace:'nowrap'}}>{m.label}</div>
+                        </div>
+                      ))}
+                      <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}/>
+                      <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(grossYTD/1000).toFixed(1)}k</div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ── Gross Salary (Forecast) — full-year projection at your current overtime pace ── */}
+              {settings.rank&&settings.service&&(()=>{
+                const proj = totals.projectedAnnualGross;
+                const over100k = proj > 100000;
+                const paNow = over100k ? Math.max(0, 12570 - Math.floor((proj-100000)/2)) : 12570;
+                const scaleMax = Math.max(125140, proj*1.05);
+                const pct = v => Math.max(0, Math.min(100, (v/scaleMax)*100));
+                const barColor = proj>=100000 ? '#f87171' : proj>=50270 ? '#fbbf24' : '#34d399';
+                const statusText = proj>=125140 ? '+£125k — No PA' : proj>=100000 ? '+£100k — PA tapering' : proj>=50270 ? 'Higher rate' : 'Basic rate';
+                const markers = [
+                  { key:'pa',  value: paNow,  label: paNow===0 ? 'PA £0' : over100k ? `PA £${(paNow/1000).toFixed(1)}k` : 'PA £12.6k' },
+                  { key:'hr',  value: 50270,  label: '£50.3k' },
+                  { key:'100', value: 100000, label: '£100k' },
+                  { key:'125', value: 125140, label: '£125.1k' },
+                ];
+                return (
+                  <div onClick={()=>{scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} style={{borderTop:'1px solid rgba(255,255,255,0.08)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'3px'}}>
+                      <div style={{fontSize:'11px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px'}}>Gross Salary (Forecast)</div>
+                      <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
+                    </div>
+                    <div style={{fontSize:'9.5px',fontWeight:600,color:'#64748b',marginBottom:'19px'}}>Forecast based on your overtime submissions</div>
+
+                    <div style={{position:'relative',marginBottom:'16px'}}>
+                      <div style={{background:'rgba(255,255,255,0.12)',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
+                        <div style={{width:`${pct(proj)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
+                      </div>
+                      {markers.map(m=>(
+                        <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'rgba(255,255,255,0.35)',transform:'translateX(-1px)'}}>
+                          <div style={{position:'absolute',top:'17px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',fontWeight:800,color:'#93c5fd',whiteSpace:'nowrap'}}>{m.label}</div>
+                        </div>
+                      ))}
+                      <div style={{position:'absolute',left:`${pct(proj)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}/>
+                      <div style={{position:'absolute',left:`${pct(proj)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(proj/1000).toFixed(1)}k</div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ── Monthly Gross vs Net — toggled via the Graph button up top ── */}
+              {homeGraphExpanded&&settings.rank&&settings.service&&(
+                <div style={{borderTop:'1px solid rgba(255,255,255,0.08)',marginTop:'14px',paddingTop:'12px'}}>
+                  <div style={{fontSize:'11px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'10px'}}>Monthly Gross vs Net</div>
+                  {renderMonthlyChart(false, true)}
+                  <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#34d399',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#f87171',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1px'}}>Net</span></div>
+                  </div>
+                  <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'#64748b'}}>Tap any point for that period's figure</div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Current pay period — tap through to Calendar view in Summary ── */}
+            {totals.curr&&(
+              <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,background:'#14b8a6',border:'none',marginBottom:'10px',boxShadow:'0 6px 20px rgba(20,184,166,0.28)',cursor:'pointer'}}>
+                <div>
+                  <div style={{fontSize:'11px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>Current Pay Period</div>
+                  <div style={{fontSize:'18px',fontWeight:900,color:'#fff'}}>{totals.curr.month}</div>
+                  <div style={{fontSize:'11px',fontWeight:700,color:'#d1fae5',marginTop:'2px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
+                </div>
+              </div>
+            )}
+
+            {/* ── TOIL summary card ── */}
+            <div onClick={()=>setTab('graph')} style={{...S.card,background:toilLedger.balance<0?'#dc2626':'#7c3aed',border:'none',marginBottom:'10px',boxShadow:toilLedger.balance<0?'0 6px 20px rgba(220,38,38,0.28)':'0 6px 20px rgba(124,58,237,0.28)',cursor:'pointer'}}>
+              <div>
+                <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#fecaca':'#ede9fe',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
+                <div style={{fontSize:'18px',fontWeight:900,color:'#fff'}}>{fmtHM(toilLedger.balance)} h</div>
+                <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#fecaca':'#ddd6fe',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
+              </div>
+            </div>
+
+            <div style={{fontSize:'10.5px',color:'#b91c1c',textAlign:'center',lineHeight:1.5,padding:'8px 12px 0'}}>This calculator is accurate to the best of our knowledge and is a guide. Always double check your payslip for precise figures.</div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════ LOG SHIFT */}
+        {tab==='add'&&(
+          <div className="fi" style={{padding:'14px',paddingBottom:'160px'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'18px'}}>
+              {editing&&<button onClick={()=>{setEditing(null);setTab('months');}} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="back" s={16}/></button>}
+              <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',margin:0,letterSpacing:'-0.5px'}}>{editing?'Edit Record':'Log Overtime'}</h2>
+            </div>
+
+            {!settings.rank||!settings.service ? (
+              /* ── blocked until rank & pay point are configured — no figures can be entered until then ── */
+              <div style={{background:'#fef2f2',border:'1.5px solid #fca5a5',borderRadius:'18px',padding:'26px 20px',textAlign:'center'}}>
+                <div style={{width:'52px',height:'52px',borderRadius:'50%',background:'#fee2e2',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px'}}>
+                  <Ico n="uPlus" s={24} c="#dc2626"/>
+                </div>
+                <div style={{fontWeight:900,fontSize:'15px',color:'#991b1b',marginBottom:'6px'}}>Setup Required</div>
+                <div style={{fontSize:'12px',color:'#b91c1c',lineHeight:1.6,marginBottom:'16px'}}>You need to select your rank and pay point in More.. before you can log overtime. This ensures your pay is calculated correctly from the start.</div>
+                <button onClick={()=>setTab('settings')} style={{background:'#dc2626',border:'none',borderRadius:'11px',padding:'12px 22px',fontWeight:900,fontSize:'12px',color:'#fff',cursor:'pointer',fontFamily:'inherit',boxShadow:'0 4px 14px rgba(220,38,38,0.3)'}}>Go to More.. →</button>
+              </div>
+            ) : (
+            <>
+            {/* date + duty + notes */}
+            <div style={S.card}>
+              <div style={{marginBottom:'13px'}}><label style={S.lbl}>Date</label><input type="date" style={{...S.inp,display:'block',boxSizing:'border-box',height:'46px'}} value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></div>
+              <div style={{marginBottom:'13px'}}><label style={S.lbl}>Duty / Reason</label><input type="text" placeholder="e.g. MPL7XX, PXX" style={S.inp} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/></div>
+
+              {/* Manual Override — auto-calculated shift times/rate is now the
+                  default; flip this on to fall back to the classic free-entry
+                  hours grid instead. */}
+              <div style={{marginBottom:'13px'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#eff6ff',border:'1.5px solid #bfdbfe',borderRadius:'13px',padding:'12px 13px'}}>
+                  <div style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>Rostered Shift / Actual Shift</div>
+                  <div onClick={()=>{
+                      const switchingToManual = form.recordShiftTimes; // currently auto → about to go manual
+                      setForm(f=>syncShiftTimesIntoForm({...f, recordShiftTimes:!switchingToManual, otRateTier: !switchingToManual && !f.otRateTier ? 'hours133' : f.otRateTier}));
+                    }} style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',flexShrink:0}}>
+                    <span style={{fontSize:'9px',fontWeight:600,color:'#64748b'}}>Input Hours Manually</span>
+                    <div style={{width:'32px',height:'18px',borderRadius:'10px',position:'relative',flexShrink:0,transition:'background 0.2s',background:!form.recordShiftTimes?'#2563eb':'#e2e8f0'}}>
+                      <div style={{width:'14px',height:'14px',borderRadius:'50%',background:'#fff',position:'absolute',top:'2px',transition:'left 0.2s',left:!form.recordShiftTimes?'16px':'2px',boxShadow:'0 1px 2px rgba(0,0,0,0.3)'}}/>
+                    </div>
+                  </div>
+                </div>
+
+                {form.recordShiftTimes&&(
+                  <div style={{background:'#eff6ff',border:'1.5px solid #bfdbfe',borderTop:'none',borderRadius:'0 0 13px 13px',marginTop:'-13px',padding:'15px 13px 13px'}}>
+                    <div style={{height:'2px'}}/>
+
+                    {/* Normal Duty vs Rest Day Working (RDW) — on RDW there's no
+                        roster to compare against, so the whole shift is overtime */}
+                    <div style={{display:'flex',gap:'6px',background:'#dbeafe',borderRadius:'11px',padding:'3px',marginBottom:'13px'}}>
+                      <button onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'normal'}))} style={{flex:1,border:'none',background:form.dutyType!=='rdw'?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer',boxShadow:form.dutyType!=='rdw'?'0 2px 6px rgba(37,99,235,0.25)':'none'}}>Normal Duty</button>
+                      <button onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'rdw',rosteredStart:'',rosteredEnd:''}))} style={{flex:1,border:'none',background:form.dutyType==='rdw'?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer',boxShadow:form.dutyType==='rdw'?'0 2px 6px rgba(37,99,235,0.25)':'none'}}>Rest Day Working (RDW)</button>
+                    </div>
+
+                    {form.dutyType!=='rdw' && (
+                      <>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>
+                          <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#94a3b8'}}/>
+                          <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Rostered Shift</div>
+                        </div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px',marginBottom:'5px'}}>
+                          <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
+                            <TimeSelect value={form.rosteredStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredStart:v}))}/>
+                          </div>
+                          <div><label style={{...S.lbl,marginBottom:'5px'}}>End</label>
+                            <TimeSelect value={form.rosteredEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredEnd:v}))}/>
+                          </div>
+                        </div>
+                        {form.rosteredStart&&form.rosteredEnd&&toMinutesOfDay(form.rosteredEnd)<=toMinutesOfDay(form.rosteredStart)&&(
+                          <div style={{fontSize:'9.5px',fontWeight:700,color:'#2563eb',marginBottom:'12px'}}>↷ Ends the next day</div>
+                        )}
+                      </>
+                    )}
+
+                    <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px',marginTop: form.dutyType!=='rdw' && form.rosteredStart&&form.rosteredEnd&&toMinutesOfDay(form.rosteredEnd)<=toMinutesOfDay(form.rosteredStart) ? 0 : '12px'}}>
+                      <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#2563eb'}}/>
+                      <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Actual Shift Worked</div>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px'}}>
+                      <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
+                        <TimeSelect value={form.actualStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualStart:v}))}/>
+                      </div>
+                      <div><label style={{...S.lbl,marginBottom:'5px'}}>End</label>
+                        <TimeSelect value={form.actualEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualEnd:v}))}/>
+                      </div>
+                    </div>
+                    {form.actualStart&&form.actualEnd&&toMinutesOfDay(form.actualEnd)<=toMinutesOfDay(form.actualStart)&&(
+                      <div style={{fontSize:'9.5px',fontWeight:700,color:'#2563eb',marginTop:'7px'}}>↷ Ends the next day</div>
+                    )}
+                    {form.dutyType==='rdw' && (
+                      <div style={{fontSize:'9.5px',fontWeight:600,color:'#3b82f6',marginTop:'10px',lineHeight:1.5}}>On a Rest Day Working (RDW) shift, the whole shift counts as overtime at the rate you select below — no rostered comparison needed.</div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Notes — sits above the overtime rate section, after
+                  Rostered/Actual, still inside the same outer card */}
+              <div style={{marginBottom:'13px'}}><label style={S.lbl}>Notes</label><textarea ref={notesRef} rows="4" placeholder="Shift notes or incident details..." style={{...S.ta,lineHeight:1.5}} value={form.comments} onChange={e=>setForm({...form,comments:e.target.value})}
+                onFocus={e=>{
+                  // Cursor lands on the blank line left after the auto-generated
+                  // shift-times summary — but only on the person's own tap into
+                  // the box, never forced automatically (that pops the keyboard
+                  // up and blocks the screen right after picking a time).
+                  const line = generateShiftTimesLine(form);
+                  if (line) {
+                    const pos = line.length+2;
+                    const target = e.target;
+                    setTimeout(()=>{ try{ target.setSelectionRange(pos,pos); }catch(_){} },0);
+                  }
+                }}/></div>
+
+              {/* overtime hours — nested within the same outer card, sitting
+                  right after Notes */}
+              {(()=>{
+                const formRates = getRates(settings.rank, settings.service, form.date||todayStr);
+
+                if (!form.recordShiftTimes) {
+                  // classic manual entry — unchanged, still the fallback for
+                  // shifts that genuinely span more than one rate tier
+                  return (
+                    <div style={{background:'#eff6ff',border:'1.5px solid #dbeafe',borderRadius:'13px',padding:'14px 13px'}}>
+                      <div style={{fontSize:'10px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'4px'}}>Overtime Hours</div>
+                      <div style={{fontSize:'9px',fontWeight:600,color:'#64748b',textAlign:'center',marginBottom:'13px'}}>Record only the hours worked on overtime — not your whole shift</div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'9px'}}>
+                        {['hours133','hours150','hours200'].map((h,i)=>(
+                          <div key={h} style={{textAlign:'center'}}>
+                            <label style={{...S.lbl,color:'#3b82f6',textAlign:'center',display:'block'}}>{[1.33,1.5,2.0][i]}x</label>
+                            <input type="number" step="0.25" placeholder="0" style={{...S.inp,textAlign:'center',fontWeight:900,background:'#fff',fontSize:'17px',padding:'11px 6px'}} value={form[h]} onChange={e=>setForm({...form,[h]:e.target.value})}/>
+                            <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:700,marginTop:'4px'}}>£{(formRates[['r133','r150','r200'][i]]||0).toFixed(2)}/hr</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Record Shift Times is on — one rate for the whole shift,
+                // hours calculated from rostered/actual times (still editable,
+                // for a recall the times themselves don't capture).
+                const tier = form.otRateTier || 'hours133';
+                const otHours = parseFloat(form[tier])||0;
+                const basisReady = form.dutyType==='rdw' ? !!(form.actualStart&&form.actualEnd) : !!(form.rosteredStart&&form.rosteredEnd&&form.actualStart&&form.actualEnd);
+                let basisText = 'Set your shift times above to calculate overtime';
+                if (basisReady) {
+                  const actualDur = shiftDurationMinutes(form.actualStart, form.actualEnd)/60;
+                  basisText = form.dutyType==='rdw'
+                    ? `RDW — full ${actualDur.toFixed(2).replace(/\.00$/,'')}h actual shift counts as overtime`
+                    : `${actualDur.toFixed(1)}h actual − ${(shiftDurationMinutes(form.rosteredStart,form.rosteredEnd)/60).toFixed(1)}h rostered = ${otHours.toFixed(2).replace(/\.00$/,'')}h overtime`;
+                }
+
+                return (
+                  <div style={{background:'#eff6ff',border:'1.5px solid #dbeafe',borderRadius:'13px',padding:'12px 13px'}}>
+                    <div className="hint-pulse" style={{fontSize:'12px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'9px'}}>Select O/T Rate for this Shift</div>
+                    <div style={{display:'flex',gap:'6px',marginBottom:'9px'}}>
+                      {['hours133','hours150','hours200'].map((h,i)=>(
+                        <button key={h} onClick={()=>setForm(f=>{
+                          if (f.otRateTier===h) return f;
+                          const val = f.otRateTier ? f[f.otRateTier] : '';
+                          return {...f, otRateTier:h, hours133:'', hours150:'', hours200:'', [h]:val};
+                        })} style={{flex:1,padding:'8px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:tier===h?'#2563eb':'#fff',color:tier===h?'#fff':'#3b82f6',boxShadow:tier===h?'0 4px 11px rgba(37,99,235,0.35)':'none'}}>{[1.33,1.5,2.0][i]}x</button>
+                      ))}
+                    </div>
+                    <div style={{background:'#fff',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
+                      <label style={{...S.lbl,marginBottom:'4px',display:'block'}}>Overtime Hours</label>
+                      <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'transparent',fontFamily:'inherit',color:'#0f172a'}}
+                        value={form[tier]}
+                        onChange={e=>setForm({...form, otAuto:false, [tier]:e.target.value})}/>
+                      {form.otAuto
+                        ? <span style={{display:'inline-block',fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'4px',background:'#dcfce7',color:'#166534'}}>auto-calculated</span>
+                        : <span onClick={()=>setForm({...form, otAuto:true})} style={{display:'inline-block',fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'4px',background:'#fef3c7',color:'#92400e',cursor:'pointer'}}>edited — tap to reset</span>}
+                    </div>
+                    <div style={{fontSize:'9px',color:'#64748b',textAlign:'center',marginTop:'6px',lineHeight:1.4}}>{basisText}</div>
+                  </div>
+                );
+              })()}
+
+              {/* Take As — Pay / TOIL / Mix — shown whenever there's a single clear
+                  rate to bank TOIL against, whether that's from auto-calc
+                  (form.otRateTier) or manual entry (exactly one tier box filled in) */}
+              {effectiveTier && (parseFloat(form[effectiveTier])||0) > 0 && (()=>{
+                const tier = effectiveTier;
+                const total = parseFloat(form[tier])||0;
+                const toilH = Math.min(total, parseFloat(form.toilHours)||0);
+                const payH = Math.max(0, total-toilH);
+                return (
+                  <div style={{background:'#6d28d9',border:'none',borderRadius:'13px',padding:'14px 13px',marginTop:'13px'}}>
+                    <div style={{fontSize:'10px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Take Overtime As</div>
+                    <div style={{display:'flex',gap:'6px',background:'rgba(0,0,0,0.18)',borderRadius:'11px',padding:'3px'}}>
+                      {[['pay','Pay','#1e40af'],['toil','TOIL','#6d28d9'],['mix','Mix','#334155']].map(([m,lbl,col])=>(
+                        <button key={m} onClick={()=>setForm(f=>{
+                          const t = parseFloat(f[tier])||0;
+                          const th = m==='pay' ? 0 : m==='toil' ? t : (parseFloat(f.toilHours)||0);
+                          return {...f, takeAs:m, toilHours: th?String(th):'0'};
+                        })} style={{flex:1,border:'none',background:form.takeAs===m?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:form.takeAs===m?col:'rgba(255,255,255,0.8)',cursor:'pointer',boxShadow:form.takeAs===m?'0 2px 6px rgba(0,0,0,0.25)':'none'}}>{lbl}</button>
+                      ))}
+                    </div>
+                    {form.takeAs==='mix' && (
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'12px'}}>
+                        <div style={{background:'#eff6ff',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
+                          <div style={{fontSize:'9px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:'6px'}}>Pay Hours</div>
+                          <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'#fff',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'#0f172a'}}
+                            value={payH.toFixed(2).replace(/\.00$/,'')}
+                            onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(total-v)}); }}/>
+                        </div>
+                        <div style={{background:'#f5f3ff',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
+                          <div style={{fontSize:'9px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:'6px'}}>TOIL Hours</div>
+                          <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'#fff',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'#0f172a'}}
+                            value={toilH.toFixed(2).replace(/\.00$/,'')}
+                            onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(v)}); }}/>
+                        </div>
+                      </div>
+                    )}
+                    {toilH>0 && (
+                      <div style={{marginTop:'12px',background:'#f5f3ff',borderRadius:'10px',padding:'10px 13px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <span style={{fontSize:'11px',fontWeight:700,color:'#6d28d9'}}>{fmtHM(toilH)}h worked @ {RATE_TIER_MULT[tier]}x</span>
+                        <span style={{fontSize:'14px',fontWeight:900,color:'#4c1d95'}}>{fmtHM(toilH*RATE_TIER_MULT[tier])}h banked</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* PA allowance */}
+            <div style={{...S.card,background:'#fffbeb',border:'1px solid #fde68a'}}>
+              <div style={{fontSize:'10px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
+              <div style={{display:'flex',gap:'6px'}}>
+                {['None','PA1','PA2','PA3'].map(pa=>(
+                  <button key={pa} onClick={()=>setForm({...form,paRate:pa})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'#fff',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
+                    <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
+                    <span style={{fontSize:'9px',fontWeight:700,opacity:form.paRate===pa?0.85:0.55}}>{PA_LABELS[pa]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* night hours — single input; every hour entered here is automatically
+                subject to the 10% enhancement, no separate confirmation step */}
+            {(()=>{
+              const formRates = getRates(settings.rank, settings.service, form.date||todayStr);
+              const nightRate = formRates.base * 0.10;
+              const nightHrs  = parseFloat(form.nightHours)||0;
+              const auto = form.recordShiftTimes;
+              return (
+                <div style={{background:'#0f172a',borderRadius:'13px',padding:'13px',marginBottom:'10px',border:'1px solid #1e293b'}}>
+                  {/* header */}
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'7px'}}>
+                      <Ico n="moon" s={13} c="#818cf8"/>
+                      <div style={{fontSize:'10px',fontWeight:900,color:'#c7d2fe',textTransform:'uppercase',letterSpacing:'1px'}}>Night Work (2000–0600)</div>
+                    </div>
+                    <div style={{fontSize:'9px',fontWeight:700,color:'#6366f1',background:'rgba(99,102,241,0.15)',padding:'3px 8px',borderRadius:'8px'}}>+10% / hr</div>
+                  </div>
+
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
+                    <div style={{background:'rgba(99,102,241,0.12)',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
+                      <div style={{fontSize:'8.5px',fontWeight:900,color:'#818cf8',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'5px'}}>Hours worked</div>
+                      <input
+                        type="number" step="1" min="0" placeholder="0"
+                        style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,background:'#1e293b',fontSize:'16px',padding:'6px',color:'#e0e7ff',borderRadius:'9px',border:'none',outline:'none',fontFamily:'inherit'}}
+                        value={form.nightHours}
+                        onChange={e=>{ const v=e.target.value; setForm({...form, nightAuto:false, nightWorkHours:v, nightHours:v}); }}
+                      />
+                      {auto&&(form.nightAuto
+                        ? <div style={{fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'5px',background:'rgba(34,197,94,0.18)',color:'#4ade80',display:'inline-block'}}>auto-calculated</div>
+                        : <div onClick={()=>setForm({...form, nightAuto:true})} style={{fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'5px',background:'rgba(251,191,36,0.18)',color:'#fbbf24',display:'inline-block',cursor:'pointer'}}>edited — tap to reset</div>
+                      )}
+                    </div>
+                    <div style={{background:'rgba(99,102,241,0.12)',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
+                      <div style={{fontSize:'8.5px',fontWeight:900,color:'#818cf8',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'5px'}}>Enhancement rate</div>
+                      <div style={{background:'#1e293b',borderRadius:'9px',padding:'6px',fontSize:'16px',fontWeight:900,color:'#e0e7ff'}}>£{nightRate.toFixed(2)}<span style={{fontSize:'10px',fontWeight:700,color:'#6366f1'}}>/hr</span></div>
+                    </div>
+                  </div>
+
+                  {nightHrs>0&&(
+                    <div style={{marginTop:'9px',background:'rgba(99,102,241,0.12)',borderRadius:'10px',padding:'9px 12px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{fontSize:'11px',fontWeight:700,color:'#a5b4fc'}}>{nightHrs} hrs × £{nightRate.toFixed(2)}</span>
+                      <span style={{fontSize:'14px',fontWeight:900,color:'#c7d2fe'}}>£{(nightHrs*nightRate).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* live preview */}
+            {preview.has&&(
+              <div style={{background:'linear-gradient(135deg,#1e3a5f,#1d4ed8)',borderRadius:'15px',padding:'14px 18px',marginBottom:'11px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom: (preview.night>0||preview.toilBanked>0)?'10px':0}}>
+                  <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1px'}}>This Shift</div>
+                  <div style={{display:'flex',gap:'18px',alignItems:'center'}}>
+                    <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.5px'}}>Gross</div><div style={{fontSize:'23px',fontWeight:900,color:'#fff'}}>{fmt(preview.gross)}</div></div>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontSize:'14px',fontWeight:900,color:'#6ee7b7',textTransform:'uppercase',letterSpacing:'0.5px'}}>Net</div>
+                      <div style={{fontSize:'23px',fontWeight:900,color:'#34d399'}}>{fmt(preview.net)}</div>
+                    </div>
+                  </div>
+                </div>
+                {preview.night>0&&(
+                  <div style={{borderTop:'1px solid rgba(255,255,255,0.1)',paddingTop:'8px',display:'flex',alignItems:'center',gap:'6px',marginBottom:preview.toilBanked>0?'6px':0}}>
+                    <Ico n="moon" s={11} c="#818cf8"/>
+                    <span style={{fontSize:'15px',fontWeight:700,color:'#a5b4fc'}}>inc. £{preview.night.toFixed(2)} night enhancement</span>
+                  </div>
+                )}
+                {preview.toilBanked>0&&(
+                  <div style={{borderTop:preview.night>0?'none':'1px solid rgba(255,255,255,0.1)',paddingTop:preview.night>0?0:'8px',display:'flex',alignItems:'center',gap:'6px'}}>
+                    <Ico n="clock" s={11} c="#c4b5fd"/>
+                    <span style={{fontSize:'15px',fontWeight:700,color:'#c4b5fd'}}>+ {fmtHM(preview.toilBanked)}h TOIL banked (not included in Gross/Net above)</span>
+                  </div>
+                )}
+              </div>
+            )}
+            </>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════ BREAKDOWN */}
+        {tab==='months'&&(
+          <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
+            {/* Sticky header — heading, toggle and month pills all float together */}
+            <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'#f8fafc',paddingTop:'6px',paddingBottom:'8px',marginTop:'-14px',marginBottom:'6px'}}>
+              <h2 style={{fontSize:'21px',fontWeight:900,color:'#0f172a',margin:'0 0 10px',letterSpacing:'-0.5px'}}>Summary</h2>
+              <div style={{display:'flex',background:'#eef2f7',borderRadius:'14px',padding:'4px',boxShadow:'0 4px 14px rgba(15,23,42,0.08)'}}>
+                {/* Each half is a div rather than a button so the star can be its own
+                    tap target inside it — nesting buttons isn't valid HTML. */}
+                <div onClick={()=>{ setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }} style={{flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:breakdownView==='calendar'?'#2563eb':'transparent',color:breakdownView==='calendar'?'#fff':'#64748b',boxShadow:breakdownView==='calendar'?'0 2px 8px rgba(37,99,235,0.3)':'none',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
+                  <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
+                    <Ico n="cal" s={13} c={breakdownView==='calendar'?'#fff':'#64748b'} w={2.5}/>Calendar View
+                  </span>
+                  <span onClick={e=>{ e.stopPropagation(); setDefaultBreakdownView('calendar'); dualWrite(KEYS.defaultBreakdownView,'calendar'); }} className="star-tap" style={{flexShrink:0,display:'flex',alignItems:'center',padding:'4px 5px',cursor:'pointer'}}>
+                    <Ico n="star" s={17} w={1.8}
+                      c={defaultBreakdownView==='calendar'?'#fbbf24':(breakdownView==='calendar'?'rgba(255,255,255,0.5)':'#cbd5e1')}
+                      f={defaultBreakdownView==='calendar'?'#fbbf24':'none'}/>
+                  </span>
+                </div>
+                <div onClick={()=>{ setBreakdownView('list'); snapToActiveMonth(); }} style={{flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:breakdownView==='list'?'#2563eb':'transparent',color:breakdownView==='list'?'#fff':'#64748b',boxShadow:breakdownView==='list'?'0 2px 8px rgba(37,99,235,0.3)':'none',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
+                  <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
+                    <Ico n="list" s={13} c={breakdownView==='list'?'#fff':'#64748b'} w={2.5}/>List View
+                  </span>
+                  <span onClick={e=>{ e.stopPropagation(); setDefaultBreakdownView('list'); dualWrite(KEYS.defaultBreakdownView,'list'); }} className="star-tap" style={{flexShrink:0,display:'flex',alignItems:'center',padding:'4px 5px',cursor:'pointer'}}>
+                    <Ico n="star" s={17} w={1.8}
+                      c={defaultBreakdownView==='list'?'#fbbf24':(breakdownView==='list'?'rgba(255,255,255,0.5)':'#cbd5e1')}
+                      f={defaultBreakdownView==='list'?'#fbbf24':'none'}/>
+                  </span>
+                </div>
+              </div>
+              <div style={{fontSize:'11.5px',fontWeight:600,color:'#94a3b8',textAlign:'center',marginTop:'6px',lineHeight:1.4}}>
+                {defaultBreakdownView==='list'?'List View':'Calendar View'} opens by default · tap ★ to change
+              </div>
+
+              {/* month jump pills — part of the sticky header in List View */}
+              {breakdownView==='list'&&(
+                <div style={{display:'flex',gap:'5px',overflowX:'auto',paddingTop:'8px',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+                  {PAY_PERIODS.map((p,idx)=>{
+                    const isCurr=idx===currPeriodIdx, isOpen=expanded===p.month;
+                    return(
+                      <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flexShrink:0,padding:'4px 10px',borderRadius:'18px',border:isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:isOpen?'#2563eb':isCurr?'#eff6ff':'#fff',color:isOpen?'#fff':isCurr?'#2563eb':'#64748b',fontSize:'13px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',display:'flex',alignItems:'center',gap:'4px'}}>
+                        {p.short}{isCurr&&!isOpen&&<span style={{display:'inline-block',width:'4px',height:'4px',borderRadius:'50%',background:'#2563eb'}}/>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* month pills — Calendar View equivalent, selects the period being viewed */}
+              {breakdownView==='calendar'&&(
+                <div style={{display:'flex',gap:'5px',overflowX:'auto',paddingTop:'8px',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+                  {PAY_PERIODS.map((p,idx)=>{
+                    const isCurr=idx===currPeriodIdx;
+                    const isSel=(calPeriodIdx===null?currPeriodIdx:calPeriodIdx)===idx;
+                    return(
+                      <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flexShrink:0,padding:'4px 10px',borderRadius:'18px',border:isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:isSel?'#2563eb':isCurr?'#eff6ff':'#fff',color:isSel?'#fff':isCurr?'#2563eb':'#64748b',fontSize:'13px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',display:'flex',alignItems:'center',gap:'4px'}}>
+                        {p.short}{isCurr&&!isSel&&<span style={{display:'inline-block',width:'4px',height:'4px',borderRadius:'50%',background:'#2563eb'}}/>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {breakdownView==='list' ? (
+            <>
+            {PAY_PERIODS.map((p,idx)=>{
+              const pE=fyEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
+              const pb=totals.periodBreakdown[idx];
+              let h133=0,h150=0,h200=0,totalNight=0,pa1=0,pa2=0,pa3=0,totalToilWorked=0,totalToilBanked=0;
+              pE.forEach(e=>{
+                const c=calcEntry(e);
+                h133+=c.h1; h150+=c.h2; h200+=c.h3; totalNight+=c.nh;
+                totalToilWorked+=c.toilH; totalToilBanked+=c.toilBanked;
+                if(e.paRate==='PA1')pa1++; else if(e.paRate==='PA2')pa2++; else if(e.paRate==='PA3')pa3++;
+              });
+              const gOT=pb.ot, gNight=pb.night, gPA=pb.pa;
+              const totG=pb.combinedGross, totN=pb.combinedNet;
+              const isExp=expanded===p.month, isCurr=idx===currPeriodIdx;
+
+              return(
+                <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:isCurr?'#eff6ff':'#fff',borderRadius:'17px',border:isCurr?'2px solid #2563eb':'1px solid #f1f5f9',borderLeft:isCurr?'5px solid #2563eb':'1px solid #f1f5f9',boxShadow:isCurr?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 5px rgba(0,0,0,0.04)',marginBottom:'9px',overflow:'hidden'}}>
+                  <button onClick={()=>setExpanded(isExp?null:p.month)} style={{width:'100%',textAlign:'left',padding:'16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'11px'}}>
+                      <div>
+                        {isCurr&&<div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'#fff',fontSize:'10px',fontWeight:900,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'5px',boxShadow:'0 2px 6px rgba(37,99,235,0.35)'}}><span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Active Month</div>}
+                        <div style={{fontWeight:900,fontSize:'19px',color:'#0f172a',letterSpacing:'-0.3px'}}>{p.month}</div>
+                        <div style={{fontSize:'13px',fontWeight:700,color:'#3b82f6',marginTop:'2px'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
+                      </div>
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'4px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'4px',background:isCurr?'#dbeafe':'#eff6ff',border:isCurr?'1px solid #93c5fd':'1px solid #bfdbfe',padding:'5px 9px',borderRadius:'9px'}}>
+                          <div style={{fontSize:'13px',fontWeight:900,color:'#1d4ed8'}}>{(h133+h150+h200).toFixed(1)} hrs</div>
+                        </div>
+                        <div style={{fontSize:'11px',fontWeight:700,color:'#94a3b8'}}>{pE.length} record{pE.length!==1?'s':''}</div>
+                      </div>
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
+                      <div><div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'19px',color:'#1e3a5f'}}>{fmt(totG)}</div></div>
+                      <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'19px',color:'#059669'}}>{fmt(totN)}</div></div>
+                    </div>
+                    {!isExp&&(
+                      <div style={{fontSize:'12px',fontWeight:700,color:isCurr?'#64748b':'#94a3b8',textAlign:'center',marginTop:'11px',paddingTop:'9px',borderTop:isCurr?'1px solid #bfdbfe':'1px solid #f1f5f9'}}>Tap to see more</div>
+                    )}
+                  </button>
+
+                  {isExp&&(
+                    <div style={{background:'#f8fafc',borderTop:'1px solid #f1f5f9',padding:'13px'}}>
+                      {/* month summary cards — net figures now use cumulative marginal tax, rate shown */}
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px',marginBottom:'9px'}}>
+                        <div style={{background:'#fff',borderRadius:'13px',padding:'13px',border:'1px solid #dbeafe'}}>
+                          <div style={{fontSize:'11px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
+                          <div style={{fontSize:'14px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: {fmt(gOT)}</div>
+                          <div style={{fontSize:'13px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: {fmt(pb.otResult.net)}</div>
+                          <div style={{borderTop:'1px solid #eff6ff',paddingTop:'5px'}}>
+                            {h133>0&&<div style={{fontSize:'12px',fontWeight:700,color:'#64748b',marginBottom:'2px'}}>{h133}h @ 1.33x</div>}
+                            {h150>0&&<div style={{fontSize:'12px',fontWeight:700,color:'#64748b',marginBottom:'2px'}}>{h150}h @ 1.5x</div>}
+                            {h200>0&&<div style={{fontSize:'12px',fontWeight:700,color:'#64748b'}}>{h200}h @ 2.0x</div>}
+                          </div>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',gap:'9px'}}>
+                          <div style={{background:'#fff',borderRadius:'13px',padding:'11px',border:'1px solid #fde68a'}}>
+                            <div style={{fontSize:'11px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'5px'}}>PA</div>
+                            <div style={{fontSize:'14px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: {fmt(gPA)}</div>
+                            <div style={{fontSize:'13px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: {fmt(pb.paResult.net)}</div>
+                            <div style={{display:'flex',justifyContent:'space-between',borderTop:'1px solid #fef3c7',paddingTop:'6px'}}>
+                              <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA1 × {pa1}</span>
+                              <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA2 × {pa2}</span>
+                              <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA3 × {pa3}</span>
+                            </div>
+                          </div>
+                          <div style={{background:'#0f172a',borderRadius:'13px',padding:'11px',border:'1px solid #1e293b'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="moon" s={11} c="#818cf8"/><div style={{fontSize:'11px',fontWeight:900,color:'#c7d2fe',textTransform:'uppercase',letterSpacing:'0.5px'}}>Night (2000–0600)</div></div>
+                            <div style={{fontSize:'14px',fontWeight:700,color:'#e0e7ff',marginBottom:'1px'}}>Gross: {fmt(gNight)}</div>
+                            <div style={{fontSize:'13px',fontWeight:700,color:'#818cf8',marginBottom:'6px'}}>Net: {fmt(pb.nightResult.net)}</div>
+                            <div style={{fontSize:'12px',fontWeight:700,color:'#6366f1'}}>{totalNight}h @ +10%</div>
+                          </div>
+                          {totalToilBanked>0&&(
+                            <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer'}}>
+                              <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
+                              <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
+                              <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',textAlign:'center',marginBottom:'9px'}}>Individual Records</div>
+
+                      {pE.length===0
+                        ?<div style={{textAlign:'center',padding:'14px',color:'#94a3b8',fontSize:'15px',fontWeight:700}}>No records yet</div>
+                        :[...pE].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e=>{
+                          const c=calcEntry(e);
+                          const isFut=e.date>todayStr;
+                          // individual records use the period-blended rate for each component
+                          const eOTNet    = c.ot>0    ? c.ot*(1-pb.otResult.rate/100)       : 0;
+                          const eNightNet = c.nh>0    ? c.night*(1-pb.nightResult.rate/100) : 0;
+                          const ePANet    = c.pa>0    ? c.pa*(1-pb.paResult.rate/100)       : 0;
+                          const eNet = eOTNet+eNightNet+ePANet;
+                          return(
+                            <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'#eff6ff':'#fff',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid #bfdbfe':'1px solid #f1f5f9',padding:'13px',marginBottom:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
+                              {isFut&&<div style={{position:'absolute',top:'-6px',right:'9px',background:'#2563eb',color:'#fff',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',textTransform:'uppercase',letterSpacing:'1px'}}>Planned</div>}
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'7px'}}>
+                                <div>
+                                  <div style={{fontWeight:900,fontSize:'15px',color:'#0f172a'}}>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB')}</div>
+                                  <div style={{fontSize:'12px',fontWeight:700,color:'#3b82f6',marginTop:'2px',textTransform:'uppercase'}}>Duty / Reason: {e.reason||'Shift'}</div>
+                                  {e.takeAs==='toil'&&<div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div>}
+                                  {e.takeAs==='mix'&&<div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>Mix — Pay + TOIL</div>}
+                                </div>
+                                <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
+                                  <button onClick={()=>{setConfirmDel(null);startEdit(e);}} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
+                                  <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} style={{background:confirmDel===e.id?'#fee2e2':'#fef2f2',border:confirmDel===e.id?'1.5px solid #fca5a5':'1.5px solid transparent',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={14} c="#ef4444"/></button>
+                                </div>
+                              </div>
+
+                              {/* delete confirmation */}
+                              {confirmDel===e.id&&(
+                                <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'10px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
+                                  <span style={{fontSize:'14px',fontWeight:700,color:'#991b1b'}}>Delete this record?</span>
+                                  <div style={{display:'flex',gap:'7px',flexShrink:0}}>
+                                    <button onClick={()=>setConfirmDel(null)} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:'8px',padding:'5px 12px',fontSize:'13px',fontWeight:900,color:'#64748b',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+                                    <button onClick={()=>delEntry(e.id)} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'13px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* notes — sits under Duty/Reason with separators, matching the Calendar View popover */}
+                              {e.comments&&(
+                                <div style={{borderTop:'1px solid #e2e8f0',paddingTop:'10px',marginBottom:'10px'}}>
+                                  <div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>Notes</div>
+                                  <div style={{fontSize:'13px',fontStyle:'italic',color:'#0f172a',borderLeft:'2px solid #bfdbfe',paddingLeft:'8px',whiteSpace:'pre-wrap',overflowWrap:'anywhere',lineHeight:1.5}}>{e.comments}</div>
+                                </div>
+                              )}
+
+                              <div style={{background:'#f8fafc',borderRadius:'11px',padding:'12px'}}>
+                                <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+                                  {c.payH1>0&&(
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                      <span style={{fontSize:'13px',fontWeight:700,color:'#475569'}}>{c.payH1}h @ 1.33x {c.toilH>0&&c.otRateTier==='hours133'?'(Pay)':''} <span style={{color:'#94a3b8'}}>(£{c.r.r133.toFixed(2)}/hr)</span></span>
+                                      <span style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot1.toFixed(2)}</span>
+                                    </div>
+                                  )}
+                                  {c.payH2>0&&(
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                      <span style={{fontSize:'13px',fontWeight:700,color:'#475569'}}>{c.payH2}h @ 1.5x {c.toilH>0&&c.otRateTier==='hours150'?'(Pay)':''} <span style={{color:'#94a3b8'}}>(£{c.r.r150.toFixed(2)}/hr)</span></span>
+                                      <span style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot2.toFixed(2)}</span>
+                                    </div>
+                                  )}
+                                  {c.payH3>0&&(
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                      <span style={{fontSize:'13px',fontWeight:700,color:'#475569'}}>{c.payH3}h @ 2.0x {c.toilH>0&&c.otRateTier==='hours200'?'(Pay)':''} <span style={{color:'#94a3b8'}}>(£{c.r.r200.toFixed(2)}/hr)</span></span>
+                                      <span style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot3.toFixed(2)}</span>
+                                    </div>
+                                  )}
+                                  {c.toilH>0&&(
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                      <span style={{fontSize:'13px',fontWeight:700,color:'#6d28d9'}}>{fmtHM(c.toilH)}h @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
+                                      <span style={{fontSize:'14px',fontWeight:900,color:'#4c1d95'}}>{fmtHM(c.toilBanked)}h banked</span>
+                                    </div>
+                                  )}
+                                  {c.nh>0&&(
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                      <span style={{fontSize:'13px',fontWeight:700,color:'#6366f1'}}>{c.nh}h @ +10% <span style={{color:'#94a3b8'}}>(£{(c.r.base*0.10).toFixed(2)}/hr)</span></span>
+                                      <span style={{fontSize:'14px',fontWeight:900,color:'#4f46e5'}}>£{c.night.toFixed(2)}</span>
+                                    </div>
+                                  )}
+                                  {e.paRate!=='None'&&(
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                      <span style={{fontSize:'13px',fontWeight:700,color:'#b45309'}}>{e.paRate} allowance</span>
+                                      <span style={{fontSize:'14px',fontWeight:900,color:'#92400e'}}>£{c.pa.toFixed(2)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'5px',borderTop:'1px solid #e2e8f0',paddingTop:'8px',marginTop:'8px'}}>
+                                  <div><div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div><div style={{fontWeight:900,fontSize:'15px',color:'#1e3a5f'}}>{fmt(c.gross)}</div></div>
+                                  <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div><div style={{fontWeight:900,fontSize:'15px',color:'#059669'}}>{fmt(eNet)}</div></div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      }
+                      <button onClick={()=>setExpanded(null)} style={{width:'100%',marginTop:'4px',padding:'9px',background:'#fff',border:'1px solid #e2e8f0',borderRadius:'11px',fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'4px'}}>
+                        Close <Ico n="cU" s={12} c="#94a3b8"/>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {renderFYTotalsCard()}
+            </>
+            ) : (
+            <>
+            {/* ══════════════════ CALENDAR VIEW (Overtime Visualiser) ══════════════════ */}
+            {(()=>{
+              const cIdx = calPeriodIdx===null ? currPeriodIdx : calPeriodIdx;
+              const cPeriod = PAY_PERIODS[cIdx];
+              const cEntries = fyEntries.filter(e=>e.date>=cPeriod.start&&e.date<=cPeriod.end);
+              const cTotalHrs = cEntries.reduce((s,e)=>{ const c=calcEntry(e); return s+c.h1+c.h2+c.h3; },0);
+              const weeks = buildCalendarWeeks(cPeriod);
+
+              // period-level totals for the breakdown boxes (mirrors List View)
+              const pb = totals.periodBreakdown[cIdx];
+              let ph133=0, ph150=0, ph200=0, pNight=0, ppa1=0, ppa2=0, ppa3=0, pToilWorked=0, pToilBanked=0;
+              cEntries.forEach(e=>{
+                const c = calcEntry(e);
+                ph133+=c.h1; ph150+=c.h2; ph200+=c.h3; pNight+=c.nh;
+                pToilWorked+=c.toilH; pToilBanked+=c.toilBanked;
+                if(e.paRate==='PA1')ppa1++; else if(e.paRate==='PA2')ppa2++; else if(e.paRate==='PA3')ppa3++;
+              });
+
+              const dayInfo = (date) => {
+                if (!date) return null;
+                const ds = date.toISOString().split('T')[0];
+                const dEntries = cEntries.filter(e=>e.date===ds);
+                let h1=0,h2=0,h3=0;
+                dEntries.forEach(e=>{ const c=calcEntry(e); h1+=c.h1; h2+=c.h2; h3+=c.h3; });
+                const totalHrs = h1+h2+h3;
+                const hasNight = dEntries.some(e=>parseFloat(e.nightHours)>0);
+                const hasPA = dEntries.some(e=>e.paRate&&e.paRate!=='None');
+                const hasToil = dEntries.some(e=>e.otRateTier&&(parseFloat(e.toilHours)||0)>0);
+                // color the hours figure by rate tier instead of adding a second
+                // line of text — blue 1.33x, green 1.5x, red 2.0x. Mixed-rate
+                // days (more than one tier worked) fall back to the default blue.
+                const ratesUsed = [h1>0, h2>0, h3>0].filter(Boolean).length;
+                const rateColor = ratesUsed===1 ? (h1>0?'#0f172a':h2>0?'#059669':'#dc2626') : '#0f172a';
+                return { ds, dEntries, totalHrs, hasNight, hasPA, hasToil, hasOT: dEntries.length>0, periodIdx: cIdx, rateColor };
+              };
+
+              return (
+                <>
+                  {/* period navigator */}
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'14px'}}>
+                    <button onClick={()=>setCalPeriodIdx(i=>Math.max(0,(i===null?currPeriodIdx:i)-1))} disabled={cIdx===0} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===0?'default':'pointer',opacity:cIdx===0?0.3:1}}><Ico n="cL" s={18} c="#2563eb"/></button>
+                    <div style={{textAlign:'center'}}>
+                      {cIdx===currPeriodIdx&&(
+                        <div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'#fff',fontSize:'10px',fontWeight:900,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px',boxShadow:'0 2px 6px rgba(37,99,235,0.35)'}}>
+                          <span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Active Month
+                        </div>
+                      )}
+                      <div style={{fontWeight:900,fontSize:'21px',color:cIdx===currPeriodIdx?'#1d4ed8':'#0f172a'}}>{cPeriod.month}</div>
+                      <div style={{fontSize:'14px',fontWeight:700,color:'#3b82f6'}}>{fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
+                    </div>
+                    <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c="#2563eb"/></button>
+                  </div>
+
+                  {/* stats strip — Shifts and Total O/T Hours */}
+                  <div style={{...S.card,display:'flex',padding:'16px',background:cIdx===currPeriodIdx?'#eff6ff':'#fff',border:cIdx===currPeriodIdx?'2px solid #2563eb':'1px solid #f1f5f9',boxShadow:cIdx===currPeriodIdx?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 6px rgba(0,0,0,0.05)'}}>
+                    <div style={{flex:1,textAlign:'center'}}>
+                      <div style={{fontSize:'12px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.5px'}}>Shifts Logged</div>
+                      <div style={{fontSize:'22px',fontWeight:900,color:'#1e3a5f'}}>{cEntries.length}</div>
+                    </div>
+                    {/* separator needs a darker tone on the active month, since #f1f5f9 is invisible against the blue tint */}
+                    <div style={{width:'1px',background:cIdx===currPeriodIdx?'#bfdbfe':'#f1f5f9'}}/>
+                    <div style={{flex:1,textAlign:'center'}}>
+                      <div style={{fontSize:'12px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.5px'}}>Total O/T Hours</div>
+                      <div style={{fontSize:'22px',fontWeight:900,color:'#1e3a5f'}}>{cTotalHrs}</div>
+                    </div>
+                  </div>
+
+                  <div className="hint-pulse" style={{fontSize:'14px',color:'#94a3b8',textAlign:'center',fontWeight:600,margin:'10px 0'}}>Tap a day to view details or add an entry</div>
+
+                  {/* calendar grid */}
+                  <div style={{...S.card,overflow:'hidden'}}>
+                    {/* minmax(0,1fr) is essential — plain '1fr' lets long cell text (e.g. "5h@1.33x")
+                        force columns wider than their share, which pushed the grid past the screen edge */}
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:'3px',marginBottom:'8px'}}>
+                      {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=>(
+                        <div key={d} style={{textAlign:'center',fontSize:'13px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',minWidth:0,overflow:'hidden'}}>{d}</div>
+                      ))}
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:'3px'}}>
+                      {weeks.map((week,wi)=>(
+                        <div key={wi} style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:'3px'}}>
+                          {week.map((date,di)=>{
+                            if (!date) return <div key={di} style={{minWidth:0}}/>;
+                            const info = dayInfo(date);
+                            const isToday = info.ds===todayStr;
+                            return (
+                              <button key={di} onClick={()=>{
+                                  if (info.hasOT) { setSelectedCalDay(info); }
+                                  else { setConfirmCreateDay(info.ds); }
+                                }}
+                                style={{
+                                  aspectRatio:'1', minHeight:'42px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.hasOT?'1px solid #bfdbfe':'1px solid transparent',
+                                  background: info.hasOT ? '#eff6ff' : 'transparent',
+                                  cursor:'pointer', padding:'2px 1px', fontFamily:'inherit',
+                                  minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
+                                }}>
+                                <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.hasOT?'#1d4ed8':'#cbd5e1',lineHeight:1}}>{date.getDate()}</span>
+                                {info.totalHrs>0&&(
+                                  <span style={{fontSize:'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
+                                )}
+                                {(info.hasNight||info.hasPA||info.hasToil)&&(
+                                  <div style={{display:'flex',gap:'2px',flexShrink:0}}>
+                                    {info.hasNight&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#818cf8',flexShrink:0}}/>}
+                                    {info.hasPA&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#f59e0b',flexShrink:0}}/>}
+                                    {info.hasToil&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#7c3aed',flexShrink:0}}/>}
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* legend */}
+                    <div style={{display:'flex',justifyContent:'center',gap:'16px',marginTop:'12px',paddingTop:'12px',borderTop:'1px solid #f1f5f9'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#eff6ff',border:'1px solid #bfdbfe'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT logged</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#818cf8'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>Night</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
+                    </div>
+                    <div style={{display:'flex',justifyContent:'center',gap:'16px',marginTop:'9px'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#0f172a'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#059669'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.5x</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#dc2626'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>2.0x</span></div>
+                    </div>
+                  </div>
+
+                  {/* period breakdown boxes — same layout as List View */}
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
+                    <div style={{background:'#fff',borderRadius:'13px',padding:'13px',border:'1px solid #dbeafe'}}>
+                      <div style={{fontSize:'11px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
+                      <div style={{fontSize:'14px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: {fmt(pb.ot)}</div>
+                      <div style={{fontSize:'13px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: {fmt(pb.otResult.net)}</div>
+                      <div style={{borderTop:'1px solid #eff6ff',paddingTop:'5px'}}>
+                        {ph133>0&&<div style={{fontSize:'12px',fontWeight:700,color:'#64748b',marginBottom:'2px'}}>{ph133}h @ 1.33x</div>}
+                        {ph150>0&&<div style={{fontSize:'12px',fontWeight:700,color:'#64748b',marginBottom:'2px'}}>{ph150}h @ 1.5x</div>}
+                        {ph200>0&&<div style={{fontSize:'12px',fontWeight:700,color:'#64748b'}}>{ph200}h @ 2.0x</div>}
+                      </div>
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:'9px'}}>
+                      <div style={{background:'#fff',borderRadius:'13px',padding:'11px',border:'1px solid #fde68a'}}>
+                        <div style={{fontSize:'11px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'5px'}}>PA</div>
+                        <div style={{fontSize:'14px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: {fmt(pb.pa)}</div>
+                        <div style={{fontSize:'13px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: {fmt(pb.paResult.net)}</div>
+                        <div style={{display:'flex',justifyContent:'space-between',borderTop:'1px solid #fef3c7',paddingTop:'6px'}}>
+                          <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA1 × {ppa1}</span>
+                          <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA2 × {ppa2}</span>
+                          <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA3 × {ppa3}</span>
+                        </div>
+                      </div>
+                      <div style={{background:'#0f172a',borderRadius:'13px',padding:'11px',border:'1px solid #1e293b'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="moon" s={11} c="#818cf8"/><div style={{fontSize:'11px',fontWeight:900,color:'#c7d2fe',textTransform:'uppercase',letterSpacing:'0.5px'}}>Night (2000–0600)</div></div>
+                        <div style={{fontSize:'14px',fontWeight:700,color:'#e0e7ff',marginBottom:'1px'}}>Gross: {fmt(pb.night)}</div>
+                        <div style={{fontSize:'13px',fontWeight:700,color:'#818cf8',marginBottom:'6px'}}>Net: {fmt(pb.nightResult.net)}</div>
+                        <div style={{fontSize:'12px',fontWeight:700,color:'#6366f1'}}>{pNight}h @ +10%</div>
+                      </div>
+                      {pToilBanked>0&&(
+                        <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
+                          <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(pToilWorked)}h worked → {fmtHM(pToilBanked)}h banked</div>
+                          <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* month total — same layout as the List View card header */}
+                  <div style={{...S.card,marginTop:'9px'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
+                      <div><div style={{fontSize:'14px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'23px',color:'#1e3a5f'}}>{fmt(pb.combinedGross)}</div></div>
+                      <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'23px',color:'#059669'}}>{fmt(pb.combinedNet)}</div></div>
+                    </div>
+                  </div>
+                  {renderFYTotalsCard()}
+                </>
+              );
+            })()}
+            </>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════ TOIL */}
+        {tab==='graph'&&(
+          <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
+            <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',marginBottom:'14px',letterSpacing:'-0.5px'}}>TOIL</h2>
+
+            <div style={{background:toilLedger.balance<0?'#fef2f2':'#f5f3ff',border:toilLedger.balance<0?'1.5px solid #fecaca':'1.5px solid #ddd6fe',borderRadius:'16px',padding:'16px',marginBottom:'14px'}}>
+              <div style={{fontSize:'12px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
+              <div style={{fontSize:'30px',fontWeight:900,color:toilLedger.balance<0?'#991b1b':'#4c1d95'}}>{fmtHM(toilLedger.balance)} h</div>
+              <div style={{fontSize:'12px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
+            </div>
+
+            <div style={{...S.card,background:'#fff',border:'1.5px solid #ede9fe'}}>
+              <div style={{...S.lbl,fontSize:'11px',marginBottom:'8px'}}>Redeem TOIL</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 52px 66px',gap:'8px',marginBottom:'8px'}}>
+                <input type="date" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',boxSizing:'border-box'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
+                <input type="number" min="0" step="1" placeholder="Hrs" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>
+                <select style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px 4px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box',background:'#fff'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
+                  <option value="00">00m</option>
+                  <option value="15">15m</option>
+                  <option value="30">30m</option>
+                  <option value="45">45m</option>
+                </select>
+              </div>
+              <input type="text" placeholder="Note (optional) — e.g. half day, appointment" style={{width:'100%',boxSizing:'border-box',border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',marginBottom:'8px'}} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
+              <button onClick={addToilTaken} style={{width:'100%',background:'#7c3aed',color:'#fff',border:'none',borderRadius:'10px',padding:'11px',fontWeight:900,fontSize:'14px',cursor:'pointer',fontFamily:'inherit'}}>Redeem TOIL</button>
+            </div>
+
+            <div style={{...S.lbl,fontSize:'11px',margin:'14px 0 8px'}}>Ledger</div>
+            <div style={{fontSize:'11.5px',fontWeight:600,color:'#94a3b8',lineHeight:1.5,marginBottom:'10px'}}>Green entries post automatically whenever you log a shift as TOIL or Mix. Red entries result when you redeem TOIL in the box above.</div>
+            {toilLedger.rows.length===0 ? (
+              <div style={{fontSize:'14px',color:'#94a3b8',textAlign:'center',padding:'20px'}}>No TOIL activity yet</div>
+            ) : toilLedger.rows.map(l=>(
+              <div key={l.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'11px 12px',marginBottom:'8px',borderRadius:'11px',gap:'10px',background:l.type==='earned'?'#f0fdf4':'#fef2f2',border:l.type==='earned'?'1px solid #bbf7d0':'1px solid #fecaca'}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:'13.5px',fontWeight:700,color:'#334155'}}>{l.note}</div>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'4px'}}>
+                    <span style={{fontSize:'11.5px',color:'#94a3b8'}}>{new Date(l.date+'T12:00:00').toLocaleDateString('en-GB')}</span>
+                    {l.type==='taken'&&(
+                      <button onClick={()=>deleteToilTaken(l.rawId)} style={{flexShrink:0,display:'flex',alignItems:'center',gap:'3px',background:'#fff',border:'1.5px solid #fecaca',borderRadius:'7px',padding:'3px 7px',color:'#dc2626',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>
+                        <Ico n="trash" s={10} c="#dc2626"/> Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div style={{textAlign:'right',flexShrink:0}}>
+                  <div style={{fontSize:'15px',fontWeight:900,color:l.type==='earned'?'#059669':'#dc2626'}}>{l.hours>=0?'+':''}{fmtHM(l.hours)}h</div>
+                  <div style={{fontSize:'11px',color:'#94a3b8'}}>bal: {fmtHM(l.balanceAfter)} h</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════ SETTINGS */}
+        {tab==='settings'&&(
+          <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
+              <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',margin:0,letterSpacing:'-0.5px'}}>Options, Settings, Export and Backup</h2>
+              {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'#065f46'}}>Saved</span></div>}
+            </div>
+
+            {/* ── Configuration — Rank/Pay Point selection (always visible) merged with Hourly Rates & Payscales (behind the expand toggle) ── */}
+            <div style={S.card}>
+              <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'13px'}}>
+                <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="cog" s={17} c="#2563eb"/></div>
+                <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Configuration</div>
+              </div>
+
+              <div style={{marginBottom:'13px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'7px'}}>
+                  <label style={{...S.lbl,marginBottom:0}}>Rank</label>
+                  {!settings.rank&&<span style={{fontSize:'9px',fontWeight:900,color:'#dc2626',background:'#fee2e2',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Start here</span>}
+                </div>
+                <div className={!settings.rank?'setup-pulse-urgent':''} style={{borderRadius:'13px'}}>
+                  <select style={{...S.sel,border: !settings.rank ? '2px solid #dc2626' : '1px solid #e2e8f0',fontWeight: !settings.rank ? 900 : 700}} value={settings.rank} onChange={e=>{
+                    const r=e.target.value;
+                    if(!r) return saveSett({...settings,rank:'',service:''});
+                    saveSett({...settings,rank:r,service:''});
+                  }}>
+                    <option value="">Select Rank...</option>
+                    {Object.keys(PAY_RATES).map(k=><option key={k} value={k}>{k}</option>)}
+                  </select>
+                </div>
+              </div>
+              {settings.rank&&(
+                <div>
+                  <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'7px'}}>
+                    <label style={{...S.lbl,marginBottom:0}}>Pay Point</label>
+                    {!settings.service&&<span style={{fontSize:'9px',fontWeight:900,color:'#dc2626',background:'#fee2e2',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Now this</span>}
+                  </div>
+                  <div className={!settings.service?'setup-pulse-urgent':''} style={{borderRadius:'13px'}}>
+                    <select style={{...S.sel,border: !settings.service ? '2px solid #dc2626' : '1px solid #e2e8f0',fontWeight: !settings.service ? 900 : 700}} value={settings.service} onChange={e=>saveSett({...settings,service:e.target.value})}>
+                      <option value="">Select pay point...</option>
+                      {Object.keys(PAY_RATES[settings.rank]).map(p=><option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+              <div onClick={()=>setHourlyRatesExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="clock" s={17} c="#2563eb"/></div>
+                  <span style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Hourly Rates & Payscales</span>
+                </div>
+                <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{hourlyRatesExpanded?'Tap to Close':'Tap to expand'}</span>
+              </div>
+
+              {settings.rank&&settings.service&&hourlyRatesExpanded&&(()=>{
+                const svcData = PAY_RATES[settings.rank][settings.service];
+                return (
+                  <div style={{borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'14px'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+                      {[['Pre 1 Sep 2026','pre','#64748b','#f8fafc'],['From 1 Sep 2026','post','#2563eb','#fff']].map(([label,key,col,bg])=>(
+                        <div key={key} style={{background:bg,borderRadius:'12px',padding:'12px',border:key==='post'?'1.5px solid #bfdbfe':'1px solid #f1f5f9'}}>
+                          <div style={{fontSize:'9px',fontWeight:900,color:col,textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'8px'}}>{label}</div>
+                          {['Base','1.33x','1.5x','2.0x'].map((lbl,i)=>(
+                            <div key={lbl} style={{display:'flex',justifyContent:'space-between',marginBottom:'4px'}}>
+                              <span style={{fontSize:'10px',fontWeight:700,color:'#64748b'}}>{lbl}</span>
+                              <span style={{fontSize:'10px',fontWeight:900,color:key==='post'?'#1e3a5f':'#475569'}}>£{(svcData[key][['base','r133','r150','r200'][i]]||0).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{marginTop:'10px',background:'rgba(37,99,235,0.06)',borderRadius:'10px',padding:'8px 10px',display:'flex',alignItems:'center',gap:'6px'}}>
+                      <Ico n="moon" s={12} c="#6366f1"/>
+                      <span style={{fontSize:'10px',fontWeight:700,color:'#4f46e5'}}>Night enhancement is 10% of the hourly rates: £{(svcData.post.base*0.10).toFixed(2)}/hr</span>
+                    </div>
+
+                    <div style={{borderTop:'1px solid #dbeafe',marginTop:'16px',paddingTop:'14px'}}>
+                      <div style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.2px',marginBottom:'10px'}}>Published Pay Scales</div>
+                      {['Constable','Sergeant'].map(rank=>(
+                        <div key={rank} style={{marginBottom: rank==='Constable' ? '16px' : 0}}>
+                          <div style={{fontSize:'10px',fontWeight:900,color:'#1e3a5f',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>{rank}</div>
+                          <div style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',gap:'2px 8px',alignItems:'center'}}>
+                            <div style={{fontSize:'8px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',paddingBottom:'5px',borderBottom:'1px solid #dbeafe'}}>Pay Point</div>
+                            <div style={{fontSize:'8px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid #dbeafe'}}>Pre-Sept</div>
+                            <div style={{fontSize:'8px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid #dbeafe'}}>Post-Sept</div>
+                            {Object.entries(PAY_RATES[rank]).map(([point,data])=>(
+                              <div key={point} style={{display:'contents'}}>
+                                <div style={{fontSize:'11px',fontWeight:700,color:'#0f172a',padding:'5px 0'}}>{point}</div>
+                                <div style={{fontSize:'11px',fontWeight:700,color:'#64748b',textAlign:'right',padding:'5px 0'}}>£{data.salary.pre.toLocaleString('en-GB')}</div>
+                                <div style={{fontSize:'11px',fontWeight:900,color:'#1e3a5f',textAlign:'right',padding:'5px 0'}}>£{data.salary.post.toLocaleString('en-GB')}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      <div style={{marginTop:'12px',fontSize:'9px',fontWeight:600,color:'#94a3b8',lineHeight:1.5}}>Excludes London Weighting (£3,150 pre-Sept / £3,260 post-Sept) and London Allowance (£6,588), which are added separately.</div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* ── Tax & 100K+ Calculator — Actual (YTD) and Forecast (full year), side by side ── */}
+            {settings.rank&&settings.service&&(()=>{
+              const proj = totals.projectedAnnualGross;
+              const ytd  = totals.combinedGrossYTD;
+              const taxYearFraction = Math.max(1/365, Math.min(1, totals.taxYearDaysElapsed/365));
+
+              // Pension contributions come off pay BEFORE income tax is worked
+              // out (a "net pay arrangement"), which is why they reduce the
+              // taxable figure — and therefore the £100k assessment itself —
+              // but never touch National Insurance. Pensionable pay is basic
+              // salary + London Weighting only; London Allowance and all
+              // overtime/PA are non-pensionable, so they play no part here.
+              const pensionablePayA = totals.salaryYTD + totals.lwYTD;
+              const pensionablePayF = totals.salaryAnnualTotal + totals.lwAnnualTotal;
+              const pensionA = calcPensionContribution(pensionablePayA, taxYearFraction);
+              const pensionF = calcPensionContribution(pensionablePayF, 1);
+
+              // Forecast — full year, matches how the rest of the app already
+              // treats projections (yearFraction = 1). Assessed on the
+              // taxable (post-pension) figure, not the raw gross.
+              const taxableGrossF = Math.max(0, proj - pensionF.amount);
+              const overF = taxableGrossF > 100000;
+              const paLostF = overF ? Math.min(12570, Math.floor((taxableGrossF-100000)/2)) : 0;
+              const paRemainingF = 12570 - paLostF;
+              const extraTaxF = overF ? (calcUKIncomeTax(taxableGrossF,1) - calcUKIncomeTaxNoTaper(taxableGrossF,1)) : 0;
+              const breakdownF = computeTaxBandBreakdown(taxableGrossF, 1);
+              const niF = estimateAnnualNI(proj); // NI stays on the full, pre-pension gross
+              const netF = proj - pensionF.amount - breakdownF.totalTax - niF;
+
+              // Actual — year to date, same principle: taxable (post-pension)
+              // YTD figure drives the taper assessment. Personal Allowance is
+              // always an annual concept, so the taper is still judged on the
+              // annualised run-rate; but the amount of that annual allowance
+              // genuinely "used up" by money already banked is the pro-rated
+              // slice.
+              const taxableYTD = Math.max(0, ytd - pensionA.amount);
+              const annualisedFromYTD = taxableYTD / taxYearFraction;
+              const overA = annualisedFromYTD > 100000;
+              const paLostAnnualA = overA ? Math.min(12570, Math.floor((annualisedFromYTD-100000)/2)) : 0;
+              const paRemainingA = 12570 - paLostAnnualA;
+              const paLostProRatedA = paLostAnnualA * taxYearFraction;
+              const extraTaxA = overA ? (calcUKIncomeTax(taxableYTD, taxYearFraction) - calcUKIncomeTaxNoTaper(taxableYTD, taxYearFraction)) : 0;
+              const breakdownA = computeTaxBandBreakdown(taxableYTD, taxYearFraction);
+              const niA = totals.ytdNI; // reuse the real, period-summed figure rather than a lump estimate — unaffected by pension
+              const netA = ytd - pensionA.amount - breakdownA.totalTax - niA;
+
+              const over = overA || overF; // header icon reflects risk from either view
+
+              const col = (label, value) => (
+                <div style={{background:'#f8fafc',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
+                  <div style={{fontSize:'9px',fontWeight:700,color:'#94a3b8',marginBottom:'3px'}}>{label}</div>
+                  <div style={{fontSize:'14px',fontWeight:900,color:'#0f172a'}}>{value}</div>
+                </div>
+              );
+
+              return (
+                <div ref={taxImpactCardRef} style={S.card}>
+                  <div onClick={()=>setTaxImpactExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:taxImpactExpanded?'12px':0,cursor:'pointer'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                      <div style={{background:over?'#fef2f2':'#f0fdf4',padding:'9px',borderRadius:'11px'}}><Ico n="calc" s={17} c={over?'#dc2626':'#059669'}/></div>
+                      <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Tax & 100K+ Calculator</div>
+                    </div>
+                    <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{taxImpactExpanded?'Tap to Close':'Tap to expand'}</span>
+                  </div>
+                  {taxImpactExpanded&&(
+                    <>
+                      <div style={{display:'flex',alignItems:'flex-start',gap:'8px',marginBottom:'13px'}}>
+                        <Ico n="shield" s={13} c="#94a3b8"/>
+                        <span style={{fontSize:'11px',fontWeight:600,color:'#64748b',lineHeight:1.5}}>Tax is calculated automatically using real UK income tax bands, applied cumulatively across your salary, allowances and overtime — no manual rate needed.</span>
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
+                        <div style={{fontSize:'9px',fontWeight:900,color:overA?'#dc2626':'#059669',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',background:overA?'#fef2f2':'#f0fdf4',borderRadius:'8px',padding:'5px 0'}}>Actual (YTD)</div>
+                        <div style={{fontSize:'9px',fontWeight:900,color:overF?'#dc2626':'#059669',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',background:overF?'#fef2f2':'#f0fdf4',borderRadius:'8px',padding:'5px 0'}}>Forecast</div>
+                      </div>
+
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
+                        {col('Gross', fmtGBP(ytd))}
+                        {col('Gross', fmtGBP(proj))}
+                      </div>
+
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
+                        <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
+                          <div style={{fontSize:'9px',fontWeight:700,color:'#2563eb',marginBottom:'3px'}}>Pension ({(pensionA.rate*100).toFixed(2)}%)</div>
+                          <div style={{fontSize:'13px',fontWeight:900,color:'#1e40af'}}>−{fmtGBP(pensionA.amount)}</div>
+                        </div>
+                        <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
+                          <div style={{fontSize:'9px',fontWeight:700,color:'#2563eb',marginBottom:'3px'}}>Pension ({(pensionF.rate*100).toFixed(2)}%)</div>
+                          <div style={{fontSize:'13px',fontWeight:900,color:'#1e40af'}}>−{fmtGBP(pensionF.amount)}</div>
+                        </div>
+                      </div>
+
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
+                        {col('Personal Allowance Remaining', fmtGBP(paRemainingA))}
+                        {col('Personal Allowance Remaining', fmtGBP(paRemainingF))}
+                      </div>
+
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
+                        <div style={{background:overA?'#fef2f2':'#f0fdf4',border:`1px solid ${overA?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
+                          <div style={{fontSize:'9px',fontWeight:900,color:overA?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'3px'}}>Extra Tax</div>
+                          <div style={{fontSize:'17px',fontWeight:900,color:overA?'#991b1b':'#166534'}}>{fmtGBP(extraTaxA)}</div>
+                        </div>
+                        <div style={{background:overF?'#fef2f2':'#f0fdf4',border:`1px solid ${overF?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
+                          <div style={{fontSize:'9px',fontWeight:900,color:overF?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'3px'}}>Extra Tax</div>
+                          <div style={{fontSize:'17px',fontWeight:900,color:overF?'#991b1b':'#166534'}}>{fmtGBP(extraTaxF)}</div>
+                        </div>
+                      </div>
+
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+                        <div onClick={()=>{ setTaxCalcActualDetailOpen(v=>!v); setTaxCalcForecastDetailOpen(false); }} style={{background:overA?'#fef2f2':'#f0fdf4',border:`1px solid ${overA?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'10px',cursor:'pointer'}}>
+                          <div style={{fontSize:'9px',fontWeight:900,color:overA?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'6px'}}>Calculations</div>
+                          {overA ? (
+                            <div style={{fontSize:'9.5px',color:'#991b1b',lineHeight:1.7}}>
+                              Run-rate: {fmtGBP(annualisedFromYTD)}/yr<br/>
+                              {fmtGBP(annualisedFromYTD-100000)} over £100k<br/>
+                              → {fmtGBP(paLostProRatedA)} allowance used so far<br/>
+                              → at {((extraTaxA/paLostProRatedA)*100).toFixed(1)}% = {fmtGBP(extraTaxA)}
+                            </div>
+                          ) : (
+                            <div style={{fontSize:'9.5px',color:'#166534',lineHeight:1.7}}>Under £100k so far this year (after pension) — no allowance used yet.</div>
+                          )}
+                          <div style={{fontSize:'8.5px',fontWeight:800,color:overA?'#dc2626':'#059669',textDecoration:'underline',marginTop:'8px',textAlign:'center'}}>{taxCalcActualDetailOpen?'Showing full breakdown below':'Tap to see full breakdown'}</div>
+                        </div>
+                        <div onClick={()=>{ setTaxCalcForecastDetailOpen(v=>!v); setTaxCalcActualDetailOpen(false); }} style={{background:overF?'#fef2f2':'#f0fdf4',border:`1px solid ${overF?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'10px',cursor:'pointer'}}>
+                          <div style={{fontSize:'9px',fontWeight:900,color:overF?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'6px'}}>Calculations</div>
+                          {overF ? (
+                            <div style={{fontSize:'9.5px',color:'#991b1b',lineHeight:1.7}}>
+                              {fmtGBP(taxableGrossF)} taxable (after pension)<br/>
+                              {fmtGBP(taxableGrossF-100000)} over £100k<br/>
+                              → {fmtGBP(paLostF)} allowance lost<br/>
+                              → at {((extraTaxF/paLostF)*100).toFixed(1)}% = {fmtGBP(extraTaxF)}
+                            </div>
+                          ) : (
+                            <div style={{fontSize:'9.5px',color:'#166534',lineHeight:1.7}}>Projected to stay under £100k (after pension) — {fmtGBP(100000-taxableGrossF)} of headroom at this pace.</div>
+                          )}
+                          <div style={{fontSize:'8.5px',fontWeight:800,color:overF?'#dc2626':'#059669',textDecoration:'underline',marginTop:'8px',textAlign:'center'}}>{taxCalcForecastDetailOpen?'Showing full breakdown below':'Tap to see full breakdown'}</div>
+                        </div>
+                      </div>
+
+                      {taxCalcActualDetailOpen&&(
+                        <div style={{borderTop:'2px solid #fecaca',marginTop:'12px',paddingTop:'12px'}}>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
+                            <div style={{fontWeight:900,fontSize:'12px',color:'#0f172a'}}>Full Calculation — Actual (YTD)</div>
+                            <span onClick={()=>setTaxCalcActualDetailOpen(false)} style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',cursor:'pointer'}}>Show less</span>
+                          </div>
+                          <div style={{background:'#f8fafc',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Gross (YTD)</span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(ytd)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #bfdbfe',background:'#eff6ff',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#1e40af'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#1e40af'}}>−{fmtGBP(pensionA.amount)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>= Taxable Gross (YTD)</span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(taxableYTD)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Personal Allowance <span style={{color:'#94a3b8',fontWeight:600}}>(0%, pro-rated)</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#059669'}}>{fmtGBP(breakdownA.pa)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Basic Rate <span style={{color:'#94a3b8',fontWeight:600}}>(20% on {fmtGBP(breakdownA.basicAmt)})</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(breakdownA.basicTax)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Higher Rate <span style={{color:'#94a3b8',fontWeight:600}}>(40% on {fmtGBP(breakdownA.higherAmt)})</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(breakdownA.higherTax)}</span></div>
+                            {breakdownA.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Additional Rate <span style={{color:'#94a3b8',fontWeight:600}}>(45% on {fmtGBP(breakdownA.additionalAmt)})</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(breakdownA.additionalTax)}</span></div>}
+                          </div>
+                          <div style={{display:'flex',justifyContent:'space-between',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'11px',padding:'11px 14px',marginBottom:'8px'}}>
+                            <span style={{fontSize:'11.5px',fontWeight:800,color:'#991b1b'}}>Total Income Tax (YTD)</span>
+                            <span style={{fontSize:'13px',fontWeight:900,color:'#991b1b'}}>{fmtGBP(breakdownA.totalTax)}</span>
+                          </div>
+                          <div style={{display:'flex',justifyContent:'space-between',background:'#f8fafc',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
+                            <span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>National Insurance (YTD) <span style={{color:'#94a3b8',fontWeight:600}}>(on full gross)</span></span>
+                            <span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(niA)}</span>
+                          </div>
+                          <div style={{display:'flex',justifyContent:'space-between',background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'11px',padding:'11px 14px'}}>
+                            <span style={{fontSize:'11.5px',fontWeight:800,color:'#166534'}}>Estimated Net (YTD)</span>
+                            <span style={{fontSize:'14px',fontWeight:900,color:'#166534'}}>{fmtGBP(netA)}</span>
+                          </div>
+                          <div style={{fontSize:'9px',color:'#94a3b8',lineHeight:1.5,marginTop:'8px'}}>What's owed on money genuinely banked so far — not a projection. Pension tier is estimated from your current pay rate, not last scheme year's actual earnings, which is what the real rule technically uses.</div>
+                        </div>
+                      )}
+
+                      {taxCalcForecastDetailOpen&&(
+                        <div style={{borderTop:'2px solid #fecaca',marginTop:'12px',paddingTop:'12px'}}>
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
+                            <div style={{fontWeight:900,fontSize:'12px',color:'#0f172a'}}>Full Calculation — Forecast</div>
+                            <span onClick={()=>setTaxCalcForecastDetailOpen(false)} style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',cursor:'pointer'}}>Show less</span>
+                          </div>
+                          <div style={{background:'#f8fafc',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Gross (projected annual)</span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(proj)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #bfdbfe',background:'#eff6ff',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#1e40af'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#1e40af'}}>−{fmtGBP(pensionF.amount)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>= Taxable Gross</span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(taxableGrossF)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Personal Allowance <span style={{color:'#94a3b8',fontWeight:600}}>(0%)</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#059669'}}>{fmtGBP(breakdownF.pa)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Basic Rate <span style={{color:'#94a3b8',fontWeight:600}}>(20% on {fmtGBP(breakdownF.basicAmt)})</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(breakdownF.basicTax)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:breakdownF.additionalAmt>0?'1px solid #f1f5f9':'none'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Higher Rate <span style={{color:'#94a3b8',fontWeight:600}}>(40% on {fmtGBP(breakdownF.higherAmt)})</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(breakdownF.higherTax)}</span></div>
+                            {breakdownF.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Additional Rate <span style={{color:'#94a3b8',fontWeight:600}}>(45% on {fmtGBP(breakdownF.additionalAmt)})</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(breakdownF.additionalTax)}</span></div>}
+                          </div>
+                          <div style={{display:'flex',justifyContent:'space-between',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'11px',padding:'11px 14px',marginBottom:'8px'}}>
+                            <span style={{fontSize:'11.5px',fontWeight:800,color:'#991b1b'}}>Total Income Tax</span>
+                            <span style={{fontSize:'13px',fontWeight:900,color:'#991b1b'}}>{fmtGBP(breakdownF.totalTax)}</span>
+                          </div>
+                          <div style={{display:'flex',justifyContent:'space-between',background:'#f8fafc',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
+                            <span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>National Insurance <span style={{color:'#94a3b8',fontWeight:600}}>(est., on full gross)</span></span>
+                            <span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(niF)}</span>
+                          </div>
+                          <div style={{display:'flex',justifyContent:'space-between',background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'11px',padding:'11px 14px'}}>
+                            <span style={{fontSize:'11.5px',fontWeight:800,color:'#166534'}}>Estimated Net Pay</span>
+                            <span style={{fontSize:'14px',fontWeight:900,color:'#166534'}}>{fmtGBP(netF)}</span>
+                          </div>
+                          <div style={{fontSize:'9px',color:'#94a3b8',lineHeight:1.5,marginTop:'8px'}}>The full income tax and NI computation for the whole year, not just the extra caused by crossing £100k. Pension tier is estimated from your current pay rate, not last scheme year's actual earnings, which is what the real rule technically uses.</div>
+                        </div>
+                      )}
+
+                      <div style={{fontSize:'9.5px',color:'#94a3b8',lineHeight:1.5,marginTop:'10px'}}>Based on your current pay rate projected across the tax year. Pension figures follow the 2015 Police Pension Scheme (England & Wales) rates effective 1 April 2026. Please do your own due diligence and if needs be consult an accountant/HMRC or your pension provider.</div>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* ── Financial Years — generated calendar, every past year with data is browsable ── */}
+            <div style={S.card}>
+              <div onClick={()=>setFinancialYearsExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:financialYearsExpanded?'11px':0,cursor:'pointer'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="cal" s={17} c="#2563eb"/></div>
+                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Archived Financial Years</div>
+                </div>
+                <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{financialYearsExpanded?'Tap to Close':'Tap to expand'}</span>
+              </div>
+              {financialYearsExpanded&&(
+                <>
+                  <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+                    {[CURRENT_FY_YEAR, ...yearsWithData].map(y=>{
+                      const yPeriods = generateFYPeriods(y);
+                      const isCurrent = y===CURRENT_FY_YEAR;
+                      const label = `${y} / ${(y+1).toString().slice(-2)}`;
+                      return (
+                        <div key={y} onClick={()=>{ if(!isCurrent){ setArchiveExpandedPeriod(null); setFySummaryPrintMode(false); setFySummaryYear(y); } }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',background:isCurrent?'#eff6ff':'#f8fafc',border:isCurrent?'2px solid #2563eb':'1px solid #f1f5f9',cursor:isCurrent?'default':'pointer'}}>
+                          <div>
+                            <div style={{fontWeight:800,fontSize:'13px',color:'#0f172a'}}>{label}</div>
+                            <div style={{fontSize:'10px',color:'#94a3b8',marginTop:'1px'}}>{fmtD(yPeriods[0].start)} – {fmtD(yPeriods[11].end)}</div>
+                          </div>
+                          {isCurrent
+                            ? <span style={{fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.5px',padding:'2px 7px',borderRadius:'20px',background:'#2563eb',color:'#fff'}}>Current</span>
+                            : <Ico n="cR" s={14} c="#94a3b8"/>}
+                        </div>
+                      );
+                    })}
+                    {yearsWithData.length===0&&<div style={{fontSize:'10.5px',color:'#94a3b8',textAlign:'center',padding:'6px 0'}}>Past years will appear here once you have entries from before this financial year.</div>}
+                  </div>
+                  <div style={{fontSize:'9.5px',color:'#94a3b8',textAlign:'center',marginTop:'10px',lineHeight:1.5}}>Dates are generated from your confirmed pay pattern (4-4-5 weeks, 52 weeks/year).</div>
+                </>
+              )}
+            </div>
+
+            {/* ── Export to spreadsheet — separate from backup ── */}
+            <div style={S.card}>
+              <div onClick={()=>setExportDataExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:exportDataExpanded?'11px':0,cursor:'pointer'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  <div style={{background:'#fffbeb',padding:'9px',borderRadius:'11px'}}><Ico n="share" s={17} c="#d97706"/></div>
+                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Financial Reports &amp; Export</div>
+                </div>
+                <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{exportDataExpanded?'Tap to Close':'Tap to expand'}</span>
+              </div>
+              {exportDataExpanded&&(
+                <>
+                  <button onClick={()=>{setExportFormat(null);setPayslipMode('period');setPayslipPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);setPayslipFYYear(CURRENT_FY_YEAR);setPayslipModalOpen(true);}} disabled={entries.length===0} style={{width:'100%',padding:'12px',background: entries.length===0 ? '#f1f5f9' : '#2563eb',border:'none',borderRadius:'11px',color: entries.length===0 ? '#94a3b8' : '#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor: entries.length===0 ? 'default' : 'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',textTransform:'uppercase',letterSpacing:'1px',boxShadow: entries.length===0 ? 'none' : '0 4px 14px rgba(37,99,235,0.3)'}}><Ico n="share" s={13} c={entries.length===0?'#94a3b8':'#fff'}/> Export to PDF or Spreadsheet</button>
+                  {entries.length===0&&<div style={{fontSize:'10px',color:'#94a3b8',textAlign:'center',marginTop:'8px',fontWeight:600}}>Log a shift first to enable export</div>}
+                </>
+              )}
+            </div>
+
+            {/* data management */}
+            <div style={{...S.dark,background:'#0f2744'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'11px',marginBottom:'13px'}}>
+                <div style={{background:'rgba(255,255,255,0.1)',padding:'11px',borderRadius:'13px'}}><Ico n="shield" s={21} c="#93c5fd"/></div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:900,fontSize:'14px',color:'#fff',textTransform:'uppercase'}}>Data Management</div>
+                  <div style={{fontSize:'11px',color:'#93c5fd',marginTop:'1px'}}>Stored locally on your device.</div>
+                </div>
+              </div>
+              <div style={{background:'rgba(255,255,255,0.07)',borderRadius:'12px',padding:'10px 13px',marginBottom:'12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'7px'}}>
+                  <div style={{width:'7px',height:'7px',borderRadius:'50%',background:lastBackedUp?'#34d399':'#f59e0b',boxShadow:lastBackedUp?'0 0 6px #34d399':'0 0 6px #f59e0b'}}/>
+                  <div>
+                    <div style={{fontSize:'10px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'0.5px'}}>{lastBackedUp?'Last backed up':'Not yet backed up'}</div>
+                    <div style={{fontSize:'9px',color:'#93c5fd',marginTop:'1px'}}>
+                      {lastBackedUp
+                        ?new Date(lastBackedUp).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' at '+new Date(lastBackedUp).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})
+                        :'Download a backup to protect your data'}
+                    </div>
+                  </div>
+                </div>
+                <div style={{fontSize:'9px',fontWeight:700,color:'rgba(147,197,253,0.6)'}}>{entries.length} record{entries.length!==1?'s':''}</div>
+              </div>
+              <div style={{background:'rgba(0,0,0,0.2)',borderRadius:'13px',padding:'13px'}}>
+                <div style={{fontSize:'11px',color:'rgba(147,197,253,0.65)',fontStyle:'italic',marginBottom:'11px',lineHeight:1.5}}>Autosave protects against refreshes. Download a backup to protect against browser data being cleared.</div>
+                <div style={{display:'flex',gap:'6px',marginBottom:'11px'}}>
+                  <button onClick={handleExport} className={pulseBackupBtn?'backup-pulse':''} style={{flex:1,padding:'10px',background:'#2563eb',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="dl" s={12} c="#fff"/> Backup</button>
+                  <button onClick={()=>fileRef.current.click()} style={{flex:1,padding:'10px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="ul" s={12} c="#fff"/> Restore</button>
+                  <input type="file" ref={fileRef} style={{display:'none'}} accept=".json" onChange={handleImport}/>
+                </div>
+                <div style={{borderTop:'1px solid rgba(255,255,255,0.1)',paddingTop:'11px'}}>
+                  {!wipeConf
+                    ?<button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:'10px',color:'#fca5a5',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#fca5a5"/> Wipe All Data</button>
+                    :<div style={{background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.4)',borderRadius:'12px',padding:'12px'}}>
+                        <div style={{textAlign:'center',color:'#fca5a5',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'rgba(252,165,165,0.7)'}}>Deletes every logged shift and all TOIL data (balance, ledger, everything). This cannot be undone.</span></div>
+                        <div style={{display:'flex',gap:'6px'}}>
+                          <button onClick={handleWipe} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Yes, Delete</button>
+                          <button onClick={()=>setWipeConf(false)} style={{flex:1,padding:'9px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
+                        </div>
+                      </div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            {/* ── Help & suggestions ── */}
+            <a href="mailto:ajstephe@me.com?subject=Overtime%20Tracker%20—%20Feedback" style={{...S.card,display:'flex',alignItems:'center',gap:'12px',textDecoration:'none',cursor:'pointer'}}>
+              <div style={{background:'#eff6ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="mail" s={19} c="#2563eb"/></div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Help & Suggestions</div>
+                <div style={{fontSize:'11px',color:'#3b82f6',fontWeight:700,marginTop:'2px'}}>ajstephe@me.com</div>
+              </div>
+              <Ico n="cR" s={16} c="#94a3b8"/>
+            </a>
+          </div>
+        )}
+      </main>
+
+      {/* Financial Reports & Export — shared modal for both PDF and Spreadsheet formats */}
+      {payslipModalOpen&&(()=>{
+        const periodChoices = (currPeriodIdx>=0 ? PAY_PERIODS.slice(0,currPeriodIdx+1) : PAY_PERIODS).map((p,i)=>({...p,idx:i})).reverse();
+        const rangeValid = payslipStart && payslipEnd && payslipEnd>=payslipStart;
+        const canGenerate = payslipMode==='period' ? payslipPeriodIdx!=null : payslipMode==='financialYear' ? payslipFYYear!=null : rangeValid;
+        const formatLabel = exportFormat==='csv' ? 'Spreadsheet' : 'PDF';
+        return (
+          <div onClick={()=>setPayslipModalOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.55)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:60}}>
+            <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto'}}>
+              <div style={{width:'36px',height:'4px',background:'#e2e8f0',borderRadius:'4px',margin:'0 auto 14px'}}/>
+              {exportFormat===null ? (
+                <>
+                  <div style={{fontSize:'15px',fontWeight:900,marginBottom:'4px'}}>Financial Reports &amp; Export</div>
+                  <div style={{fontSize:'11px',color:'#94a3b8',marginBottom:'18px'}}>Choose a format to continue</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+                    <button onClick={()=>setExportFormat('pdf')} style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px',borderRadius:'14px',border:'1.5px solid #dbeafe',background:'#eff6ff',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                      <div style={{background:'#dbeafe',padding:'10px',borderRadius:'11px',flexShrink:0}}><Ico n="doc" s={18} c="#2563eb"/></div>
+                      <div>
+                        <div style={{fontWeight:900,fontSize:'13.5px',color:'#0f172a'}}>PDF</div>
+                        <div style={{fontSize:'10.5px',color:'#64748b',marginTop:'1px'}}>A formatted, printable summary</div>
+                      </div>
+                    </button>
+                    <button onClick={()=>setExportFormat('csv')} style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px',borderRadius:'14px',border:'1.5px solid #d1fae5',background:'#f0fdf4',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                      <div style={{background:'#d1fae5',padding:'10px',borderRadius:'11px',flexShrink:0}}><Ico n="table" s={18} c="#059669"/></div>
+                      <div>
+                        <div style={{fontWeight:900,fontSize:'13.5px',color:'#0f172a'}}>Spreadsheet</div>
+                        <div style={{fontSize:'10.5px',color:'#64748b',marginTop:'1px'}}>A CSV file for Excel, Sheets or Numbers</div>
+                      </div>
+                    </button>
+                  </div>
+                  <button onClick={()=>setPayslipModalOpen(false)} style={{width:'100%',background:'none',border:'none',padding:'14px',fontWeight:800,fontSize:'12px',color:'#64748b',cursor:'pointer',fontFamily:'inherit',marginTop:'8px'}}>Cancel</button>
+                </>
+              ) : (
+              <>
+              <div style={{fontSize:'15px',fontWeight:900,marginBottom:'4px'}}>Export to {formatLabel}</div>
+              <div style={{fontSize:'11px',color:'#94a3b8',marginBottom:'16px'}}>Choose a period, or set your own date range</div>
+
+              <div style={{display:'flex',gap:'6px',background:'#f1f5f9',borderRadius:'12px',padding:'3px',marginBottom:'16px'}}>
+                <button onClick={()=>setPayslipMode('period')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='period'?'#fff':'transparent',color:payslipMode==='period'?'#2563eb':'#64748b',boxShadow:payslipMode==='period'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Pay Period</button>
+                <button onClick={()=>setPayslipMode('custom')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='custom'?'#fff':'transparent',color:payslipMode==='custom'?'#2563eb':'#64748b',boxShadow:payslipMode==='custom'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Custom Range</button>
+                <button onClick={()=>setPayslipMode('financialYear')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='financialYear'?'#fff':'transparent',color:payslipMode==='financialYear'?'#2563eb':'#64748b',boxShadow:payslipMode==='financialYear'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Financial Year</button>
+              </div>
+
+              <div onClick={()=>setSanitiseNotes(v=>!v)} style={{display:'flex',alignItems:'flex-start',gap:'10px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'12px',padding:'12px 14px',marginBottom:'16px',cursor:'pointer'}}>
+                <div style={{width:'20px',height:'20px',borderRadius:'6px',border:`2px solid ${sanitiseNotes?'#dc2626':'#cbd5e1'}`,background:sanitiseNotes?'#dc2626':'#fff',flexShrink:0,marginTop:'1px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  {sanitiseNotes&&<Ico n="check" s={12} c="#fff" w={3}/>}
+                </div>
+                <div>
+                  <div style={{fontSize:'12px',fontWeight:800,color:'#991b1b'}}>Sanitise Notes Field</div>
+                  <div style={{fontSize:'10.5px',color:'#991b1b',marginTop:'2px',lineHeight:1.5}}>Recommended — shift notes may hold operationally sensitive detail.</div>
+                </div>
+              </div>
+
+              {payslipMode==='period' ? (
+                <>
+                  <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.2px',marginBottom:'8px'}}>Pay Periods</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:'7px',marginBottom:'6px'}}>
+                    {periodChoices.map(p=>(
+                      <div key={p.idx} onClick={()=>setPayslipPeriodIdx(p.idx)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:p.idx===payslipPeriodIdx?'1.5px solid #2563eb':'1.5px solid #f1f5f9',background:p.idx===payslipPeriodIdx?'#eff6ff':'#fff',cursor:'pointer'}}>
+                        <div>
+                          <div style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a'}}>{p.month}{p.idx===currPeriodIdx&&<span style={{color:'#2563eb',fontSize:'9px',marginLeft:'6px'}}>· Current</span>}</div>
+                          <div style={{fontSize:'10px',color:'#94a3b8',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
+                        </div>
+                        <div style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${p.idx===payslipPeriodIdx?'#2563eb':'#cbd5e1'}`,flexShrink:0,position:'relative'}}>
+                          {p.idx===payslipPeriodIdx&&<div style={{position:'absolute',inset:'3px',background:'#2563eb',borderRadius:'50%'}}/>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : payslipMode==='custom' ? (
+                <>
+                  <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.2px',marginBottom:'8px'}}>Custom Range</div>
+                  <div style={{display:'flex',gap:'10px',marginBottom:'6px'}}>
+                    <div style={{flex:1}}>
+                      <label style={{display:'block',fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Start</label>
+                      <input type="date" value={payslipStart} onChange={e=>setPayslipStart(e.target.value)} style={{width:'100%',boxSizing:'border-box',background:'#f8fafc',border:'1.5px solid #e2e8f0',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'#0f172a'}}/>
+                    </div>
+                    <div style={{flex:1}}>
+                      <label style={{display:'block',fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>End</label>
+                      <input type="date" value={payslipEnd} onChange={e=>setPayslipEnd(e.target.value)} style={{width:'100%',boxSizing:'border-box',background:'#f8fafc',border:'1.5px solid #e2e8f0',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'#0f172a'}}/>
+                    </div>
+                  </div>
+                  {payslipStart&&payslipEnd&&!rangeValid&&<div style={{fontSize:'10.5px',color:'#dc2626',fontWeight:700,marginTop:'6px'}}>End date must be on or after the start date.</div>}
+                </>
+              ) : (
+                <>
+                  <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.2px',marginBottom:'8px'}}>Financial Year</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:'7px',marginBottom:'6px'}}>
+                    {[CURRENT_FY_YEAR, ...yearsWithData].map(y=>{
+                      const yPeriods = generateFYPeriods(y);
+                      const isCurrent = y===CURRENT_FY_YEAR;
+                      return (
+                        <div key={y} onClick={()=>setPayslipFYYear(y)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:y===payslipFYYear?'1.5px solid #2563eb':'1.5px solid #f1f5f9',background:y===payslipFYYear?'#eff6ff':'#fff',cursor:'pointer'}}>
+                          <div>
+                            <div style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a'}}>{y} / {(y+1).toString().slice(-2)}{isCurrent&&<span style={{color:'#2563eb',fontSize:'9px',marginLeft:'6px'}}>· Current</span>}</div>
+                            <div style={{fontSize:'10px',color:'#94a3b8',marginTop:'1px'}}>{fmtD(yPeriods[0].start)} – {fmtD(yPeriods[11].end)}{!isCurrent&&exportFormat==='pdf'&&' · gross only, no tax/NI'}</div>
+                          </div>
+                          <div style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${y===payslipFYYear?'#2563eb':'#cbd5e1'}`,flexShrink:0,position:'relative'}}>
+                            {y===payslipFYYear&&<div style={{position:'absolute',inset:'3px',background:'#2563eb',borderRadius:'50%'}}/>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'12px',padding:'11px 14px',margin:'16px 0',fontSize:'12px',color:'#1e40af',fontWeight:700,textAlign:'center'}}>
+                {payslipMode==='period'
+                  ? (payslipPeriodIdx!=null ? `${fmtD(PAY_PERIODS[payslipPeriodIdx].start)} – ${fmtD(PAY_PERIODS[payslipPeriodIdx].end)}` : 'Pick a pay period')
+                  : payslipMode==='financialYear'
+                    ? (payslipFYYear!=null ? `${fmtD(generateFYPeriods(payslipFYYear)[0].start)} – ${fmtD(generateFYPeriods(payslipFYYear)[11].end)}` : 'Pick a financial year')
+                    : (rangeValid ? `${fmtD(payslipStart)} – ${fmtD(payslipEnd)}` : 'Pick a valid start and end date')}
+              </div>
+
+              <button onClick={handleGenerateExport} disabled={!canGenerate} style={{width:'100%',background:canGenerate?'#2563eb':'#cbd5e1',color:'#fff',border:'none',borderRadius:'12px',padding:'14px',fontWeight:900,fontSize:'13px',cursor:canGenerate?'pointer':'default',fontFamily:'inherit'}}>{exportFormat==='csv' ? 'Export Spreadsheet' : payslipMode==='financialYear'&&payslipFYYear!=null&&payslipFYYear!==CURRENT_FY_YEAR ? 'View Year Summary' : 'Generate Payslip'}</button>
+              <div style={{display:'flex',gap:'6px',marginTop:'4px'}}>
+                <button onClick={()=>setExportFormat(null)} style={{flex:1,background:'none',border:'none',padding:'12px',fontWeight:800,fontSize:'12px',color:'#64748b',cursor:'pointer',fontFamily:'inherit'}}>‹ Back</button>
+                <button onClick={()=>setPayslipModalOpen(false)} style={{flex:1,background:'none',border:'none',padding:'12px',fontWeight:800,fontSize:'12px',color:'#64748b',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+              </div>
+              </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Payslip preview / print document */}
+      {payslipPreview&&(()=>{
+        const d = payslipPreview.data;
+        const hasOT = d.rateHrs.hours133>0 || d.rateHrs.hours150>0 || d.rateHrs.hours200>0;
+        const hasPA = d.paCounts.PA1>0 || d.paCounts.PA2>0 || d.paCounts.PA3>0;
+        const rowStyle = {padding:'7px 0',borderBottom:'1px solid #f8fafc'};
+        const thStyle = {textAlign:'left',fontSize:'9px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.6px',padding:'4px 0',borderBottom:'1px solid #f1f5f9'};
+        const sectionTitle = {fontSize:'10.5px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.2px',margin:'20px 0 8px',paddingTop:'14px',borderTop:'1px solid #f1f5f9'};
+        return (
+          <div className="payslip-print-area" style={{position:'absolute',inset:0,background:'#e2e8f0',zIndex:70,overflowY:'auto',padding:'16px'}}>
+            <div className="no-print" style={{display:'flex',gap:'8px',marginBottom:'14px',maxWidth:'560px',margin:'0 auto 14px'}}>
+              <button onClick={()=>window.print()} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
+              <button onClick={()=>setPayslipPreview(null)} style={{background:'#fff',color:'#475569',border:'1px solid #e2e8f0',borderRadius:'11px',padding:'12px 18px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit'}}>Close</button>
+            </div>
+
+            <div className="payslip-print-doc" style={{maxWidth:'560px',margin:'0 auto',background:'#fff',borderRadius:'6px',boxShadow:'0 4px 24px rgba(0,0,0,0.12)',overflow:'hidden'}}>
+              <div style={{background:'#0f2744',color:'#fff',padding:'26px 26px 20px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'18px'}}>
+                  <div>
+                    <div style={{fontSize:'10px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.4px'}}>Overtime &amp; Shift Tracker</div>
+                    <div style={{fontSize:'19px',fontWeight:900,marginTop:'3px',letterSpacing:'-0.3px'}}>Overtime Summary</div>
+                  </div>
+                  <div style={{fontSize:'9.5px',color:'#93c5fd',textAlign:'right',lineHeight:1.5,flexShrink:0}}>
+                    Generated {new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}<br/>at {new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
+                  </div>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
+                  <div>
+                    <div style={{fontSize:'9px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'3px'}}>Rank / Pay Point</div>
+                    <div style={{fontWeight:800,fontSize:'13px'}}>{settings.rank||'—'}, {settings.service||'—'}</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:'9px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'3px'}}>Period</div>
+                    <div style={{fontWeight:800,fontSize:'13px'}}>{fmtD(payslipPreview.start)} – {fmtD(payslipPreview.end)}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{padding:'22px 26px 10px'}}>
+                {d.clippedFrom&&<div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'10px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'#92400e',lineHeight:1.5}}>This range crosses 6 April, where the tax year resets. Figures below cover {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)} only, since combining two tax years' allowances into one total wouldn't be accurate.</div>}
+                {d.rangeEntries.length===0 ? (
+                  <div style={{textAlign:'center',padding:'30px 10px',color:'#94a3b8',fontSize:'13px',fontWeight:600}}>No shifts recorded in this range.</div>
+                ) : (
+                  <>
+                    {hasOT&&(
+                      <>
+                        <div style={sectionTitle}>Overtime Worked</div>
+                        <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12.5px'}}>
+                          <thead><tr><th style={thStyle}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Hours</th><th style={{...thStyle,textAlign:'right'}}>Rate/hr</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
+                          <tbody>
+                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>Standard (1.33x)</td><td style={{...rowStyle,textAlign:'right'}}>{d.rateHrs.hours133.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.rates.r133)}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.rateHrs.hours133*d.rates.r133)}</td></tr>}
+                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>Elevated (1.5x)</td><td style={{...rowStyle,textAlign:'right'}}>{d.rateHrs.hours150.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.rates.r150)}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.rateHrs.hours150*d.rates.r150)}</td></tr>}
+                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>Rest Day (2.0x)</td><td style={{...rowStyle,textAlign:'right'}}>{d.rateHrs.hours200.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.rates.r200)}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.rateHrs.hours200*d.rates.r200)}</td></tr>}
+                          </tbody>
+                        </table>
+                      </>
+                    )}
+
+                    {d.night>0&&(
+                      <>
+                        <div style={sectionTitle}>Night Enhancement</div>
+                        <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12.5px'}}>
+                          <thead><tr><th style={thStyle}>Detail</th><th style={{...thStyle,textAlign:'right'}}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
+                          <tbody><tr>
+                            <td style={{...rowStyle,fontWeight:700,color:'#334155'}}>2000–0600<div style={{fontSize:'10px',color:'#94a3b8'}}>Across whole actual shift, rostered or overtime</div></td>
+                            <td style={{...rowStyle,textAlign:'right'}}>+10%</td>
+                            <td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.night)}</td>
+                          </tr></tbody>
+                        </table>
+                      </>
+                    )}
+
+                    {hasPA&&(
+                      <>
+                        <div style={sectionTitle}>Protection Allowance</div>
+                        <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12.5px'}}>
+                          <thead><tr><th style={thStyle}>Type</th><th style={{...thStyle,textAlign:'right'}}>Count</th><th style={{...thStyle,textAlign:'right'}}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
+                          <tbody>
+                            {['PA1','PA2','PA3'].filter(k=>d.paCounts[k]>0).map(k=>(
+                              <tr key={k}><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>{k}</td><td style={{...rowStyle,textAlign:'right'}}>{d.paCounts[k]}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(PA_RATES[k])}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(PA_RATES[k]*d.paCounts[k])}</td></tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </>
+                    )}
+
+                    {d.toilBanked>0&&(
+                      <>
+                        <div style={sectionTitle}>TOIL Banked This Period</div>
+                        <div style={{background:'#f5f3ff',border:'1px solid #ddd6fe',borderRadius:'10px',padding:'11px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#6d28d9'}}>
+                          <span>Not included in the totals below</span>
+                          <strong>+{fmtHM(d.toilBanked)}h</strong>
+                        </div>
+                      </>
+                    )}
+
+                    {d.pensionForRange>0&&(
+                      <>
+                        <div style={sectionTitle}>Pension Contribution (this period)</div>
+                        <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'10px',padding:'11px 14px',marginBottom:'8px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#1e40af'}}>
+                            <span>{(d.pensionRate*100).toFixed(2)}% of {fmtGBP(d.pensionablePayForRange)} pensionable pay</span>
+                            <strong>−{fmtGBP(d.pensionForRange)}</strong>
+                          </div>
+                          <div style={{fontSize:'9.5px',color:'#3b82f6',marginTop:'4px',lineHeight:1.5}}>Deducted from salary before tax — already reflected in the rate below. Not shown in the overtime total, since pension is never taken from overtime pay itself.</div>
+                        </div>
+                      </>
+                    )}
+
+                    <div style={{background:'#f8fafc',borderRadius:'12px',padding:'16px 18px',margin:'22px 0'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',fontWeight:800,color:'#0f172a'}}><span>Gross Overtime, Night &amp; PA</span><span>{fmtGBP(d.gross)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. Income Tax{d.bandName?` (${d.bandName})`:''}</span><span>−{fmtGBP(d.tax)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. National Insurance</span><span>−{fmtGBP(d.ni)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0 0',marginTop:'6px',borderTop:'1px solid #e2e8f0',fontSize:'17px',fontWeight:900,color:'#059669'}}><span>Estimated Net</span><span>{fmtGBP(d.net)}</span></div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div style={{fontSize:'9.5px',color:'#94a3b8',lineHeight:1.6,padding:'16px 26px 26px',borderTop:'1px solid #f1f5f9',marginTop:'6px'}}>
+                <strong style={{color:'#64748b'}}>This is an unofficial summary</strong> generated from records entered into Overtime &amp; Shift Tracker by Adam Stephens. Tax and National Insurance figures are estimates based on cumulative marginal rates for the tax year and may not exactly match your official payslip, particularly for date ranges spanning more than one pay period. Always verify against payroll before relying on these figures for a dispute or claim.
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Financial Years — full-screen archived-year detail, entries grouped by pay period */}
+      {fySummaryYear!=null&&(()=>{
+        const y = computeArchivedYear(fySummaryYear);
+        const label = `${fySummaryYear} / ${(fySummaryYear+1).toString().slice(-2)}`;
+        return (
+          <div className={fySummaryPrintMode?'payslip-print-area':''} style={{position:'absolute',inset:0,background:'#f8fafc',zIndex:65,overflowY:'auto'}}>
+            <div className="no-print" style={{background:'#fef3c7',padding:'8px',fontSize:'10px',fontWeight:800,color:'#92400e',textAlign:'center'}}>📁 Archived — {label} is read-only</div>
+            {fySummaryPrintMode&&(
+              <div className="no-print" style={{padding:'12px 12px 0'}}>
+                <button onClick={()=>window.print()} style={{width:'100%',background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
+              </div>
+            )}
+            <div className={fySummaryPrintMode?'payslip-print-doc':''} style={{background:'#0f2744',color:'#fff',padding:'16px',margin:fySummaryPrintMode?'12px':0,borderRadius:fySummaryPrintMode?'12px':0}}>
+              <button className="no-print" onClick={()=>{setFySummaryYear(null);setFySummaryPrintMode(false);}} style={{background:'rgba(255,255,255,0.12)',border:'none',borderRadius:'9px',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',cursor:'pointer',marginBottom:'12px'}}><Ico n="back" s={16} c="#fff"/></button>
+              <div style={{fontSize:'10px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.2px'}}>Financial Year</div>
+              <div style={{fontSize:'19px',fontWeight:900}}>{label}</div>
+              <div style={{fontSize:'10px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
+              <div style={{background:'#1e3a5f',borderRadius:'14px',padding:'14px',display:'flex',marginTop:'12px'}}>
+                <div style={{flex:1,textAlign:'center'}}>
+                  <div style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase'}}>Shifts Logged</div>
+                  <div style={{fontSize:'20px',fontWeight:900}}>{y.totalShifts}</div>
+                </div>
+                <div style={{width:'1px',background:'rgba(255,255,255,0.15)'}}/>
+                <div style={{flex:1,textAlign:'center'}}>
+                  <div style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase'}}>Gross</div>
+                  <div style={{fontSize:'20px',fontWeight:900}}>{fmtGBP(y.totalGross)}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{padding:'14px',paddingBottom:'40px'}}>
+              <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'10px',padding:'10px 12px',marginBottom:'12px',fontSize:'10.5px',color:'#1e40af',lineHeight:1.5}}>{fySummaryPrintMode ? 'Grouped by pay period. Gross figures only — no tax or NI estimate, since that math needs the current year\'s context to be accurate.' : 'Tap a period to see individual shifts, this is a record not a working copy. Gross figures only'}</div>
+
+              {y.periods.length===0 ? (
+                <div style={{textAlign:'center',padding:'30px 10px',color:'#94a3b8',fontSize:'13px',fontWeight:600}}>No entries recorded in this year.</div>
+              ) : y.periods.map(p=>{
+                const expanded = fySummaryPrintMode || archiveExpandedPeriod===p.short+fySummaryYear;
+                return (
+                  <div key={p.short} style={{background:'#fff',borderRadius:'14px',padding:'13px',border:'1px solid #f1f5f9',marginBottom:'9px'}}>
+                    <div onClick={()=>{ if(!fySummaryPrintMode) setArchiveExpandedPeriod(expanded?null:p.short+fySummaryYear); }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',cursor:fySummaryPrintMode?'default':'pointer'}}>
+                      <div>
+                        <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>{p.month}</div>
+                        <div style={{fontSize:'10px',color:'#94a3b8',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)} · {p.entries.length} shift{p.entries.length===1?'':'s'}</div>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                        <div style={{fontWeight:900,fontSize:'13px',color:'#1e3a5f'}}>{fmtGBP(p.gross)}</div>
+                        {!fySummaryPrintMode&&<Ico n={expanded?'cU':'cD'} s={14} c="#94a3b8"/>}
+                      </div>
+                    </div>
+                    {expanded&&(
+                      <div>
+                        {p.entries.map(e=>(
+                          <div key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderTop:'1px solid #f8fafc',marginTop:'9px'}}>
+                            <div>
+                              <div style={{fontWeight:800,fontSize:'11.5px',color:'#0f172a'}}>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB')}</div>
+                              <div style={{fontSize:'9.5px',color:'#94a3b8',marginTop:'1px',textTransform:'uppercase'}}>{e.reason||'—'}</div>
+                            </div>
+                            <div style={{fontWeight:800,fontSize:'11.5px',color:'#1e3a5f'}}>{fmtGBP(e.gross)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Trends — chart enlarge modal, shares render functions with the inline charts */}
+      {chartModal&&(
+        <div onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50,padding:'16px'}}>
+          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:'20px',padding:'20px 16px',width:'100%',maxWidth:'480px',maxHeight:'85vh',overflow:'auto',position:'relative'}}>
+            <button onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',top:'14px',right:'14px',background:'#f1f5f9',border:'none',borderRadius:'50%',width:'30px',height:'30px',fontSize:'15px',fontWeight:900,color:'#475569',cursor:'pointer'}}>✕</button>
+            <div style={{fontSize:'13px',fontWeight:900,color:'#0f172a',marginBottom:'16px',paddingRight:'36px'}}>{chartModal==='cum'?'Cumulative Gross Earnings':'Monthly Gross vs Net'}</div>
+            {chartModal==='cum' ? renderCumulativeChart(true) : renderMonthlyChart(true)}
+            {chartModal==='cum' && (
+              <div style={{textAlign:'center',marginTop:'10px',fontSize:'12px',fontWeight:700,color:'#64748b'}}>Running total: <strong style={{color:'#1e3a5f'}}>£{totals.totalGross.toFixed(2)}</strong></div>
+            )}
+            {chartModal==='mon' && (
+              <div style={{display:'flex',justifyContent:'center',gap:'20px',marginTop:'14px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'15px',height:'3px',background:'#34d399',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</span></div>
+                <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'15px',height:'3px',background:'#f87171',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Net</span></div>
+              </div>
+            )}
+            <div style={{textAlign:'center',marginTop:'10px',fontSize:'10px',color:'#94a3b8'}}>Tap any point for that period's figure</div>
+          </div>
+        </div>
+      )}
+
+      {/* Calendar View — empty-day tap confirmation, so a stray tap doesn't
+          silently drop you into Log Overtime */}
+      {confirmCreateDay&&(
+        <div onClick={()=>setConfirmCreateDay(null)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:41,padding:'20px'}}>
+          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:'18px',padding:'22px',width:'100%',maxWidth:'320px',textAlign:'center'}}>
+            <div style={{fontWeight:900,fontSize:'15px',color:'#0f172a',marginBottom:'6px'}}>Create an entry for this day?</div>
+            <div style={{fontSize:'12px',fontWeight:600,color:'#64748b',marginBottom:'18px'}}>{new Date(confirmCreateDay+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
+            <div style={{display:'flex',gap:'8px'}}>
+              <button onClick={()=>setConfirmCreateDay(null)} style={{flex:1,padding:'11px',background:'#f1f5f9',border:'none',borderRadius:'10px',fontWeight:900,fontSize:'12px',color:'#64748b',cursor:'pointer',fontFamily:'inherit'}}>No</button>
+              <button onClick={()=>{ setForm({...blankForm,date:confirmCreateDay}); setEditing(null); setTab('add'); setConfirmCreateDay(null); }} style={{flex:1,padding:'11px',background:'#2563eb',border:'none',borderRadius:'10px',fontWeight:900,fontSize:'12px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Yes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Calendar View — day detail popover */}
+      {selectedCalDay&&(
+        <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:40}}>
+          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:'20px 20px 0 0',padding:'20px',width:'100%',maxWidth:'430px',maxHeight:'70%',overflowY:'auto'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
+              <div style={{fontWeight:900,fontSize:'16px',color:'#0f172a'}}>{new Date(selectedCalDay.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
+              <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={16} c="#64748b"/></button>
+            </div>
+            {selectedCalDay.dEntries.map(e=>{
+              const c = calcEntry(e);
+              const pb = totals.periodBreakdown[selectedCalDay.periodIdx];
+              const eOTNet    = c.h1+c.h2+c.h3>0 ? c.ot*(1-pb.otResult.rate/100)       : 0;
+              const eNightNet = c.nh>0           ? c.night*(1-pb.nightResult.rate/100) : 0;
+              const ePANet    = c.pa>0           ? c.pa*(1-pb.paResult.rate/100)       : 0;
+              const eNet = eOTNet+eNightNet+ePANet;
+              return (
+                <div key={e.id} style={{background:'#f8fafc',borderRadius:'13px',padding:'13px',marginBottom:'8px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'8px'}}>
+                    <div style={{flex:1,paddingRight:'8px'}}>
+                      <div style={{fontWeight:900,fontSize:'12px',color:'#3b82f6',textTransform:'uppercase'}}>Duty / Reason: {e.reason||'Shift'}</div>
+                      {e.takeAs==='toil'&&<div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div>}
+                      {e.takeAs==='mix'&&<div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>Mix — Pay + TOIL</div>}
+                    </div>
+                    <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
+                      <button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
+                      <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} style={{background:confirmDel===e.id?'#fee2e2':'#fef2f2',border:confirmDel===e.id?'1.5px solid #fca5a5':'1.5px solid transparent',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={14} c="#ef4444"/></button>
+                    </div>
+                  </div>
+
+                  {/* delete confirmation */}
+                  {confirmDel===e.id&&(
+                    <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'10px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
+                      <span style={{fontSize:'12px',fontWeight:700,color:'#991b1b'}}>Delete this record?</span>
+                      <div style={{display:'flex',gap:'7px',flexShrink:0}}>
+                        <button onClick={()=>setConfirmDel(null)} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:'8px',padding:'5px 12px',fontSize:'11px',fontWeight:900,color:'#64748b',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+                        <button onClick={()=>{ delEntry(e.id); if(selectedCalDay.dEntries.length<=1) setSelectedCalDay(null); }} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'11px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* notes — sits directly under Duty/Reason, separated from the pay breakdown below.
+                      Skipped entirely when there are no notes, so no empty labelled block appears. */}
+                  {e.comments&&(
+                    <div style={{borderTop:'1px solid #e2e8f0',paddingTop:'10px',marginBottom:'10px'}}>
+                      <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>Notes</div>
+                      <div style={{fontSize:'11px',fontStyle:'italic',color:'#0f172a',borderLeft:'2px solid #bfdbfe',paddingLeft:'8px',whiteSpace:'pre-wrap',overflowWrap:'anywhere',lineHeight:1.5}}>{e.comments}</div>
+                    </div>
+                  )}
+
+                  {/* pay breakdown — each line shows its own value, matching List View */}
+                  <div style={{borderTop:'1px solid #e2e8f0',paddingTop:'10px'}}>
+                    <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+                      {c.payH1>0&&(
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <span style={{fontSize:'11px',fontWeight:700,color:'#475569'}}>{c.payH1}h @ 1.33x {c.toilH>0&&c.otRateTier==='hours133'?'(Pay)':''} <span style={{color:'#94a3b8'}}>(£{c.r.r133.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:'12px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot1.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {c.payH2>0&&(
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <span style={{fontSize:'11px',fontWeight:700,color:'#475569'}}>{c.payH2}h @ 1.5x {c.toilH>0&&c.otRateTier==='hours150'?'(Pay)':''} <span style={{color:'#94a3b8'}}>(£{c.r.r150.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:'12px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot2.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {c.payH3>0&&(
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <span style={{fontSize:'11px',fontWeight:700,color:'#475569'}}>{c.payH3}h @ 2.0x {c.toilH>0&&c.otRateTier==='hours200'?'(Pay)':''} <span style={{color:'#94a3b8'}}>(£{c.r.r200.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:'12px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot3.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {c.toilH>0&&(
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <span style={{fontSize:'11px',fontWeight:700,color:'#6d28d9'}}>{fmtHM(c.toilH)}h @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
+                          <span style={{fontSize:'12px',fontWeight:900,color:'#4c1d95'}}>{fmtHM(c.toilBanked)}h banked</span>
+                        </div>
+                      )}
+                      {c.nh>0&&(
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <span style={{fontSize:'11px',fontWeight:700,color:'#6366f1'}}>{c.nh}h @ +10% <span style={{color:'#94a3b8'}}>(£{(c.r.base*0.10).toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:'12px',fontWeight:900,color:'#4f46e5'}}>£{c.night.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {e.paRate!=='None'&&(
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <span style={{fontSize:'11px',fontWeight:700,color:'#b45309'}}>{e.paRate} allowance</span>
+                          <span style={{fontSize:'12px',fontWeight:900,color:'#92400e'}}>£{c.pa.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px',borderTop:'1px solid #e2e8f0',paddingTop:'8px',marginTop:'8px'}}>
+                      <div><div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div><div style={{fontWeight:900,fontSize:'13px',color:'#1e3a5f'}}>{fmt(c.gross)}</div></div>
+                      <div style={{textAlign:'right'}}><div style={{fontSize:'9px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div><div style={{fontWeight:900,fontSize:'13px',color:'#059669'}}>{fmt(eNet)}</div></div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* floating save button (Log Shift only, and only once rank/pay point are set) */}
+      {tab==='add'&&settings.rank&&settings.service&&(
+        <div style={{position:'absolute',bottom:'72px',left:'14px',right:'14px',zIndex:25}}>
+          <button onClick={handleSave} style={{width:'100%',background:'#dc2626',color:'#fff',boxShadow:'0 4px 20px rgba(220,38,38,0.5)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px'}}>
+            <Ico n="save" s={18} c="#fff"/>
+            {editing?'Update Record':'Save Record'}
+          </button>
+        </div>
+      )}
+
+      <nav className="no-print" style={S.nav}>
+        {[
+          {id:'dashboard',n:'home', lbl:'Home'},
+          {id:'months',   n:'cal',  lbl:'Summary'},
+          {id:'add',      n:'plus', lbl:'Log Overtime'},
+          {id:'graph',    n:'clock', lbl:'TOIL'},
+          {id:'settings', n:'cog',  lbl:'More..'},
+        ].map(t=>(
+          <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={S.nBtn(tab===t.id,t.id==='add')}>
+            <Ico n={t.n} s={t.id==='add'?21:18} c={t.id==='add'?'#fff':tab===t.id?'#2563eb':'#94a3b8'} w={tab===t.id||t.id==='add'?2.5:2}/>
+            <span style={S.nLbl}>{t.lbl}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
