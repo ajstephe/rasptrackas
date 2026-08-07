@@ -748,6 +748,25 @@ function ClockCashIcon({ width=28, height=19 }) {
 const TIME_HOURS = Array.from({length:24},(_,i)=>String(i).padStart(2,'0'));
 const TIME_MINUTES = ['00','15','30','45'];
 
+// Simplified fire-exit-sign pictogram — running figure heading through a
+// doorway, with a directional arrow — evoking the standard green exit
+// sign. White strokes/fills throughout, meant to sit on a green backdrop.
+function FireExitIcon({ size=20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="6" cy="4" r="1.7" fill="#fff"/>
+      <path d="M6.5 6 L8 11" stroke="#fff" strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M8 11 L10.5 13 L9.5 16.5" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <path d="M8 11 L4.8 13 L4 11.5" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <path d="M7 7.3 L9.8 6.8" stroke="#fff" strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M6.8 7.6 L4.8 9.5" stroke="#fff" strokeWidth="1.7" strokeLinecap="round"/>
+      <rect x="15.5" y="2.5" width="6.5" height="19" rx="0.6" stroke="#fff" strokeWidth="1.4"/>
+      <path d="M11.5 12 H19" stroke="#fff" strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M16.3 9 L19.3 12 L16.3 15" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    </svg>
+  );
+}
+
 // Two small selects (hour, then minute) rather than one 96-option list —
 // picking "21" then "45" is much faster than scrolling to find "21:45".
 // Combines back into the same "HH:MM" string the rest of the app expects,
@@ -4134,12 +4153,12 @@ export default function App() {
                  itself the clickable element rather than a button inside
                  a static box. ── */}
             {session&&(
-              <button onClick={()=>setSignOutConfirmOpen(true)} style={{...S.card,width:'100%',display:'flex',alignItems:'center',gap:'12px',border:'1px solid #f1f5f9',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-                <div style={{background:'#eff6ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="logout" s={19} c="#2563eb"/></div>
+              <button onClick={()=>setSignOutConfirmOpen(true)} style={{...S.card,width:'100%',display:'flex',alignItems:'center',gap:'12px',background:'#059669',border:'1px solid #059669',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                <div style={{background:'rgba(255,255,255,0.15)',padding:'11px',borderRadius:'13px',flexShrink:0}}><FireExitIcon size={19}/></div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Sign Out</div>
+                  <div style={{fontWeight:900,fontSize:'13px',color:'#fff'}}>Sign Out</div>
                 </div>
-                <Ico n="cR" s={16} c="#94a3b8"/>
+                <Ico n="cR" s={16} c="rgba(255,255,255,0.7)"/>
               </button>
             )}
 
