@@ -535,6 +535,9 @@ const KEYS = {
   defaultBreakdownView:'ajs_ot_defaultBreakdownView',
   toilTaken:'ajs_ot_toilTaken',
   lastSeenFYYear:'ajs_ot_lastSeenFYYear',
+  lastSyncedEntries:'ajs_ot_lastSyncedEntries',
+  lastSyncedToilTaken:'ajs_ot_lastSyncedToilTaken',
+  lastSyncedSettings:'ajs_ot_lastSyncedSettings',
 };
 const dualWrite = (key, val) => {
   const s = JSON.stringify(val);
@@ -1188,10 +1191,16 @@ export default function App() {
   const notesRef = useRef(null);
   // What's already been pushed to Supabase, keyed by row id — compared
   // against on every local change so only genuinely new/edited/removed
-  // items get pushed, not the whole array on every render.
-  const lastSyncedEntriesRef = useRef(new Map());
-  const lastSyncedToilRef = useRef(new Map());
-  const lastSyncedSettingsRef = useRef(null);
+  // items get pushed, not the whole array on every render. Hydrated from
+  // localStorage on mount, and re-persisted on every mutation below —
+  // without this, a plain page reload would forget everything this device
+  // has ever actually synced, since useRef alone doesn't survive that.
+  const lastSyncedEntriesRef = useRef(new Map(Object.entries(dualRead(KEYS.lastSyncedEntries,{}))));
+  const lastSyncedToilRef = useRef(new Map(Object.entries(dualRead(KEYS.lastSyncedToilTaken,{}))));
+  const lastSyncedSettingsRef = useRef(dualRead(KEYS.lastSyncedSettings,null));
+  const persistLastSyncedEntries = () => dualWrite(KEYS.lastSyncedEntries, Object.fromEntries(lastSyncedEntriesRef.current));
+  const persistLastSyncedToil = () => dualWrite(KEYS.lastSyncedToilTaken, Object.fromEntries(lastSyncedToilRef.current));
+  const persistLastSyncedSettings = () => dualWrite(KEYS.lastSyncedSettings, lastSyncedSettingsRef.current);
   // Always-current mirrors of local state, for the async pull/realtime code
   // below — a value captured at the top of a useEffect can be stale by the
   // time an awaited call or an event callback actually runs.
@@ -1214,7 +1223,7 @@ export default function App() {
   // here is silently dropped rather than lost data, since local storage
   // already has the real copy; that gap is closed by pull-and-merge on
   // sign-in, which is the next piece, not this one.
-  async function pushRowChanges(table, items, lastSyncedRef) {
+  async function pushRowChanges(table, items, lastSyncedRef, persistFn) {
     if (!supabase || !session || !dataKey) return;
     const uid = session.user.id;
     const currentIds = new Set(items.map(it => it.id));
@@ -1226,13 +1235,13 @@ export default function App() {
       try {
         const ciphertext = await encryptWithDataKey(dataKey, item);
         const { error } = await supabase.from(table).upsert({ id: item.id, user_id: uid, ciphertext, updated_at: now, deleted_at: null });
-        if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); console.log(`[sync] pushed ${table} id=${item.id}`); }
+        if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); console.log(`[sync] pushed ${table} id=${item.id}`); }
         else console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error);
       } catch (e) { console.error(`[sync] push threw for ${table} id=${item.id}:`, e.message || e); }
     }
     for (const id of toDelete) {
       const { error } = await supabase.from(table).update({ deleted_at: now, updated_at: now }).eq('id', id).eq('user_id', uid);
-      if (!error) lastSyncedRef.current.delete(id);
+      if (!error) { lastSyncedRef.current.delete(id); persistFn(); }
       else console.error(`[sync] soft-delete failed for ${table} id=${id}:`, error.message || error);
     }
   }
@@ -1244,8 +1253,9 @@ export default function App() {
     try {
       const ciphertext = await encryptWithDataKey(dataKey, settingsObj);
       const { error } = await supabase.from('settings').upsert({ user_id: session.user.id, ciphertext, updated_at: new Date().toISOString() });
-      if (!error) lastSyncedSettingsRef.current = json;
-    } catch (e) { /* dropped silently — see note above */ }
+      if (!error) { lastSyncedSettingsRef.current = json; persistLastSyncedSettings(); console.log('[sync] pushed settings'); }
+      else console.error('[sync] push failed for settings:', error.message || error);
+    } catch (e) { console.error('[sync] push threw for settings:', e.message || e); }
   }
 
   // ── cloud pull + merge ──────────────────────────────────────────────────
@@ -1261,7 +1271,7 @@ export default function App() {
   // pending local edit — keep it, and the next push cycle will send it up.
   // An item that WAS synced before but is missing from the server now
   // means another device deleted it — dropped locally too, not resurrected.
-  async function pullAndMergeRows(table, itemsRef, setLocalItems, lastSyncedRef) {
+  async function pullAndMergeRows(table, itemsRef, setLocalItems, lastSyncedRef, persistFn) {
     if (!supabase || !session || !dataKey) return;
     const uid = session.user.id;
     const { data: rows, error } = await supabase.from(table).select('id, ciphertext, deleted_at').eq('user_id', uid);
@@ -1297,6 +1307,7 @@ export default function App() {
       merged.push(remoteItem);
       lastSyncedRef.current.set(id, JSON.stringify(remoteItem));
     }
+    persistFn();
     setLocalItems(merged);
   }
 
@@ -1306,10 +1317,16 @@ export default function App() {
     if (error || !row) return;
     try {
       const remoteSettings = await decryptWithDataKey(dataKey, row.ciphertext);
-      const noPendingLocalEdit = lastSyncedSettingsRef.current === JSON.stringify(settingsRef.current);
+      // A device that's never synced settings before (lastSyncedSettingsRef
+      // still null) only has blank local defaults, not a real pending edit
+      // — that's not the same case as "synced before, changed since," and
+      // needs to be treated as safe to overwrite, same as no pending edit.
+      const neverSynced = lastSyncedSettingsRef.current === null;
+      const noPendingLocalEdit = neverSynced || lastSyncedSettingsRef.current === JSON.stringify(settingsRef.current);
       if (noPendingLocalEdit) {
         saveSett(remoteSettings);
         lastSyncedSettingsRef.current = JSON.stringify(remoteSettings);
+        persistLastSyncedSettings();
       }
     } catch (e) { /* undecryptable — skip */ }
   }
@@ -1319,8 +1336,8 @@ export default function App() {
   // since this should fire once per unlock, not on every local edit.
   useEffect(()=>{
     if (!dataKey) return;
-    pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef);
-    pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef);
+    pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries);
+    pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil);
     pullAndMergeSettings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[dataKey]);
@@ -1344,17 +1361,19 @@ export default function App() {
     // to overwrite with a stale remote copy.
     let hasConnectedOnce = false;
 
-    const handleRowChange = async (setLocalItems, lastSyncedRef, payload) => {
+    const handleRowChange = async (setLocalItems, lastSyncedRef, persistFn, payload) => {
       const row = payload.new;
       if (!row) return;
       if (row.deleted_at) {
         setLocalItems(prev => prev.filter(it => it.id !== row.id));
         lastSyncedRef.current.delete(row.id);
+        persistFn();
         return;
       }
       try {
         const decrypted = await decryptWithDataKey(dataKey, row.ciphertext);
         lastSyncedRef.current.set(row.id, JSON.stringify(decrypted));
+        persistFn();
         setLocalItems(prev => {
           const idx = prev.findIndex(it => it.id === row.id);
           if (idx === -1) return [...prev, decrypted];
@@ -1364,21 +1383,22 @@ export default function App() {
     };
 
     const channel = supabase.channel('sync-'+uid)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `user_id=eq.${uid}` }, p => handleRowChange(setEntries, lastSyncedEntriesRef, p))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'toil_taken', filter: `user_id=eq.${uid}` }, p => handleRowChange(setToilTaken, lastSyncedToilRef, p))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `user_id=eq.${uid}` }, p => handleRowChange(setEntries, lastSyncedEntriesRef, persistLastSyncedEntries, p))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'toil_taken', filter: `user_id=eq.${uid}` }, p => handleRowChange(setToilTaken, lastSyncedToilRef, persistLastSyncedToil, p))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings', filter: `user_id=eq.${uid}` }, async (p) => {
         const row = p.new; if (!row) return;
         try {
           const decrypted = await decryptWithDataKey(dataKey, row.ciphertext);
           lastSyncedSettingsRef.current = JSON.stringify(decrypted);
+          persistLastSyncedSettings();
           saveSett(decrypted);
         } catch (e) { /* undecryptable — skip */ }
       })
       .subscribe((status)=>{
         if (status === 'SUBSCRIBED') {
           if (hasConnectedOnce) {
-            pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef);
-            pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef);
+            pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries);
+            pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil);
             pullAndMergeSettings();
           }
           hasConnectedOnce = true;
@@ -1391,9 +1411,9 @@ export default function App() {
   // ── persist ────────────────────────────────────────────────────────────────
   useEffect(()=>{
     dualWrite(KEYS.entries,entries);
-    pushRowChanges('entries', entries, lastSyncedEntriesRef);
+    pushRowChanges('entries', entries, lastSyncedEntriesRef, persistLastSyncedEntries);
   },[entries]);
-  useEffect(()=>{ dualWrite(KEYS.toilTaken,toilTaken); pushRowChanges('toil_taken', toilTaken, lastSyncedToilRef); },[toilTaken]);
+  useEffect(()=>{ dualWrite(KEYS.toilTaken,toilTaken); pushRowChanges('toil_taken', toilTaken, lastSyncedToilRef, persistLastSyncedToil); },[toilTaken]);
   useEffect(()=>{ dualWrite(KEYS.settings,settings); pushSettingsChange(settings); },[settings]);
 
   // ── auth session ──────────────────────────────────────────────────────────
