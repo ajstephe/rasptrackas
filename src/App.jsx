@@ -2117,14 +2117,12 @@ export default function App() {
           supabase.from('entries').delete().eq('user_id', uid),
           supabase.from('toil_taken').delete().eq('user_id', uid),
           supabase.from('settings').delete().eq('user_id', uid),
-          supabase.from('user_keys').delete().eq('user_id', uid),
         ]);
         if (results.some(r => r.error)) {
           setWipingData(false);
           addToast('Couldn\u2019t fully clear cloud data \u2014 check your connection and try again', 'warn', null, 6000);
           return;
         }
-        setDataKey(null);
       } catch (e) {
         setWipingData(false);
         addToast('Couldn\u2019t clear cloud data \u2014 check your connection and try again', 'warn', null, 6000);
@@ -2132,6 +2130,9 @@ export default function App() {
       }
     }
     setEntries([]); setToilTaken([]); saveSett({rank:'',service:''});
+    lastSyncedEntriesRef.current.clear(); persistLastSyncedEntries();
+    lastSyncedToilRef.current.clear(); persistLastSyncedToil();
+    lastSyncedSettingsRef.current = null; persistLastSyncedSettings();
     setWipingData(false);
     setWipeConf(false);
     setTab('dashboard');
@@ -2600,8 +2601,8 @@ export default function App() {
           {session&&(
             <>
               <div style={{width:'1px',height:'18px',background:'#e2e8f0',flexShrink:0}}/>
-              <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',gap:'4px',padding:'6px 10px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',color:'#2563eb',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
-                <Ico n="logout" s={11} c="#2563eb"/> Sign Out
+              <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',padding:'6px 10px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',color:'#2563eb',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
+                Sign Out
               </button>
             </>
           )}
