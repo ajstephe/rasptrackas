@@ -1022,7 +1022,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
       <div style={AS.header}>
         <ClockCashIcon width={28} height={19}/>
         <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0}}>
-          <span style={{fontSize:'19px',fontWeight:900,color:'#fff',letterSpacing:'-0.4px',whiteSpace:'nowrap'}}>Overtime/Shift Tracker</span>
+          <span style={{fontSize:'19px',fontWeight:900,color:'#fff',letterSpacing:'-0.4px',whiteSpace:'nowrap'}}>Overtime &amp; Shift Tracker</span>
           <span style={{fontSize:'13px',fontWeight:700,color:'#93c5fd',letterSpacing:'0.2px'}}>by Adam Stephens</span>
         </div>
       </div>
@@ -2615,23 +2615,15 @@ export default function App() {
         <div style={{display:'flex',alignItems:'center',gap:'8px',minWidth:0}}>
           <ClockCashIcon width={28} height={19}/>
           <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0,overflow:'hidden'}}>
-            <span style={{fontSize:'19px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime/Shift Tracker</span>
+            <span style={{fontSize:'19px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime &amp; Shift Tracker</span>
             <span style={{fontSize:'13px',fontWeight:700,color:'#94a3b8',letterSpacing:'0.2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>by Adam Stephens</span>
           </div>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:'10px',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
           {session&&(
-            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',gap:'5px',padding:'6px 10px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',color:'#2563eb',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap'}}>
-              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={11} c="#2563eb"/></span> Sync
+            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'9px',color:'#2563eb',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap'}}>
+              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={13} c="#2563eb"/></span> Sync
             </button>
-          )}
-          {session&&(
-            <>
-              <div style={{width:'1px',height:'18px',background:'#e2e8f0',flexShrink:0}}/>
-              <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',padding:'6px 10px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',color:'#2563eb',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
-                Sign Out
-              </button>
-            </>
           )}
         </div>
       </header>
@@ -4073,8 +4065,6 @@ export default function App() {
                 {accountExpanded&&(
                   <>
                     <div style={{fontSize:'12px',color:'#64748b',marginBottom:'11px',fontWeight:600}}>Signed in as {session.user?.email}</div>
-                    <button onClick={handleSignOut} style={{width:'100%',padding:'10px',background:'rgba(37,99,235,0.08)',border:'1px solid rgba(37,99,235,0.2)',borderRadius:'10px',color:'#2563eb',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="logout" s={12} c="#2563eb"/> Sign Out</button>
-
                     <div style={{marginTop:'14px',paddingTop:'14px',borderTop:'1px solid #f1f5f9'}}>
                       {!deleteAcctConf ? (
                         <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'10px',color:'#dc2626',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#dc2626"/> Delete Account</button>
@@ -4138,6 +4128,20 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            {/* ── Sign Out — its own full box-button, same size/shape as the
+                 other cards, matching how Help & Suggestions below is
+                 itself the clickable element rather than a button inside
+                 a static box. ── */}
+            {session&&(
+              <button onClick={()=>setSignOutConfirmOpen(true)} style={{...S.card,width:'100%',display:'flex',alignItems:'center',gap:'12px',border:'1px solid #f1f5f9',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                <div style={{background:'#eff6ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="logout" s={19} c="#2563eb"/></div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Sign Out</div>
+                </div>
+                <Ico n="cR" s={16} c="#94a3b8"/>
+              </button>
+            )}
 
             {/* ── Help & suggestions ── */}
             <a href="mailto:ajstephe@me.com?subject=Overtime%20Tracker%20—%20Feedback" style={{...S.card,display:'flex',alignItems:'center',gap:'12px',textDecoration:'none',cursor:'pointer'}}>
