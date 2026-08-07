@@ -535,7 +535,6 @@ const KEYS = {
   defaultBreakdownView:'ajs_ot_defaultBreakdownView',
   toilTaken:'ajs_ot_toilTaken',
   lastSeenFYYear:'ajs_ot_lastSeenFYYear',
-  localOnlyMode:'ajs_ot_localOnlyMode',
 };
 const dualWrite = (key, val) => {
   const s = JSON.stringify(val);
@@ -563,6 +562,64 @@ try {
 // rather than throwing — the app falls back to local-only behaviour instead
 // of a blank white screen. Every call site below checks for this.
 const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
+
+// ─── crypto: data-key generation and wrapping ──────────────────────────────
+// Every account gets one random "data key" (DEK) at signup, generated here.
+// It's wrapped (encrypted) twice — once under a key derived from the login
+// password, once under a key derived from the recovery word — so either one
+// can unwrap it independently. The DEK itself is never sent anywhere in the
+// clear. Actually using the DEK to encrypt entries/toilTaken/settings is a
+// separate, later step — this module only covers generating and safely
+// storing the key material.
+const RECOVERY_MIN_LENGTH = 5;
+const RECOVERY_BLOCKLIST = ['password','overtime','shift','shift1','police','london','metro','12345','qwerty','letmein','admin','welcome','abcde','testy'];
+const PASSWORD_KDF_ITERATIONS = 210000;  // used once per sign-in, cost is invisible to the user
+const RECOVERY_KDF_ITERATIONS = 600000;  // used maybe once ever, so it can afford to be slower
+
+const _te = new TextEncoder();
+const _bufToB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const _b64ToBuf = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
+
+async function deriveKek(secret, saltBytes, iterations) {
+  const baseKey = await crypto.subtle.importKey('raw', _te.encode(secret), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt:saltBytes, iterations, hash:'SHA-256' },
+    baseKey,
+    { name:'AES-GCM', length:256 },
+    true,
+    ['wrapKey','unwrapKey']
+  );
+}
+
+async function generateDataKey() {
+  return crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, true, ['encrypt','decrypt']);
+}
+
+// Wraps the DEK under a password or recovery word. IV is stored alongside
+// the ciphertext in one base64 blob so no extra database column is needed.
+async function wrapDataKey(dek, secret, iterations) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const kek = await deriveKek(secret, salt, iterations);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const wrappedBuf = await crypto.subtle.wrapKey('raw', dek, kek, { name:'AES-GCM', iv });
+  const combined = new Uint8Array(iv.length + wrappedBuf.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(wrappedBuf), iv.length);
+  return { wrapped: _bufToB64(combined.buffer), salt: _bufToB64(salt.buffer) };
+}
+
+async function unwrapDataKey(wrappedB64, secret, saltB64, iterations) {
+  const kek = await deriveKek(secret, new Uint8Array(_b64ToBuf(saltB64)), iterations);
+  const combined = new Uint8Array(_b64ToBuf(wrappedB64));
+  const iv = combined.slice(0, 12);
+  const ciphertext = combined.slice(12).buffer;
+  return crypto.subtle.unwrapKey(
+    'raw', ciphertext, kek,
+    { name:'AES-GCM', iv },
+    { name:'AES-GCM', length:256 },
+    true, ['encrypt','decrypt']
+  );
+}
 
 // Migrate settings if they contain old rank names from a previous version
 const migrateSettings = s => {
@@ -728,11 +785,12 @@ function ToastStack({ toasts, onDismiss }) {
 // local-only escape hatch. Recovery-secret setup and real cloud sync of
 // entries/toilTaken/settings are phase 2, once the data-key wrap/unwrap
 // functions exist — signing up here does not yet mean data is backed up.
-function AuthScreens({ supabase, onContinueLocalOnly, addToast }) {
-  const [screen, setScreen]         = useState('signin'); // 'signin' | 'signup' | 'forgot'
+function AuthScreens({ supabase, addToast, setAuthFlowBusy }) {
+  const [screen, setScreen]         = useState('signin'); // 'signin' | 'signup' | 'forgot' | 'recovery-setup'
   const [email, setEmail]           = useState('');
   const [password, setPassword]     = useState('');
   const [password2, setPassword2]   = useState('');
+  const [recoveryWord, setRecoveryWord] = useState('');
   const [busy, setBusy]             = useState(false);
   const [error, setError]           = useState('');
   const [forgotSent, setForgotSent] = useState(false);
@@ -753,7 +811,6 @@ function AuthScreens({ supabase, onContinueLocalOnly, addToast }) {
     linkRow:{textAlign:'center',marginTop:'14px',fontSize:'13px',color:'#94a3b8',fontWeight:700},
     link:{color:'#2563eb',cursor:'pointer'},
     note:{display:'flex',gap:'9px',background:'#f5f3ff',borderRadius:'13px',padding:'12px 13px',marginBottom:'16px',fontSize:'12.5px',lineHeight:1.5,color:'#6d28d9',fontWeight:600},
-    divider:{display:'flex',alignItems:'center',gap:'10px',margin:'20px 0 16px',fontSize:'11.5px',color:'#94a3b8',fontWeight:700},
   };
   const tabStyle = active => ({flex:1,textAlign:'center',padding:'9px 0',fontSize:'14px',fontWeight:700,color:active?'#0f172a':'#94a3b8',borderRadius:'9px',cursor:'pointer',border:'none',background:active?'#fff':'transparent',fontFamily:'inherit',boxShadow:active?'0 1px 3px rgba(0,0,0,0.08)':'none'});
 
@@ -763,9 +820,18 @@ function AuthScreens({ supabase, onContinueLocalOnly, addToast }) {
     setError('');
     if (!validEmail) { setError('Enter a valid email address'); return; }
     setBusy(true);
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+    if (err) { setBusy(false); setError(err.message); return; }
+    // Covers an account that signed up but never finished recovery-secret
+    // setup (e.g. email confirmation delayed the first real session).
+    const { data: existingKey } = await supabase.from('user_keys').select('user_id').eq('user_id', data.user.id).maybeSingle();
     setBusy(false);
-    if (err) setError(err.message);
+    if (!existingKey) {
+      if (setAuthFlowBusy) setAuthFlowBusy(true);
+      setScreen('recovery-setup');
+    }
+    // else: password stays in local state only until this component
+    // unmounts on the next render — never lifted to the parent.
   };
 
   const handleSignUp = async () => {
@@ -774,10 +840,52 @@ function AuthScreens({ supabase, onContinueLocalOnly, addToast }) {
     if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
     if (password !== password2) { setError('Passwords do not match'); return; }
     setBusy(true);
-    const { error: err } = await supabase.auth.signUp({ email, password });
+    const { data, error: err } = await supabase.auth.signUp({ email, password });
     setBusy(false);
     if (err) { setError(err.message); return; }
-    if (addToast) addToast('Account created — cloud sync arrives in a future update', 'success', null, 5000, 'Welcome');
+    if (!data.session) {
+      // Email confirmation required — no session yet, nowhere safe to write
+      // key material. Setup resumes on first sign-in instead, above.
+      if (addToast) addToast('Check your email to confirm your account, then sign in.', 'success', null, 6000, 'Almost there');
+      setScreen('signin');
+      return;
+    }
+    if (setAuthFlowBusy) setAuthFlowBusy(true);
+    setScreen('recovery-setup');
+    // password intentionally stays in state — it's needed to wrap the data key next
+  };
+
+  const recoveryTooShort = recoveryWord.length > 0 && recoveryWord.length < RECOVERY_MIN_LENGTH;
+  const recoveryTooCommon = RECOVERY_BLOCKLIST.includes(recoveryWord.toLowerCase());
+
+  const handleRecoverySetup = async () => {
+    setError('');
+    if (recoveryWord.length < RECOVERY_MIN_LENGTH) { setError(`Must be at least ${RECOVERY_MIN_LENGTH} letters`); return; }
+    if (recoveryTooCommon) { setError('Too common — choose something less predictable'); return; }
+    setBusy(true);
+    try {
+      const dek = await generateDataKey();
+      const passWrap = await wrapDataKey(dek, password, PASSWORD_KDF_ITERATIONS);
+      const recWrap  = await wrapDataKey(dek, recoveryWord, RECOVERY_KDF_ITERATIONS);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { error: err } = await supabase.from('user_keys').upsert({
+        user_id: sessionData.session.user.id,
+        wrapped_dek: passWrap.wrapped,
+        kek_salt: passWrap.salt,
+        kek_iterations: PASSWORD_KDF_ITERATIONS,
+        wrapped_dek_recovery: recWrap.wrapped,
+        recovery_salt: recWrap.salt,
+        recovery_iterations: RECOVERY_KDF_ITERATIONS,
+      });
+      setBusy(false);
+      if (err) { setError(err.message); return; }
+      setPassword(''); setRecoveryWord('');
+      if (addToast) addToast('Recovery secret saved — you\u2019re all set', 'success', null, 4000, 'Ready to go');
+      if (setAuthFlowBusy) setAuthFlowBusy(false);
+    } catch (e) {
+      setBusy(false);
+      setError('Something went wrong setting up encryption \u2014 try again');
+    }
   };
 
   const handleForgotRequest = async () => {
@@ -862,12 +970,6 @@ function AuthScreens({ supabase, onContinueLocalOnly, addToast }) {
           </>
         )}
 
-        {screen !== 'forgot' && (
-          <>
-            <div style={AS.divider}>or</div>
-            <button style={AS.btnGhost} onClick={onContinueLocalOnly}>Continue without an account</button>
-          </>
-        )}
       </div>
     </div>
   );
@@ -908,7 +1010,6 @@ export default function App() {
   const [lastBackedUp, setLastBackedUp] = useState(()=>dualRead(KEYS.backedUpAt,null));
   const [session,      setSession]      = useState(null);
   const [authLoading,  setAuthLoading]  = useState(true);
-  const [localOnlyMode,setLocalOnlyMode]= useState(()=>dualRead(KEYS.localOnlyMode,false));
   const [showBackupReminder, setShowBackupReminder] = useState(false);
   const [showFYRollover, setShowFYRollover] = useState(false);
   const [fySummaryYear, setFySummaryYear] = useState(null); // calendar FY-start-year of the archived year being viewed, or null
@@ -943,9 +1044,8 @@ export default function App() {
 
   // ── auth session ──────────────────────────────────────────────────────────
   // Checks for an existing session once on mount, then stays subscribed for
-  // sign-in/sign-out events for the lifetime of the app. Local-only mode
-  // (KEYS.localOnlyMode) bypasses this entirely — that flag, not the session,
-  // is what decides whether the auth gate below is shown.
+  // sign-in/sign-out events for the lifetime of the app. A signed-in session
+  // is now required — there's no local-only bypass.
   useEffect(()=>{
     if (!supabase) { setAuthLoading(false); return; }
     let cancelled = false;
@@ -1932,8 +2032,10 @@ export default function App() {
 
   // ── auth gate ──────────────────────────────────────────────────────────────
   // Placed after every hook above has already run (React's rules of hooks
-  // require that), so it's safe to branch the actual render here. Local-only
-  // mode and an active session both skip straight past this to the real app.
+  // require that), so it's safe to branch the actual render here. An active
+  // session is required to reach the app below. If Supabase itself is
+  // unreachable or misconfigured (supabase is null), this still falls back
+  // to rendering the app rather than a dead end — see the client setup above.
   if (authLoading) {
     return (
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',background:'#f8fafc'}}>
@@ -1941,14 +2043,8 @@ export default function App() {
       </div>
     );
   }
-  if (supabase && !session && !localOnlyMode) {
-    return (
-      <AuthScreens
-        supabase={supabase}
-        addToast={addToast}
-        onContinueLocalOnly={()=>{ dualWrite(KEYS.localOnlyMode,true); setLocalOnlyMode(true); }}
-      />
-    );
+  if (supabase && !session) {
+    return <AuthScreens supabase={supabase} addToast={addToast} />;
   }
 
   return (
