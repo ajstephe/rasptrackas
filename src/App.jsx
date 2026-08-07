@@ -563,63 +563,95 @@ try {
 // of a blank white screen. Every call site below checks for this.
 const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
-// ─── crypto: data-key generation and wrapping ──────────────────────────────
-// Every account gets one random "data key" (DEK) at signup, generated here.
-// It's wrapped (encrypted) twice — once under a key derived from the login
-// password, once under a key derived from the recovery word — so either one
-// can unwrap it independently. The DEK itself is never sent anywhere in the
-// clear. Actually using the DEK to encrypt entries/toilTaken/settings is a
-// separate, later step — this module only covers generating and safely
-// storing the key material.
+// ─── crypto: data key wrap/unwrap ──────────────────────────────────────────
+// Every user's shift data is encrypted with a single random "data key" (DEK),
+// generated once at sign-up. The DEK itself never leaves the device in the
+// clear — it's wrapped (encrypted) by a key derived from the login password,
+// AND separately wrapped again by a key derived from the recovery word.
+// Either secret alone is enough to unwrap the same DEK; losing one doesn't
+// affect the other. Supabase only ever stores the wrapped (still-encrypted)
+// copies — it never sees the DEK, the password, or the recovery word.
+// Verified independently (round-trip via both paths, wrong-secret rejection,
+// uniqueness of salts/IVs) before being wired in here — see build notes.
+const _enc = new TextEncoder();
+const _dec = new TextDecoder();
+const b64encode = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes)));
+const b64decode = (str) => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+
+async function deriveKekFromSecret(secret, saltB64, iterations) {
+  const salt = b64decode(saltB64);
+  const keyMaterial = await crypto.subtle.importKey('raw', _enc.encode(secret), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    true,
+    ['wrapKey', 'unwrapKey']
+  );
+}
+const randomSaltB64 = () => b64encode(crypto.getRandomValues(new Uint8Array(16)));
+const generateDataKey = () => crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+
+// Wraps dataKey under a secret (password or recovery word). Returns a single
+// base64 blob (IV + wrapped key bytes, concatenated) plus the salt used —
+// matches the schema's wrapped_dek / kek_salt columns exactly, no extra IV
+// column needed.
+async function wrapDataKey(dataKey, secret, iterations) {
+  const salt = randomSaltB64();
+  const kek = await deriveKekFromSecret(secret, salt, iterations);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const wrappedBytes = new Uint8Array(await crypto.subtle.wrapKey('raw', dataKey, kek, { name: 'AES-GCM', iv }));
+  const combined = new Uint8Array(iv.length + wrappedBytes.length);
+  combined.set(iv, 0);
+  combined.set(wrappedBytes, iv.length);
+  return { wrapped: b64encode(combined), salt };
+}
+
+async function unwrapDataKey(wrappedB64, saltB64, secret, iterations) {
+  const kek = await deriveKekFromSecret(secret, saltB64, iterations);
+  const combined = b64decode(wrappedB64);
+  const iv = combined.slice(0, 12);
+  const wrappedBytes = combined.slice(12);
+  return crypto.subtle.unwrapKey(
+    'raw', wrappedBytes, kek, { name: 'AES-GCM', iv },
+    { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']
+  );
+}
+
+// Encrypts/decrypts the actual row payloads (entries, toilTaken, settings)
+// under the (already-unwrapped, in-memory) data key. Same IV-bundled blob
+// pattern, matching the ciphertext text column.
+async function encryptWithDataKey(dataKey, plainObj) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const plaintextBytes = _enc.encode(JSON.stringify(plainObj));
+  const ctBytes = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, dataKey, plaintextBytes));
+  const combined = new Uint8Array(iv.length + ctBytes.length);
+  combined.set(iv, 0);
+  combined.set(ctBytes, iv.length);
+  return b64encode(combined);
+}
+
+async function decryptWithDataKey(dataKey, blobB64) {
+  const combined = b64decode(blobB64);
+  const iv = combined.slice(0, 12);
+  const ctBytes = combined.slice(12);
+  const plaintextBytes = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, dataKey, ctBytes);
+  return JSON.parse(_dec.decode(plaintextBytes));
+}
+
+// Recovery-word validation: 5+ characters, not on a short blocklist of
+// obviously-guessable words. At this length the blocklist is doing most of
+// the real work, not the length check — deliberate trade-off, not an
+// oversight.
 const RECOVERY_MIN_LENGTH = 5;
 const RECOVERY_BLOCKLIST = ['password','overtime','shift','shift1','police','london','metro','12345','qwerty','letmein','admin','welcome','abcde','testy'];
-const PASSWORD_KDF_ITERATIONS = 210000;  // used once per sign-in, cost is invisible to the user
-const RECOVERY_KDF_ITERATIONS = 600000;  // used maybe once ever, so it can afford to be slower
-
-const _te = new TextEncoder();
-const _bufToB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
-const _b64ToBuf = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
-
-async function deriveKek(secret, saltBytes, iterations) {
-  const baseKey = await crypto.subtle.importKey('raw', _te.encode(secret), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    { name:'PBKDF2', salt:saltBytes, iterations, hash:'SHA-256' },
-    baseKey,
-    { name:'AES-GCM', length:256 },
-    true,
-    ['wrapKey','unwrapKey']
-  );
+function checkRecoveryWordStrength(word) {
+  if (word.length < RECOVERY_MIN_LENGTH) return { ok:false, reason:`Needs at least ${RECOVERY_MIN_LENGTH} characters` };
+  if (RECOVERY_BLOCKLIST.includes(word.toLowerCase())) return { ok:false, reason:'Too common — choose something less predictable' };
+  return { ok:true };
 }
-
-async function generateDataKey() {
-  return crypto.subtle.generateKey({ name:'AES-GCM', length:256 }, true, ['encrypt','decrypt']);
-}
-
-// Wraps the DEK under a password or recovery word. IV is stored alongside
-// the ciphertext in one base64 blob so no extra database column is needed.
-async function wrapDataKey(dek, secret, iterations) {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const kek = await deriveKek(secret, salt, iterations);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const wrappedBuf = await crypto.subtle.wrapKey('raw', dek, kek, { name:'AES-GCM', iv });
-  const combined = new Uint8Array(iv.length + wrappedBuf.byteLength);
-  combined.set(iv, 0);
-  combined.set(new Uint8Array(wrappedBuf), iv.length);
-  return { wrapped: _bufToB64(combined.buffer), salt: _bufToB64(salt.buffer) };
-}
-
-async function unwrapDataKey(wrappedB64, secret, saltB64, iterations) {
-  const kek = await deriveKek(secret, new Uint8Array(_b64ToBuf(saltB64)), iterations);
-  const combined = new Uint8Array(_b64ToBuf(wrappedB64));
-  const iv = combined.slice(0, 12);
-  const ciphertext = combined.slice(12).buffer;
-  return crypto.subtle.unwrapKey(
-    'raw', ciphertext, kek,
-    { name:'AES-GCM', iv },
-    { name:'AES-GCM', length:256 },
-    true, ['encrypt','decrypt']
-  );
-}
+const PASSWORD_KDF_ITERATIONS = 210000; // used every sign-in, cost stays invisible
+const RECOVERY_KDF_ITERATIONS = 600000; // used maybe once ever, so it can afford to be slower
 
 // Migrate settings if they contain old rank names from a previous version
 const migrateSettings = s => {
@@ -667,6 +699,7 @@ const Ico = ({ n, s=20, c, w=2, f='none' }) => (
     {n==='doc'   &&<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>}
     {n==='share' &&<><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></>}
     {n==='bell'  &&<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>}
+    {n==='logout'&&<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>}
   </svg>
 );
 
@@ -785,8 +818,8 @@ function ToastStack({ toasts, onDismiss }) {
 // local-only escape hatch. Recovery-secret setup and real cloud sync of
 // entries/toilTaken/settings are phase 2, once the data-key wrap/unwrap
 // functions exist — signing up here does not yet mean data is backed up.
-function AuthScreens({ supabase, addToast, setAuthFlowBusy }) {
-  const [screen, setScreen]         = useState('signin'); // 'signin' | 'signup' | 'forgot' | 'recovery-setup'
+function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInPasswordRecovery, onRecoveryComplete }) {
+  const [screen, setScreen]         = useState(startInPasswordRecovery ? 'set-new-password' : 'signin'); // 'signin' | 'signup' | 'forgot' | 'recovery-setup' | 'set-new-password' | 'recovery-unlock'
   const [email, setEmail]           = useState('');
   const [password, setPassword]     = useState('');
   const [password2, setPassword2]   = useState('');
@@ -794,6 +827,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy }) {
   const [busy, setBusy]             = useState(false);
   const [error, setError]           = useState('');
   const [forgotSent, setForgotSent] = useState(false);
+  const [noRecoveryWarning, setNoRecoveryWarning] = useState(false);
 
   const AS = {
     page: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'#f8fafc',fontFamily:"'DM Sans',system-ui,sans-serif",color:'#0f172a',alignItems:'center',justifyContent:'center',padding:'24px 20px',boxSizing:'border-box'},
@@ -824,14 +858,28 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy }) {
     if (err) { setBusy(false); setError(err.message); return; }
     // Covers an account that signed up but never finished recovery-secret
     // setup (e.g. email confirmation delayed the first real session).
-    const { data: existingKey } = await supabase.from('user_keys').select('user_id').eq('user_id', data.user.id).maybeSingle();
-    setBusy(false);
-    if (!existingKey) {
+    const { data: keyRow } = await supabase.from('user_keys')
+      .select('wrapped_dek, kek_salt, kek_iterations')
+      .eq('user_id', data.user.id).maybeSingle();
+    if (!keyRow) {
+      setBusy(false);
       if (setAuthFlowBusy) setAuthFlowBusy(true);
       setScreen('recovery-setup');
+      return;
     }
-    // else: password stays in local state only until this component
-    // unmounts on the next render — never lifted to the parent.
+    try {
+      const dek = await unwrapDataKey(keyRow.wrapped_dek, keyRow.kek_salt, password, keyRow.kek_iterations);
+      setBusy(false);
+      setPassword('');
+      if (onUnlocked) onUnlocked(dek);
+    } catch (e) {
+      // Password was accepted by Supabase Auth but couldn't unwrap the data
+      // key — should only happen if the row's been corrupted or tampered
+      // with, not from a normal wrong-password case (that fails at
+      // signInWithPassword, above, before this point is ever reached).
+      setBusy(false);
+      setError('Signed in, but couldn\u2019t unlock your data — contact support rather than retrying blindly.');
+    }
   };
 
   const handleSignUp = async () => {
@@ -882,6 +930,8 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy }) {
       setPassword(''); setRecoveryWord('');
       if (addToast) addToast('Recovery secret saved — you\u2019re all set', 'success', null, 4000, 'Ready to go');
       if (setAuthFlowBusy) setAuthFlowBusy(false);
+      if (onUnlocked) onUnlocked(dek);
+      if (onRecoveryComplete) onRecoveryComplete();
     } catch (e) {
       setBusy(false);
       setError('Something went wrong setting up encryption \u2014 try again');
@@ -896,6 +946,58 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy }) {
     setBusy(false);
     if (err) { setError(err.message); return; }
     setForgotSent(true);
+  };
+
+  // Reached after clicking the link in a reset email. Supabase already has
+  // a temporary session at this point (see the PASSWORD_RECOVERY handling
+  // in the parent) — this just sets the actual new password. The old data
+  // key is still wrapped under the OLD password after this succeeds; that's
+  // resolved next, in handleRecoveryUnlock.
+  const handleSetNewPassword = async () => {
+    setError('');
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
+    if (password !== password2) { setError('Passwords do not match'); return; }
+    setBusy(true);
+    const { error: err } = await supabase.auth.updateUser({ password });
+    setBusy(false);
+    if (err) { setError(err.message); return; }
+    setPassword2('');
+    setScreen('recovery-unlock');
+    // `password` intentionally stays in state — it's the new password,
+    // needed below to re-wrap the data key once the recovery word unlocks it.
+  };
+
+  // Unwraps the existing data key via the recovery-word path, then re-wraps
+  // that SAME key under the new password. The data key itself never
+  // changes here — only which secrets can unwrap it — so nothing already
+  // encrypted under it needs touching.
+  const handleRecoveryUnlock = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const uid = sessionData.session.user.id;
+      const { data: keyRow, error: fetchErr } = await supabase.from('user_keys')
+        .select('wrapped_dek_recovery, recovery_salt, recovery_iterations')
+        .eq('user_id', uid).maybeSingle();
+      if (fetchErr || !keyRow) throw new Error('missing key row');
+      const dek = await unwrapDataKey(keyRow.wrapped_dek_recovery, keyRow.recovery_salt, recoveryWord, keyRow.recovery_iterations);
+      const newPassWrap = await wrapDataKey(dek, password, PASSWORD_KDF_ITERATIONS);
+      const { error: updateErr } = await supabase.from('user_keys').update({
+        wrapped_dek: newPassWrap.wrapped,
+        kek_salt: newPassWrap.salt,
+        kek_iterations: PASSWORD_KDF_ITERATIONS,
+      }).eq('user_id', uid);
+      if (updateErr) throw updateErr;
+      setBusy(false);
+      setPassword(''); setRecoveryWord('');
+      if (onUnlocked) onUnlocked(dek);
+      if (onRecoveryComplete) onRecoveryComplete();
+      if (addToast) addToast('Password reset and data unlocked', 'success', null, 4000, 'All set');
+    } catch (e) {
+      setBusy(false);
+      setError('That recovery word didn\u2019t work \u2014 try again, or continue without your old data below.');
+    }
   };
 
   return (
@@ -914,7 +1016,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy }) {
           </div>
         </div>
 
-        {screen !== 'forgot' && (
+        {screen !== 'forgot' && screen !== 'recovery-setup' && screen !== 'set-new-password' && screen !== 'recovery-unlock' && (
           <div style={AS.tabs}>
             <button style={tabStyle(screen==='signin')} onClick={()=>{ setScreen('signin'); setError(''); }}>Sign in</button>
             <button style={tabStyle(screen==='signup')} onClick={()=>{ setScreen('signup'); setError(''); }}>Create account</button>
@@ -937,7 +1039,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy }) {
           <>
             <div style={AS.note}>
               <span>↻</span>
-              <span><b>Your existing data comes with you.</b> Cloud sync of shifts and TOIL is coming in a future update — for now, creating an account just gets you signed in.</span>
+              <span><b>You'll set up a recovery secret next.</b> That protects your data if you ever forget your password. Cloud sync of your existing shifts and TOIL is still a future update — this step doesn't touch that data yet.</span>
             </div>
             <label style={AS.label}>Email</label>
             <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
@@ -947,6 +1049,21 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy }) {
             <input style={AS.input} type="password" placeholder="••••••••" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
             {error && <div style={AS.err}>{error}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignUp}>{busy?'Creating…':'Create account'}</button>
+          </>
+        )}
+
+        {screen === 'recovery-setup' && (
+          <>
+            <div style={{fontSize:'17px',fontWeight:900,marginBottom:'6px'}}>Save your recovery secret</div>
+            <div style={{fontSize:'13px',color:'#64748b',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>If you ever forget your password, this word is the only other way back into your data. Nobody else has a copy of it — not even us.</div>
+
+            <label style={AS.label}>Your recovery word</label>
+            <input style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
+            <div style={{fontSize:'12px',color:recoveryWord.length>=RECOVERY_MIN_LENGTH?'#16a34a':'#94a3b8',margin:'-10px 0 6px',fontWeight:700}}>{recoveryWord.length} / {RECOVERY_MIN_LENGTH} characters minimum</div>
+            {recoveryTooCommon && recoveryWord.length>0 && <div style={AS.err}>Too common — choose something less predictable</div>}
+            {error && <div style={{...AS.err,marginTop:recoveryTooCommon?0:'-4px'}}>{error}</div>}
+
+            <button style={{...AS.btn,opacity:busy?0.7:1,marginTop:'8px'}} disabled={busy} onClick={handleRecoverySetup}>{busy?'Saving…':'Save and continue'}</button>
           </>
         )}
 
@@ -970,10 +1087,42 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy }) {
           </>
         )}
 
+        {screen === 'set-new-password' && (
+          <>
+            <div style={{fontSize:'17px',fontWeight:900,marginBottom:'6px'}}>Set a new password</div>
+            <div style={{fontSize:'13px',color:'#64748b',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Choose a new password for your account.</div>
+            <label style={AS.label}>New password</label>
+            <input style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
+            <label style={AS.label}>Confirm new password</label>
+            <input style={AS.input} type="password" placeholder="••••••••" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
+            {error && <div style={AS.err}>{error}</div>}
+            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSetNewPassword}>{busy?'Saving…':'Set new password'}</button>
+          </>
+        )}
+
+        {screen === 'recovery-unlock' && (
+          <>
+            <div style={{fontSize:'17px',fontWeight:900,marginBottom:'6px'}}>Unlock your existing data</div>
+            <div style={{fontSize:'13px',color:'#64748b',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Your password's been reset. Enter your recovery word to restore access to your previous shifts and TOIL.</div>
+            <label style={AS.label}>Recovery word</label>
+            <input style={AS.input} type="text" placeholder="Enter your recovery word" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
+            {error && <div style={AS.err}>{error}</div>}
+            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleRecoveryUnlock}>{busy?'Unlocking…':'Unlock my data'}</button>
+            <div style={AS.linkRow}><span style={AS.link} onClick={()=>setNoRecoveryWarning(true)}>I don't have my recovery word</span></div>
+            {noRecoveryWarning && (
+              <div style={{marginTop:'12px'}}>
+                <div style={{fontSize:'11.5px',color:'#dc2626',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>Without it, your existing shifts and TOIL can't be recovered by anyone. You can continue and set up a fresh recovery word, but everything logged before this reset will be gone for good.</div>
+                <button style={AS.btnGhost} onClick={()=>{ setError(''); setRecoveryWord(''); setNoRecoveryWarning(false); setScreen('recovery-setup'); }}>Continue without my old data</button>
+              </div>
+            )}
+          </>
+        )}
+
       </div>
     </div>
   );
 }
+
 
 // ─── app ──────────────────────────────────────────────────────────────────────
 export default function App() {
@@ -1004,12 +1153,18 @@ export default function App() {
   const [focusEntryId, setFocusEntryId] = useState(null);
   const [editing,      setEditing]      = useState(null);
   const [wipeConf,     setWipeConf]     = useState(false);
+  const [wipingData,   setWipingData]   = useState(false);
+  const [deleteAcctConf, setDeleteAcctConf] = useState(false);
+  const [deleteAcctTyped, setDeleteAcctTyped] = useState('');
+  const [deletingAcct, setDeletingAcct] = useState(false);
   const [confirmDel,   setConfirmDel]   = useState(null);
   const [toasts,       setToasts]       = useState([]);
   const [savedBadge,   setSavedBadge]   = useState(false);
   const [lastBackedUp, setLastBackedUp] = useState(()=>dualRead(KEYS.backedUpAt,null));
   const [session,      setSession]      = useState(null);
   const [authLoading,  setAuthLoading]  = useState(true);
+  const [dataKey,      setDataKey]      = useState(null); // unwrapped CryptoKey, in memory only, never persisted
+  const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
   const [showBackupReminder, setShowBackupReminder] = useState(false);
   const [showFYRollover, setShowFYRollover] = useState(false);
   const [fySummaryYear, setFySummaryYear] = useState(null); // calendar FY-start-year of the archived year being viewed, or null
@@ -1031,16 +1186,64 @@ export default function App() {
   const stickyRef = useRef(null);
   const entryRefs = useRef({});
   const notesRef = useRef(null);
+  // What's already been pushed to Supabase, keyed by row id — compared
+  // against on every local change so only genuinely new/edited/removed
+  // items get pushed, not the whole array on every render.
+  const lastSyncedEntriesRef = useRef(new Map());
+  const lastSyncedToilRef = useRef(new Map());
+  const lastSyncedSettingsRef = useRef(null);
 
   const blankForm = { date:todayStr, reason:'', hours133:'', hours150:'', hours200:'', nightWorkHours:'', nightHours:'', paRate:'None', comments:'', recordShiftTimes:true, rosteredStart:'', rosteredEnd:'', actualStart:'', actualEnd:'', dutyType:'normal', otRateTier:'hours133', otAuto:true, nightAuto:true, takeAs:'pay', toilHours:'' };
   const [form, setForm] = useState(blankForm);
 
+  // ── cloud push sync ──────────────────────────────────────────────────────
+  // Local state (via dualWrite, below) stays the instant, source-of-truth
+  // write — this only ever runs after that, in the background, and never
+  // blocks or slows down anything the person sees. Diffs against what was
+  // last pushed so an edit to one entry doesn't reupload every other one.
+  // Deliberately no retry queue or offline detection yet — a failed push
+  // here is silently dropped rather than lost data, since local storage
+  // already has the real copy; that gap is closed by pull-and-merge on
+  // sign-in, which is the next piece, not this one.
+  async function pushRowChanges(table, items, lastSyncedRef) {
+    if (!supabase || !session || !dataKey) return;
+    const uid = session.user.id;
+    const currentIds = new Set(items.map(it => it.id));
+    const toUpsert = items.filter(it => lastSyncedRef.current.get(it.id) !== JSON.stringify(it));
+    const toDelete = Array.from(lastSyncedRef.current.keys()).filter(id => !currentIds.has(id));
+    if (toUpsert.length === 0 && toDelete.length === 0) return;
+    const now = new Date().toISOString();
+    for (const item of toUpsert) {
+      try {
+        const ciphertext = await encryptWithDataKey(dataKey, item);
+        const { error } = await supabase.from(table).upsert({ id: item.id, user_id: uid, ciphertext, updated_at: now, deleted_at: null });
+        if (!error) lastSyncedRef.current.set(item.id, JSON.stringify(item));
+      } catch (e) { /* dropped silently — see note above */ }
+    }
+    for (const id of toDelete) {
+      const { error } = await supabase.from(table).update({ deleted_at: now, updated_at: now }).eq('id', id).eq('user_id', uid);
+      if (!error) lastSyncedRef.current.delete(id);
+    }
+  }
+
+  async function pushSettingsChange(settingsObj) {
+    if (!supabase || !session || !dataKey) return;
+    const json = JSON.stringify(settingsObj);
+    if (lastSyncedSettingsRef.current === json) return;
+    try {
+      const ciphertext = await encryptWithDataKey(dataKey, settingsObj);
+      const { error } = await supabase.from('settings').upsert({ user_id: session.user.id, ciphertext, updated_at: new Date().toISOString() });
+      if (!error) lastSyncedSettingsRef.current = json;
+    } catch (e) { /* dropped silently — see note above */ }
+  }
+
   // ── persist ────────────────────────────────────────────────────────────────
   useEffect(()=>{
     dualWrite(KEYS.entries,entries);
+    pushRowChanges('entries', entries, lastSyncedEntriesRef);
   },[entries]);
-  useEffect(()=>{ dualWrite(KEYS.toilTaken,toilTaken); },[toilTaken]);
-  useEffect(()=>{ dualWrite(KEYS.settings,settings); },[settings]);
+  useEffect(()=>{ dualWrite(KEYS.toilTaken,toilTaken); pushRowChanges('toil_taken', toilTaken, lastSyncedToilRef); },[toilTaken]);
+  useEffect(()=>{ dualWrite(KEYS.settings,settings); pushSettingsChange(settings); },[settings]);
 
   // ── auth session ──────────────────────────────────────────────────────────
   // Checks for an existing session once on mount, then stays subscribed for
@@ -1055,12 +1258,19 @@ export default function App() {
       setAuthLoading(false);
     }).catch(()=>{
       // Offline or unreachable — fall through to the auth gate rather than
-      // hang on "Loading…" forever. Local-only mode still works either way.
+      // hang on "Loading…" forever.
       if (cancelled) return;
       setSession(null);
       setAuthLoading(false);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession)=>{
+    const { data: listener } = supabase.auth.onAuthStateChange((event, newSession)=>{
+      // Clicking the emailed reset link lands here as a PASSWORD_RECOVERY
+      // event, with a real (temporary) session attached. Without this
+      // check that session would satisfy the normal !session gate check
+      // below and drop the person straight into the main app with their
+      // old password still active — the whole point of the reset link is
+      // to make them set a new one first.
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecoveryMode(true);
       setSession(newSession);
     });
     return ()=>{ cancelled = true; listener.subscription.unsubscribe(); };
@@ -1710,7 +1920,79 @@ export default function App() {
     fr.readAsText(ev.target.files[0]);
   };
 
-  const handleWipe=()=>{ setEntries([]); setToilTaken([]); saveSett({rank:'',service:''}); setWipeConf(false); setTab('dashboard'); };
+  // Clears local data as before, and — new — the same user's rows in
+  // Supabase, when there's an active session. Deliberately does NOT delete
+  // the auth account/email itself; that's what Delete Account is for,
+  // separately. Cloud deletes are attempted first: if any of them fail,
+  // local data is left untouched rather than risk local being wiped while
+  // stale cloud data silently survives.
+  const handleWipe = async () => {
+    setWipingData(true);
+    if (supabase && session) {
+      try {
+        const uid = session.user.id;
+        const results = await Promise.all([
+          supabase.from('entries').delete().eq('user_id', uid),
+          supabase.from('toil_taken').delete().eq('user_id', uid),
+          supabase.from('settings').delete().eq('user_id', uid),
+          supabase.from('user_keys').delete().eq('user_id', uid),
+        ]);
+        if (results.some(r => r.error)) {
+          setWipingData(false);
+          addToast('Couldn\u2019t fully clear cloud data \u2014 check your connection and try again', 'warn', null, 6000);
+          return;
+        }
+        setDataKey(null);
+      } catch (e) {
+        setWipingData(false);
+        addToast('Couldn\u2019t clear cloud data \u2014 check your connection and try again', 'warn', null, 6000);
+        return;
+      }
+    }
+    setEntries([]); setToilTaken([]); saveSett({rank:'',service:''});
+    setWipingData(false);
+    setWipeConf(false);
+    setTab('dashboard');
+  };
+  const handleSignOut = async () => {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    setDataKey(null);
+    addToast('Signed out', 'success');
+    // No manual state changes needed — onAuthStateChange (in the effect above)
+    // picks this up and clears session automatically, which sends the app
+    // straight back to the sign-in gate.
+  };
+
+  // Permanently deletes the Supabase Auth account itself — not just this
+  // device's data. This can't be done directly from the browser (deleting
+  // an auth user needs the service_role key, which never ships to client
+  // code), so it calls a small Edge Function that does it server-side.
+  // Deleting the auth user cascades to entries/toil_taken/settings/user_keys
+  // automatically via the "on delete cascade" foreign keys in the schema —
+  // nothing else needs deleting here. Local data on this device is
+  // deliberately untouched — the real distinction from Wipe All Data is
+  // that this removes the account and email entirely; Wipe All Data clears
+  // everything (local and cloud) but leaves the same account signed in.
+  const handleDeleteAccount = async () => {
+    if (!supabase) return;
+    setDeletingAcct(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-account');
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setDataKey(null);
+      setDeleteAcctConf(false);
+      setDeleteAcctTyped('');
+      addToast('Account deleted', 'success', null, 5000);
+      // Session clears via onAuthStateChange once the token this session
+      // was using no longer resolves to an existing user, same as sign-out.
+    } catch (e) {
+      addToast('Couldn\u2019t delete account \u2014 ' + (e.message || 'try again'), 'warn', null, 6000);
+    } finally {
+      setDeletingAcct(false);
+    }
+  };
 
   // Scrolls the main container so a month card sits just below the sticky
   // header. The header's height is measured live (it changes between views,
@@ -2043,8 +2325,20 @@ export default function App() {
       </div>
     );
   }
-  if (supabase && !session) {
-    return <AuthScreens supabase={supabase} addToast={addToast} />;
+  if (supabase && passwordRecoveryMode) {
+    return (
+      <AuthScreens
+        key="recovery"
+        supabase={supabase}
+        addToast={addToast}
+        onUnlocked={setDataKey}
+        startInPasswordRecovery={true}
+        onRecoveryComplete={()=>setPasswordRecoveryMode(false)}
+      />
+    );
+  }
+  if (supabase && (!session || !dataKey)) {
+    return <AuthScreens key="normal" supabase={supabase} addToast={addToast} onUnlocked={setDataKey} />;
   }
 
   return (
@@ -3142,6 +3436,45 @@ export default function App() {
               {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'#065f46'}}>Saved</span></div>}
             </div>
 
+            {/* ── Account — who's signed in, and a way to sign out. Only shown
+                 when there's an actual session, since supabase can be null
+                 (missing config) or the app can otherwise be mid-auth-check. ── */}
+            {session&&(
+              <div style={S.card}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'13px'}}>
+                  <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="logout" s={17} c="#2563eb"/></div>
+                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Account</div>
+                </div>
+                <div style={{fontSize:'12px',color:'#64748b',marginBottom:'11px',fontWeight:600}}>Signed in as {session.user?.email}</div>
+                <button onClick={handleSignOut} style={{width:'100%',padding:'10px',background:'rgba(37,99,235,0.08)',border:'1px solid rgba(37,99,235,0.2)',borderRadius:'10px',color:'#2563eb',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="logout" s={12} c="#2563eb"/> Sign Out</button>
+
+                <div style={{marginTop:'14px',paddingTop:'14px',borderTop:'1px solid #f1f5f9'}}>
+                  {!deleteAcctConf ? (
+                    <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'10px',color:'#dc2626',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#dc2626"/> Delete Account</button>
+                  ) : (
+                    <>
+                      <div style={{fontSize:'11.5px',color:'#dc2626',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>
+                      <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:700,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Type your email to confirm: {session.user?.email}</div>
+                      <input
+                        value={deleteAcctTyped}
+                        onChange={e=>setDeleteAcctTyped(e.target.value)}
+                        placeholder={session.user?.email}
+                        style={{width:'100%',background:'#f8fafc',border:'1px solid #fecaca',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',marginBottom:'10px'}}
+                      />
+                      <div style={{display:'flex',gap:'8px'}}>
+                        <button
+                          onClick={handleDeleteAccount}
+                          disabled={deleteAcctTyped !== session.user?.email || deletingAcct}
+                          style={{flex:1,padding:'9px',background:(deleteAcctTyped===session.user?.email)?'#dc2626':'#fecaca',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:(deleteAcctTyped===session.user?.email)?'pointer':'not-allowed',textTransform:'uppercase',letterSpacing:'1px'}}
+                        >{deletingAcct?'Deleting…':'Delete Permanently'}</button>
+                        <button onClick={()=>{ setDeleteAcctConf(false); setDeleteAcctTyped(''); }} style={{flex:1,padding:'9px',background:'#f1f5f9',border:'none',borderRadius:'8px',color:'#64748b',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* ── Configuration — Rank/Pay Point selection (always visible) merged with Hourly Rates & Payscales (behind the expand toggle) ── */}
             <div style={S.card}>
               <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'13px'}}>
@@ -3528,10 +3861,10 @@ export default function App() {
                   {!wipeConf
                     ?<button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:'10px',color:'#fca5a5',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#fca5a5"/> Wipe All Data</button>
                     :<div style={{background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.4)',borderRadius:'12px',padding:'12px'}}>
-                        <div style={{textAlign:'center',color:'#fca5a5',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'rgba(252,165,165,0.7)'}}>Deletes every logged shift and all TOIL data (balance, ledger, everything). This cannot be undone.</span></div>
+                        <div style={{textAlign:'center',color:'#fca5a5',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'rgba(252,165,165,0.7)'}}>{session ? 'Deletes every logged shift and all TOIL data — on this device and in the cloud. ' : 'Deletes every logged shift and all TOIL data on this device. '}This cannot be undone.</span></div>
                         <div style={{display:'flex',gap:'6px'}}>
-                          <button onClick={handleWipe} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Yes, Delete</button>
-                          <button onClick={()=>setWipeConf(false)} style={{flex:1,padding:'9px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
+                          <button onClick={handleWipe} disabled={wipingData} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:wipingData?'not-allowed':'pointer',textTransform:'uppercase',letterSpacing:'1px',opacity:wipingData?0.7:1}}>{wipingData?'Wiping…':'Yes, Delete'}</button>
+                          <button onClick={()=>setWipeConf(false)} disabled={wipingData} style={{flex:1,padding:'9px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
                         </div>
                       </div>
                   }
