@@ -703,6 +703,7 @@ const Ico = ({ n, s=20, c, w=2, f='none' }) => (
     {n==='share' &&<><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></>}
     {n==='bell'  &&<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>}
     {n==='logout'&&<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>}
+    {n==='refresh'&&<><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></>}
   </svg>
 );
 
@@ -833,13 +834,17 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
   const [noRecoveryWarning, setNoRecoveryWarning] = useState(false);
 
   const AS = {
-    page: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'#f8fafc',fontFamily:"'DM Sans',system-ui,sans-serif",color:'#0f172a',alignItems:'center',justifyContent:'center',padding:'24px 20px',boxSizing:'border-box'},
-    card: {width:'100%',background:'#fff',borderRadius:'18px',padding:'26px 22px 22px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid #f1f5f9',boxSizing:'border-box'},
-    brand:{display:'flex',alignItems:'center',gap:'10px',marginBottom:'22px'},
-    brandIcon:{width:'38px',height:'38px',borderRadius:'10px',flexShrink:0,background:'#2563eb',display:'flex',alignItems:'center',justifyContent:'center'},
-    brandName:{fontSize:'16px',fontWeight:900,lineHeight:1.2},
-    brandSub:{fontSize:'12px',color:'#94a3b8',marginTop:'1px',fontWeight:700},
-    tabs:{display:'flex',background:'#f8fafc',borderRadius:'12px',padding:'3px',marginBottom:'20px'},
+    // Dark blue page — deliberately different from the rest of the app's
+    // light theme, matching the brand-moment treatment requested for this
+    // screen specifically. #0f2744 matches the app's own theme-color, so
+    // it's not a new colour being introduced, just used at page-scale here.
+    page: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'#0f2744',fontFamily:"'DM Sans',system-ui,sans-serif",color:'#0f172a',boxSizing:'border-box',position:'relative',overflow:'hidden'},
+    // Sized and positioned so it sits behind and around the card, not
+    // under it — update the src once the actual watermark file exists.
+    watermark: {position:'absolute',top:'46%',left:'50%',transform:'translate(-50%,-50%)',width:'380px',maxWidth:'85vw',height:'380px',objectFit:'contain',opacity:0.07,pointerEvents:'none',zIndex:0},
+    header: {display:'flex',alignItems:'center',gap:'8px',padding:'22px 20px 0',position:'relative',zIndex:1,flexShrink:0},
+    cardWrap: {flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',position:'relative',zIndex:1,minHeight:0},
+    card: {width:'100%',background:'#fff',borderRadius:'18px',padding:'26px 22px 22px',boxShadow:'0 12px 34px rgba(0,0,0,0.28)',boxSizing:'border-box'},
     label:{display:'block',fontSize:'12.5px',color:'#64748b',margin:'0 0 6px',fontWeight:700},
     input:{width:'100%',background:'#f8fafc',border:'none',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',marginBottom:'14px'},
     err:{fontSize:'12px',color:'#dc2626',margin:'-10px 0 14px',fontWeight:700},
@@ -848,8 +853,8 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
     linkRow:{textAlign:'center',marginTop:'14px',fontSize:'13px',color:'#94a3b8',fontWeight:700},
     link:{color:'#2563eb',cursor:'pointer'},
     note:{display:'flex',gap:'9px',background:'#f5f3ff',borderRadius:'13px',padding:'12px 13px',marginBottom:'16px',fontSize:'12.5px',lineHeight:1.5,color:'#6d28d9',fontWeight:600},
+    divider:{display:'flex',alignItems:'center',gap:'10px',margin:'14px 0',fontSize:'11.5px',color:'#94a3b8',fontWeight:700},
   };
-  const tabStyle = active => ({flex:1,textAlign:'center',padding:'9px 0',fontSize:'14px',fontWeight:700,color:active?'#0f172a':'#94a3b8',borderRadius:'9px',cursor:'pointer',border:'none',background:active?'#fff':'transparent',fontFamily:'inherit',boxShadow:active?'0 1px 3px rgba(0,0,0,0.08)':'none'});
 
   const validEmail = /\S+@\S+\.\S+/.test(email);
 
@@ -1005,27 +1010,24 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
 
   return (
     <div style={AS.page}>
-      <div style={AS.card}>
-        <div style={AS.brand}>
-          <div style={AS.brandIcon}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="8.5" stroke="#fff" strokeWidth="1.8"/>
-              <path d="M12 7.5V12l3 2" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <div>
-            <div style={AS.brandName}>OT Tracker</div>
-            <div style={AS.brandSub}>Overtime and Shift Tracker</div>
-          </div>
+      {/* Faint background watermark — update this src once the actual RaSP
+          image file is supplied; sized and centred to sit behind the card
+          without competing with it. */}
+      <img src="/rasp-watermark.png" alt="" style={AS.watermark} onError={e=>{e.target.style.display='none';}}/>
+
+      {/* Page-level header, mirroring the in-app header's icon/layout/type
+          exactly — colours adapted for this page's dark background, since
+          the in-app version's gradient text is tuned for a light one. */}
+      <div style={AS.header}>
+        <ClockCashIcon width={28} height={19}/>
+        <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0}}>
+          <span style={{fontSize:'19px',fontWeight:900,color:'#fff',letterSpacing:'-0.4px',whiteSpace:'nowrap'}}>Overtime &amp; Shift Tracker</span>
+          <span style={{fontSize:'13px',fontWeight:700,color:'#93c5fd',letterSpacing:'0.2px'}}>by Adam Stephens</span>
         </div>
+      </div>
 
-        {screen !== 'forgot' && screen !== 'recovery-setup' && screen !== 'set-new-password' && screen !== 'recovery-unlock' && (
-          <div style={AS.tabs}>
-            <button style={tabStyle(screen==='signin')} onClick={()=>{ setScreen('signin'); setError(''); }}>Sign in</button>
-            <button style={tabStyle(screen==='signup')} onClick={()=>{ setScreen('signup'); setError(''); }}>Create account</button>
-          </div>
-        )}
-
+      <div style={AS.cardWrap}>
+      <div style={AS.card}>
         {screen === 'signin' && (
           <>
             <label style={AS.label}>Email</label>
@@ -1034,6 +1036,8 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
             <input style={AS.input} type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password"/>
             {error && <div style={AS.err}>{error}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignIn}>{busy?'Signing in…':'Sign in'}</button>
+            <div style={AS.divider}>or</div>
+            <button style={AS.btnGhost} onClick={()=>{ setScreen('signup'); setError(''); }}>Create account</button>
             <div style={AS.linkRow}><span style={AS.link} onClick={()=>{ setScreen('forgot'); setError(''); setForgotSent(false); }}>Forgot password?</span></div>
           </>
         )}
@@ -1052,6 +1056,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
             <input style={AS.input} type="password" placeholder="••••••••" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
             {error && <div style={AS.err}>{error}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignUp}>{busy?'Creating…':'Create account'}</button>
+            <div style={AS.linkRow}>Already have an account? <span style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Sign in</span></div>
           </>
         )}
 
@@ -1122,6 +1127,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
         )}
 
       </div>
+      </div>
     </div>
   );
 }
@@ -1148,8 +1154,8 @@ export default function App() {
   const [payslipEnd, setPayslipEnd] = useState('');
   const [payslipPreview, setPayslipPreview] = useState(null); // { start, end, label, data } | null
   const [sanitiseNotes, setSanitiseNotes] = useState(true); // blank the Notes column on CSV export by default — safer given notes may hold operationally sensitive detail
-  const [defaultBreakdownView, setDefaultBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'list'));
-  const [breakdownView, setBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'list')); // 'list' | 'calendar'
+  const [defaultBreakdownView, setDefaultBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'calendar'));
+  const [breakdownView, setBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'calendar')); // 'list' | 'calendar'
   const [calPeriodIdx, setCalPeriodIdx] = useState(null); // set to currPeriodIdx on first render
   const [selectedCalDay, setSelectedCalDay] = useState(null);
   const [confirmCreateDay, setConfirmCreateDay] = useState(null);
@@ -1167,6 +1173,7 @@ export default function App() {
   const [session,      setSession]      = useState(null);
   const [authLoading,  setAuthLoading]  = useState(true);
   const [dataKey,      setDataKey]      = useState(null); // unwrapped CryptoKey, in memory only, never persisted
+  const [manualSyncing, setManualSyncing] = useState(false);
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
   const [showBackupReminder, setShowBackupReminder] = useState(false);
   const [showFYRollover, setShowFYRollover] = useState(false);
@@ -1175,6 +1182,8 @@ export default function App() {
   const [archiveExpandedPeriod, setArchiveExpandedPeriod] = useState(null); // short label of the expanded period within that year, or null
   const [trendsExpanded, setTrendsExpanded] = useState(false);
   const [taxImpactExpanded, setTaxImpactExpanded] = useState(false);
+  const [accountExpanded, setAccountExpanded] = useState(false);
+  const [dataManagementExpanded, setDataManagementExpanded] = useState(false);
   const [homeGraphExpanded, setHomeGraphExpanded] = useState(false);
   const [taxCalcActualDetailOpen, setTaxCalcActualDetailOpen] = useState(false);
   const [taxCalcForecastDetailOpen, setTaxCalcForecastDetailOpen] = useState(false);
@@ -2165,6 +2174,28 @@ export default function App() {
     }
   };
 
+  // Manual "sync now" — the same pull-and-merge already used on unlock and
+  // on realtime reconnect, just triggered on demand instead of waiting for
+  // one of those moments. Push isn't included deliberately: local changes
+  // already push themselves the moment they happen, so there's nothing a
+  // manual push would do that hasn't already been attempted.
+  const handleManualSync = async () => {
+    if (!supabase || !session || !dataKey) { addToast('Not signed in \u2014 nothing to sync', 'warn'); return; }
+    setManualSyncing(true);
+    try {
+      await Promise.all([
+        pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries),
+        pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil),
+        pullAndMergeSettings(),
+      ]);
+      addToast('Synced', 'success', null, 2000);
+    } catch (e) {
+      addToast('Sync failed \u2014 check your connection', 'warn');
+    } finally {
+      setManualSyncing(false);
+    }
+  };
+
   // Scrolls the main container so a month card sits just below the sticky
   // header. The header's height is measured live (it changes between views,
   // since the month pills are only present in List View), so the card is
@@ -2518,6 +2549,7 @@ export default function App() {
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         ::-webkit-scrollbar{display:none}
         @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         @keyframes su{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         @keyframes urgentPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0);transform:scale(1)}25%{opacity:0.78;box-shadow:0 0 0 9px rgba(220,38,38,0.38);transform:scale(1.012)}50%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0);transform:scale(1)}75%{opacity:0.78;box-shadow:0 0 0 9px rgba(220,38,38,0.38);transform:scale(1.012)}}
         @keyframes backupPulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}30%{box-shadow:0 0 0 8px rgba(37,99,235,0.35)}50%{box-shadow:0 0 0 0 rgba(37,99,235,0)}70%{box-shadow:0 0 0 8px rgba(37,99,235,0.35)}}
@@ -2557,11 +2589,17 @@ export default function App() {
             <span style={{fontSize:'13px',fontWeight:700,color:'#94a3b8',letterSpacing:'0.2px'}}>by Adam Stephens</span>
           </div>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:'5px',flexShrink:0}}>
-          <div style={{width:'6px',height:'6px',borderRadius:'50%',background:lastBackedUp?'#10b981':'#f59e0b',flexShrink:0}}/>
-          <span style={{fontSize:'9px',fontWeight:700,color:'#94a3b8',whiteSpace:'nowrap'}}>
-            {lastBackedUp?`Backed up ${fmtBackedUp(lastBackedUp)}`:'Not backed up'}
-          </span>
+        <div style={{display:'flex',alignItems:'center',gap:'6px',flexShrink:0}}>
+          {session&&(
+            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',cursor:manualSyncing?'default':'pointer',flexShrink:0}}>
+              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={13} c="#2563eb"/></span>
+            </button>
+          )}
+          {session&&(
+            <button onClick={handleSignOut} style={{display:'flex',alignItems:'center',gap:'4px',padding:'6px 10px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',color:'#2563eb',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
+              <Ico n="logout" s={11} c="#2563eb"/> Sign Out
+            </button>
+          )}
         </div>
       </header>
 
@@ -3607,45 +3645,6 @@ export default function App() {
               {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'#065f46'}}>Saved</span></div>}
             </div>
 
-            {/* ── Account — who's signed in, and a way to sign out. Only shown
-                 when there's an actual session, since supabase can be null
-                 (missing config) or the app can otherwise be mid-auth-check. ── */}
-            {session&&(
-              <div style={S.card}>
-                <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'13px'}}>
-                  <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="logout" s={17} c="#2563eb"/></div>
-                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Account</div>
-                </div>
-                <div style={{fontSize:'12px',color:'#64748b',marginBottom:'11px',fontWeight:600}}>Signed in as {session.user?.email}</div>
-                <button onClick={handleSignOut} style={{width:'100%',padding:'10px',background:'rgba(37,99,235,0.08)',border:'1px solid rgba(37,99,235,0.2)',borderRadius:'10px',color:'#2563eb',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="logout" s={12} c="#2563eb"/> Sign Out</button>
-
-                <div style={{marginTop:'14px',paddingTop:'14px',borderTop:'1px solid #f1f5f9'}}>
-                  {!deleteAcctConf ? (
-                    <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'10px',color:'#dc2626',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#dc2626"/> Delete Account</button>
-                  ) : (
-                    <>
-                      <div style={{fontSize:'11.5px',color:'#dc2626',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>
-                      <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:700,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Type your email to confirm: {session.user?.email}</div>
-                      <input
-                        value={deleteAcctTyped}
-                        onChange={e=>setDeleteAcctTyped(e.target.value)}
-                        placeholder={session.user?.email}
-                        style={{width:'100%',background:'#f8fafc',border:'1px solid #fecaca',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',marginBottom:'10px'}}
-                      />
-                      <div style={{display:'flex',gap:'8px'}}>
-                        <button
-                          onClick={handleDeleteAccount}
-                          disabled={deleteAcctTyped !== session.user?.email || deletingAcct}
-                          style={{flex:1,padding:'9px',background:(deleteAcctTyped===session.user?.email)?'#dc2626':'#fecaca',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:(deleteAcctTyped===session.user?.email)?'pointer':'not-allowed',textTransform:'uppercase',letterSpacing:'1px'}}
-                        >{deletingAcct?'Deleting…':'Delete Permanently'}</button>
-                        <button onClick={()=>{ setDeleteAcctConf(false); setDeleteAcctTyped(''); }} style={{flex:1,padding:'9px',background:'#f1f5f9',border:'none',borderRadius:'8px',color:'#64748b',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* ── Configuration — Rank/Pay Point selection (always visible) merged with Hourly Rates & Payscales (behind the expand toggle) ── */}
             <div style={S.card}>
               <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'13px'}}>
@@ -3998,49 +3997,87 @@ export default function App() {
               )}
             </div>
 
-            {/* data management */}
-            <div style={{...S.dark,background:'#0f2744'}}>
-              <div style={{display:'flex',alignItems:'center',gap:'11px',marginBottom:'13px'}}>
-                <div style={{background:'rgba(255,255,255,0.1)',padding:'11px',borderRadius:'13px'}}><Ico n="shield" s={21} c="#93c5fd"/></div>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:900,fontSize:'14px',color:'#fff',textTransform:'uppercase'}}>Data Management</div>
-                  <div style={{fontSize:'11px',color:'#93c5fd',marginTop:'1px'}}>Stored locally on your device.</div>
+            {/* ── Account — who's signed in, and a way to sign out. Collapsible
+                 like Hourly Rates and Tax & 100K, sitting directly above
+                 Data Management. Only shown when there's an actual session,
+                 since supabase can be null (missing config) or the app can
+                 otherwise be mid-auth-check. ── */}
+            {session&&(
+              <div style={S.card}>
+                <div onClick={()=>setAccountExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:accountExpanded?'13px':0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                    <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="logout" s={17} c="#2563eb"/></div>
+                    <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Account</div>
+                  </div>
+                  <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{accountExpanded?'Tap to Close':'Tap to expand'}</span>
                 </div>
-              </div>
-              <div style={{background:'rgba(255,255,255,0.07)',borderRadius:'12px',padding:'10px 13px',marginBottom:'12px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <div style={{display:'flex',alignItems:'center',gap:'7px'}}>
-                  <div style={{width:'7px',height:'7px',borderRadius:'50%',background:lastBackedUp?'#34d399':'#f59e0b',boxShadow:lastBackedUp?'0 0 6px #34d399':'0 0 6px #f59e0b'}}/>
-                  <div>
-                    <div style={{fontSize:'10px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'0.5px'}}>{lastBackedUp?'Last backed up':'Not yet backed up'}</div>
-                    <div style={{fontSize:'9px',color:'#93c5fd',marginTop:'1px'}}>
-                      {lastBackedUp
-                        ?new Date(lastBackedUp).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+' at '+new Date(lastBackedUp).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})
-                        :'Download a backup to protect your data'}
+                {accountExpanded&&(
+                  <>
+                    <div style={{fontSize:'12px',color:'#64748b',marginBottom:'11px',fontWeight:600}}>Signed in as {session.user?.email}</div>
+                    <button onClick={handleSignOut} style={{width:'100%',padding:'10px',background:'rgba(37,99,235,0.08)',border:'1px solid rgba(37,99,235,0.2)',borderRadius:'10px',color:'#2563eb',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="logout" s={12} c="#2563eb"/> Sign Out</button>
+
+                    <div style={{marginTop:'14px',paddingTop:'14px',borderTop:'1px solid #f1f5f9'}}>
+                      {!deleteAcctConf ? (
+                        <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'10px',color:'#dc2626',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#dc2626"/> Delete Account</button>
+                      ) : (
+                        <>
+                          <div style={{fontSize:'11.5px',color:'#dc2626',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>
+                          <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:700,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Type your email to confirm: {session.user?.email}</div>
+                          <input
+                            value={deleteAcctTyped}
+                            onChange={e=>setDeleteAcctTyped(e.target.value)}
+                            placeholder={session.user?.email}
+                            style={{width:'100%',background:'#f8fafc',border:'1px solid #fecaca',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',marginBottom:'10px'}}
+                          />
+                          <div style={{display:'flex',gap:'8px'}}>
+                            <button
+                              onClick={handleDeleteAccount}
+                              disabled={deleteAcctTyped !== session.user?.email || deletingAcct}
+                              style={{flex:1,padding:'9px',background:(deleteAcctTyped===session.user?.email)?'#dc2626':'#fecaca',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:(deleteAcctTyped===session.user?.email)?'pointer':'not-allowed',textTransform:'uppercase',letterSpacing:'1px'}}
+                            >{deletingAcct?'Deleting…':'Delete Permanently'}</button>
+                            <button onClick={()=>{ setDeleteAcctConf(false); setDeleteAcctTyped(''); }} style={{flex:1,padding:'9px',background:'#f1f5f9',border:'none',borderRadius:'8px',color:'#64748b',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
+                          </div>
+                        </>
+                      )}
                     </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* data management — collapsible like the cards above, but
+                deliberately keeps its dark blue styling rather than
+                switching to the white S.card look the others use. */}
+            <div style={{...S.dark,background:'#0f2744'}}>
+              <div onClick={()=>setDataManagementExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:dataManagementExpanded?'13px':0}}>
+                <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
+                  <div style={{background:'rgba(255,255,255,0.1)',padding:'11px',borderRadius:'13px'}}><Ico n="shield" s={21} c="#93c5fd"/></div>
+                  <div style={{fontWeight:900,fontSize:'14px',color:'#fff',textTransform:'uppercase'}}>Data Management</div>
+                </div>
+                <span style={{fontSize:'9px',fontWeight:800,color:'#93c5fd',textDecoration:'underline',flexShrink:0}}>{dataManagementExpanded?'Tap to Close':'Tap to expand'}</span>
+              </div>
+              {dataManagementExpanded&&(
+                <div style={{background:'rgba(0,0,0,0.2)',borderRadius:'13px',padding:'13px'}}>
+                  <div style={{fontSize:'11px',color:'rgba(147,197,253,0.65)',marginBottom:'11px',lineHeight:1.5}}>Data is automatically saved to a secure cloud. Backup creates a hard copy on this device.</div>
+                  <div style={{display:'flex',gap:'6px',marginBottom:'11px'}}>
+                    <button onClick={handleExport} className={pulseBackupBtn?'backup-pulse':''} style={{flex:1,padding:'10px',background:'#2563eb',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="dl" s={12} c="#fff"/> Backup</button>
+                    <button onClick={()=>fileRef.current.click()} style={{flex:1,padding:'10px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="ul" s={12} c="#fff"/> Restore</button>
+                    <input type="file" ref={fileRef} style={{display:'none'}} accept=".json" onChange={handleImport}/>
+                  </div>
+                  <div style={{borderTop:'1px solid rgba(255,255,255,0.1)',paddingTop:'11px'}}>
+                    {!wipeConf
+                      ?<button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:'10px',color:'#fca5a5',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#fca5a5"/> Wipe All Data</button>
+                      :<div style={{background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.4)',borderRadius:'12px',padding:'12px'}}>
+                          <div style={{textAlign:'center',color:'#fca5a5',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'rgba(252,165,165,0.7)'}}>{session ? 'Deletes every logged shift and all TOIL data — on this device and in the cloud. ' : 'Deletes every logged shift and all TOIL data on this device. '}This cannot be undone.</span></div>
+                          <div style={{display:'flex',gap:'6px'}}>
+                            <button onClick={handleWipe} disabled={wipingData} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:wipingData?'not-allowed':'pointer',textTransform:'uppercase',letterSpacing:'1px',opacity:wipingData?0.7:1}}>{wipingData?'Wiping…':'Yes, Delete'}</button>
+                            <button onClick={()=>setWipeConf(false)} disabled={wipingData} style={{flex:1,padding:'9px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
+                          </div>
+                        </div>
+                    }
                   </div>
                 </div>
-                <div style={{fontSize:'9px',fontWeight:700,color:'rgba(147,197,253,0.6)'}}>{entries.length} record{entries.length!==1?'s':''}</div>
-              </div>
-              <div style={{background:'rgba(0,0,0,0.2)',borderRadius:'13px',padding:'13px'}}>
-                <div style={{fontSize:'11px',color:'rgba(147,197,253,0.65)',fontStyle:'italic',marginBottom:'11px',lineHeight:1.5}}>Autosave protects against refreshes. Download a backup to protect against browser data being cleared.</div>
-                <div style={{display:'flex',gap:'6px',marginBottom:'11px'}}>
-                  <button onClick={handleExport} className={pulseBackupBtn?'backup-pulse':''} style={{flex:1,padding:'10px',background:'#2563eb',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="dl" s={12} c="#fff"/> Backup</button>
-                  <button onClick={()=>fileRef.current.click()} style={{flex:1,padding:'10px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="ul" s={12} c="#fff"/> Restore</button>
-                  <input type="file" ref={fileRef} style={{display:'none'}} accept=".json" onChange={handleImport}/>
-                </div>
-                <div style={{borderTop:'1px solid rgba(255,255,255,0.1)',paddingTop:'11px'}}>
-                  {!wipeConf
-                    ?<button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:'10px',color:'#fca5a5',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#fca5a5"/> Wipe All Data</button>
-                    :<div style={{background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.4)',borderRadius:'12px',padding:'12px'}}>
-                        <div style={{textAlign:'center',color:'#fca5a5',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'rgba(252,165,165,0.7)'}}>{session ? 'Deletes every logged shift and all TOIL data — on this device and in the cloud. ' : 'Deletes every logged shift and all TOIL data on this device. '}This cannot be undone.</span></div>
-                        <div style={{display:'flex',gap:'6px'}}>
-                          <button onClick={handleWipe} disabled={wipingData} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:wipingData?'not-allowed':'pointer',textTransform:'uppercase',letterSpacing:'1px',opacity:wipingData?0.7:1}}>{wipingData?'Wiping…':'Yes, Delete'}</button>
-                          <button onClick={()=>setWipeConf(false)} disabled={wipingData} style={{flex:1,padding:'9px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
-                        </div>
-                      </div>
-                  }
-                </div>
-              </div>
+              )}
             </div>
 
             {/* ── Help & suggestions ── */}
