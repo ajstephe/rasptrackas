@@ -1189,8 +1189,23 @@ export default function App() {
   const [homeGraphExpanded, setHomeGraphExpanded] = useState(false);
   const [taxCalcActualDetailOpen, setTaxCalcActualDetailOpen] = useState(false);
   const [taxCalcForecastDetailOpen, setTaxCalcForecastDetailOpen] = useState(false);
-  const [hourlyRatesExpanded, setHourlyRatesExpanded] = useState(false);
+  const [configExpanded, setConfigExpanded] = useState(false);
   const [exportDataExpanded, setExportDataExpanded] = useState(false);
+
+  // Configuration must stay visibly open for as long as rank/pay point
+  // setup is incomplete — that's the critical first-run flow, not
+  // something a collapse toggle should be able to hide. The moment setup
+  // actually completes, it's left open rather than snapping shut, since
+  // the person was just looking at it.
+  const configSetupIncomplete = !settings.rank || !settings.service;
+  const prevConfigSetupIncompleteRef = useRef(configSetupIncomplete);
+  useEffect(()=>{
+    if (prevConfigSetupIncompleteRef.current && !configSetupIncomplete) {
+      setConfigExpanded(true);
+    }
+    prevConfigSetupIncompleteRef.current = configSetupIncomplete;
+  },[configSetupIncomplete]);
+  const configShown = configExpanded || configSetupIncomplete;
   const [financialYearsExpanded, setFinancialYearsExpanded] = useState(false);
   const [pulseBackupBtn, setPulseBackupBtn] = useState(false);
 
@@ -1492,9 +1507,11 @@ export default function App() {
       setTaxImpactExpanded(false);
       setTaxCalcActualDetailOpen(false);
       setTaxCalcForecastDetailOpen(false);
-      setHourlyRatesExpanded(false);
+      setConfigExpanded(false);
       setExportDataExpanded(false);
       setFinancialYearsExpanded(false);
+      setAccountExpanded(false);
+      setDataManagementExpanded(false);
     }
     prevTabRef.current = tab;
   },[tab]);
@@ -2182,6 +2199,16 @@ export default function App() {
   // one of those moments. Push isn't included deliberately: local changes
   // already push themselves the moment they happen, so there's nothing a
   // manual push would do that hasn't already been attempted.
+  // Every path that ends in "the app is now unlocked" — a fresh sign-in,
+  // finishing recovery-secret setup, or recovering after a password reset
+  // — calls this. Always landing back on Home regardless of which path got
+  // here, rather than wherever `tab` happened to be left from an earlier
+  // sign-out in the same session.
+  const handleUnlocked = (dek) => {
+    setDataKey(dek);
+    setTab('dashboard');
+  };
+
   const handleManualSync = async () => {
     if (!supabase || !session || !dataKey) { addToast('Not signed in \u2014 nothing to sync', 'warn'); return; }
     setManualSyncing(true);
@@ -2536,14 +2563,14 @@ export default function App() {
         key="recovery"
         supabase={supabase}
         addToast={addToast}
-        onUnlocked={setDataKey}
+        onUnlocked={handleUnlocked}
         startInPasswordRecovery={true}
         onRecoveryComplete={()=>setPasswordRecoveryMode(false)}
       />
     );
   }
   if (supabase && (!session || !dataKey)) {
-    return <AuthScreens key="normal" supabase={supabase} addToast={addToast} onUnlocked={setDataKey} />;
+    return <AuthScreens key="normal" supabase={supabase} addToast={addToast} onUnlocked={handleUnlocked} />;
   }
 
   return (
@@ -2587,9 +2614,9 @@ export default function App() {
       <header className="no-print" style={S.hdr}>
         <div style={{display:'flex',alignItems:'center',gap:'8px',minWidth:0}}>
           <ClockCashIcon width={28} height={19}/>
-          <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0}}>
-            <span style={{fontSize:'19px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap'}}>Overtime &amp; Shift Tracker</span>
-            <span style={{fontSize:'13px',fontWeight:700,color:'#94a3b8',letterSpacing:'0.2px'}}>by Adam Stephens</span>
+          <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0,overflow:'hidden'}}>
+            <span style={{fontSize:'19px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime &amp; Shift Tracker</span>
+            <span style={{fontSize:'13px',fontWeight:700,color:'#94a3b8',letterSpacing:'0.2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>by Adam Stephens</span>
           </div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'10px',flexShrink:0}}>
@@ -3670,13 +3697,21 @@ export default function App() {
               {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'#065f46'}}>Saved</span></div>}
             </div>
 
-            {/* ── Configuration — Rank/Pay Point selection (always visible) merged with Hourly Rates & Payscales (behind the expand toggle) ── */}
+            {/* ── Configuration — now a single collapsible unit like the
+                 other cards, except it forces itself open for as long as
+                 rank/pay point setup is incomplete (see configShown above)
+                 — that part was never meant to be hideable. ── */}
             <div style={S.card}>
-              <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'13px'}}>
-                <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="cog" s={17} c="#2563eb"/></div>
-                <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Configuration</div>
+              <div onClick={configSetupIncomplete?undefined:()=>setConfigExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:configSetupIncomplete?'default':'pointer',marginBottom:configShown?'13px':0}}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="cog" s={17} c="#2563eb"/></div>
+                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Configuration</div>
+                </div>
+                {!configSetupIncomplete && <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{configShown?'Tap to Close':'Tap to expand'}</span>}
               </div>
 
+              {configShown && (
+              <>
               <div style={{marginBottom:'13px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'7px'}}>
                   <label style={{...S.lbl,marginBottom:0}}>Rank</label>
@@ -3707,15 +3742,12 @@ export default function App() {
                   </div>
                 </div>
               )}
-              <div onClick={()=>setHourlyRatesExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
-                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="clock" s={17} c="#2563eb"/></div>
-                  <span style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Hourly Rates & Payscales</span>
-                </div>
-                <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{hourlyRatesExpanded?'Tap to Close':'Tap to expand'}</span>
+              <div style={{display:'flex',alignItems:'center',gap:'8px',borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'12px'}}>
+                <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="clock" s={17} c="#2563eb"/></div>
+                <span style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Hourly Rates & Payscales</span>
               </div>
 
-              {settings.rank&&settings.service&&hourlyRatesExpanded&&(()=>{
+              {settings.rank&&settings.service&&(()=>{
                 const svcData = PAY_RATES[settings.rank][settings.service];
                 return (
                   <div style={{borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'14px'}}>
@@ -3761,6 +3793,8 @@ export default function App() {
                   </div>
                 );
               })()}
+              </>
+              )}
             </div>
 
             {/* ── Tax & 100K+ Calculator — Actual (YTD) and Forecast (full year), side by side ── */}
