@@ -1192,6 +1192,15 @@ export default function App() {
   const lastSyncedEntriesRef = useRef(new Map());
   const lastSyncedToilRef = useRef(new Map());
   const lastSyncedSettingsRef = useRef(null);
+  // Always-current mirrors of local state, for the async pull/realtime code
+  // below — a value captured at the top of a useEffect can be stale by the
+  // time an awaited call or an event callback actually runs.
+  const entriesRef = useRef(entries);
+  const toilTakenRef = useRef(toilTaken);
+  const settingsRef = useRef(settings);
+  useEffect(()=>{ entriesRef.current = entries; },[entries]);
+  useEffect(()=>{ toilTakenRef.current = toilTaken; },[toilTaken]);
+  useEffect(()=>{ settingsRef.current = settings; },[settings]);
 
   const blankForm = { date:todayStr, reason:'', hours133:'', hours150:'', hours200:'', nightWorkHours:'', nightHours:'', paRate:'None', comments:'', recordShiftTimes:true, rosteredStart:'', rosteredEnd:'', actualStart:'', actualEnd:'', dutyType:'normal', otRateTier:'hours133', otAuto:true, nightAuto:true, takeAs:'pay', toilHours:'' };
   const [form, setForm] = useState(blankForm);
@@ -1236,6 +1245,142 @@ export default function App() {
       if (!error) lastSyncedSettingsRef.current = json;
     } catch (e) { /* dropped silently — see note above */ }
   }
+
+  // ── cloud pull + merge ──────────────────────────────────────────────────
+  // Runs once when the data key first becomes ready (a fresh sign-in or a
+  // freshly-unlocked device), and again every time the realtime channel
+  // (re)connects, to close whatever gap opened while disconnected.
+  //
+  // The merge rule reuses lastSyncedRef rather than needing a separate
+  // per-item local timestamp: if a local item's JSON still matches what
+  // this device last believes it pushed, there's no unsynced local edit,
+  // so it's safe to take whatever the server has (which may be newer, from
+  // another device). If the local JSON has since diverged, there's a
+  // pending local edit — keep it, and the next push cycle will send it up.
+  // An item that WAS synced before but is missing from the server now
+  // means another device deleted it — dropped locally too, not resurrected.
+  async function pullAndMergeRows(table, itemsRef, setLocalItems, lastSyncedRef) {
+    if (!supabase || !session || !dataKey) return;
+    const uid = session.user.id;
+    const { data: rows, error } = await supabase.from(table).select('id, ciphertext, deleted_at').eq('user_id', uid);
+    if (error || !rows) return;
+    const remoteMap = new Map();
+    for (const row of rows) {
+      if (row.deleted_at) continue;
+      try { remoteMap.set(row.id, await decryptWithDataKey(dataKey, row.ciphertext)); }
+      catch (e) { /* undecryptable row — skip rather than crash the merge */ }
+    }
+    const merged = [];
+    for (const localItem of itemsRef.current) {
+      if (remoteMap.has(localItem.id)) {
+        const remoteItem = remoteMap.get(localItem.id);
+        const noPendingLocalEdit = lastSyncedRef.current.get(localItem.id) === JSON.stringify(localItem);
+        if (noPendingLocalEdit) {
+          merged.push(remoteItem);
+          lastSyncedRef.current.set(localItem.id, JSON.stringify(remoteItem));
+        } else {
+          merged.push(localItem);
+        }
+        remoteMap.delete(localItem.id);
+      } else if (!lastSyncedRef.current.has(localItem.id)) {
+        merged.push(localItem); // never synced yet — keep, will push shortly
+      }
+      // else: was synced before, gone from server now — deleted elsewhere, drop it
+    }
+    for (const [id, remoteItem] of remoteMap) {
+      merged.push(remoteItem);
+      lastSyncedRef.current.set(id, JSON.stringify(remoteItem));
+    }
+    setLocalItems(merged);
+  }
+
+  async function pullAndMergeSettings() {
+    if (!supabase || !session || !dataKey) return;
+    const { data: row, error } = await supabase.from('settings').select('ciphertext').eq('user_id', session.user.id).maybeSingle();
+    if (error || !row) return;
+    try {
+      const remoteSettings = await decryptWithDataKey(dataKey, row.ciphertext);
+      const noPendingLocalEdit = lastSyncedSettingsRef.current === JSON.stringify(settingsRef.current);
+      if (noPendingLocalEdit) {
+        saveSett(remoteSettings);
+        lastSyncedSettingsRef.current = JSON.stringify(remoteSettings);
+      }
+    } catch (e) { /* undecryptable — skip */ }
+  }
+
+  // Runs the initial catch-up pull once the data key is actually ready —
+  // deliberately keyed on dataKey alone, not on entries/toilTaken/settings,
+  // since this should fire once per unlock, not on every local edit.
+  useEffect(()=>{
+    if (!dataKey) return;
+    pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef);
+    pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef);
+    pullAndMergeSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[dataKey]);
+
+  // ── realtime ─────────────────────────────────────────────────────────────
+  // Live updates from other signed-in devices while this one's also open.
+  // RLS applies to realtime the same as any other query, so the filter
+  // below is belt-and-braces, not the actual security boundary. On
+  // (re)connect — including the very first connection — a full pull runs
+  // first, closing any gap from time spent disconnected before relying on
+  // the live stream for anything after that point.
+  useEffect(()=>{
+    if (!supabase || !session || !dataKey) return;
+    const uid = session.user.id;
+    // Tracks whether this is a genuine reconnect (channel dropped and came
+    // back) versus the very first connection, which the dataKey-ready
+    // effect above already pulled for. Re-pulling again immediately after
+    // that first pull raced against the push effect it triggers — the
+    // push would mark an item as synced between the two pulls, tricking
+    // the second one into thinking a genuine pending local edit was safe
+    // to overwrite with a stale remote copy.
+    let hasConnectedOnce = false;
+
+    const handleRowChange = async (setLocalItems, lastSyncedRef, payload) => {
+      const row = payload.new;
+      if (!row) return;
+      if (row.deleted_at) {
+        setLocalItems(prev => prev.filter(it => it.id !== row.id));
+        lastSyncedRef.current.delete(row.id);
+        return;
+      }
+      try {
+        const decrypted = await decryptWithDataKey(dataKey, row.ciphertext);
+        lastSyncedRef.current.set(row.id, JSON.stringify(decrypted));
+        setLocalItems(prev => {
+          const idx = prev.findIndex(it => it.id === row.id);
+          if (idx === -1) return [...prev, decrypted];
+          const copy = [...prev]; copy[idx] = decrypted; return copy;
+        });
+      } catch (e) { /* undecryptable — skip */ }
+    };
+
+    const channel = supabase.channel('sync-'+uid)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `user_id=eq.${uid}` }, p => handleRowChange(setEntries, lastSyncedEntriesRef, p))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'toil_taken', filter: `user_id=eq.${uid}` }, p => handleRowChange(setToilTaken, lastSyncedToilRef, p))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings', filter: `user_id=eq.${uid}` }, async (p) => {
+        const row = p.new; if (!row) return;
+        try {
+          const decrypted = await decryptWithDataKey(dataKey, row.ciphertext);
+          lastSyncedSettingsRef.current = JSON.stringify(decrypted);
+          saveSett(decrypted);
+        } catch (e) { /* undecryptable — skip */ }
+      })
+      .subscribe((status)=>{
+        if (status === 'SUBSCRIBED') {
+          if (hasConnectedOnce) {
+            pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef);
+            pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef);
+            pullAndMergeSettings();
+          }
+          hasConnectedOnce = true;
+        }
+      });
+
+    return () => { supabase.removeChannel(channel); };
+  },[supabase, session, dataKey]);
 
   // ── persist ────────────────────────────────────────────────────────────────
   useEffect(()=>{
