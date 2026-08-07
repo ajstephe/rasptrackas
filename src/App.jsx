@@ -704,6 +704,7 @@ const Ico = ({ n, s=20, c, w=2, f='none' }) => (
     {n==='bell'  &&<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>}
     {n==='logout'&&<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>}
     {n==='refresh'&&<><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></>}
+    {n==='user'&&<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>}
   </svg>
 );
 
@@ -845,15 +846,15 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
     header: {display:'flex',alignItems:'center',gap:'8px',padding:'22px 20px 0',position:'relative',zIndex:1,flexShrink:0},
     cardWrap: {flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',position:'relative',zIndex:1,minHeight:0},
     card: {width:'100%',background:'#fff',borderRadius:'18px',padding:'26px 22px 22px',boxShadow:'0 12px 34px rgba(0,0,0,0.28)',boxSizing:'border-box'},
-    label:{display:'block',fontSize:'12.5px',color:'#64748b',margin:'0 0 6px',fontWeight:700},
+    label:{display:'block',fontSize:'9px',color:'#64748b',margin:'0 0 6px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1.5px'},
     input:{width:'100%',background:'#f8fafc',border:'none',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',marginBottom:'14px'},
     err:{fontSize:'12px',color:'#dc2626',margin:'-10px 0 14px',fontWeight:700},
-    btn:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'none',fontFamily:'inherit',fontSize:'15px',fontWeight:900,cursor:'pointer',background:'#2563eb',color:'#fff'},
-    btnGhost:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'1px solid #f1f5f9',fontFamily:'inherit',fontSize:'14px',fontWeight:700,cursor:'pointer',background:'#fff',color:'#64748b',marginTop:'10px'},
+    btn:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'none',fontFamily:'inherit',fontSize:'11px',fontWeight:900,cursor:'pointer',background:'#2563eb',color:'#fff',textTransform:'uppercase',letterSpacing:'1px'},
+    btnGhost:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'1px solid #f1f5f9',fontFamily:'inherit',fontSize:'11px',fontWeight:900,cursor:'pointer',background:'#fff',color:'#64748b',marginTop:'10px',textTransform:'uppercase',letterSpacing:'1px'},
     linkRow:{textAlign:'center',marginTop:'14px',fontSize:'13px',color:'#94a3b8',fontWeight:700},
     link:{color:'#2563eb',cursor:'pointer'},
     note:{display:'flex',gap:'9px',background:'#f5f3ff',borderRadius:'13px',padding:'12px 13px',marginBottom:'16px',fontSize:'12.5px',lineHeight:1.5,color:'#6d28d9',fontWeight:600},
-    divider:{display:'flex',alignItems:'center',gap:'10px',margin:'14px 0',fontSize:'11.5px',color:'#94a3b8',fontWeight:700},
+    divider:{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',margin:'14px 0',fontSize:'11.5px',color:'#94a3b8',fontWeight:700},
   };
 
   const validEmail = /\S+@\S+\.\S+/.test(email);
@@ -1044,16 +1045,16 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
 
         {screen === 'signup' && (
           <>
-            <div style={AS.note}>
-              <span>↻</span>
-              <span><b>You'll set up a recovery secret next.</b> That protects your data if you ever forget your password. Cloud sync of your existing shifts and TOIL is still a future update — this step doesn't touch that data yet.</span>
-            </div>
             <label style={AS.label}>Email</label>
             <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
             <label style={AS.label}>Password</label>
             <input style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
             <label style={AS.label}>Confirm password</label>
             <input style={AS.input} type="password" placeholder="••••••••" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
+            <div style={AS.note}>
+              <span>↻</span>
+              <span><b>You'll set up a recovery secret next.</b> That protects your data if you ever forget your password.</span>
+            </div>
             {error && <div style={AS.err}>{error}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignUp}>{busy?'Creating…':'Create account'}</button>
             <div style={AS.linkRow}>Already have an account? <span style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Sign in</span></div>
@@ -1062,7 +1063,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
 
         {screen === 'recovery-setup' && (
           <>
-            <div style={{fontSize:'17px',fontWeight:900,marginBottom:'6px'}}>Save your recovery secret</div>
+            <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Save your recovery secret</div>
             <div style={{fontSize:'13px',color:'#64748b',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>If you ever forget your password, this word is the only other way back into your data. Nobody else has a copy of it — not even us.</div>
 
             <label style={AS.label}>Your recovery word</label>
@@ -1077,7 +1078,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
 
         {screen === 'forgot' && !forgotSent && (
           <>
-            <div style={{fontSize:'17px',fontWeight:900,marginBottom:'6px'}}>Reset your password</div>
+            <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Reset your password</div>
             <div style={{fontSize:'13px',color:'#64748b',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>We'll email you a secure link to set a new password.</div>
             <label style={AS.label}>Email</label>
             <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
@@ -1089,7 +1090,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
 
         {screen === 'forgot' && forgotSent && (
           <>
-            <div style={{fontSize:'17px',fontWeight:900,marginBottom:'6px'}}>Check your email</div>
+            <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Check your email</div>
             <div style={{fontSize:'13px',color:'#64748b',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>A reset link's on its way to {email}. Follow it to set a new password.</div>
             <button style={AS.btnGhost} onClick={()=>{ setScreen('signin'); setError(''); setForgotSent(false); }}>Back to sign in</button>
           </>
@@ -1097,7 +1098,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
 
         {screen === 'set-new-password' && (
           <>
-            <div style={{fontSize:'17px',fontWeight:900,marginBottom:'6px'}}>Set a new password</div>
+            <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Set a new password</div>
             <div style={{fontSize:'13px',color:'#64748b',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Choose a new password for your account.</div>
             <label style={AS.label}>New password</label>
             <input style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
@@ -1110,7 +1111,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
 
         {screen === 'recovery-unlock' && (
           <>
-            <div style={{fontSize:'17px',fontWeight:900,marginBottom:'6px'}}>Unlock your existing data</div>
+            <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Unlock your existing data</div>
             <div style={{fontSize:'13px',color:'#64748b',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Your password's been reset. Enter your recovery word to restore access to your previous shifts and TOIL.</div>
             <label style={AS.label}>Recovery word</label>
             <input style={AS.input} type="text" placeholder="Enter your recovery word" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
@@ -1174,6 +1175,7 @@ export default function App() {
   const [authLoading,  setAuthLoading]  = useState(true);
   const [dataKey,      setDataKey]      = useState(null); // unwrapped CryptoKey, in memory only, never persisted
   const [manualSyncing, setManualSyncing] = useState(false);
+  const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
   const [showBackupReminder, setShowBackupReminder] = useState(false);
   const [showFYRollover, setShowFYRollover] = useState(false);
@@ -2589,19 +2591,41 @@ export default function App() {
             <span style={{fontSize:'13px',fontWeight:700,color:'#94a3b8',letterSpacing:'0.2px'}}>by Adam Stephens</span>
           </div>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:'6px',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:'10px',flexShrink:0}}>
           {session&&(
-            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',cursor:manualSyncing?'default':'pointer',flexShrink:0}}>
-              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={13} c="#2563eb"/></span>
+            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',gap:'5px',padding:'6px 10px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',color:'#2563eb',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap'}}>
+              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={11} c="#2563eb"/></span> Sync
             </button>
           )}
           {session&&(
-            <button onClick={handleSignOut} style={{display:'flex',alignItems:'center',gap:'4px',padding:'6px 10px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',color:'#2563eb',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
-              <Ico n="logout" s={11} c="#2563eb"/> Sign Out
-            </button>
+            <>
+              <div style={{width:'1px',height:'18px',background:'#e2e8f0',flexShrink:0}}/>
+              <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',gap:'4px',padding:'6px 10px',background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',color:'#2563eb',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
+                <Ico n="logout" s={11} c="#2563eb"/> Sign Out
+              </button>
+            </>
           )}
         </div>
       </header>
+
+      {/* ── sign-out confirmation — bottom sheet, same pattern as the export
+           modal, with an explicit close (×) as well as Cancel ── */}
+      {signOutConfirmOpen&&(
+        <div onClick={()=>setSignOutConfirmOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.55)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:60}}>
+          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative'}}>
+            <button onClick={()=>setSignOutConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'#f1f5f9',border:'none',borderRadius:'50%',cursor:'pointer'}}>
+              <Ico n="x" s={14} c="#64748b"/>
+            </button>
+            <div style={{width:'36px',height:'4px',background:'#e2e8f0',borderRadius:'4px',margin:'0 auto 14px'}}/>
+            <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>Sign out?</div>
+            <div style={{fontSize:'12px',color:'#64748b',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>You'll need your password again to get back in. Data already synced stays exactly as it is.</div>
+            <div style={{display:'flex',gap:'8px'}}>
+              <button onClick={()=>{ setSignOutConfirmOpen(false); handleSignOut(); }} style={{flex:1,padding:'12px',background:'#2563eb',border:'none',borderRadius:'11px',color:'#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Sign Out</button>
+              <button onClick={()=>setSignOutConfirmOpen(false)} style={{flex:1,padding:'12px',background:'#f1f5f9',border:'none',borderRadius:'11px',color:'#64748b',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── 14-day backup reminder — optional, dismissible, never blocks the app ── */}
       {showBackupReminder&&(
@@ -4006,7 +4030,7 @@ export default function App() {
               <div style={S.card}>
                 <div onClick={()=>setAccountExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:accountExpanded?'13px':0}}>
                   <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                    <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="logout" s={17} c="#2563eb"/></div>
+                    <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="user" s={17} c="#2563eb"/></div>
                     <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Account</div>
                   </div>
                   <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{accountExpanded?'Tap to Close':'Tap to expand'}</span>
