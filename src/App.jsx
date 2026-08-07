@@ -1022,7 +1022,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
       <div style={AS.header}>
         <ClockCashIcon width={28} height={19}/>
         <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0}}>
-          <span style={{fontSize:'19px',fontWeight:900,color:'#fff',letterSpacing:'-0.4px',whiteSpace:'nowrap'}}>Overtime &amp; Shift Tracker</span>
+          <span style={{fontSize:'19px',fontWeight:900,color:'#fff',letterSpacing:'-0.4px',whiteSpace:'nowrap'}}>Overtime/Shift Tracker</span>
           <span style={{fontSize:'13px',fontWeight:700,color:'#93c5fd',letterSpacing:'0.2px'}}>by Adam Stephens</span>
         </div>
       </div>
@@ -2615,7 +2615,7 @@ export default function App() {
         <div style={{display:'flex',alignItems:'center',gap:'8px',minWidth:0}}>
           <ClockCashIcon width={28} height={19}/>
           <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0,overflow:'hidden'}}>
-            <span style={{fontSize:'19px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime &amp; Shift Tracker</span>
+            <span style={{fontSize:'19px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime/Shift Tracker</span>
             <span style={{fontSize:'13px',fontWeight:700,color:'#94a3b8',letterSpacing:'0.2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>by Adam Stephens</span>
           </div>
         </div>
@@ -3705,7 +3705,7 @@ export default function App() {
               <div onClick={configSetupIncomplete?undefined:()=>setConfigExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:configSetupIncomplete?'default':'pointer',marginBottom:configShown?'13px':0}}>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                   <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="cog" s={17} c="#2563eb"/></div>
-                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Configuration</div>
+                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Config, Rates &amp; Payscales</div>
                 </div>
                 {!configSetupIncomplete && <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{configShown?'Tap to Close':'Tap to expand'}</span>}
               </div>
