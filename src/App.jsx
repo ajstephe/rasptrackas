@@ -1226,12 +1226,14 @@ export default function App() {
       try {
         const ciphertext = await encryptWithDataKey(dataKey, item);
         const { error } = await supabase.from(table).upsert({ id: item.id, user_id: uid, ciphertext, updated_at: now, deleted_at: null });
-        if (!error) lastSyncedRef.current.set(item.id, JSON.stringify(item));
-      } catch (e) { /* dropped silently — see note above */ }
+        if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); console.log(`[sync] pushed ${table} id=${item.id}`); }
+        else console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error);
+      } catch (e) { console.error(`[sync] push threw for ${table} id=${item.id}:`, e.message || e); }
     }
     for (const id of toDelete) {
       const { error } = await supabase.from(table).update({ deleted_at: now, updated_at: now }).eq('id', id).eq('user_id', uid);
       if (!error) lastSyncedRef.current.delete(id);
+      else console.error(`[sync] soft-delete failed for ${table} id=${id}:`, error.message || error);
     }
   }
 
@@ -1263,13 +1265,17 @@ export default function App() {
     if (!supabase || !session || !dataKey) return;
     const uid = session.user.id;
     const { data: rows, error } = await supabase.from(table).select('id, ciphertext, deleted_at').eq('user_id', uid);
-    if (error || !rows) return;
+    if (error) { console.error(`[sync] pull failed for ${table}:`, error.message || error); return; }
+    if (!rows) return;
+    console.log(`[sync] pulled ${rows.length} row(s) from ${table}`);
     const remoteMap = new Map();
+    let decryptFailures = 0;
     for (const row of rows) {
       if (row.deleted_at) continue;
       try { remoteMap.set(row.id, await decryptWithDataKey(dataKey, row.ciphertext)); }
-      catch (e) { /* undecryptable row — skip rather than crash the merge */ }
+      catch (e) { decryptFailures++; }
     }
+    if (decryptFailures > 0) console.error(`[sync] ${decryptFailures} row(s) in ${table} failed to decrypt with the current key`);
     const merged = [];
     for (const localItem of itemsRef.current) {
       if (remoteMap.has(localItem.id)) {
