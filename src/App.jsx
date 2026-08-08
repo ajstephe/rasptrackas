@@ -54,6 +54,13 @@ const CURRENT_FY_YEAR = getFYStartYearFor(new Date().toISOString().split('T')[0]
 const PAY_PERIODS = generateFYPeriods(CURRENT_FY_YEAR);
 const FY_START = PAY_PERIODS[0].start;
 const FY_END   = PAY_PERIODS[11].end;
+
+// Cloud retention: current financial year plus the 4 most recent (5 FYs
+// total), matching how Archived Financial Years already frames things.
+// This is a CLOUD-ONLY policy — local storage on the device is never
+// pruned and can hold data indefinitely, however far back it goes.
+const CLOUD_RETENTION_CUTOFF = generateFYPeriods(CURRENT_FY_YEAR - 4)[0].start;
+const isWithinCloudRetention = (dateISO) => dateISO >= CLOUD_RETENTION_CUTOFF;
 const RATE_CHANGE_DATE = '2026-09-01'; // new pay rates + night enhancement from here — a real pay-award date, not a pattern to generate
 
 // ─── pay rates ────────────────────────────────────────────────────────────────
@@ -538,6 +545,7 @@ const KEYS = {
   lastSyncedEntries:'ajs_ot_lastSyncedEntries',
   lastSyncedToilTaken:'ajs_ot_lastSyncedToilTaken',
   lastSyncedSettings:'ajs_ot_lastSyncedSettings',
+  lastCloudPruneCheck:'ajs_ot_lastCloudPruneCheck',
 };
 const dualWrite = (key, val) => {
   const s = JSON.stringify(val);
@@ -862,8 +870,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
     // Sized and positioned so it sits behind and around the card, not
     // under it — update the src once the actual watermark file exists.
     watermark: {position:'absolute',top:'46%',left:'50%',transform:'translate(-50%,-50%)',width:'380px',maxWidth:'85vw',height:'380px',objectFit:'contain',opacity:0.07,pointerEvents:'none',zIndex:0},
-    header: {display:'flex',alignItems:'center',gap:'8px',padding:'22px 20px 0',position:'relative',zIndex:1,flexShrink:0},
-    cardWrap: {flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',position:'relative',zIndex:1,minHeight:0},
+    cardWrap: {flex:1,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'20px',position:'relative',zIndex:1,minHeight:0},
     card: {width:'100%',background:'#fff',borderRadius:'18px',padding:'26px 22px 22px',boxShadow:'0 12px 34px rgba(0,0,0,0.28)',boxSizing:'border-box'},
     label:{display:'block',fontSize:'9px',color:'#64748b',margin:'0 0 6px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1.5px'},
     input:{width:'100%',background:'#f8fafc',border:'none',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',marginBottom:'14px'},
@@ -1035,19 +1042,19 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
           without competing with it. */}
       <img src="/rasp-watermark.png" alt="" style={AS.watermark} onError={e=>{e.target.style.display='none';}}/>
 
-      {/* Page-level header, mirroring the in-app header's icon/layout/type
-          exactly — colours adapted for this page's dark background, since
-          the in-app version's gradient text is tuned for a light one. */}
-      <div style={AS.header}>
-        <ClockCashIcon width={28} height={19}/>
-        <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0}}>
-          <span style={{fontSize:'19px',fontWeight:900,color:'#fff',letterSpacing:'-0.4px',whiteSpace:'nowrap'}}>Overtime &amp; Shift Tracker</span>
-          <span style={{fontSize:'13px',fontWeight:700,color:'#93c5fd',letterSpacing:'0.2px'}}>by Adam Stephens</span>
-        </div>
-      </div>
-
       <div style={AS.cardWrap}>
       <div style={AS.card}>
+        {/* Title lives inside the card itself on this screen, rather than
+            as a page-level header above it — colours suited to the card's
+            white background, unlike the page's dark backdrop. */}
+        <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'20px'}}>
+          <ClockCashIcon width={26} height={18}/>
+          <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0}}>
+            <span style={{fontSize:'17px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime &amp; Shift Tracker</span>
+            <span style={{fontSize:'12px',fontWeight:700,color:'#94a3b8',letterSpacing:'0.2px'}}>by Adam Stephens</span>
+          </div>
+        </div>
+
         {screen === 'signin' && (
           <>
             <label style={AS.label}>Email</label>
@@ -1345,8 +1352,16 @@ export default function App() {
         remoteMap.delete(localItem.id);
       } else if (!lastSyncedRef.current.has(localItem.id)) {
         merged.push(localItem); // never synced yet — keep, will push shortly
+      } else if (!isWithinCloudRetention(localItem.date)) {
+        // Was synced before, now gone from the cloud — but this item is
+        // older than the retention window, so its absence is expected
+        // (pruned for storage, not a deletion on another device). Kept
+        // locally without limit; not re-pushed either, since deliberately
+        // pruned data shouldn't just reappear in the cloud on its own.
+        merged.push(localItem);
       }
-      // else: was synced before, gone from server now — deleted elsewhere, drop it
+      // else: was synced before, still within the retention window, but
+      // gone from the server now — genuinely deleted elsewhere, drop it.
     }
     for (const [id, remoteItem] of remoteMap) {
       merged.push(remoteItem);
@@ -1384,6 +1399,7 @@ export default function App() {
     pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries);
     pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil);
     pullAndMergeSettings();
+    pruneOldCloudData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[dataKey]);
 
@@ -2228,6 +2244,43 @@ export default function App() {
     setTab('dashboard');
   };
 
+  // Hard-deletes entries/toil_taken rows older than the 5-financial-year
+  // cloud retention window (see isWithinCloudRetention above) — a real
+  // DELETE, not a soft-delete, since the goal is to actually reduce what's
+  // stored in Supabase. The server has no way to know which rows qualify
+  // on its own — dates live inside the encrypted ciphertext, not in a
+  // plaintext column — so this decrypts each row client-side first,
+  // decides locally, then deletes only those specific rows by id.
+  // Throttled to at most once a day; local data is never touched here.
+  const pruneOldCloudData = async () => {
+    if (!supabase || !session || !dataKey) return;
+    const today = new Date().toISOString().split('T')[0];
+    if (dualRead(KEYS.lastCloudPruneCheck, null) === today) return;
+    const uid = session.user.id;
+    try {
+      for (const table of ['entries', 'toil_taken']) {
+        const { data: rows, error } = await supabase.from(table).select('id, ciphertext, deleted_at').eq('user_id', uid);
+        if (error || !rows) continue;
+        const idsToDelete = [];
+        for (const row of rows) {
+          if (row.deleted_at) continue; // already soft-deleted — not this policy's concern
+          try {
+            const decrypted = await decryptWithDataKey(dataKey, row.ciphertext);
+            if (decrypted.date && !isWithinCloudRetention(decrypted.date)) idsToDelete.push(row.id);
+          } catch (e) { /* undecryptable — leave it alone rather than guess */ }
+        }
+        if (idsToDelete.length > 0) {
+          const { error: delError } = await supabase.from(table).delete().eq('user_id', uid).in('id', idsToDelete);
+          if (delError) console.error(`[retention] failed to prune ${table}:`, delError.message || delError);
+          else console.log(`[retention] pruned ${idsToDelete.length} row(s) from ${table} older than ${CLOUD_RETENTION_CUTOFF}`);
+        }
+      }
+      dualWrite(KEYS.lastCloudPruneCheck, today);
+    } catch (e) {
+      console.error('[retention] prune check failed:', e.message || e);
+    }
+  };
+
   const handleManualSync = async () => {
     if (!supabase || !session || !dataKey) { addToast('Not signed in \u2014 nothing to sync', 'warn'); return; }
     setManualSyncing(true);
@@ -2237,6 +2290,7 @@ export default function App() {
         pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil),
         pullAndMergeSettings(),
       ]);
+      pruneOldCloudData();
       addToast('Synced', 'success', null, 2000);
     } catch (e) {
       addToast('Sync failed \u2014 check your connection', 'warn');
@@ -4437,13 +4491,19 @@ export default function App() {
         return (
           <div className={fySummaryPrintMode?'payslip-print-area':''} style={{position:'absolute',inset:0,background:'#f8fafc',zIndex:65,overflowY:'auto'}}>
             <div className="no-print" style={{background:'#fef3c7',padding:'8px',fontSize:'10px',fontWeight:800,color:'#92400e',textAlign:'center'}}>📁 Archived — {label} is read-only</div>
+            {!fySummaryPrintMode&&(
+              <div className="no-print" style={{display:'flex',gap:'8px',padding:'12px 12px 0'}}>
+                <button onClick={()=>setFySummaryPrintMode(true)} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'11px',fontWeight:900,fontSize:'11.5px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="doc" s={13} c="#fff"/> PDF</button>
+                <button onClick={()=>handleExportCSV(y.start, y.end, sanitiseNotes)} style={{flex:1,background:'#f0fdf4',color:'#059669',border:'1.5px solid #d1fae5',borderRadius:'11px',padding:'11px',fontWeight:900,fontSize:'11.5px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="table" s={13} c="#059669"/> Spreadsheet</button>
+              </div>
+            )}
             {fySummaryPrintMode&&(
               <div className="no-print" style={{padding:'12px 12px 0'}}>
                 <button onClick={()=>window.print()} style={{width:'100%',background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
               </div>
             )}
             <div className={fySummaryPrintMode?'payslip-print-doc':''} style={{background:'#0f2744',color:'#fff',padding:'16px',margin:fySummaryPrintMode?'12px':0,borderRadius:fySummaryPrintMode?'12px':0}}>
-              <button className="no-print" onClick={()=>{setFySummaryYear(null);setFySummaryPrintMode(false);}} style={{background:'rgba(255,255,255,0.12)',border:'none',borderRadius:'9px',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',cursor:'pointer',marginBottom:'12px'}}><Ico n="back" s={16} c="#fff"/></button>
+              <button className="no-print" onClick={()=>{ if(fySummaryPrintMode){ setFySummaryPrintMode(false); } else { setFySummaryYear(null); } }} style={{background:'rgba(255,255,255,0.12)',border:'none',borderRadius:'9px',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',cursor:'pointer',marginBottom:'12px'}}><Ico n="back" s={16} c="#fff"/></button>
               <div style={{fontSize:'10px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.2px'}}>Financial Year</div>
               <div style={{fontSize:'19px',fontWeight:900}}>{label}</div>
               <div style={{fontSize:'10px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
