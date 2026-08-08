@@ -866,11 +866,10 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
     // light theme, matching the brand-moment treatment requested for this
     // screen specifically. #0f2744 matches the app's own theme-color, so
     // it's not a new colour being introduced, just used at page-scale here.
-    page: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'#0f2744',fontFamily:"'DM Sans',system-ui,sans-serif",color:'#0f172a',boxSizing:'border-box',position:'relative',overflow:'hidden'},
+    page: {display:'flex',flexDirection:'column',minHeight:'100dvh',maxWidth:'430px',margin:'0 auto',background:'#0f2744',fontFamily:"'DM Sans',system-ui,sans-serif",color:'#0f172a',boxSizing:'border-box',position:'relative',overflowY:'auto'},
     // Sized and positioned so it sits behind and around the card, not
     // under it — update the src once the actual watermark file exists.
-    watermark: {position:'absolute',top:'46%',left:'50%',transform:'translate(-50%,-50%)',width:'380px',maxWidth:'85vw',height:'380px',objectFit:'contain',opacity:0.07,pointerEvents:'none',zIndex:0},
-    cardWrap: {flex:1,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'20px',position:'relative',zIndex:1,minHeight:0},
+    cardWrap: {flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',position:'relative',zIndex:1,minHeight:0},
     card: {width:'100%',background:'#fff',borderRadius:'18px',padding:'26px 22px 22px',boxShadow:'0 12px 34px rgba(0,0,0,0.28)',boxSizing:'border-box'},
     label:{display:'block',fontSize:'9px',color:'#64748b',margin:'0 0 6px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1.5px'},
     input:{width:'100%',background:'#f8fafc',border:'none',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',marginBottom:'14px'},
@@ -1037,11 +1036,6 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
 
   return (
     <div style={AS.page}>
-      {/* Faint background watermark — update this src once the actual RaSP
-          image file is supplied; sized and centred to sit behind the card
-          without competing with it. */}
-      <img src="/rasp-watermark.png" alt="" style={AS.watermark} onError={e=>{e.target.style.display='none';}}/>
-
       <div style={AS.cardWrap}>
       <div style={AS.card}>
         {/* Title lives inside the card itself on this screen, rather than
