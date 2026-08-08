@@ -860,7 +860,7 @@ function ToastStack({ toasts, onDismiss }) {
 // local-only escape hatch. Recovery-secret setup and real cloud sync of
 // entries/toilTaken/settings are phase 2, once the data-key wrap/unwrap
 // functions exist — signing up here does not yet mean data is backed up.
-function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInPasswordRecovery, onRecoveryComplete }) {
+function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInPasswordRecovery, onRecoveryComplete, isWide }) {
   const [screen, setScreen]         = useState(startInPasswordRecovery ? 'set-new-password' : 'signin'); // 'signin' | 'signup' | 'forgot' | 'recovery-setup' | 'set-new-password' | 'recovery-unlock'
   const [email, setEmail]           = useState('');
   const [password, setPassword]     = useState('');
@@ -876,11 +876,11 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
     // light theme, matching the brand-moment treatment requested for this
     // screen specifically. #0f2744 matches the app's own theme-color, so
     // it's not a new colour being introduced, just used at page-scale here.
-    page: {display:'flex',flexDirection:'column',minHeight:'100dvh',maxWidth:'430px',margin:'0 auto',background:'#0f2744',fontFamily:"'DM Sans',system-ui,sans-serif",color:'#0f172a',boxSizing:'border-box',position:'relative',overflowY:'auto'},
+    page: {display:'flex',flexDirection:'column',minHeight:'100dvh',maxWidth:isWide?'none':'430px',margin:'0 auto',background:'#0f2744',fontFamily:"'DM Sans',system-ui,sans-serif",color:'#0f172a',boxSizing:'border-box',position:'relative',overflowY:'auto'},
     // Sized and positioned so it sits behind and around the card, not
     // under it — update the src once the actual watermark file exists.
     cardWrap: {flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',position:'relative',zIndex:1,minHeight:0},
-    card: {width:'100%',background:'#fff',borderRadius:'18px',padding:'26px 22px 22px',boxShadow:'0 12px 34px rgba(0,0,0,0.28)',boxSizing:'border-box'},
+    card: {width:'100%',maxWidth:isWide?'460px':'none',background:'#fff',borderRadius:'18px',padding:isWide?'34px 30px 28px':'26px 22px 22px',boxShadow:'0 12px 34px rgba(0,0,0,0.28)',boxSizing:'border-box'},
     label:{display:'block',fontSize:'9px',color:'#64748b',margin:'0 0 6px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1.5px'},
     input:{width:'100%',background:'#f8fafc',border:'none',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',marginBottom:'14px'},
     err:{fontSize:'12px',color:'#dc2626',margin:'-10px 0 14px',fontWeight:700},
@@ -2676,11 +2676,12 @@ export default function App() {
         onUnlocked={handleUnlocked}
         startInPasswordRecovery={true}
         onRecoveryComplete={()=>setPasswordRecoveryMode(false)}
+        isWide={isWide}
       />
     );
   }
   if (supabase && (!session || !dataKey)) {
-    return <AuthScreens key="normal" supabase={supabase} addToast={addToast} onUnlocked={handleUnlocked} />;
+    return <AuthScreens key="normal" supabase={supabase} addToast={addToast} onUnlocked={handleUnlocked} isWide={isWide} />;
   }
 
   return (
@@ -2737,36 +2738,6 @@ export default function App() {
           )}
         </div>
       </header>
-
-      {/* ── wide-screen glance strip — TOIL balance, this period, tax
-           estimate, always visible regardless of which tab is open. Every
-           figure here is read from an existing memo (toilLedger, totals,
-           taxForecast) rather than recomputed, so it can never disagree
-           with the detailed view showing the same number elsewhere. ── */}
-      {isWide&&(
-        <div className="no-print" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'14px',padding:'18px 20px 0'}}>
-          <div style={{background:'#0f2744',borderRadius:'18px',padding:'16px 18px'}}>
-            <div style={{fontSize:'9px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>TOIL Balance</div>
-            <div style={{fontSize:'22px',fontWeight:900,color:'#fff',letterSpacing:'-0.5px'}}>{fmtHM(Math.abs(toilLedger.balance))}{toilLedger.balance<0?' owed':''}</div>
-          </div>
-          <div style={{background:'#fff',border:'1px solid #f1f5f9',borderRadius:'18px',padding:'16px 18px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
-            <div style={{fontSize:'9px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>This Period</div>
-            <div style={{fontSize:'22px',fontWeight:900,color:'#0f172a',letterSpacing:'-0.5px'}}>{fmtGBP(totals.periodBreakdown[currPeriodIdx]?.combinedGross||0)}</div>
-            <div style={{fontSize:'11px',color:'#64748b',fontWeight:600,marginTop:'2px'}}>gross so far</div>
-          </div>
-          <div style={{background:'#fff',border:'1px solid #f1f5f9',borderRadius:'18px',padding:'16px 18px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
-            <div style={{fontSize:'9px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>Tax Estimate</div>
-            {taxForecast ? (
-              <>
-                <div style={{fontSize:'22px',fontWeight:900,color:'#0f172a',letterSpacing:'-0.5px'}}>{fmtGBP(taxForecast.breakdownF.totalTax)}<span style={{fontSize:'11px',color:'#94a3b8',fontWeight:700}}> /yr</span></div>
-                <div style={{fontSize:'11px',color:'#64748b',fontWeight:600,marginTop:'2px'}}>{taxForecast.bandName}</div>
-              </>
-            ) : (
-              <div style={{fontSize:'12px',color:'#94a3b8',fontWeight:700}}>Set rank &amp; pay point</div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ── sign-out confirmation — bottom sheet, same pattern as the export
            modal, with an explicit close (×) as well as Cancel ── */}
@@ -3675,7 +3646,8 @@ export default function App() {
                                   else { setConfirmCreateDay(info.ds); }
                                 }}
                                 style={{
-                                  aspectRatio:'1', minHeight:'42px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                                  ...(isWide ? {height:'34px'} : {aspectRatio:'1', minHeight:'42px'}),
+                                  display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
                                   borderRadius:'10px', border: isToday?'2px solid #2563eb':info.hasOT?'1px solid #bfdbfe':'1px solid transparent',
                                   background: info.hasOT ? '#eff6ff' : 'transparent',
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit',
