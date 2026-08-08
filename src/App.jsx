@@ -3660,7 +3660,7 @@ export default function App() {
                                   else { setConfirmCreateDay(info.ds); }
                                 }}
                                 style={{
-                                  ...(isWide ? {height:'34px'} : {aspectRatio:'1', minHeight:'42px'}),
+                                  ...(isWide ? {height:'48px'} : {aspectRatio:'1', minHeight:'42px'}),
                                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
                                   borderRadius:'10px', border: isToday?'2px solid #2563eb':info.hasOT?'1px solid #bfdbfe':'1px solid transparent',
                                   background: info.hasOT ? '#eff6ff' : 'transparent',
