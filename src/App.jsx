@@ -4778,12 +4778,16 @@ export default function App() {
               <span style={{fontSize:'10.5px',fontWeight:700,color:'#93c5fd',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Adam Stephens</span>
             </div>
           </div>
-          {NAV_TABS.map(t=>(
-            <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 12px',borderRadius:'11px',background:tab===t.id?'rgba(255,255,255,0.1)':'transparent',color:tab===t.id?'#fff':'#93c5fd',fontWeight:700,fontSize:'12.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
-              <Ico n={t.n} s={16} c={tab===t.id?'#fff':'#93c5fd'} w={tab===t.id?2.5:2}/>
-              {t.lbl}
-            </button>
-          ))}
+          {NAV_TABS.map(t=>{
+            const isAdd = t.id==='add';
+            const isActive = tab===t.id;
+            return (
+              <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 12px',borderRadius:'11px',background:isAdd?'#10b981':(isActive?'rgba(255,255,255,0.1)':'transparent'),color:isAdd?'#fff':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'12.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left',boxShadow:isAdd?'0 4px 14px rgba(16,185,129,0.4)':'none'}}>
+                <Ico n={t.n} s={16} c={isAdd||isActive?'#fff':'#93c5fd'} w={isAdd||isActive?2.5:2}/>
+                {t.lbl}
+              </button>
+            );
+          })}
           {session&&(
             <button onClick={handleManualSync} disabled={manualSyncing} style={{marginTop:'auto',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'10px',fontSize:'11px',fontWeight:800,color:'#fff',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit'}}>
               <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={12} c="#fff"/></span> Sync
