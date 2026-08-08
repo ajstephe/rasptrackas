@@ -2988,7 +2988,7 @@ export default function App() {
 
         {/* ══════════════════════════════════════════ LOG SHIFT */}
         {tab==='add'&&(
-          <div className="fi" style={{padding:'14px',paddingBottom:'160px'}}>
+          <div className="fi" style={{padding:'14px',paddingBottom:isWide?'14px':'160px'}}>
             <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'18px'}}>
               {editing&&<button onClick={()=>{setEditing(null);setTab('months');}} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="back" s={16}/></button>}
               <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',margin:0,letterSpacing:'-0.5px'}}>{editing?'Edit Record':'Log Overtime'}</h2>
@@ -3296,6 +3296,20 @@ export default function App() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* in-flow save button — desktop only. Same handler, same look
+                as the floating mobile version below, just placed at the
+                natural end of the form instead of fixed over the content,
+                since there's no bottom nav here for it to need to float
+                above. Sits outside the preview's own conditional so it
+                always shows once rank/pay point are set, whether or not
+                a preview happens to be showing. */}
+            {isWide&&(
+              <button onClick={handleSave} style={{width:'100%',background:'#dc2626',color:'#fff',boxShadow:'0 4px 20px rgba(220,38,38,0.5)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',marginTop:'18px'}}>
+                <Ico n="save" s={18} c="#fff"/>
+                {editing?'Update Record':'Save Record'}
+              </button>
             )}
             </>
             )}
@@ -4728,8 +4742,10 @@ export default function App() {
         </div>
       )}
 
-      {/* floating save button (Log Shift only, and only once rank/pay point are set) */}
-      {tab==='add'&&settings.rank&&settings.service&&(
+      {/* floating save button — mobile only (Log Shift, once rank/pay point
+           are set). Desktop uses the in-flow button at the end of the form
+           instead. */}
+      {tab==='add'&&!isWide&&settings.rank&&settings.service&&(
         <div style={{position:'absolute',bottom:'72px',left:'14px',right:'14px',zIndex:25}}>
           <button onClick={handleSave} style={{width:'100%',background:'#dc2626',color:'#fff',boxShadow:'0 4px 20px rgba(220,38,38,0.5)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px'}}>
             <Ico n="save" s={18} c="#fff"/>
