@@ -61,6 +61,16 @@ const FY_END   = PAY_PERIODS[11].end;
 // pruned and can hold data indefinitely, however far back it goes.
 const CLOUD_RETENTION_CUTOFF = generateFYPeriods(CURRENT_FY_YEAR - 4)[0].start;
 const isWithinCloudRetention = (dateISO) => dateISO >= CLOUD_RETENTION_CUTOFF;
+
+// Shared by both the mobile bottom nav and the wide-screen sidebar — one
+// list, so the two can never disagree about what the tabs are.
+const NAV_TABS = [
+  {id:'dashboard',n:'home', lbl:'Home'},
+  {id:'months',   n:'cal',  lbl:'Summary'},
+  {id:'add',      n:'plus', lbl:'Log Overtime'},
+  {id:'graph',    n:'clock', lbl:'TOIL'},
+  {id:'settings', n:'cog',  lbl:'More..'},
+];
 const RATE_CHANGE_DATE = '2026-09-01'; // new pay rates + night enhancement from here — a real pay-award date, not a pattern to generate
 
 // ─── pay rates ────────────────────────────────────────────────────────────────
@@ -1195,6 +1205,18 @@ export default function App() {
   const [authLoading,  setAuthLoading]  = useState(true);
   const [dataKey,      setDataKey]      = useState(null); // unwrapped CryptoKey, in memory only, never persisted
   const [manualSyncing, setManualSyncing] = useState(false);
+
+  // Width-based desktop detection — 960px chosen as "narrow laptop and up",
+  // matching what the reviewed mockups were built against. This is purely
+  // presentational: it changes which shell renders (sidebar+glance vs the
+  // existing mobile chrome), never the underlying tab/data logic, which
+  // stays identical either way.
+  const [isWide, setIsWide] = useState(()=>typeof window!=='undefined' && window.innerWidth>=960);
+  useEffect(()=>{
+    const onResize = () => setIsWide(window.innerWidth>=960);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  },[]);
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
   const [showBackupReminder, setShowBackupReminder] = useState(false);
@@ -1836,6 +1858,27 @@ export default function App() {
       projectedAnnualGross, taperExtraTax,
     };
   },[fyEntries,calcEntry,settings,currPeriodIdx,todayStr]);
+
+  // Full-year tax forecast, pension-adjusted and taper-aware — pulled out
+  // of the Tax & 100K+ Calculator card so the glance panel (and anything
+  // else that needs it later) reads the exact same figures rather than
+  // recomputing this independently and risking the two disagreeing.
+  const taxForecast = useMemo(()=>{
+    if (!(settings.rank && settings.service)) return null;
+    const proj = totals.projectedAnnualGross;
+    const pensionablePayF = totals.salaryAnnualTotal + totals.lwAnnualTotal;
+    const pensionF = calcPensionContribution(pensionablePayF, 1);
+    const taxableGrossF = Math.max(0, proj - pensionF.amount);
+    const overF = taxableGrossF > 100000;
+    const paLostF = overF ? Math.min(12570, Math.floor((taxableGrossF-100000)/2)) : 0;
+    const paRemainingF = 12570 - paLostF;
+    const extraTaxF = overF ? (calcUKIncomeTax(taxableGrossF,1) - calcUKIncomeTaxNoTaper(taxableGrossF,1)) : 0;
+    const breakdownF = computeTaxBandBreakdown(taxableGrossF, 1);
+    const niF = estimateAnnualNI(proj);
+    const netF = proj - pensionF.amount - breakdownF.totalTax - niF;
+    const band = getTaxBand(taxableGrossF, 1);
+    return { proj, pensionF, taxableGrossF, overF, paLostF, paRemainingF, extraTaxF, breakdownF, niF, netF, bandName: band.name };
+  },[settings, totals]);
 
   // ── TOIL balance ───────────────────────────────────────────────────────────
   // All-time running balance: every hour ever banked as TOIL (from any logged
@@ -2641,7 +2684,7 @@ export default function App() {
   }
 
   return (
-    <div style={S.wrap}>
+    <div style={isWide ? {...S.wrap, maxWidth:'980px', margin:'0 auto 0 250px'} : S.wrap}>
       <style>{`
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         ::-webkit-scrollbar{display:none}
@@ -2694,6 +2737,36 @@ export default function App() {
           )}
         </div>
       </header>
+
+      {/* ── wide-screen glance strip — TOIL balance, this period, tax
+           estimate, always visible regardless of which tab is open. Every
+           figure here is read from an existing memo (toilLedger, totals,
+           taxForecast) rather than recomputed, so it can never disagree
+           with the detailed view showing the same number elsewhere. ── */}
+      {isWide&&(
+        <div className="no-print" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'14px',padding:'18px 20px 0'}}>
+          <div style={{background:'#0f2744',borderRadius:'18px',padding:'16px 18px'}}>
+            <div style={{fontSize:'9px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>TOIL Balance</div>
+            <div style={{fontSize:'22px',fontWeight:900,color:'#fff',letterSpacing:'-0.5px'}}>{fmtHM(Math.abs(toilLedger.balance))}{toilLedger.balance<0?' owed':''}</div>
+          </div>
+          <div style={{background:'#fff',border:'1px solid #f1f5f9',borderRadius:'18px',padding:'16px 18px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
+            <div style={{fontSize:'9px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>This Period</div>
+            <div style={{fontSize:'22px',fontWeight:900,color:'#0f172a',letterSpacing:'-0.5px'}}>{fmtGBP(totals.periodBreakdown[currPeriodIdx]?.combinedGross||0)}</div>
+            <div style={{fontSize:'11px',color:'#64748b',fontWeight:600,marginTop:'2px'}}>gross so far</div>
+          </div>
+          <div style={{background:'#fff',border:'1px solid #f1f5f9',borderRadius:'18px',padding:'16px 18px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
+            <div style={{fontSize:'9px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>Tax Estimate</div>
+            {taxForecast ? (
+              <>
+                <div style={{fontSize:'22px',fontWeight:900,color:'#0f172a',letterSpacing:'-0.5px'}}>{fmtGBP(taxForecast.breakdownF.totalTax)}<span style={{fontSize:'11px',color:'#94a3b8',fontWeight:700}}> /yr</span></div>
+                <div style={{fontSize:'11px',color:'#64748b',fontWeight:600,marginTop:'2px'}}>{taxForecast.bandName}</div>
+              </>
+            ) : (
+              <div style={{fontSize:'12px',color:'#94a3b8',fontWeight:700}}>Set rank &amp; pay point</div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── sign-out confirmation — bottom sheet, same pattern as the export
            modal, with an explicit close (×) as well as Cancel ── */}
@@ -3869,21 +3942,13 @@ export default function App() {
               // salary + London Weighting only; London Allowance and all
               // overtime/PA are non-pensionable, so they play no part here.
               const pensionablePayA = totals.salaryYTD + totals.lwYTD;
-              const pensionablePayF = totals.salaryAnnualTotal + totals.lwAnnualTotal;
               const pensionA = calcPensionContribution(pensionablePayA, taxYearFraction);
-              const pensionF = calcPensionContribution(pensionablePayF, 1);
 
               // Forecast — full year, matches how the rest of the app already
-              // treats projections (yearFraction = 1). Assessed on the
-              // taxable (post-pension) figure, not the raw gross.
-              const taxableGrossF = Math.max(0, proj - pensionF.amount);
-              const overF = taxableGrossF > 100000;
-              const paLostF = overF ? Math.min(12570, Math.floor((taxableGrossF-100000)/2)) : 0;
-              const paRemainingF = 12570 - paLostF;
-              const extraTaxF = overF ? (calcUKIncomeTax(taxableGrossF,1) - calcUKIncomeTaxNoTaper(taxableGrossF,1)) : 0;
-              const breakdownF = computeTaxBandBreakdown(taxableGrossF, 1);
-              const niF = estimateAnnualNI(proj); // NI stays on the full, pre-pension gross
-              const netF = proj - pensionF.amount - breakdownF.totalTax - niF;
+              // treats projections (yearFraction = 1). Now sourced from the
+              // shared taxForecast memo (see above) rather than recomputed
+              // here, so this card and the glance panel can never disagree.
+              const { pensionF, taxableGrossF, overF, paLostF, paRemainingF, extraTaxF, breakdownF, niF, netF } = taxForecast;
 
               // Actual — year to date, same principle: taxable (post-pension)
               // YTD figure drives the taper assessment. Personal Allowance is
@@ -4701,20 +4766,43 @@ export default function App() {
         </div>
       )}
 
-      <nav className="no-print" style={S.nav}>
-        {[
-          {id:'dashboard',n:'home', lbl:'Home'},
-          {id:'months',   n:'cal',  lbl:'Summary'},
-          {id:'add',      n:'plus', lbl:'Log Overtime'},
-          {id:'graph',    n:'clock', lbl:'TOIL'},
-          {id:'settings', n:'cog',  lbl:'More..'},
-        ].map(t=>(
+      <nav className="no-print" style={{...S.nav, display:isWide?'none':'flex'}}>
+        {NAV_TABS.map(t=>(
           <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={S.nBtn(tab===t.id,t.id==='add')}>
             <Ico n={t.n} s={t.id==='add'?21:18} c={t.id==='add'?'#fff':tab===t.id?'#2563eb':'#94a3b8'} w={tab===t.id||t.id==='add'?2.5:2}/>
             <span style={S.nLbl}>{t.lbl}</span>
           </button>
         ))}
       </nav>
+
+      {/* ── wide-screen sidebar — replaces the bottom nav entirely above the
+           960px breakpoint; reuses the exact same NAV_TABS array and the
+           same tab-switching logic as the bottom nav, just presented as a
+           persistent left column instead of a row of buttons. Fixed
+           position, since S.wrap keeps its own scroll/height behavior
+           unchanged rather than being restructured into a row layout. ── */}
+      {isWide&&(
+        <div className="no-print" style={{position:'fixed',top:0,left:0,bottom:0,width:'230px',background:'#0f2744',padding:'22px 16px',display:'flex',flexDirection:'column',zIndex:30,boxSizing:'border-box'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'9px',padding:'0 8px 20px',borderBottom:'1px solid rgba(255,255,255,0.1)',marginBottom:'16px'}}>
+            <ClockCashIcon width={24} height={16}/>
+            <div style={{display:'flex',flexDirection:'column',lineHeight:1.15,minWidth:0,overflow:'hidden'}}>
+              <span style={{fontSize:'14px',fontWeight:900,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>OT Tracker</span>
+              <span style={{fontSize:'10.5px',fontWeight:700,color:'#93c5fd',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Adam Stephens</span>
+            </div>
+          </div>
+          {NAV_TABS.map(t=>(
+            <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 12px',borderRadius:'11px',background:tab===t.id?'rgba(255,255,255,0.1)':'transparent',color:tab===t.id?'#fff':'#93c5fd',fontWeight:700,fontSize:'12.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
+              <Ico n={t.n} s={16} c={tab===t.id?'#fff':'#93c5fd'} w={tab===t.id?2.5:2}/>
+              {t.lbl}
+            </button>
+          ))}
+          {session&&(
+            <button onClick={handleManualSync} disabled={manualSyncing} style={{marginTop:'auto',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'10px',fontSize:'11px',fontWeight:800,color:'#fff',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit'}}>
+              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={12} c="#fff"/></span> Sync
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
