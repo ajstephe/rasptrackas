@@ -3829,8 +3829,8 @@ export default function App() {
             <div style={S.card}>
               <div onClick={configSetupIncomplete?undefined:()=>setConfigExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:configSetupIncomplete?'default':'pointer',marginBottom:configShown?'13px':0}}>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="cog" s={17} c="#2563eb"/></div>
-                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Config, Rates &amp; Payscales</div>
+                  <div style={{background:'#eff6ff',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
+                  <div style={{fontWeight:900,fontSize:isWide?'15px':'13px',color:'#0f172a'}}>Config, Rates &amp; Payscales</div>
                 </div>
                 {!configSetupIncomplete && <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{configShown?'Tap to Close':'Tap to expand'}</span>}
               </div>
@@ -3973,8 +3973,8 @@ export default function App() {
                 <div ref={taxImpactCardRef} style={S.card}>
                   <div onClick={()=>setTaxImpactExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:taxImpactExpanded?'12px':0,cursor:'pointer'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                      <div style={{background:over?'#fef2f2':'#f0fdf4',padding:'9px',borderRadius:'11px'}}><Ico n="calc" s={17} c={over?'#dc2626':'#059669'}/></div>
-                      <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Tax & 100K+ Calculator</div>
+                      <div style={{background:over?'#fef2f2':'#f0fdf4',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="calc" s={isWide?21:17} c={over?'#dc2626':'#059669'}/></div>
+                      <div style={{fontWeight:900,fontSize:isWide?'15px':'13px',color:'#0f172a'}}>Tax & 100K+ Calculator</div>
                     </div>
                     <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{taxImpactExpanded?'Tap to Close':'Tap to expand'}</span>
                   </div>
@@ -4125,8 +4125,8 @@ export default function App() {
             <div style={S.card}>
               <div onClick={()=>setFinancialYearsExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:financialYearsExpanded?'11px':0,cursor:'pointer'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="cal" s={17} c="#2563eb"/></div>
-                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Archived Financial Years</div>
+                  <div style={{background:'#eff6ff',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cal" s={isWide?21:17} c="#2563eb"/></div>
+                  <div style={{fontWeight:900,fontSize:isWide?'15px':'13px',color:'#0f172a'}}>Archived Financial Years</div>
                 </div>
                 <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{financialYearsExpanded?'Tap to Close':'Tap to expand'}</span>
               </div>
@@ -4160,8 +4160,8 @@ export default function App() {
             <div style={S.card}>
               <div onClick={()=>setExportDataExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:exportDataExpanded?'11px':0,cursor:'pointer'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <div style={{background:'#fffbeb',padding:'9px',borderRadius:'11px'}}><Ico n="share" s={17} c="#d97706"/></div>
-                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Financial Reports &amp; Export</div>
+                  <div style={{background:'#fffbeb',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="share" s={isWide?21:17} c="#d97706"/></div>
+                  <div style={{fontWeight:900,fontSize:isWide?'15px':'13px',color:'#0f172a'}}>Financial Reports &amp; Export</div>
                 </div>
                 <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{exportDataExpanded?'Tap to Close':'Tap to expand'}</span>
               </div>
@@ -4182,8 +4182,8 @@ export default function App() {
               <div style={S.card}>
                 <div onClick={()=>setAccountExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:accountExpanded?'13px':0}}>
                   <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                    <div style={{background:'#eff6ff',padding:'9px',borderRadius:'11px'}}><Ico n="user" s={17} c="#2563eb"/></div>
-                    <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Account</div>
+                    <div style={{background:'#eff6ff',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="user" s={isWide?21:17} c="#2563eb"/></div>
+                    <div style={{fontWeight:900,fontSize:isWide?'15px':'13px',color:'#0f172a'}}>Account</div>
                   </div>
                   <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{accountExpanded?'Tap to Close':'Tap to expand'}</span>
                 </div>
@@ -4270,9 +4270,9 @@ export default function App() {
 
             {/* ── Help & suggestions ── */}
             <a href="mailto:ajstephe@me.com?subject=Overtime%20Tracker%20—%20Feedback" style={{...S.card,display:'flex',alignItems:'center',gap:'12px',textDecoration:'none',cursor:'pointer'}}>
-              <div style={{background:'#eff6ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="mail" s={19} c="#2563eb"/></div>
+              <div style={{background:'#eff6ff',padding:isWide?'13px':'11px',borderRadius:'13px',flexShrink:0}}><Ico n="mail" s={isWide?23:19} c="#2563eb"/></div>
               <div style={{flex:1}}>
-                <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Help & Suggestions</div>
+                <div style={{fontWeight:900,fontSize:isWide?'15px':'13px',color:'#0f172a'}}>Help & Suggestions</div>
                 <div style={{fontSize:'11px',color:'#3b82f6',fontWeight:700,marginTop:'2px'}}>ajstephe@me.com</div>
               </div>
               <Ico n="cR" s={16} c="#94a3b8"/>
@@ -4778,26 +4778,26 @@ export default function App() {
            unchanged rather than being restructured into a row layout. ── */}
       {isWide&&(
         <div className="no-print" style={{position:'fixed',top:0,left:0,bottom:0,width:'230px',background:'#0f2744',padding:'22px 16px',display:'flex',flexDirection:'column',zIndex:30,boxSizing:'border-box'}}>
-          <div style={{display:'flex',alignItems:'center',gap:'9px',padding:'0 8px 20px',borderBottom:'1px solid rgba(255,255,255,0.1)',marginBottom:'16px'}}>
-            <ClockCashIcon width={24} height={16}/>
+          <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'0 8px 20px',borderBottom:'1px solid rgba(255,255,255,0.1)',marginBottom:'16px'}}>
+            <ClockCashIcon width={30} height={20}/>
             <div style={{display:'flex',flexDirection:'column',lineHeight:1.15,minWidth:0,overflow:'hidden'}}>
-              <span style={{fontSize:'14px',fontWeight:900,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>OT Tracker</span>
-              <span style={{fontSize:'10.5px',fontWeight:700,color:'#93c5fd',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Adam Stephens</span>
+              <span style={{fontSize:'17px',fontWeight:900,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>OT Tracker</span>
+              <span style={{fontSize:'12.5px',fontWeight:700,color:'#93c5fd',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Adam Stephens</span>
             </div>
           </div>
           {NAV_TABS.map(t=>{
             const isAdd = t.id==='add';
             const isActive = tab===t.id;
             return (
-              <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 12px',borderRadius:'11px',background:isAdd?'#10b981':(isActive?'rgba(255,255,255,0.1)':'transparent'),color:isAdd?'#fff':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'12.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left',boxShadow:isAdd?'0 4px 14px rgba(16,185,129,0.4)':'none'}}>
-                <Ico n={t.n} s={16} c={isAdd||isActive?'#fff':'#93c5fd'} w={isAdd||isActive?2.5:2}/>
+              <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:isAdd?'#10b981':(isActive?'rgba(255,255,255,0.1)':'transparent'),color:isAdd?'#fff':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left',boxShadow:isAdd?'0 4px 14px rgba(16,185,129,0.4)':'none'}}>
+                <Ico n={t.n} s={20} c={isAdd||isActive?'#fff':'#93c5fd'} w={isAdd||isActive?2.5:2}/>
                 {t.lbl}
               </button>
             );
           })}
           {session&&(
-            <button onClick={handleManualSync} disabled={manualSyncing} style={{marginTop:'auto',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'10px',fontSize:'11px',fontWeight:800,color:'#fff',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit'}}>
-              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={12} c="#fff"/></span> Sync
+            <button onClick={handleManualSync} disabled={manualSyncing} style={{marginTop:'auto',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit'}}>
+              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={14} c="#fff"/></span> Sync
             </button>
           )}
         </div>
