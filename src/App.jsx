@@ -1216,7 +1216,6 @@ export default function App() {
   const [fySummaryPrintMode, setFySummaryPrintMode] = useState(false); // true when opened via Financial Year export (all periods expanded, Print button shown)
   const [archiveExpandedPeriod, setArchiveExpandedPeriod] = useState(null); // short label of the expanded period within that year, or null
   const [taxImpactExpanded, setTaxImpactExpanded] = useState(false);
-  const [accountExpanded, setAccountExpanded] = useState(false);
   const [dataManagementExpanded, setDataManagementExpanded] = useState(false);
   const [homeGraphExpanded, setHomeGraphExpanded] = useState(false);
   const [taxCalcActualDetailOpen, setTaxCalcActualDetailOpen] = useState(false);
@@ -1552,7 +1551,6 @@ export default function App() {
       setConfigExpanded(false);
       setExportDataExpanded(false);
       setFinancialYearsExpanded(false);
-      setAccountExpanded(false);
       setDataManagementExpanded(false);
     }
     if(prevTabRef.current==='dashboard' && tab!=='dashboard'){
@@ -4159,71 +4157,30 @@ export default function App() {
               )}
             </div>
 
-            {/* ── Account — who's signed in, and a way to sign out. Collapsible
-                 like Hourly Rates and Tax & 100K, sitting directly above
-                 Data Management. Only shown when there's an actual session,
-                 since supabase can be null (missing config) or the app can
-                 otherwise be mid-auth-check. ── */}
-            {session&&(
-              <div style={S.card}>
-                <div onClick={()=>setAccountExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:accountExpanded?'13px':0}}>
-                  <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                    <div style={{background:'#eff6ff',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="user" s={isWide?21:17} c="#2563eb"/></div>
-                    <div style={{fontWeight:900,fontSize:isWide?'15px':'13px',color:'#0f172a'}}>Account</div>
-                  </div>
-                  <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{accountExpanded?'Tap to Close':'Tap to expand'}</span>
-                </div>
-                {accountExpanded&&(
-                  <>
-                    <div style={{fontSize:'12px',color:'#64748b',marginBottom:'11px',fontWeight:600}}>Signed in as {session.user?.email}</div>
-                    <div style={{marginTop:'14px',paddingTop:'14px',borderTop:'1px solid #f1f5f9'}}>
-                      {!deleteAcctConf ? (
-                        <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'10px',color:'#dc2626',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#dc2626"/> Delete Account</button>
-                      ) : (
-                        <>
-                          <div style={{fontSize:'11.5px',color:'#dc2626',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>
-                          <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:700,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Type your email to confirm: {session.user?.email}</div>
-                          <input
-                            value={deleteAcctTyped}
-                            onChange={e=>setDeleteAcctTyped(e.target.value)}
-                            placeholder={session.user?.email}
-                            style={{width:'100%',background:'#f8fafc',border:'1px solid #fecaca',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',marginBottom:'10px'}}
-                          />
-                          <div style={{display:'flex',gap:'8px'}}>
-                            <button
-                              onClick={handleDeleteAccount}
-                              disabled={deleteAcctTyped !== session.user?.email || deletingAcct}
-                              style={{flex:1,padding:'9px',background:(deleteAcctTyped===session.user?.email)?'#dc2626':'#fecaca',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:(deleteAcctTyped===session.user?.email)?'pointer':'not-allowed',textTransform:'uppercase',letterSpacing:'1px'}}
-                            >{deletingAcct?'Deleting…':'Delete Permanently'}</button>
-                            <button onClick={()=>{ setDeleteAcctConf(false); setDeleteAcctTyped(''); }} style={{flex:1,padding:'9px',background:'#f1f5f9',border:'none',borderRadius:'8px',color:'#64748b',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* data management — collapsible like the cards above, but
-                deliberately keeps its dark blue styling rather than
-                switching to the white S.card look the others use. */}
+            {/* ── Account & Data Management — merged into one card, keeping
+                 Data Management's dark styling throughout (including the
+                 Delete Account section, restyled from its old light-card
+                 look to match the same dark-theme conventions Wipe All
+                 Data's own confirm flow already uses). One shared expand
+                 toggle now, not two. ── */}
             <div style={{...S.dark,background:'#0f2744'}}>
               <div onClick={()=>setDataManagementExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:dataManagementExpanded?'13px':0}}>
                 <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
-                  <div style={{background:'rgba(255,255,255,0.1)',padding:'11px',borderRadius:'13px'}}><Ico n="shield" s={21} c="#93c5fd"/></div>
-                  <div style={{fontWeight:900,fontSize:'14px',color:'#fff',textTransform:'uppercase'}}>Data Management</div>
+                  <div style={{background:'rgba(255,255,255,0.1)',padding:'11px',borderRadius:'13px'}}><Ico n="user" s={21} c="#93c5fd"/></div>
+                  <div style={{fontWeight:900,fontSize:'14px',color:'#fff',textTransform:'uppercase'}}>Account &amp; Data Management</div>
                 </div>
                 <span style={{fontSize:'9px',fontWeight:800,color:'#93c5fd',textDecoration:'underline',flexShrink:0}}>{dataManagementExpanded?'Tap to Close':'Tap to expand'}</span>
               </div>
               {dataManagementExpanded&&(
                 <div style={{background:'rgba(0,0,0,0.2)',borderRadius:'13px',padding:'13px'}}>
-                  <div style={{fontSize:'11px',color:'rgba(147,197,253,0.65)',marginBottom:'11px',lineHeight:1.5}}>Data is automatically saved to a secure cloud. Backup creates a hard copy on this device.</div>
+                  {session&&<div style={{fontSize:'12px',color:'#fff',fontWeight:700,marginBottom:'11px'}}>Signed in as {session.user?.email}</div>}
+                  <div style={{fontSize:'11px',color:'rgba(147,197,253,0.65)',marginBottom:'11px',lineHeight:1.5}}>Data is automatically synced and backed up to a secure cloud. To create a hard downloadable backup, select BACKUP. To restore from a previous hard copy, select RESTORE.</div>
                   <div style={{display:'flex',gap:'6px',marginBottom:'11px'}}>
                     <button onClick={handleExport} className={pulseBackupBtn?'backup-pulse':''} style={{flex:1,padding:'10px',background:'#2563eb',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="dl" s={12} c="#fff"/> Backup</button>
                     <button onClick={()=>fileRef.current.click()} style={{flex:1,padding:'10px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="ul" s={12} c="#fff"/> Restore</button>
                     <input type="file" ref={fileRef} style={{display:'none'}} accept=".json" onChange={handleImport}/>
                   </div>
+
                   <div style={{borderTop:'1px solid rgba(255,255,255,0.1)',paddingTop:'11px'}}>
                     {!wipeConf
                       ?<button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:'10px',color:'#fca5a5',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#fca5a5"/> Wipe All Data</button>
@@ -4236,6 +4193,33 @@ export default function App() {
                         </div>
                     }
                   </div>
+
+                  {session&&(
+                    <div style={{borderTop:'1px solid rgba(255,255,255,0.1)',marginTop:'11px',paddingTop:'11px'}}>
+                      {!deleteAcctConf ? (
+                        <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:'10px',color:'#fca5a5',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#fca5a5"/> Delete Account</button>
+                      ) : (
+                        <div style={{background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.4)',borderRadius:'12px',padding:'12px'}}>
+                          <div style={{fontSize:'11.5px',color:'#fca5a5',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>
+                          <div style={{fontSize:'10.5px',color:'rgba(252,165,165,0.7)',fontWeight:700,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Type your email to confirm: {session.user?.email}</div>
+                          <input
+                            value={deleteAcctTyped}
+                            onChange={e=>setDeleteAcctTyped(e.target.value)}
+                            placeholder={session.user?.email}
+                            style={{width:'100%',background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#fff',marginBottom:'10px'}}
+                          />
+                          <div style={{display:'flex',gap:'6px'}}>
+                            <button
+                              onClick={handleDeleteAccount}
+                              disabled={deleteAcctTyped !== session.user?.email || deletingAcct}
+                              style={{flex:1,padding:'9px',background:(deleteAcctTyped===session.user?.email)?'#dc2626':'rgba(239,68,68,0.3)',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:(deleteAcctTyped===session.user?.email)?'pointer':'not-allowed',textTransform:'uppercase',letterSpacing:'1px'}}
+                            >{deletingAcct?'Deleting…':'Delete Permanently'}</button>
+                            <button onClick={()=>{ setDeleteAcctConf(false); setDeleteAcctTyped(''); }} style={{flex:1,padding:'9px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
