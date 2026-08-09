@@ -3655,7 +3655,7 @@ export default function App() {
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit',
                                   minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
                                 }}>
-                                <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.hasOT?'#1d4ed8':'#cbd5e1',lineHeight:1}}>{date.getDate()}</span>
+                                <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.hasOT?'#1d4ed8':'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
                                 {info.totalHrs>0&&(
                                   <span style={{fontSize:'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
                                 )}
