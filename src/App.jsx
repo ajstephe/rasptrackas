@@ -1541,7 +1541,8 @@ export default function App() {
 
   // Collapse every expandable Options card the moment the person leaves the
   // Options tab, so it's back to a clean, collapsed state next time they
-  // arrive — rather than remembering whatever was left open.
+  // arrive — rather than remembering whatever was left open. Same idea for
+  // the Home tab's graph toggle.
   const prevTabRef = useRef(tab);
   useEffect(()=>{
     if(prevTabRef.current==='settings' && tab!=='settings'){
@@ -1553,6 +1554,9 @@ export default function App() {
       setFinancialYearsExpanded(false);
       setAccountExpanded(false);
       setDataManagementExpanded(false);
+    }
+    if(prevTabRef.current==='dashboard' && tab!=='dashboard'){
+      setHomeGraphExpanded(false);
     }
     prevTabRef.current = tab;
   },[tab]);
