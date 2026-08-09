@@ -665,11 +665,6 @@ async function decryptWithDataKey(dataKey, blobB64) {
 // oversight.
 const RECOVERY_MIN_LENGTH = 5;
 const RECOVERY_BLOCKLIST = ['password','overtime','shift','shift1','police','london','metro','12345','qwerty','letmein','admin','welcome','abcde','testy'];
-function checkRecoveryWordStrength(word) {
-  if (word.length < RECOVERY_MIN_LENGTH) return { ok:false, reason:`Needs at least ${RECOVERY_MIN_LENGTH} characters` };
-  if (RECOVERY_BLOCKLIST.includes(word.toLowerCase())) return { ok:false, reason:'Too common — choose something less predictable' };
-  return { ok:true };
-}
 const PASSWORD_KDF_ITERATIONS = 210000; // used every sign-in, cost stays invisible
 const RECOVERY_KDF_ITERATIONS = 600000; // used maybe once ever, so it can afford to be slower
 
@@ -876,8 +871,6 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
     // screen specifically. #0f2744 matches the app's own theme-color, so
     // it's not a new colour being introduced, just used at page-scale here.
     page: {display:'flex',flexDirection:'column',minHeight:'100dvh',maxWidth:isWide?'none':'430px',margin:'0 auto',background:'#0f2744',fontFamily:"'DM Sans',system-ui,sans-serif",color:'#0f172a',boxSizing:'border-box',position:'relative',overflowY:'auto'},
-    // Sized and positioned so it sits behind and around the card, not
-    // under it — update the src once the actual watermark file exists.
     cardWrap: {flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',position:'relative',zIndex:1,minHeight:0},
     card: {width:'100%',maxWidth:isWide?'460px':'none',background:'#fff',borderRadius:'18px',padding:isWide?'34px 30px 28px':'26px 22px 22px',boxShadow:'0 12px 34px rgba(0,0,0,0.28)',boxSizing:'border-box'},
     label:{display:'block',fontSize:'9px',color:'#64748b',margin:'0 0 6px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1.5px'},
@@ -1199,7 +1192,6 @@ export default function App() {
   const [confirmDel,   setConfirmDel]   = useState(null);
   const [toasts,       setToasts]       = useState([]);
   const [savedBadge,   setSavedBadge]   = useState(false);
-  const [lastBackedUp, setLastBackedUp] = useState(()=>dualRead(KEYS.backedUpAt,null));
   const [session,      setSession]      = useState(null);
   const [authLoading,  setAuthLoading]  = useState(true);
   const [dataKey,      setDataKey]      = useState(null); // unwrapped CryptoKey, in memory only, never persisted
@@ -1223,7 +1215,6 @@ export default function App() {
   const [fySummaryYear, setFySummaryYear] = useState(null); // calendar FY-start-year of the archived year being viewed, or null
   const [fySummaryPrintMode, setFySummaryPrintMode] = useState(false); // true when opened via Financial Year export (all periods expanded, Print button shown)
   const [archiveExpandedPeriod, setArchiveExpandedPeriod] = useState(null); // short label of the expanded period within that year, or null
-  const [trendsExpanded, setTrendsExpanded] = useState(false);
   const [taxImpactExpanded, setTaxImpactExpanded] = useState(false);
   const [accountExpanded, setAccountExpanded] = useState(false);
   const [dataManagementExpanded, setDataManagementExpanded] = useState(false);
@@ -1859,9 +1850,8 @@ export default function App() {
   },[fyEntries,calcEntry,settings,currPeriodIdx,todayStr]);
 
   // Full-year tax forecast, pension-adjusted and taper-aware — pulled out
-  // of the Tax & 100K+ Calculator card so the glance panel (and anything
-  // else that needs it later) reads the exact same figures rather than
-  // recomputing this independently and risking the two disagreeing.
+  // of the Tax & 100K+ Calculator card's own render so the actual formula
+  // lives in one place, kept separate from the JSX that displays it.
   const taxForecast = useMemo(()=>{
     if (!(settings.rank && settings.service)) return null;
     const proj = totals.projectedAnnualGross;
@@ -2112,7 +2102,7 @@ export default function App() {
     const json = JSON.stringify({entries,settings,toilTaken,exportedAt:new Date().toISOString()}, null, 2);
 
     const markSaved = () => {
-      dualWrite(KEYS.backupCount,0); dualWrite(KEYS.backedUpAt,now); setLastBackedUp(now);
+      dualWrite(KEYS.backupCount,0); dualWrite(KEYS.backedUpAt,now);
       dualWrite(KEYS.lastBackupReminder,now); setPulseBackupBtn(false);
       addToast('Backup saved');
     };
@@ -2377,15 +2367,6 @@ export default function App() {
   },[focusEntryId, tab, breakdownView]);
 
   // ── display helpers ────────────────────────────────────────────────────────
-  const fmtBackedUp=ts=>{
-    if(!ts) return null;
-    const diff=Math.floor((Date.now()-ts)/1000);
-    const date=new Date(ts), today=new Date();
-    if(diff<60) return 'Just now';
-    if(date.toDateString()===today.toDateString()) return date.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    if(date.toDateString()===new Date(today-86400000).toDateString()) return 'Yesterday';
-    return date.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-  };
 
   // Today's effective rates were shown on Home; now only surfaced in Options.
 
@@ -3938,9 +3919,9 @@ export default function App() {
               const pensionA = calcPensionContribution(pensionablePayA, taxYearFraction);
 
               // Forecast — full year, matches how the rest of the app already
-              // treats projections (yearFraction = 1). Now sourced from the
-              // shared taxForecast memo (see above) rather than recomputed
-              // here, so this card and the glance panel can never disagree.
+              // treats projections (yearFraction = 1). Sourced from the
+              // shared taxForecast memo (see its own definition above)
+              // rather than computed inline here.
               const { pensionF, taxableGrossF, overF, paLostF, paRemainingF, extraTaxF, breakdownF, niF, netF } = taxForecast;
 
               // Actual — year to date, same principle: taxable (post-pension)
