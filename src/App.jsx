@@ -4151,7 +4151,7 @@ export default function App() {
                     })}
                     {yearsWithData.length===0&&<div style={{fontSize:'10.5px',color:'#94a3b8',textAlign:'center',padding:'6px 0'}}>Past years will appear here once you have entries from before this financial year.</div>}
                   </div>
-                  <div style={{fontSize:'9.5px',color:'#94a3b8',textAlign:'center',marginTop:'10px',lineHeight:1.5}}>Dates are generated from your confirmed pay pattern (4-4-5 weeks, 52 weeks/year).</div>
+                  <div style={{fontSize:'9.5px',color:'#94a3b8',textAlign:'center',marginTop:'10px',lineHeight:1.5}}>Dates are generated from your confirmed pay pattern (4-4-5 weeks, 52 weeks/year). Archived data is only retained for 4 years.</div>
                 </>
               )}
             </div>
@@ -4169,6 +4169,7 @@ export default function App() {
                 <>
                   <button onClick={()=>{setExportFormat(null);setPayslipMode('period');setPayslipPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);setPayslipFYYear(CURRENT_FY_YEAR);setPayslipModalOpen(true);}} disabled={entries.length===0} style={{width:'100%',padding:'12px',background: entries.length===0 ? '#f1f5f9' : '#2563eb',border:'none',borderRadius:'11px',color: entries.length===0 ? '#94a3b8' : '#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor: entries.length===0 ? 'default' : 'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',textTransform:'uppercase',letterSpacing:'1px',boxShadow: entries.length===0 ? 'none' : '0 4px 14px rgba(37,99,235,0.3)'}}><Ico n="share" s={13} c={entries.length===0?'#94a3b8':'#fff'}/> Export to PDF or Spreadsheet</button>
                   {entries.length===0&&<div style={{fontSize:'10px',color:'#94a3b8',textAlign:'center',marginTop:'8px',fontWeight:600}}>Log a shift first to enable export</div>}
+                  <div style={{fontSize:'9.5px',color:'#94a3b8',textAlign:'center',marginTop:'8px',lineHeight:1.5}}>Archived data is only retained for 4 years.</div>
                 </>
               )}
             </div>
