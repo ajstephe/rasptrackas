@@ -55,11 +55,10 @@ const PAY_PERIODS = generateFYPeriods(CURRENT_FY_YEAR);
 const FY_START = PAY_PERIODS[0].start;
 const FY_END   = PAY_PERIODS[11].end;
 
-// Cloud retention: current financial year plus the 4 most recent (5 FYs
-// total), matching how Archived Financial Years already frames things.
-// This is a CLOUD-ONLY policy — local storage on the device is never
-// pruned and can hold data indefinitely, however far back it goes.
-const CLOUD_RETENTION_CUTOFF = generateFYPeriods(CURRENT_FY_YEAR - 4)[0].start;
+// Cloud retention: current financial year plus the 3 most recent (4 FYs
+// total). This is a CLOUD-ONLY policy — local storage on the device is
+// never pruned and can hold data indefinitely, however far back it goes.
+const CLOUD_RETENTION_CUTOFF = generateFYPeriods(CURRENT_FY_YEAR - 3)[0].start;
 const isWithinCloudRetention = (dateISO) => dateISO >= CLOUD_RETENTION_CUTOFF;
 
 // Shared by both the mobile bottom nav and the wide-screen sidebar — one
@@ -3350,9 +3349,12 @@ export default function App() {
                 {defaultBreakdownView==='list'?'List View':'Calendar View'} opens by default · tap ★ to change
               </div>
 
-              {/* month jump pills — part of the sticky header in List View */}
+              {/* month jump pills — part of the sticky header in List View.
+                  On desktop, boxed to match the Calendar/List toggle above
+                  rather than floating loose in the open page. */}
               {breakdownView==='list'&&(
-                <div style={{display:'flex',gap:'5px',overflowX:'auto',paddingTop:'8px',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+                <div style={isWide?{background:'#f8fafc',border:'1px solid #f1f5f9',borderRadius:'14px',padding:'10px 14px',marginTop:'8px'}:{}}>
+                <div style={{display:'flex',gap:'5px',overflowX:'auto',paddingTop:isWide?0:'8px',scrollbarWidth:'none',msOverflowStyle:'none',justifyContent:isWide?'center':'flex-start'}}>
                   {PAY_PERIODS.map((p,idx)=>{
                     const isCurr=idx===currPeriodIdx, isOpen=expanded===p.month;
                     return(
@@ -3362,11 +3364,15 @@ export default function App() {
                     );
                   })}
                 </div>
+                </div>
               )}
 
-              {/* month pills — Calendar View equivalent, selects the period being viewed */}
+              {/* month pills — Calendar View equivalent, selects the period
+                  being viewed. Same boxed treatment on desktop as List View
+                  above, for consistency between the two. */}
               {breakdownView==='calendar'&&(
-                <div style={{display:'flex',gap:'5px',overflowX:'auto',paddingTop:'8px',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+                <div style={isWide?{background:'#f8fafc',border:'1px solid #f1f5f9',borderRadius:'14px',padding:'10px 14px',marginTop:'8px'}:{}}>
+                <div style={{display:'flex',gap:'5px',paddingTop:isWide?0:'8px',justifyContent:isWide?'center':'flex-start',...(isWide?{flexWrap:'wrap'}:{overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'})}}>
                   {PAY_PERIODS.map((p,idx)=>{
                     const isCurr=idx===currPeriodIdx;
                     const isSel=(calPeriodIdx===null?currPeriodIdx:calPeriodIdx)===idx;
@@ -3376,6 +3382,7 @@ export default function App() {
                       </button>
                     );
                   })}
+                </div>
                 </div>
               )}
             </div>
