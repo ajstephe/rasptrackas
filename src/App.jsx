@@ -1194,6 +1194,7 @@ export default function App() {
   const [selectedCalDay, setSelectedCalDay] = useState(null);
   const [confirmCreateDay, setConfirmCreateDay] = useState(null);
   const [focusEntryId, setFocusEntryId] = useState(null);
+  const [focusCarmsToggle, setFocusCarmsToggle] = useState(false);
   const [editing,      setEditing]      = useState(null);
   const [wipeConf,     setWipeConf]     = useState(false);
   const [wipingData,   setWipingData]   = useState(false);
@@ -1256,6 +1257,7 @@ export default function App() {
   const monthRefs = useRef({});
   const stickyRef = useRef(null);
   const entryRefs = useRef({});
+  const carmsToggleRef = useRef(null);
   const notesRef = useRef(null);
   // What's already been pushed to Supabase, keyed by row id — compared
   // against on every local change so only genuinely new/edited/removed
@@ -2454,6 +2456,23 @@ export default function App() {
     return ()=>clearTimeout(t);
   },[focusEntryId, tab, breakdownView]);
 
+  // Same idea, for jumping from CARMS Outstanding straight to the on/off
+  // toggles on the Log Overtime edit screen, rather than just opening the
+  // form at the top and leaving the person to scroll down themselves.
+  useEffect(()=>{
+    if(!focusCarmsToggle || tab!=='add') return;
+    const t = setTimeout(()=>{
+      const el = carmsToggleRef.current;
+      const cont = mainRef.current;
+      if(el && cont){
+        const top = cont.scrollTop + el.getBoundingClientRect().top - cont.getBoundingClientRect().top - 12;
+        cont.scrollTo({ top: Math.max(0, top), behavior:'smooth' });
+      }
+      setTimeout(()=>setFocusCarmsToggle(false), 2200);
+    }, 220);
+    return ()=>clearTimeout(t);
+  },[focusCarmsToggle, tab]);
+
   // ── display helpers ────────────────────────────────────────────────────────
 
   // Today's effective rates were shown on Home; now only surfaced in Options.
@@ -3361,7 +3380,7 @@ export default function App() {
                 entry reflects whatever it's already set to. PA toggle only
                 shown when there's actually a PA rate selected, since
                 otherwise there's nothing to track for that part. */}
-            <div style={{...S.card,marginBottom:'11px'}}>
+            <div ref={carmsToggleRef} className={focusCarmsToggle?'entry-flash':''} style={{...S.card,marginBottom:'11px',border:focusCarmsToggle?'2px solid #2563eb':'1px solid #f1f5f9'}}>
               <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a',marginBottom:'2px'}}>CARMS Submission</div>
               <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginBottom:'4px'}}>Independent of logging it here — mark each part once you've actually put the claim in.</div>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 0',borderBottom:form.paRate!=='None'?'1px solid #f1f5f9':'none'}}>
@@ -3933,11 +3952,8 @@ export default function App() {
                         {g.items.map(it=>{
                           const otKey = it.entry.id+'-ot', paKey = it.entry.id+'-pa';
                           const goToEntry = () => {
-                            skipBreakdownReset.current = true;
-                            setBreakdownView('list');
-                            setExpanded(g.period.month);
-                            setFocusEntryId(it.entry.id);
-                            setTab('months');
+                            startEdit(it.entry);
+                            setFocusCarmsToggle(true);
                           };
                           return (
                             <div key={it.entry.id} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9'}}>
