@@ -67,6 +67,7 @@ const NAV_TABS = [
   {id:'dashboard',n:'home', lbl:'Home'},
   {id:'months',   n:'cal',  lbl:'Summary'},
   {id:'add',      n:'plus', lbl:'Log Overtime'},
+  {id:'carms',    n:'check', lbl:'CARMS'},
   {id:'graph',    n:'clock', lbl:'TOIL'},
   {id:'settings', n:'cog',  lbl:'More..'},
 ];
@@ -679,6 +680,16 @@ const migrateSettings = s => {
   return { rank:s.rank, service:s.service };
 };
 
+// CARMS submission tracking predates this migration for any entry already
+// on the device — defaulting those to "submitted" rather than suddenly
+// flagging years of past shifts as outstanding. Only entries created going
+// forward start out genuinely unsubmitted (see blankForm).
+const migrateEntries = list => (list||[]).map(e => ({
+  ...e,
+  otSubmitted: e.otSubmitted===undefined ? true : e.otSubmitted,
+  paSubmitted: e.paSubmitted===undefined ? true : e.paSubmitted,
+}));
+
 // ─── icon component ───────────────────────────────────────────────────────────
 const Ico = ({ n, s=20, c, w=2, f='none' }) => (
   <svg width={s} height={s} viewBox="0 0 24 24" fill={f} stroke={c||'currentColor'}
@@ -1162,7 +1173,7 @@ export default function App() {
   const currPeriodIdx = PAY_PERIODS.findIndex(p=>todayStr>=p.start&&todayStr<=p.end);
 
   const [tab,          setTab]          = useState('dashboard');
-  const [entries,      setEntries]      = useState(()=>dualRead(KEYS.entries,[]));
+  const [entries,      setEntries]      = useState(()=>migrateEntries(dualRead(KEYS.entries,[])));
   const [toilTaken,    setToilTaken]    = useState(()=>dualRead(KEYS.toilTaken,[]));
   const [settings,     setSettings]     = useState(()=>migrateSettings(dualRead(KEYS.settings,null)));
   const [expanded,     setExpanded]     = useState(null);
@@ -1268,7 +1279,7 @@ export default function App() {
   useEffect(()=>{ toilTakenRef.current = toilTaken; },[toilTaken]);
   useEffect(()=>{ settingsRef.current = settings; },[settings]);
 
-  const blankForm = { date:todayStr, reason:'', hours133:'', hours150:'', hours200:'', nightWorkHours:'', nightHours:'', paRate:'None', comments:'', recordShiftTimes:true, rosteredStart:'', rosteredEnd:'', actualStart:'', actualEnd:'', dutyType:'normal', otRateTier:'hours133', otAuto:true, nightAuto:true, takeAs:'pay', toilHours:'' };
+  const blankForm = { date:todayStr, reason:'', hours133:'', hours150:'', hours200:'', nightWorkHours:'', nightHours:'', paRate:'None', comments:'', recordShiftTimes:true, rosteredStart:'', rosteredEnd:'', actualStart:'', actualEnd:'', dutyType:'normal', otRateTier:'hours133', otAuto:true, nightAuto:true, takeAs:'pay', toilHours:'', otSubmitted:false, paSubmitted:false };
   const [form, setForm] = useState(blankForm);
 
   // ── cloud push sync ──────────────────────────────────────────────────────
@@ -1667,6 +1678,27 @@ export default function App() {
     return { h1, h2, h3, payH1, payH2, payH3, ot1, ot2, ot3, nh, ot, night, pa, gross, r, toilH, toilBanked, otRateTier:e.otRateTier, takeAs:e.takeAs };
   },[settings]);
 
+  // Whether a component counts as submitted — defensive against undefined
+  // (older/synced entries that predate this field) rather than relying on
+  // every single entry point — initial load, cloud pull, backup restore —
+  // remembering to migrate it. Anything except an explicit false counts.
+  const isOtSubmitted = e => e.otSubmitted !== false;
+  const isPaSubmitted = e => e.paSubmitted !== false;
+
+  // calcEntry above always returns the true, full value of a shift —
+  // deliberately unconditional, since the Log Overtime form's live preview
+  // and the CARMS Outstanding view both need "what this is actually worth"
+  // regardless of submission status. This wraps it for the one place that
+  // needs the opposite: the running pay totals should only count what's
+  // actually been submitted. Night pay is tied to the same overtime claim
+  // it comes from, so it's gated by otSubmitted, not tracked separately.
+  const calcSubmittedGross = useCallback(e => {
+    const c = calcEntry(e);
+    const otPortion = isOtSubmitted(e) ? (c.ot + c.night) : 0;
+    const paPortion = isPaSubmitted(e) ? c.pa : 0;
+    return { ...c, ot: isOtSubmitted(e)?c.ot:0, night: isOtSubmitted(e)?c.night:0, pa: paPortion, gross: otPortion + paPortion };
+  },[calcEntry]);
+
   // ── derived totals ─────────────────────────────────────────────────────────
   const fyEntries = useMemo(()=>entries.filter(e=>e.date>=FY_START&&e.date<=FY_END),[entries]);
   const yearsWithData = useMemo(()=>{
@@ -1707,7 +1739,7 @@ export default function App() {
       const pE = fyEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
       let ot=0, night=0, pa=0, hrs=0;
       pE.forEach(e=>{
-        const c=calcEntry(e);
+        const c=calcSubmittedGross(e);
         ot+=c.ot; night+=c.night; pa+=c.pa; hrs+=c.h1+c.h2+c.h3;
       });
 
@@ -1791,7 +1823,7 @@ export default function App() {
     let otPaidToDate = 0, otNightPaidToDate = 0, hrsToDate = 0;
     fyEntries.forEach(e=>{
       if (e.date >= taxYearStart && e.date <= todayStr) {
-        const c = calcEntry(e);
+        const c = calcSubmittedGross(e);
         otPaidToDate += c.gross;
         otNightPaidToDate += c.ot + c.night; // hourly-earned only, excludes flat PA
         hrsToDate += c.h1 + c.h2 + c.h3;
@@ -1849,7 +1881,7 @@ export default function App() {
       ytdTax, ytdNI, taxBand, taxBandRate, daysElapsed, taxYearDaysElapsed, taxYearStart, hoursByBand,
       projectedAnnualGross, taperExtraTax,
     };
-  },[fyEntries,calcEntry,settings,currPeriodIdx,todayStr]);
+  },[fyEntries,calcSubmittedGross,settings,currPeriodIdx,todayStr]);
 
   // Full-year tax forecast, pension-adjusted and taper-aware — pulled out
   // of the Tax & 100K+ Calculator card's own render so the actual formula
@@ -1870,6 +1902,46 @@ export default function App() {
     const band = getTaxBand(taxableGrossF, 1);
     return { proj, pensionF, taxableGrossF, overF, paLostF, paRemainingF, extraTaxF, breakdownF, niF, netF, bandName: band.name };
   },[settings, totals]);
+
+  // ── CARMS outstanding claims ──────────────────────────────────────────────
+  // Grouped by pay period (matching how Archived Financial Years and the
+  // month pills already frame things), each entry that has anything
+  // outstanding shows once, with however much of it — OT, PA, or both —
+  // hasn't been submitted yet. Fully-submitted entries and entries with no
+  // pay component at all (pure TOIL-only days with no PA) never appear here.
+  const carmsOutstanding = useMemo(()=>{
+    const groups = [];
+    let totalAmount = 0, totalClaims = 0;
+    PAY_PERIODS.forEach((p,pIdx)=>{
+      const pE = entries.filter(e=>e.date>=p.start&&e.date<=p.end);
+      const items = [];
+      pE.forEach(e=>{
+        const hasPA = e.paRate && e.paRate!=='None';
+        const otOK = isOtSubmitted(e);
+        const paOK = !hasPA || isPaSubmitted(e);
+        if (otOK && paOK) return; // nothing outstanding on this entry
+        const c = calcEntry(e);
+        const otAmt = !otOK ? (c.ot + c.night) : 0;
+        const paAmt = (hasPA && !paOK) ? c.pa : 0;
+        const amount = otAmt + paAmt;
+        if (amount <= 0 && otOK && paOK) return; // defensive, shouldn't happen given the check above
+        items.push({ entry: e, otOutstanding: !otOK, paOutstanding: hasPA && !paOK, otAmt, paAmt, amount });
+      });
+      if (items.length) {
+        const periodTotal = items.reduce((s,it)=>s+it.amount,0);
+        groups.push({ period: p, periodIdx: pIdx, items, periodTotal });
+        totalAmount += periodTotal;
+        totalClaims += items.length;
+      }
+    });
+    return { groups, totalAmount, totalClaims, periodCount: groups.length };
+  },[entries, calcEntry]);
+
+  // Which specific (entryId, component) pairs are currently ticked in the
+  // CARMS Outstanding view — a UI selection step separate from actually
+  // being submitted, cleared whenever the underlying outstanding set
+  // changes shape so stale ticks can't linger against different claims.
+  const [carmsSelected, setCarmsSelected] = useState({});
 
   // ── TOIL balance ───────────────────────────────────────────────────────────
   // All-time running balance: every hour ever banked as TOIL (from any logged
@@ -2188,6 +2260,20 @@ export default function App() {
   // separately. Cloud deletes are attempted first: if any of them fail,
   // local data is left untouched rather than risk local being wiped while
   // stale cloud data silently survives.
+  const handleMarkCarmsSubmitted = () => {
+    let count = 0;
+    const updated = entries.map(e => {
+      const otSel = carmsSelected[e.id+'-ot'];
+      const paSel = carmsSelected[e.id+'-pa'];
+      if (!otSel && !paSel) return e;
+      count++;
+      return { ...e, otSubmitted: otSel ? true : e.otSubmitted, paSubmitted: paSel ? true : e.paSubmitted };
+    });
+    setEntries(updated);
+    setCarmsSelected({});
+    addToast(count===1 ? '1 claim marked as submitted' : `${count} claims marked as submitted`);
+  };
+
   const handleWipe = async () => {
     setWipingData(true);
     if (supabase && session) {
@@ -2812,6 +2898,11 @@ export default function App() {
                   ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)} tax year`
                   : 'Set your rank & pay point in More..'}
               </div>
+              {carmsOutstanding.totalAmount>0&&(
+                <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',marginTop:'-8px',marginBottom:'12px',cursor:'pointer'}}>
+                  <Ico n="clock" s={11} c="#fbbf24"/>+{fmtGBP(carmsOutstanding.totalAmount)} not yet submitted to CARMS
+                </div>
+              )}
 
               {/* breakdown rows — London Weighting/Allowance shown as YTD out of full year */}
               <div style={{borderTop:'1px solid rgba(255,255,255,0.08)',paddingTop:'10px',display:'flex',flexDirection:'column',gap:'6px'}}>
@@ -2943,6 +3034,19 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            {/* ── CARMS Outstanding — only shown once there's actually
+                 something outstanding, tapping through to the full view ── */}
+            {carmsOutstanding.totalClaims>0&&(
+              <div onClick={()=>setTab('carms')} style={{...S.card,cursor:'pointer'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'2px'}}>
+                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>CARMS Outstanding</div>
+                  <span style={{fontSize:'10px',color:'#2563eb',fontWeight:800}}>View all →</span>
+                </div>
+                <div style={{fontSize:'19px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+                <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} across {carmsOutstanding.periodCount} pay period{carmsOutstanding.periodCount!==1?'s':''}</div>
+              </div>
+            )}
 
             {/* ── Current pay period — tap through to Calendar view in Summary ── */}
             {totals.curr&&(
@@ -3280,6 +3384,36 @@ export default function App() {
               </div>
             )}
 
+            {/* CARMS Submission — independent of logging the shift itself.
+                Both default to false via blankForm; editing an existing
+                entry reflects whatever it's already set to. PA toggle only
+                shown when there's actually a PA rate selected, since
+                otherwise there's nothing to track for that part. */}
+            <div style={{...S.card,marginTop:'12px'}}>
+              <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a',marginBottom:'2px'}}>CARMS Submission</div>
+              <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginBottom:'4px'}}>Independent of logging it here — mark each part once you've actually put the claim in.</div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 0',borderBottom:form.paRate!=='None'?'1px solid #f1f5f9':'none'}}>
+                <div>
+                  <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>Overtime submitted</div>
+                </div>
+                <div onClick={()=>setForm({...form,otSubmitted:!form.otSubmitted})} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.otSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
+                  <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.otSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
+                </div>
+              </div>
+              {form.paRate!=='None'&&(
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 0'}}>
+                  <div>
+                    <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>PA submitted</div>
+                    <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{form.paRate} — {fmtGBP(PA_RATES[form.paRate]||0)}</div>
+                  </div>
+                  <div onClick={()=>setForm({...form,paSubmitted:!form.paSubmitted})} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.paSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
+                    <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.paSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
+                  </div>
+                </div>
+              )}
+              <div style={{fontSize:'10.5px',color:'#94a3b8',lineHeight:1.5,marginTop:'4px'}}>Both default to <b>off</b> when you log a new shift — you're recording that you worked it, not that you've claimed it yet.</div>
+            </div>
+
             {/* in-flow save button — desktop only. Same handler, same look
                 as the floating mobile version below, just placed at the
                 natural end of the form instead of fixed over the content,
@@ -3473,6 +3607,14 @@ export default function App() {
                                   <div style={{fontSize:'12px',fontWeight:700,color:'#3b82f6',marginTop:'2px',textTransform:'uppercase'}}>Duty / Reason: {e.reason||'Shift'}</div>
                                   {e.takeAs==='toil'&&<div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div>}
                                   {e.takeAs==='mix'&&<div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>Mix — Pay + TOIL</div>}
+                                  {(()=>{
+                                    const otOK = isOtSubmitted(e);
+                                    const hasPA = e.paRate && e.paRate!=='None';
+                                    const paOK = !hasPA || isPaSubmitted(e);
+                                    if (otOK && paOK) return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',background:'#f0fdf4',color:'#059669',textTransform:'uppercase',letterSpacing:'0.5px'}}>✓ Submitted</div>;
+                                    if (otOK && !paOK) return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',background:'#fffbeb',color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px'}}>PA not submitted</div>;
+                                    return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>Not submitted</div>;
+                                  })()}
                                 </div>
                                 <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
                                   <button onClick={()=>{setConfirmDel(null);startEdit(e);}} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
@@ -3587,12 +3729,14 @@ export default function App() {
                 const hasNight = dEntries.some(e=>parseFloat(e.nightHours)>0);
                 const hasPA = dEntries.some(e=>e.paRate&&e.paRate!=='None');
                 const hasToil = dEntries.some(e=>e.otRateTier&&(parseFloat(e.toilHours)||0)>0);
-                // color the hours figure by rate tier instead of adding a second
-                // line of text — blue 1.33x, green 1.5x, red 2.0x. Mixed-rate
-                // days (more than one tier worked) fall back to the default blue.
-                const ratesUsed = [h1>0, h2>0, h3>0].filter(Boolean).length;
-                const rateColor = ratesUsed===1 ? (h1>0?'#0f172a':h2>0?'#059669':'#dc2626') : '#0f172a';
-                return { ds, dEntries, totalHrs, hasNight, hasPA, hasToil, hasOT: dEntries.length>0, periodIdx: cIdx, rateColor };
+                // A day only reads as "fully submitted" once every entry on
+                // it has both parts settled — overtime, and PA if there is
+                // any. One outstanding piece keeps the whole day flagged,
+                // same as a day with nothing submitted at all.
+                const isFullySubmitted = dEntries.length>0 && dEntries.every(e =>
+                  isOtSubmitted(e) && (!e.paRate || e.paRate==='None' || isPaSubmitted(e))
+                );
+                return { ds, dEntries, totalHrs, hasNight, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, periodIdx: cIdx };
               };
 
               return (
@@ -3652,14 +3796,14 @@ export default function App() {
                                 style={{
                                   ...(isWide ? {height:'48px'} : {aspectRatio:'1', minHeight:'42px'}),
                                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.hasOT?'1px solid #bfdbfe':'1px solid transparent',
-                                  background: info.hasOT ? '#eff6ff' : 'transparent',
+                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid transparent',
+                                  background: info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit',
                                   minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
                                 }}>
-                                <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.hasOT?'#1d4ed8':'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
+                                <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
                                 {info.totalHrs>0&&(
-                                  <span style={{fontSize:'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
+                                  <span style={{fontSize:'9px',fontWeight:900,color:info.isFullySubmitted?'#059669':'#dc2626',lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
                                 )}
                                 {(info.hasNight||info.hasPA||info.hasToil)&&(
                                   <div style={{display:'flex',gap:'2px',flexShrink:0}}>
@@ -3741,6 +3885,101 @@ export default function App() {
             })()}
             </>
             )}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════ CARMS OUTSTANDING */}
+        {tab==='carms'&&(
+          <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
+            <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',margin:'0 0 18px',letterSpacing:'-0.5px'}}>CARMS Outstanding</h2>
+
+            <div style={{...S.dark,background:'#0f2744'}}>
+              <div style={{display:'flex',gap:'10px',marginBottom:carmsOutstanding.groups.length?'14px':0}}>
+                <div style={{flex:1,background:'rgba(255,255,255,0.08)',borderRadius:'12px',padding:'12px'}}>
+                  <div style={{fontSize:'19px',fontWeight:900,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+                  <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.8px',marginTop:'2px'}}>Outstanding</div>
+                </div>
+                <div style={{flex:1,background:'rgba(255,255,255,0.08)',borderRadius:'12px',padding:'12px'}}>
+                  <div style={{fontSize:'19px',fontWeight:900,color:'#fff'}}>{carmsOutstanding.totalClaims}</div>
+                  <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.8px',marginTop:'2px'}}>Claims</div>
+                </div>
+                <div style={{flex:1,background:'rgba(255,255,255,0.08)',borderRadius:'12px',padding:'12px'}}>
+                  <div style={{fontSize:'19px',fontWeight:900,color:'#fff'}}>{carmsOutstanding.periodCount}</div>
+                  <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.8px',marginTop:'2px'}}>Pay Periods</div>
+                </div>
+              </div>
+
+              {carmsOutstanding.groups.length===0 ? (
+                <div style={{textAlign:'center',padding:'20px 10px',color:'#93c5fd',fontSize:'13px',fontWeight:700}}>Nothing outstanding — every logged claim has been marked as submitted.</div>
+              ) : (
+                <>
+                  <div style={{background:'rgba(217,119,6,0.12)',border:'1px solid #d97706',borderRadius:'10px',padding:'10px 12px',fontSize:'11px',color:'#fde68a',lineHeight:1.5,marginBottom:'14px'}}>
+                    This {fmtGBP(carmsOutstanding.totalAmount)} isn't in your Total Gross YTD yet — it only counts once you tick it off as submitted.
+                  </div>
+
+                  {carmsOutstanding.groups.map(g=>(
+                    <div key={g.periodIdx} style={{marginBottom:'14px'}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 4px',fontSize:'10.5px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.6px'}}>
+                        <span>{g.period.short} · {g.period.month} · {fmtD(g.period.start)} – {fmtD(g.period.end)}</span>
+                        <span>{fmtGBP(g.periodTotal)}</span>
+                      </div>
+                      <div style={{background:'#f8fafc',borderRadius:'12px',padding:'4px 12px'}}>
+                        {g.items.map(it=>{
+                          const otKey = it.entry.id+'-ot', paKey = it.entry.id+'-pa';
+                          const isChecked = (it.otOutstanding?carmsSelected[otKey]:true) && (it.paOutstanding?carmsSelected[paKey]:true);
+                          const toggleThis = () => {
+                            setCarmsSelected(s=>{
+                              const next = {...s};
+                              const turningOn = !isChecked;
+                              if (it.otOutstanding) next[otKey] = turningOn;
+                              if (it.paOutstanding) next[paKey] = turningOn;
+                              return next;
+                            });
+                          };
+                          return (
+                            <div key={it.entry.id} style={{display:'flex',alignItems:'center',gap:'10px',padding:'10px 0',borderBottom:'1px solid #f1f5f9'}}>
+                              <div onClick={toggleThis} style={{width:'19px',height:'19px',borderRadius:'6px',border:isChecked?'none':'2px solid #e2e8f0',background:isChecked?'#2563eb':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+                                {isChecked&&<Ico n="check" s={12} c="#fff" w={3}/>}
+                              </div>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:'12.5px',fontWeight:700,color:'#0f172a'}}>{it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
+                                <div style={{display:'flex',gap:'4px',marginTop:'4px'}}>
+                                  {it.otOutstanding&&<span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>}
+                                  {it.paOutstanding&&<span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>PA</span>}
+                                </div>
+                              </div>
+                              <div style={{fontSize:'12.5px',fontWeight:800,color:'#64748b'}}>{fmtGBP(it.amount)}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+
+                  {(()=>{
+                    const selectedCount = Object.values(carmsSelected).filter(Boolean).length;
+                    return (
+                      <>
+                        <button onClick={handleMarkCarmsSubmitted} disabled={selectedCount===0} style={{width:'100%',padding:'12px',background:selectedCount?'#2563eb':'rgba(255,255,255,0.1)',border:'none',borderRadius:'12px',color:'#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:selectedCount?'pointer':'default',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'8px',opacity:selectedCount?1:0.5}}>
+                          Mark {selectedCount||''} Selected as Submitted
+                        </button>
+                        <button onClick={()=>{
+                          const all = {};
+                          carmsOutstanding.groups.forEach(g=>g.items.forEach(it=>{
+                            if (it.otOutstanding) all[it.entry.id+'-ot'] = true;
+                            if (it.paOutstanding) all[it.entry.id+'-pa'] = true;
+                          }));
+                          setCarmsSelected(all);
+                        }} style={{width:'100%',padding:'12px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'12px',color:'#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'0.8px'}}>
+                          Select All Outstanding
+                        </button>
+                      </>
+                    );
+                  })()}
+                  <div style={{fontSize:'10.5px',color:'#93c5fd',lineHeight:1.5,marginTop:'10px'}}>Ticking an item off adds it into your Total Gross YTD and tax estimate from that point on — nothing retroactive, and it never rewrites what a past pay period actually showed at the time.</div>
+                </>
+              )}
+            </div>
           </div>
         )}
 
@@ -4733,7 +4972,10 @@ export default function App() {
 
       <nav className="no-print" style={{...S.nav, display:isWide?'none':'flex'}}>
         {NAV_TABS.map(t=>(
-          <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={S.nBtn(tab===t.id,t.id==='add')}>
+          <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{...S.nBtn(tab===t.id,t.id==='add'),position:'relative'}}>
+            {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
+              <div style={{position:'absolute',top:'2px',right:'calc(50% - 16px)',background:'#d97706',color:'#fff',fontSize:'8px',fontWeight:900,width:'14px',height:'14px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>{carmsOutstanding.totalClaims>9?'9+':carmsOutstanding.totalClaims}</div>
+            )}
             <Ico n={t.n} s={t.id==='add'?21:18} c={t.id==='add'?'#fff':tab===t.id?'#2563eb':'#94a3b8'} w={tab===t.id||t.id==='add'?2.5:2}/>
             <span style={S.nLbl}>{t.lbl}</span>
           </button>
@@ -4762,6 +5004,9 @@ export default function App() {
               <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:isAdd?'#10b981':(isActive?'rgba(255,255,255,0.1)':'transparent'),color:isAdd?'#fff':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left',boxShadow:isAdd?'0 4px 14px rgba(16,185,129,0.4)':'none'}}>
                 <Ico n={t.n} s={20} c={isAdd||isActive?'#fff':'#93c5fd'} w={isAdd||isActive?2.5:2}/>
                 {t.lbl}
+                {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
+                  <span style={{marginLeft:'auto',background:'#d97706',color:'#fff',fontSize:'10px',fontWeight:900,padding:'1px 7px',borderRadius:'10px'}}>{carmsOutstanding.totalClaims>99?'99+':carmsOutstanding.totalClaims}</span>
+                )}
               </button>
             );
           })}
