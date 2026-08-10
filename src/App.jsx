@@ -65,8 +65,8 @@ const isWithinCloudRetention = (dateISO) => dateISO >= CLOUD_RETENTION_CUTOFF;
 // list, so the two can never disagree about what the tabs are.
 const NAV_TABS = [
   {id:'dashboard',n:'home', lbl:'Home'},
-  {id:'months',   n:'cal',  lbl:'Summary'},
   {id:'add',      n:'plus', lbl:'Log Overtime'},
+  {id:'months',   n:'cal',  lbl:'Summary'},
   {id:'carms',    n:'check', lbl:'CARMS'},
   {id:'graph',    n:'clock', lbl:'TOIL'},
   {id:'settings', n:'cog',  lbl:'More..'},
@@ -3300,7 +3300,7 @@ export default function App() {
               <div style={{fontSize:'10px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
               <div style={{display:'flex',gap:'6px'}}>
                 {['None','PA1','PA2','PA3'].map(pa=>(
-                  <button key={pa} onClick={()=>setForm({...form,paRate:pa})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'#fff',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
+                  <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'#fff',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
                     <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
                     <span style={{fontSize:'9px',fontWeight:700,opacity:form.paRate===pa?0.85:0.55}}>{PA_LABELS[pa]}</span>
                   </button>
@@ -3356,6 +3356,36 @@ export default function App() {
               );
             })()}
 
+            {/* CARMS Submission — independent of logging the shift itself.
+                Both default to false via blankForm; editing an existing
+                entry reflects whatever it's already set to. PA toggle only
+                shown when there's actually a PA rate selected, since
+                otherwise there's nothing to track for that part. */}
+            <div style={{...S.card,marginBottom:'11px'}}>
+              <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a',marginBottom:'2px'}}>CARMS Submission</div>
+              <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginBottom:'4px'}}>Independent of logging it here — mark each part once you've actually put the claim in.</div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 0',borderBottom:form.paRate!=='None'?'1px solid #f1f5f9':'none'}}>
+                <div>
+                  <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>Overtime submitted</div>
+                </div>
+                <div onClick={()=>setForm({...form,otSubmitted:!form.otSubmitted})} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.otSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
+                  <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.otSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
+                </div>
+              </div>
+              {form.paRate!=='None'&&(
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 0'}}>
+                  <div>
+                    <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>PA submitted</div>
+                    <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{form.paRate} — {fmtGBP(PA_RATES[form.paRate]||0)}</div>
+                  </div>
+                  <div onClick={()=>setForm({...form,paSubmitted:!form.paSubmitted})} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.paSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
+                    <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.paSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
+                  </div>
+                </div>
+              )}
+              <div style={{fontSize:'10.5px',color:'#94a3b8',lineHeight:1.5,marginTop:'4px'}}>Both default to <b>off</b> when you log a new shift — you're recording that you worked it, not that you've claimed it yet.</div>
+            </div>
+
             {/* live preview */}
             {preview.has&&(
               <div style={{background:'linear-gradient(135deg,#1e3a5f,#1d4ed8)',borderRadius:'15px',padding:'14px 18px',marginBottom:'11px'}}>
@@ -3383,36 +3413,6 @@ export default function App() {
                 )}
               </div>
             )}
-
-            {/* CARMS Submission — independent of logging the shift itself.
-                Both default to false via blankForm; editing an existing
-                entry reflects whatever it's already set to. PA toggle only
-                shown when there's actually a PA rate selected, since
-                otherwise there's nothing to track for that part. */}
-            <div style={{...S.card,marginTop:'12px'}}>
-              <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a',marginBottom:'2px'}}>CARMS Submission</div>
-              <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginBottom:'4px'}}>Independent of logging it here — mark each part once you've actually put the claim in.</div>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 0',borderBottom:form.paRate!=='None'?'1px solid #f1f5f9':'none'}}>
-                <div>
-                  <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>Overtime submitted</div>
-                </div>
-                <div onClick={()=>setForm({...form,otSubmitted:!form.otSubmitted})} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.otSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
-                  <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.otSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
-                </div>
-              </div>
-              {form.paRate!=='None'&&(
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 0'}}>
-                  <div>
-                    <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>PA submitted</div>
-                    <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{form.paRate} — {fmtGBP(PA_RATES[form.paRate]||0)}</div>
-                  </div>
-                  <div onClick={()=>setForm({...form,paSubmitted:!form.paSubmitted})} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.paSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
-                    <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.paSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
-                  </div>
-                </div>
-              )}
-              <div style={{fontSize:'10.5px',color:'#94a3b8',lineHeight:1.5,marginTop:'4px'}}>Both default to <b>off</b> when you log a new shift — you're recording that you worked it, not that you've claimed it yet.</div>
-            </div>
 
             {/* in-flow save button — desktop only. Same handler, same look
                 as the floating mobile version below, just placed at the
@@ -3729,6 +3729,12 @@ export default function App() {
                 const hasNight = dEntries.some(e=>parseFloat(e.nightHours)>0);
                 const hasPA = dEntries.some(e=>e.paRate&&e.paRate!=='None');
                 const hasToil = dEntries.some(e=>e.otRateTier&&(parseFloat(e.toilHours)||0)>0);
+                // Hours text is colored by rate tier — blue 1.33x, green 1.5x,
+                // red 2.0x — independent of the cell's own background/border,
+                // which reflects CARMS submission status instead. Mixed-rate
+                // days (more than one tier worked) fall back to the default.
+                const ratesUsed = [h1>0, h2>0, h3>0].filter(Boolean).length;
+                const rateColor = ratesUsed===1 ? (h1>0?'#0f172a':h2>0?'#059669':'#dc2626') : '#0f172a';
                 // A day only reads as "fully submitted" once every entry on
                 // it has both parts settled — overtime, and PA if there is
                 // any. One outstanding piece keeps the whole day flagged,
@@ -3736,7 +3742,7 @@ export default function App() {
                 const isFullySubmitted = dEntries.length>0 && dEntries.every(e =>
                   isOtSubmitted(e) && (!e.paRate || e.paRate==='None' || isPaSubmitted(e))
                 );
-                return { ds, dEntries, totalHrs, hasNight, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, periodIdx: cIdx };
+                return { ds, dEntries, totalHrs, hasNight, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, rateColor, periodIdx: cIdx };
               };
 
               return (
@@ -3803,7 +3809,7 @@ export default function App() {
                                 }}>
                                 <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
                                 {info.totalHrs>0&&(
-                                  <span style={{fontSize:'9px',fontWeight:900,color:info.isFullySubmitted?'#059669':'#dc2626',lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
+                                  <span style={{fontSize:'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
                                 )}
                                 {(info.hasNight||info.hasPA||info.hasToil)&&(
                                   <div style={{display:'flex',gap:'2px',flexShrink:0}}>
@@ -3926,29 +3932,36 @@ export default function App() {
                       <div style={{background:'#f8fafc',borderRadius:'12px',padding:'4px 12px'}}>
                         {g.items.map(it=>{
                           const otKey = it.entry.id+'-ot', paKey = it.entry.id+'-pa';
-                          const isChecked = (it.otOutstanding?carmsSelected[otKey]:true) && (it.paOutstanding?carmsSelected[paKey]:true);
-                          const toggleThis = () => {
-                            setCarmsSelected(s=>{
-                              const next = {...s};
-                              const turningOn = !isChecked;
-                              if (it.otOutstanding) next[otKey] = turningOn;
-                              if (it.paOutstanding) next[paKey] = turningOn;
-                              return next;
-                            });
+                          const goToEntry = () => {
+                            skipBreakdownReset.current = true;
+                            setBreakdownView('list');
+                            setExpanded(g.period.month);
+                            setFocusEntryId(it.entry.id);
+                            setTab('months');
                           };
                           return (
-                            <div key={it.entry.id} style={{display:'flex',alignItems:'center',gap:'10px',padding:'10px 0',borderBottom:'1px solid #f1f5f9'}}>
-                              <div onClick={toggleThis} style={{width:'19px',height:'19px',borderRadius:'6px',border:isChecked?'none':'2px solid #e2e8f0',background:isChecked?'#2563eb':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
-                                {isChecked&&<Ico n="check" s={12} c="#fff" w={3}/>}
+                            <div key={it.entry.id} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9'}}>
+                              <div onClick={goToEntry} style={{fontSize:'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',cursor:'pointer',marginBottom:'6px'}}>
+                                {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
                               </div>
-                              <div style={{flex:1,minWidth:0}}>
-                                <div style={{fontSize:'12.5px',fontWeight:700,color:'#0f172a'}}>{it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
-                                <div style={{display:'flex',gap:'4px',marginTop:'4px'}}>
-                                  {it.otOutstanding&&<span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>}
-                                  {it.paOutstanding&&<span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>PA</span>}
+                              {it.otOutstanding&&(
+                                <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
+                                  <div onClick={()=>setCarmsSelected(s=>({...s,[otKey]:!s[otKey]}))} style={{width:'19px',height:'19px',borderRadius:'6px',border:carmsSelected[otKey]?'none':'2px solid #e2e8f0',background:carmsSelected[otKey]?'#2563eb':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+                                    {carmsSelected[otKey]&&<Ico n="check" s={12} c="#fff" w={3}/>}
+                                  </div>
+                                  <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
+                                  <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
                                 </div>
-                              </div>
-                              <div style={{fontSize:'12.5px',fontWeight:800,color:'#64748b'}}>{fmtGBP(it.amount)}</div>
+                              )}
+                              {it.paOutstanding&&(
+                                <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
+                                  <div onClick={()=>setCarmsSelected(s=>({...s,[paKey]:!s[paKey]}))} style={{width:'19px',height:'19px',borderRadius:'6px',border:carmsSelected[paKey]?'none':'2px solid #e2e8f0',background:carmsSelected[paKey]?'#2563eb':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+                                    {carmsSelected[paKey]&&<Ico n="check" s={12} c="#fff" w={3}/>}
+                                  </div>
+                                  <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>PA</span>
+                                  <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
