@@ -3991,16 +3991,15 @@ export default function App() {
                   </div>
 
                   <div style={{display:'flex',gap:'6px',marginBottom:'14px'}}>
-                    {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'},{id:'both',lbl:'Both'}].map(f=>(
+                    {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'}].map(f=>(
                       <div key={f.id} onClick={()=>setCarmsFilter(f.id)} style={{flex:1,textAlign:'center',padding:'8px 4px',borderRadius:'10px',fontSize:'11px',fontWeight:800,cursor:'pointer',background:carmsFilter===f.id?'#2563eb':'rgba(255,255,255,0.08)',color:carmsFilter===f.id?'#fff':'#93c5fd'}}>{f.lbl}</div>
                     ))}
                   </div>
 
                   {carmsOutstanding.groups.map(g=>{
                     const visibleItems = g.items.filter(it => {
-                      if (carmsFilter==='ot') return it.otOutstanding && !it.paOutstanding;
-                      if (carmsFilter==='pa') return it.paOutstanding && !it.otOutstanding;
-                      if (carmsFilter==='both') return it.otOutstanding && it.paOutstanding;
+                      if (carmsFilter==='ot') return it.otOutstanding;
+                      if (carmsFilter==='pa') return it.paOutstanding;
                       return true;
                     });
                     if (visibleItems.length===0) return null;
