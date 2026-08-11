@@ -3719,6 +3719,19 @@ export default function App() {
                       <div><div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'19px',color:'#1e3a5f'}}>{fmt(totG)}</div></div>
                       <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'19px',color:'#059669'}}>{fmt(totN)}</div></div>
                     </div>
+                    {(() => {
+                      const g = carmsOutstanding.groups.find(g=>g.periodIdx===idx);
+                      if (!g) return null;
+                      return (
+                        <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'11px',padding:'9px 12px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                            <Ico n="clock" s={13} c="#d97706"/>
+                            <span style={{fontSize:'11px',fontWeight:800,color:'#92400e'}}>CARMS &amp; MetHR pending</span>
+                          </div>
+                          <span style={{fontSize:'13px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</span>
+                        </div>
+                      );
+                    })()}
                     {!isExp&&(
                       <div style={{fontSize:'12px',fontWeight:700,color:isCurr?'#64748b':'#94a3b8',textAlign:'center',marginTop:'11px',paddingTop:'9px',borderTop:isCurr?'1px solid #bfdbfe':'1px solid #f1f5f9'}}>Tap to see more</div>
                     )}
@@ -4056,6 +4069,20 @@ export default function App() {
                       )}
                     </div>
                   </div>
+
+                  {(() => {
+                    const g = carmsOutstanding.groups.find(g=>g.periodIdx===cIdx);
+                    if (!g) return null;
+                    return (
+                      <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'11px',padding:'9px 12px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                          <Ico n="clock" s={13} c="#d97706"/>
+                          <span style={{fontSize:'11px',fontWeight:800,color:'#92400e'}}>CARMS &amp; MetHR pending</span>
+                        </div>
+                        <span style={{fontSize:'13px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</span>
+                      </div>
+                    );
+                  })()}
 
                   {/* month total — same layout as the List View card header */}
                   <div style={{...S.card,marginTop:'9px'}}>
