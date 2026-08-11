@@ -3208,11 +3208,11 @@ export default function App() {
                           <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#94a3b8'}}/>
                           <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Rostered Shift</div>
                         </div>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'12px'}}>
+                        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'5px',marginBottom:'12px'}}>
                           {[['07:00','15:00'],['07:00','19:00'],['08:00','20:00'],['13:00','23:00']].map(([start,end])=>{
                             const isSelected = form.rosteredStart===start && form.rosteredEnd===end;
                             return (
-                              <button key={start+end} onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredStart:start,rosteredEnd:end}))} style={{padding:'9px 6px',borderRadius:'10px',border:isSelected?'1.5px solid #2563eb':'1px solid #e2e8f0',background:isSelected?'#eff6ff':'#fff',color:isSelected?'#2563eb':'#64748b',fontWeight:800,fontSize:'12.5px',fontFamily:'inherit',cursor:'pointer'}}>
+                              <button key={start+end} onClick={()=>setForm(f=>syncShiftTimesIntoForm(isSelected ? {...f,rosteredStart:'',rosteredEnd:''} : {...f,rosteredStart:start,rosteredEnd:end}))} style={{padding:'7px 2px',borderRadius:'9px',border:isSelected?'1.5px solid #2563eb':'1px solid #e2e8f0',background:isSelected?'#eff6ff':'#fff',color:isSelected?'#2563eb':'#64748b',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
                                 {start.replace(':','')}–{end.replace(':','')}
                               </button>
                             );
@@ -3232,7 +3232,11 @@ export default function App() {
                       </>
                     )}
 
-                    <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px',marginTop: form.dutyType!=='rdw' && form.rosteredStart&&form.rosteredEnd&&toMinutesOfDay(form.rosteredEnd)<=toMinutesOfDay(form.rosteredStart) ? 0 : '12px'}}>
+                    {form.dutyType!=='rdw' && (
+                      <div style={{height:'1px',background:'#e2e8f0',margin:'4px 0 14px'}}/>
+                    )}
+
+                    <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>
                       <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#2563eb'}}/>
                       <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Actual Shift Worked</div>
                     </div>
