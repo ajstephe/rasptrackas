@@ -1264,6 +1264,14 @@ export default function App() {
   const stickyRef = useRef(null);
   const entryRefs = useRef({});
   const carmsToggleRef = useRef(null);
+
+  // Desktop-only custom date picker for the CARMS submission-date fields —
+  // native <input type="date"> stays exactly as-is on mobile, where it
+  // already works well. datePickerFor is null (closed) or 'ot'/'pa'
+  // (which field it's editing); datePickerMonth is the YYYY-MM currently
+  // shown, independent of the selected value so browsing doesn't move it.
+  const [datePickerFor, setDatePickerFor] = useState(null);
+  const [datePickerMonth, setDatePickerMonth] = useState(todayStr.slice(0,7));
   const notesRef = useRef(null);
   // What's already been pushed to Supabase, keyed by row id — compared
   // against on every local change so only genuinely new/edited/removed
@@ -1717,10 +1725,54 @@ export default function App() {
     const paOK = !hasPA || isPaSubmitted(e);
     const style = {display:'inline-block',fontSize:fontSize+'px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',textTransform:'uppercase',letterSpacing:'0.5px'};
     if (otOK && paOK) return <div style={{...style,background:'#f0fdf4',color:'#059669'}}>✓ Submitted</div>;
-    if (otOK && !paOK) return <div style={{...style,border:'1px solid #fecaca',background:'#fef2f2',color:'#b91c1c'}}>PA not submitted</div>;
-    if (!otOK && paOK) return <div style={{...style,border:'1px solid #fecaca',background:'#fef2f2',color:'#b91c1c'}}>Overtime not submitted</div>;
-    return <div style={{...style,border:'1px solid #fecaca',background:'#fef2f2',color:'#b91c1c'}}>Overtime &amp; PA not submitted</div>;
+    const goToEntry = (ev) => { ev.stopPropagation(); startEdit(e); setFocusCarmsToggle(true); };
+    const clickable = {...style,border:'1px solid #fecaca',background:'#fef2f2',color:'#b91c1c',cursor:'pointer'};
+    if (otOK && !paOK) return <div onClick={goToEntry} style={clickable}>PA not submitted</div>;
+    if (!otOK && paOK) return <div onClick={goToEntry} style={clickable}>Overtime not submitted</div>;
+    return <div onClick={goToEntry} style={clickable}>Overtime &amp; PA not submitted</div>;
   };
+
+  // Desktop-only custom calendar picker for the CARMS submission-date
+  // fields, in place of the native <input type="date"> which renders
+  // quite small on desktop browsers. Deliberately generous sizing — this
+  // exists specifically because the native picker felt too small here;
+  // mobile keeps the native input untouched, where it already works well.
+  const renderDatePickerGrid = (currentValue, onSelect) => {
+    const [y, m] = datePickerMonth.split('-').map(Number);
+    const firstDay = new Date(y, m-1, 1);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const startOffset = (firstDay.getDay()+6)%7; // Monday-start week
+    const monthLabel = firstDay.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+    const cells = Array(startOffset).fill(null).concat(Array.from({length:daysInMonth},(_,i)=>i+1));
+    const changeMonth = (delta) => {
+      const d = new Date(y, m-1+delta, 1);
+      setDatePickerMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    };
+    return (
+      <div onClick={ev=>ev.stopPropagation()} style={{background:'#fff',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid #e2e8f0',padding:'22px',width:'360px'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'18px'}}>
+          <button onClick={()=>changeMonth(-1)} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cL" s={18} c="#475569"/></button>
+          <div style={{fontWeight:900,fontSize:'17px',color:'#0f172a'}}>{monthLabel}</div>
+          <button onClick={()=>changeMonth(1)} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'6px'}}>
+          {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=><div key={d} style={{textAlign:'center',fontSize:'11.5px',fontWeight:800,color:'#94a3b8',padding:'4px 0'}}>{d}</div>)}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px'}}>
+          {cells.map((d,i)=>{
+            if (d===null) return <div key={i}/>;
+            const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const isSelected = dateStr===currentValue;
+            const isToday = dateStr===todayStr;
+            return (
+              <button key={i} onClick={()=>{ onSelect(dateStr); setDatePickerFor(null); }} style={{aspectRatio:'1',border:isToday&&!isSelected?'1.5px solid #2563eb':'none',borderRadius:'10px',background:isSelected?'#2563eb':'transparent',color:isSelected?'#fff':'#0f172a',fontWeight:isSelected?900:700,fontSize:'14.5px',cursor:'pointer',fontFamily:'inherit'}}>{d}</button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
 
   // ── derived totals ─────────────────────────────────────────────────────────
   // Includes an entry if its shift date, OR either component's effective
@@ -3120,7 +3172,7 @@ export default function App() {
             {carmsOutstanding.totalClaims>0&&(
               <div onClick={()=>setTab('carms')} style={{...S.card,cursor:'pointer'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'2px'}}>
-                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>CARMS &amp; PSOP Outstanding</div>
+                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>CARMS &amp; MetHR Outstanding</div>
                   <span style={{fontSize:'10px',color:'#2563eb',fontWeight:800}}>View all →</span>
                 </div>
                 <div style={{fontSize:'19px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
@@ -3209,7 +3261,7 @@ export default function App() {
                       <>
                         <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>
                           <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#94a3b8'}}/>
-                          <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Rostered Shift</div>
+                          <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Rostered Shift</div>
                         </div>
                         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'5px',marginBottom:'12px'}}>
                           {[['07:00','15:00'],['07:00','19:00'],['08:00','20:00'],['13:00','23:00']].map(([start,end])=>{
@@ -3241,7 +3293,7 @@ export default function App() {
 
                     <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>
                       <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#2563eb'}}/>
-                      <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Actual Shift Worked</div>
+                      <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Actual Shift Worked</div>
                     </div>
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px'}}>
                       <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
@@ -3457,7 +3509,7 @@ export default function App() {
                 otherwise there's nothing to track for that part. */}
             <div ref={carmsToggleRef} className={focusCarmsToggle?'carms-pulse':''} style={{...S.card,marginBottom:'11px',border:focusCarmsToggle?'2px solid #2563eb':'1px solid #f1f5f9'}}>
               <div style={{fontWeight:900,fontSize:'15px',color:'#0f172a',marginBottom:'2px'}}>CARMS Submission</div>
-              <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginBottom:'4px'}}>Toggle these to 'On' when you've submitted the claim on CARMS or via PSOP for PA.</div>
+              <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginBottom:'4px'}}>Toggle these to 'On' when you've submitted the claim on CARMS or via MetHR for PA.</div>
               <div style={{padding:'11px 0',borderBottom:'1px solid #f1f5f9'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                   <div>
@@ -3470,14 +3522,20 @@ export default function App() {
                 {form.otSubmitted&&(
                   <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'12px',padding:'10px',marginTop:'9px'}}>
                     <div style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'5px'}}>Date submitted</div>
-                    <input type="date" value={form.otSubmittedDate||todayStr} onChange={e=>setForm({...form,otSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'#fff',border:'1px solid #bfdbfe',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'#0f172a'}}/>
+                    {isWide ? (
+                      <button onClick={()=>{ setDatePickerMonth((form.otSubmittedDate||todayStr).slice(0,7)); setDatePickerFor('ot'); }} style={{width:'100%',boxSizing:'border-box',background:'#fff',border:'1px solid #bfdbfe',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'#0f172a',textAlign:'left',cursor:'pointer'}}>
+                        {new Date((form.otSubmittedDate||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
+                      </button>
+                    ) : (
+                      <input type="date" value={form.otSubmittedDate||todayStr} onChange={e=>setForm({...form,otSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'#fff',border:'1px solid #bfdbfe',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'#0f172a'}}/>
+                    )}
                   </div>
                 )}
               </div>
               <div style={{padding:'11px 0',opacity:form.paRate==='None'?0.45:1}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                   <div>
-                    <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>PA Submitted on PSOP</div>
+                    <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>PA Submitted on MetHR</div>
                     <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{form.paRate==='None' ? 'No PA rate selected for this shift' : `${form.paRate} — ${fmtGBP(PA_RATES[form.paRate]||0)}`}</div>
                   </div>
                   <div onClick={()=>{ if(form.paRate!=='None') setForm({...form,paSubmitted:!form.paSubmitted,paSubmittedDate:(!form.paSubmitted&&!form.paSubmittedDate)?todayStr:form.paSubmittedDate}); }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:form.paRate==='None'?'default':'pointer',flexShrink:0,background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
@@ -3487,7 +3545,13 @@ export default function App() {
                 {form.paRate!=='None'&&form.paSubmitted&&(
                   <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'12px',padding:'10px',marginTop:'9px'}}>
                     <div style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'5px'}}>Date submitted</div>
-                    <input type="date" value={form.paSubmittedDate||todayStr} onChange={e=>setForm({...form,paSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'#fff',border:'1px solid #bfdbfe',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'#0f172a'}}/>
+                    {isWide ? (
+                      <button onClick={()=>{ setDatePickerMonth((form.paSubmittedDate||todayStr).slice(0,7)); setDatePickerFor('pa'); }} style={{width:'100%',boxSizing:'border-box',background:'#fff',border:'1px solid #bfdbfe',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'#0f172a',textAlign:'left',cursor:'pointer'}}>
+                        {new Date((form.paSubmittedDate||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
+                      </button>
+                    ) : (
+                      <input type="date" value={form.paSubmittedDate||todayStr} onChange={e=>setForm({...form,paSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'#fff',border:'1px solid #bfdbfe',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'#0f172a'}}/>
+                    )}
                   </div>
                 )}
               </div>
@@ -3927,20 +3991,22 @@ export default function App() {
                     </div>
 
                     {/* legend */}
-                    <div style={{marginTop:'12px',paddingTop:'12px',borderTop:'1px solid #f1f5f9'}}>
-                      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'5px',marginBottom:'9px'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginTop:'12px',paddingTop:'12px',borderTop:'1px solid #f1f5f9'}}>
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
                       </div>
-                      <div style={{display:'flex',justifyContent:'center',gap:'16px',marginBottom:'9px'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#818cf8'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>Night</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
-                      </div>
-                      <div style={{display:'flex',justifyContent:'center',gap:'4px'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:'3px'}}><div style={{width:'9px',height:'9px',borderRadius:'3px',background:'#0f172a',flexShrink:0}}/><span style={{fontSize:'10.5px',fontWeight:700,color:'#64748b',whiteSpace:'nowrap'}}>Hr Rate - 1.33x</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'3px'}}><div style={{width:'9px',height:'9px',borderRadius:'3px',background:'#059669',flexShrink:0}}/><span style={{fontSize:'10.5px',fontWeight:700,color:'#64748b',whiteSpace:'nowrap'}}>Hr Rate - 1.5x</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'3px'}}><div style={{width:'9px',height:'9px',borderRadius:'3px',background:'#dc2626',flexShrink:0}}/><span style={{fontSize:'10.5px',fontWeight:700,color:'#64748b',whiteSpace:'nowrap'}}>Hr Rate - 2.0x</span></div>
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'8px'}}>
+                        <div style={{display:'flex',gap:'10px'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#818cf8'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>Night</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
+                        </div>
+                        <div style={{display:'flex',gap:'10px'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#0f172a'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#059669'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.5x</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#dc2626'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>2.0x</span></div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -5065,6 +5131,17 @@ export default function App() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Desktop-only CARMS submission-date picker overlay — see
+           renderDatePickerGrid above for why this exists instead of the
+           native input on desktop. */}
+      {datePickerFor&&(
+        <div onClick={()=>setDatePickerFor(null)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60}}>
+          {datePickerFor==='ot'
+            ? renderDatePickerGrid(form.otSubmittedDate||todayStr, v=>setForm(f=>({...f,otSubmittedDate:v})))
+            : renderDatePickerGrid(form.paSubmittedDate||todayStr, v=>setForm(f=>({...f,paSubmittedDate:v})))}
         </div>
       )}
 
