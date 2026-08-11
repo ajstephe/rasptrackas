@@ -2507,7 +2507,7 @@ export default function App() {
     hdr:  {background:'#fff',padding:'13px 18px',borderBottom:'1px solid #e2e8f0',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,zIndex:10},
     main: {flex:1,overflowY:'auto',overflowX:'hidden',minWidth:0,scrollbarWidth:'none',msOverflowStyle:'none'},
     nav:  {background:'rgba(255,255,255,0.96)',backdropFilter:'blur(14px)',borderTop:'1px solid #e2e8f0',position:'absolute',bottom:0,width:'100%',padding:'7px 4px 12px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
-    nBtn: (a,add)=>({flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',padding:add?'9px 4px':'6px 4px',background:add?'#10b981':'transparent',color:add?'#fff':a?'#2563eb':'#94a3b8',borderRadius:add?'13px':'8px',border:'none',cursor:'pointer',transition:'all 0.18s',fontFamily:'inherit',boxShadow:add?'0 4px 14px rgba(16,185,129,0.4)':'none'}),
+    nBtn: (a,add)=>({flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',padding:add?'9px 4px':'6px 4px',background:'transparent',color:add?'#10b981':a?'#2563eb':'#94a3b8',borderRadius:add?'13px':'8px',border:'none',cursor:'pointer',transition:'all 0.18s',fontFamily:'inherit',boxShadow:'none'}),
     nLbl: {fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.5px',whiteSpace:'nowrap'},
     card: {background:'#fff',borderRadius:'18px',padding:'18px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid #f1f5f9',marginBottom:'10px'},
     dark: {background:'#0f2744',borderRadius:'18px',padding:'19px',boxShadow:'0 8px 28px rgba(15,39,68,0.28)',marginBottom:'10px',position:'relative',overflow:'hidden'},
@@ -2816,6 +2816,8 @@ export default function App() {
           100%{box-shadow:0 0 0 0 rgba(37,99,235,0); transform:scale(1);}
         }
         .carms-pulse{animation:carmsPulse 1.6s ease-out;}
+        @keyframes navAddPulse{0%,100%{opacity:1}50%{opacity:0.45}}
+        .nav-add-pulse{animation:navAddPulse 1.8s ease-in-out infinite;}
         .star-tap{transition:transform 0.12s}
         .star-tap:active{transform:scale(1.35)}
         .hint-pulse{animation:subtlePulse 1.8s ease-in-out infinite}
@@ -3413,7 +3415,7 @@ export default function App() {
                 shown when there's actually a PA rate selected, since
                 otherwise there's nothing to track for that part. */}
             <div ref={carmsToggleRef} className={focusCarmsToggle?'carms-pulse':''} style={{...S.card,marginBottom:'11px',border:focusCarmsToggle?'2px solid #2563eb':'1px solid #f1f5f9'}}>
-              <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a',marginBottom:'2px'}}>CARMS Submission</div>
+              <div style={{fontWeight:900,fontSize:'15px',color:'#0f172a',marginBottom:'2px'}}>CARMS Submission</div>
               <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginBottom:'4px'}}>Toggle these to 'On' when you've submitted the claim on CARMS or via PSOP for PA.</div>
               <div style={{padding:'11px 0',borderBottom:'1px solid #f1f5f9'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
@@ -5048,8 +5050,8 @@ export default function App() {
             {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
               <div style={{position:'absolute',top:'2px',right:'calc(50% - 16px)',background:'#d97706',color:'#fff',fontSize:'8px',fontWeight:900,width:'14px',height:'14px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>{carmsOutstanding.totalClaims>9?'9+':carmsOutstanding.totalClaims}</div>
             )}
-            <Ico n={t.n} s={t.id==='add'?21:18} c={t.id==='add'?'#fff':tab===t.id?'#2563eb':'#94a3b8'} w={tab===t.id||t.id==='add'?2.5:2}/>
-            <span style={S.nLbl}>{t.lbl}</span>
+            <Ico n={t.n} s={t.id==='add'?21:18} c={t.id==='add'?'#10b981':tab===t.id?'#2563eb':'#94a3b8'} w={tab===t.id||t.id==='add'?2.5:2}/>
+            <span style={S.nLbl} className={t.id==='add'?'nav-add-pulse':''}>{t.lbl}</span>
           </button>
         ))}
       </nav>
@@ -5073,9 +5075,9 @@ export default function App() {
             const isAdd = t.id==='add';
             const isActive = tab===t.id;
             return (
-              <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:isAdd?'#10b981':(isActive?'rgba(255,255,255,0.1)':'transparent'),color:isAdd?'#fff':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left',boxShadow:isAdd?'0 4px 14px rgba(16,185,129,0.4)':'none'}}>
-                <Ico n={t.n} s={20} c={isAdd||isActive?'#fff':'#93c5fd'} w={isAdd||isActive?2.5:2}/>
-                {t.lbl}
+              <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:isActive&&!isAdd?'rgba(255,255,255,0.1)':'transparent',color:isAdd?'#10b981':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
+                <Ico n={t.n} s={20} c={isAdd?'#10b981':isActive?'#fff':'#93c5fd'} w={isAdd||isActive?2.5:2}/>
+                <span className={isAdd?'nav-add-pulse':''}>{t.lbl}</span>
                 {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
                   <span style={{marginLeft:'auto',background:'#d97706',color:'#fff',fontSize:'10px',fontWeight:900,padding:'1px 7px',borderRadius:'10px'}}>{carmsOutstanding.totalClaims>99?'99+':carmsOutstanding.totalClaims}</span>
                 )}
