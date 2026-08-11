@@ -1725,7 +1725,7 @@ export default function App() {
     const paOK = !hasPA || isPaSubmitted(e);
     const style = {display:'inline-block',fontSize:fontSize+'px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',textTransform:'uppercase',letterSpacing:'0.5px'};
     if (otOK && paOK) return <div style={{...style,background:'#f0fdf4',color:'#059669'}}>✓ Submitted</div>;
-    const goToEntry = (ev) => { ev.stopPropagation(); startEdit(e); setFocusCarmsToggle(true); };
+    const goToEntry = (ev) => { ev.stopPropagation(); setSelectedCalDay(null); setConfirmDel(null); startEdit(e); setFocusCarmsToggle(true); };
     const clickable = {...style,border:'1px solid #fecaca',background:'#fef2f2',color:'#b91c1c',cursor:'pointer'};
     if (otOK && !paOK) return <div onClick={goToEntry} style={clickable}>PA not submitted</div>;
     if (!otOK && paOK) return <div onClick={goToEntry} style={clickable}>Overtime not submitted</div>;
