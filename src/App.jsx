@@ -3208,6 +3208,16 @@ export default function App() {
                           <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#94a3b8'}}/>
                           <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Rostered Shift</div>
                         </div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'12px'}}>
+                          {[['07:00','15:00'],['07:00','19:00'],['08:00','20:00'],['13:00','23:00']].map(([start,end])=>{
+                            const isSelected = form.rosteredStart===start && form.rosteredEnd===end;
+                            return (
+                              <button key={start+end} onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredStart:start,rosteredEnd:end}))} style={{padding:'9px 6px',borderRadius:'10px',border:isSelected?'1.5px solid #2563eb':'1px solid #e2e8f0',background:isSelected?'#eff6ff':'#fff',color:isSelected?'#2563eb':'#64748b',fontWeight:800,fontSize:'12.5px',fontFamily:'inherit',cursor:'pointer'}}>
+                                {start.replace(':','')}–{end.replace(':','')}
+                              </button>
+                            );
+                          })}
+                        </div>
                         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px',marginBottom:'5px'}}>
                           <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
                             <TimeSelect value={form.rosteredStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredStart:v}))}/>
@@ -5058,7 +5068,11 @@ export default function App() {
             {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
               <div style={{position:'absolute',top:'2px',right:'calc(50% - 16px)',background:'#d97706',color:'#fff',fontSize:'8px',fontWeight:900,width:'14px',height:'14px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>{carmsOutstanding.totalClaims>9?'9+':carmsOutstanding.totalClaims}</div>
             )}
-            <Ico n={t.n} s={t.id==='add'?21:18} c={t.id==='add'?'#10b981':tab===t.id?'#2563eb':'#94a3b8'} w={tab===t.id||t.id==='add'?2.5:2}/>
+            {t.id==='add' ? (
+              <span className="nav-add-pulse" style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
+            ) : (
+              <Ico n={t.n} s={18} c={tab===t.id?'#2563eb':'#94a3b8'} w={tab===t.id?2.5:2}/>
+            )}
             <span style={S.nLbl} className={t.id==='add'?'nav-add-pulse':''}>{t.lbl}</span>
           </button>
         ))}
@@ -5084,7 +5098,11 @@ export default function App() {
             const isActive = tab===t.id;
             return (
               <button key={t.id} onClick={()=>{ setEditing(null); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:isActive&&!isAdd?'rgba(255,255,255,0.1)':'transparent',color:isAdd?'#10b981':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
-                <Ico n={t.n} s={20} c={isAdd?'#10b981':isActive?'#fff':'#93c5fd'} w={isAdd||isActive?2.5:2}/>
+                {isAdd ? (
+                  <span className="nav-add-pulse" style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
+                ) : (
+                  <Ico n={t.n} s={20} c={isActive?'#fff':'#93c5fd'} w={isActive?2.5:2}/>
+                )}
                 <span className={isAdd?'nav-add-pulse':''}>{t.lbl}</span>
                 {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
                   <span style={{marginLeft:'auto',background:'#d97706',color:'#fff',fontSize:'10px',fontWeight:900,padding:'1px 7px',borderRadius:'10px'}}>{carmsOutstanding.totalClaims>99?'99+':carmsOutstanding.totalClaims}</span>
