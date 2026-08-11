@@ -1575,6 +1575,9 @@ export default function App() {
     if(prevTabRef.current==='dashboard' && tab!=='dashboard'){
       setHomeGraphExpanded(false);
     }
+    if(prevTabRef.current==='carms' && tab!=='carms'){
+      setCarmsFilter('all');
+    }
     prevTabRef.current = tab;
   },[tab]);
 
@@ -3117,7 +3120,7 @@ export default function App() {
             {carmsOutstanding.totalClaims>0&&(
               <div onClick={()=>setTab('carms')} style={{...S.card,cursor:'pointer'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'2px'}}>
-                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>CARMS Outstanding</div>
+                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>CARMS &amp; PSOP Outstanding</div>
                   <span style={{fontSize:'10px',color:'#2563eb',fontWeight:800}}>View all →</span>
                 </div>
                 <div style={{fontSize:'19px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
@@ -3233,7 +3236,7 @@ export default function App() {
                     )}
 
                     {form.dutyType!=='rdw' && (
-                      <div style={{height:'1px',background:'#e2e8f0',margin:'4px 0 14px'}}/>
+                      <div style={{height:'1px',background:'#e2e8f0',margin:'14px 0'}}/>
                     )}
 
                     <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>
@@ -3388,7 +3391,7 @@ export default function App() {
 
             {/* PA allowance */}
             <div style={{...S.card,background:'#fffbeb',border:'1px solid #fde68a'}}>
-              <div style={{fontSize:'10px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
+              <div style={{fontSize:'12px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
               <div style={{display:'flex',gap:'6px'}}>
                 {['None','PA1','PA2','PA3'].map(pa=>(
                   <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'#fff',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
@@ -3458,7 +3461,7 @@ export default function App() {
               <div style={{padding:'11px 0',borderBottom:'1px solid #f1f5f9'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                   <div>
-                    <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>Overtime submitted</div>
+                    <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>Overtime submitted on CARMS</div>
                   </div>
                   <div onClick={()=>setForm({...form,otSubmitted:!form.otSubmitted,otSubmittedDate:(!form.otSubmitted&&!form.otSubmittedDate)?todayStr:form.otSubmittedDate})} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.otSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
                     <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.otSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
@@ -3474,7 +3477,7 @@ export default function App() {
               <div style={{padding:'11px 0',opacity:form.paRate==='None'?0.45:1}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                   <div>
-                    <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>PA submitted</div>
+                    <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>PA Submitted on PSOP</div>
                     <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{form.paRate==='None' ? 'No PA rate selected for this shift' : `${form.paRate} — ${fmtGBP(PA_RATES[form.paRate]||0)}`}</div>
                   </div>
                   <div onClick={()=>{ if(form.paRate!=='None') setForm({...form,paSubmitted:!form.paSubmitted,paSubmittedDate:(!form.paSubmitted&&!form.paSubmittedDate)?todayStr:form.paSubmittedDate}); }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:form.paRate==='None'?'default':'pointer',flexShrink:0,background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
@@ -3925,7 +3928,8 @@ export default function App() {
 
                     {/* legend */}
                     <div style={{display:'flex',justifyContent:'center',gap:'16px',marginTop:'12px',paddingTop:'12px',borderTop:'1px solid #f1f5f9'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#eff6ff',border:'1px solid #bfdbfe'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT logged</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT Recorded</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT Submitted</span></div>
                       <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#818cf8'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>Night</span></div>
                       <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
                       <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
@@ -4035,7 +4039,11 @@ export default function App() {
                       return true;
                     });
                     if (visibleItems.length===0) return null;
-                    const visibleTotal = visibleItems.reduce((s,it)=>s+it.amount,0);
+                    const visibleTotal = visibleItems.reduce((s,it)=>{
+                      if (carmsFilter==='ot') return s+it.otAmt;
+                      if (carmsFilter==='pa') return s+it.paAmt;
+                      return s+it.amount;
+                    },0);
                     return (
                       <div key={g.periodIdx} style={{marginBottom:'14px'}}>
                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 4px',fontSize:'10.5px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.6px'}}>
@@ -4048,18 +4056,20 @@ export default function App() {
                               startEdit(it.entry);
                               setFocusCarmsToggle(true);
                             };
+                            const showOt = it.otOutstanding && carmsFilter!=='pa';
+                            const showPa = it.paOutstanding && carmsFilter!=='ot';
                             return (
                               <div key={it.entry.id} onClick={goToEntry} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9',cursor:'pointer'}}>
                                 <div style={{fontSize:'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',marginBottom:'6px'}}>
                                   {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
                                 </div>
-                                {it.otOutstanding&&(
+                                {showOt&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
                                     <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
                                     <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
                                   </div>
                                 )}
-                                {it.paOutstanding&&(
+                                {showPa&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
                                     <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>PA</span>
                                     <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
@@ -4090,7 +4100,7 @@ export default function App() {
             </div>
 
             <div style={{...S.card,background:'#fff',border:'1.5px solid #ede9fe'}}>
-              <div style={{...S.lbl,fontSize:'11px',marginBottom:'8px'}}>Redeem TOIL</div>
+              <div style={{...S.lbl,fontSize:'12px',marginBottom:'8px'}}>Redeem TOIL</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 52px 66px',gap:'8px',marginBottom:'8px'}}>
                 <input type="date" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',boxSizing:'border-box'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
                 <input type="number" min="0" step="1" placeholder="Hrs" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>
@@ -4147,7 +4157,7 @@ export default function App() {
               <div onClick={configSetupIncomplete?undefined:()=>setConfigExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:configSetupIncomplete?'default':'pointer',marginBottom:configShown?'13px':0}}>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                   <div style={{background:'#eff6ff',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
-                  <div style={{fontWeight:900,fontSize:isWide?'15px':'13px',color:'#0f172a'}}>Config, Rates &amp; Payscales</div>
+                  <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Config, Rates &amp; Payscales</div>
                 </div>
                 {!configSetupIncomplete && <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{configShown?'Tap to Close':'Tap to expand'}</span>}
               </div>
@@ -4291,7 +4301,7 @@ export default function App() {
                   <div onClick={()=>setTaxImpactExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:taxImpactExpanded?'12px':0,cursor:'pointer'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                       <div style={{background:over?'#fef2f2':'#f0fdf4',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="calc" s={isWide?21:17} c={over?'#dc2626':'#059669'}/></div>
-                      <div style={{fontWeight:900,fontSize:isWide?'15px':'13px',color:'#0f172a'}}>Tax & 100K+ Calculator</div>
+                      <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Tax & 100K+ Calculator</div>
                     </div>
                     <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{taxImpactExpanded?'Tap to Close':'Tap to expand'}</span>
                   </div>
@@ -4443,7 +4453,7 @@ export default function App() {
               <div onClick={()=>setFinancialYearsExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:financialYearsExpanded?'11px':0,cursor:'pointer'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                   <div style={{background:'#eff6ff',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cal" s={isWide?21:17} c="#2563eb"/></div>
-                  <div style={{fontWeight:900,fontSize:isWide?'15px':'13px',color:'#0f172a'}}>Archived Financial Years</div>
+                  <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Archived Financial Years</div>
                 </div>
                 <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{financialYearsExpanded?'Tap to Close':'Tap to expand'}</span>
               </div>
@@ -4478,7 +4488,7 @@ export default function App() {
               <div onClick={()=>setExportDataExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:exportDataExpanded?'11px':0,cursor:'pointer'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                   <div style={{background:'#fffbeb',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="share" s={isWide?21:17} c="#d97706"/></div>
-                  <div style={{fontWeight:900,fontSize:isWide?'15px':'13px',color:'#0f172a'}}>Financial Reports &amp; Export</div>
+                  <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Financial Reports &amp; Export</div>
                 </div>
                 <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{exportDataExpanded?'Tap to Close':'Tap to expand'}</span>
               </div>
@@ -4576,7 +4586,7 @@ export default function App() {
             <a href="mailto:ajstephe@me.com?subject=Overtime%20Tracker%20—%20Feedback" style={{...S.card,display:'flex',alignItems:'center',gap:'12px',textDecoration:'none',cursor:'pointer'}}>
               <div style={{background:'#eff6ff',padding:isWide?'13px':'11px',borderRadius:'13px',flexShrink:0}}><Ico n="mail" s={isWide?23:19} c="#2563eb"/></div>
               <div style={{flex:1}}>
-                <div style={{fontWeight:900,fontSize:isWide?'15px':'13px',color:'#0f172a'}}>Help & Suggestions</div>
+                <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Help & Suggestions</div>
                 <div style={{fontSize:'11px',color:'#3b82f6',fontWeight:700,marginTop:'2px'}}>ajstephe@me.com</div>
               </div>
               <Ico n="cR" s={16} c="#94a3b8"/>
