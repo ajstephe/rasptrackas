@@ -683,11 +683,17 @@ const migrateSettings = s => {
 // CARMS submission tracking predates this migration for any entry already
 // on the device — defaulting those to "submitted" rather than suddenly
 // flagging years of past shifts as outstanding. Only entries created going
-// forward start out genuinely unsubmitted (see blankForm).
+// forward start out genuinely unsubmitted (see blankForm). Submission dates
+// default to the shift's own date for the same reason — there's no real
+// record of when a pre-existing entry was actually submitted, and falling
+// back to the shift date keeps historical period attribution exactly where
+// it already was rather than silently reshuffling old pay periods.
 const migrateEntries = list => (list||[]).map(e => ({
   ...e,
   otSubmitted: e.otSubmitted===undefined ? true : e.otSubmitted,
   paSubmitted: e.paSubmitted===undefined ? true : e.paSubmitted,
+  otSubmittedDate: e.otSubmittedDate || e.date,
+  paSubmittedDate: e.paSubmittedDate || e.date,
 }));
 
 // ─── icon component ───────────────────────────────────────────────────────────
@@ -1281,7 +1287,7 @@ export default function App() {
   useEffect(()=>{ toilTakenRef.current = toilTaken; },[toilTaken]);
   useEffect(()=>{ settingsRef.current = settings; },[settings]);
 
-  const blankForm = { date:todayStr, reason:'', hours133:'', hours150:'', hours200:'', nightWorkHours:'', nightHours:'', paRate:'None', comments:'', recordShiftTimes:true, rosteredStart:'', rosteredEnd:'', actualStart:'', actualEnd:'', dutyType:'normal', otRateTier:'hours133', otAuto:true, nightAuto:true, takeAs:'pay', toilHours:'', otSubmitted:false, paSubmitted:false };
+  const blankForm = { date:todayStr, reason:'', hours133:'', hours150:'', hours200:'', nightWorkHours:'', nightHours:'', paRate:'None', comments:'', recordShiftTimes:true, rosteredStart:'', rosteredEnd:'', actualStart:'', actualEnd:'', dutyType:'normal', otRateTier:'hours133', otAuto:true, nightAuto:true, takeAs:'pay', toilHours:'', otSubmitted:false, paSubmitted:false, otSubmittedDate:'', paSubmittedDate:'' };
   const [form, setForm] = useState(blankForm);
 
   // ── cloud push sync ──────────────────────────────────────────────────────
@@ -1687,22 +1693,27 @@ export default function App() {
   const isOtSubmitted = e => e.otSubmitted !== false;
   const isPaSubmitted = e => e.paSubmitted !== false;
 
-  // calcEntry above always returns the true, full value of a shift —
-  // deliberately unconditional, since the Log Overtime form's live preview
-  // and the CARMS Outstanding view both need "what this is actually worth"
-  // regardless of submission status. This wraps it for the one place that
-  // needs the opposite: the running pay totals should only count what's
-  // actually been submitted. Night pay is tied to the same overtime claim
-  // it comes from, so it's gated by otSubmitted, not tracked separately.
-  const calcSubmittedGross = useCallback(e => {
-    const c = calcEntry(e);
-    const otPortion = isOtSubmitted(e) ? (c.ot + c.night) : 0;
-    const paPortion = isPaSubmitted(e) ? c.pa : 0;
-    return { ...c, ot: isOtSubmitted(e)?c.ot:0, night: isOtSubmitted(e)?c.night:0, pa: paPortion, gross: otPortion + paPortion };
-  },[calcEntry]);
+  // The date that decides which pay period a component's earnings actually
+  // land in — the date it was submitted, not the date the shift was worked,
+  // since a late submission gets processed in whichever period it goes in
+  // on, same as the real payslip. Falls back to the shift's own date when
+  // there's no explicit submission date on record (legacy entries, or an
+  // entry that's marked submitted without ever going through the toggle —
+  // shouldn't normally happen, but a shift date is a safer fallback than
+  // an empty string reaching a date comparison).
+  const effectiveOtDate = e => e.otSubmittedDate || e.date;
+  const effectivePaDate = e => e.paSubmittedDate || e.date;
 
   // ── derived totals ─────────────────────────────────────────────────────────
-  const fyEntries = useMemo(()=>entries.filter(e=>e.date>=FY_START&&e.date<=FY_END),[entries]);
+  // Includes an entry if its shift date, OR either component's effective
+  // (submission) date, falls in this financial year — a shift worked right
+  // at the end of one FY but not submitted until the next needs to still be
+  // visible here so its pay gets attributed to the FY it actually lands in.
+  const fyEntries = useMemo(()=>entries.filter(e=>
+    (e.date>=FY_START&&e.date<=FY_END) ||
+    (effectiveOtDate(e)>=FY_START&&effectiveOtDate(e)<=FY_END) ||
+    (effectivePaDate(e)>=FY_START&&effectivePaDate(e)<=FY_END)
+  ),[entries]);
   const yearsWithData = useMemo(()=>{
     const set = new Set();
     entries.forEach(e=>set.add(getFYStartYearFor(e.date)));
@@ -1738,11 +1749,25 @@ export default function App() {
     let cum = 0;
     let totalGross=0, totalHrs=0;
     const periodBreakdown = PAY_PERIODS.map((p,pIdx)=>{
+      // Hours worked this period — tracks the shift's own date regardless
+      // of submission timing, since this is a factual record of when the
+      // work happened, not when it gets paid.
       const pE = fyEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
-      let ot=0, night=0, pa=0, hrs=0;
-      pE.forEach(e=>{
-        const c=calcSubmittedGross(e);
-        ot+=c.ot; night+=c.night; pa+=c.pa; hrs+=c.h1+c.h2+c.h3;
+      let hrs=0;
+      pE.forEach(e=>{ const c=calcEntry(e); hrs+=c.h1+c.h2+c.h3; });
+
+      // Money earned this period — attributed by each component's own
+      // submission date, not the shift date, since OT and PA can be
+      // submitted on different days and each lands in whichever period
+      // its own submission date falls in, matching the real payslip.
+      let ot=0, night=0, pa=0;
+      fyEntries.forEach(e=>{
+        const c = calcEntry(e);
+        const otDate = effectiveOtDate(e);
+        if (isOtSubmitted(e) && otDate>=p.start && otDate<=p.end) { ot+=c.ot; night+=c.night; }
+        const hasPA = e.paRate && e.paRate!=='None';
+        const paDate = effectivePaDate(e);
+        if (hasPA && isPaSubmitted(e) && paDate>=p.start && paDate<=p.end) { pa+=c.pa; }
       });
 
       const baseAmt = periodBaseAmount(p, svcData); // salary + London Weighting + London Allowance
@@ -1822,13 +1847,24 @@ export default function App() {
     // Overtime/PA actually earned so far THIS TAX YEAR — excludes future-dated
     // "Planned" entries, and excludes anything dated before the tax year
     // started (which belongs to the previous tax year's allowance/bands).
+    // Hours use the shift's own date; money uses each component's own
+    // submission date, same split as periodBreakdown above and for the
+    // same reason — OT and PA can each land in a different YTD window.
     let otPaidToDate = 0, otNightPaidToDate = 0, hrsToDate = 0;
     fyEntries.forEach(e=>{
+      const c = calcEntry(e);
       if (e.date >= taxYearStart && e.date <= todayStr) {
-        const c = calcSubmittedGross(e);
-        otPaidToDate += c.gross;
-        otNightPaidToDate += c.ot + c.night; // hourly-earned only, excludes flat PA
         hrsToDate += c.h1 + c.h2 + c.h3;
+      }
+      const otDate = effectiveOtDate(e);
+      if (isOtSubmitted(e) && otDate >= taxYearStart && otDate <= todayStr) {
+        otPaidToDate += c.ot + c.night;
+        otNightPaidToDate += c.ot + c.night; // hourly-earned only, excludes flat PA
+      }
+      const hasPA = e.paRate && e.paRate!=='None';
+      const paDate = effectivePaDate(e);
+      if (hasPA && isPaSubmitted(e) && paDate >= taxYearStart && paDate <= todayStr) {
+        otPaidToDate += c.pa;
       }
     });
 
@@ -1883,7 +1919,7 @@ export default function App() {
       ytdTax, ytdNI, taxBand, taxBandRate, daysElapsed, taxYearDaysElapsed, taxYearStart, hoursByBand,
       projectedAnnualGross, taperExtraTax,
     };
-  },[fyEntries,calcSubmittedGross,settings,currPeriodIdx,todayStr]);
+  },[fyEntries,calcEntry,settings,currPeriodIdx,todayStr]);
 
   // Full-year tax forecast, pension-adjusted and taper-aware — pulled out
   // of the Tax & 100K+ Calculator card's own render so the actual formula
@@ -1954,7 +1990,7 @@ export default function App() {
   // over, it doesn't reset with the tax year.
   const toilLedger = useMemo(()=>{
     const earned = entries
-      .filter(e=>e.otRateTier && (parseFloat(e.toilHours)||0) > 0)
+      .filter(e=>e.otRateTier && (parseFloat(e.toilHours)||0) > 0 && isOtSubmitted(e))
       .map(e=>{
         const worked = parseFloat(e.toilHours)||0;
         const dLabel = new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
@@ -2786,6 +2822,14 @@ export default function App() {
         @keyframes subtlePulse{0%{opacity:0.5}20%{opacity:1}40%{opacity:0.5}60%{opacity:1}80%,100%{opacity:0.5}}
         @keyframes entryFlash{0%{box-shadow:0 0 0 0 rgba(37,99,235,0.45)}60%{box-shadow:0 0 0 10px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
         .entry-flash{animation:entryFlash 1.4s ease-out 2}
+        @keyframes carmsPulse{
+          0%{box-shadow:0 0 0 0 rgba(37,99,235,0.6); transform:scale(1);}
+          20%{box-shadow:0 0 0 16px rgba(37,99,235,0); transform:scale(1.02);}
+          40%{box-shadow:0 0 0 0 rgba(37,99,235,0.6); transform:scale(1);}
+          60%{box-shadow:0 0 0 16px rgba(37,99,235,0); transform:scale(1.02);}
+          100%{box-shadow:0 0 0 0 rgba(37,99,235,0); transform:scale(1);}
+        }
+        .carms-pulse{animation:carmsPulse 1.6s ease-out;}
         .star-tap{transition:transform 0.12s}
         .star-tap:active{transform:scale(1.35)}
         .hint-pulse{animation:subtlePulse 1.8s ease-in-out infinite}
@@ -3382,28 +3426,42 @@ export default function App() {
                 entry reflects whatever it's already set to. PA toggle only
                 shown when there's actually a PA rate selected, since
                 otherwise there's nothing to track for that part. */}
-            <div ref={carmsToggleRef} className={focusCarmsToggle?'entry-flash':''} style={{...S.card,marginBottom:'11px',border:focusCarmsToggle?'2px solid #2563eb':'1px solid #f1f5f9'}}>
+            <div ref={carmsToggleRef} className={focusCarmsToggle?'carms-pulse':''} style={{...S.card,marginBottom:'11px',border:focusCarmsToggle?'2px solid #2563eb':'1px solid #f1f5f9'}}>
               <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a',marginBottom:'2px'}}>CARMS Submission</div>
-              <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginBottom:'4px'}}>Independent of logging it here — mark each part once you've actually put the claim in.</div>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 0',borderBottom:form.paRate!=='None'?'1px solid #f1f5f9':'none'}}>
-                <div>
-                  <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>Overtime submitted</div>
+              <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginBottom:'4px'}}>Toggle these to 'On' when you've submitted the claim on CARMS or via PSOP for PA.</div>
+              <div style={{padding:'11px 0',borderBottom:'1px solid #f1f5f9'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                  <div>
+                    <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>Overtime submitted</div>
+                  </div>
+                  <div onClick={()=>setForm({...form,otSubmitted:!form.otSubmitted,otSubmittedDate:(!form.otSubmitted&&!form.otSubmittedDate)?todayStr:form.otSubmittedDate})} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.otSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
+                    <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.otSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
+                  </div>
                 </div>
-                <div onClick={()=>setForm({...form,otSubmitted:!form.otSubmitted})} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.otSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
-                  <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.otSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
-                </div>
+                {form.otSubmitted&&(
+                  <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'12px',padding:'10px',marginTop:'9px'}}>
+                    <div style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'5px'}}>Date submitted</div>
+                    <input type="date" value={form.otSubmittedDate||todayStr} onChange={e=>setForm({...form,otSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'#fff',border:'1px solid #bfdbfe',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'#0f172a'}}/>
+                  </div>
+                )}
               </div>
-              {form.paRate!=='None'&&(
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 0'}}>
+              <div style={{padding:'11px 0',opacity:form.paRate==='None'?0.45:1}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                   <div>
                     <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>PA submitted</div>
-                    <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{form.paRate} — {fmtGBP(PA_RATES[form.paRate]||0)}</div>
+                    <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{form.paRate==='None' ? 'No PA rate selected for this shift' : `${form.paRate} — ${fmtGBP(PA_RATES[form.paRate]||0)}`}</div>
                   </div>
-                  <div onClick={()=>setForm({...form,paSubmitted:!form.paSubmitted})} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.paSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
-                    <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.paSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
+                  <div onClick={()=>{ if(form.paRate!=='None') setForm({...form,paSubmitted:!form.paSubmitted,paSubmittedDate:(!form.paSubmitted&&!form.paSubmittedDate)?todayStr:form.paSubmittedDate}); }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:form.paRate==='None'?'default':'pointer',flexShrink:0,background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
+                    <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(form.paRate!=='None'&&form.paSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
                   </div>
                 </div>
-              )}
+                {form.paRate!=='None'&&form.paSubmitted&&(
+                  <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'12px',padding:'10px',marginTop:'9px'}}>
+                    <div style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'5px'}}>Date submitted</div>
+                    <input type="date" value={form.paSubmittedDate||todayStr} onChange={e=>setForm({...form,paSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'#fff',border:'1px solid #bfdbfe',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'#0f172a'}}/>
+                  </div>
+                )}
+              </div>
               <div style={{fontSize:'10.5px',color:'#94a3b8',lineHeight:1.5,marginTop:'4px'}}>Both default to <b>off</b> when you log a new shift — you're recording that you worked it, not that you've claimed it yet.</div>
             </div>
 
