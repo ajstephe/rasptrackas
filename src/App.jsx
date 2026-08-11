@@ -1913,7 +1913,7 @@ export default function App() {
   // pay component at all (pure TOIL-only days with no PA) never appear here.
   const carmsOutstanding = useMemo(()=>{
     const groups = [];
-    let totalAmount = 0, totalClaims = 0;
+    let totalAmount = 0, totalClaims = 0, totalOtAmount = 0, totalPaAmount = 0;
     PAY_PERIODS.forEach((p,pIdx)=>{
       const pE = entries.filter(e=>e.date>=p.start&&e.date<=p.end);
       const items = [];
@@ -1928,6 +1928,8 @@ export default function App() {
         const amount = otAmt + paAmt;
         if (amount <= 0 && otOK && paOK) return; // defensive, shouldn't happen given the check above
         items.push({ entry: e, otOutstanding: !otOK, paOutstanding: hasPA && !paOK, otAmt, paAmt, amount });
+        totalOtAmount += otAmt;
+        totalPaAmount += paAmt;
       });
       if (items.length) {
         const periodTotal = items.reduce((s,it)=>s+it.amount,0);
@@ -1936,7 +1938,7 @@ export default function App() {
         totalClaims += items.length;
       }
     });
-    return { groups, totalAmount, totalClaims, periodCount: groups.length };
+    return { groups, totalAmount, totalClaims, totalOtAmount, totalPaAmount, periodCount: groups.length };
   },[entries, calcEntry]);
 
   // Which specific (entryId, component) pairs are currently ticked in the
@@ -3631,8 +3633,9 @@ export default function App() {
                                     const hasPA = e.paRate && e.paRate!=='None';
                                     const paOK = !hasPA || isPaSubmitted(e);
                                     if (otOK && paOK) return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',background:'#f0fdf4',color:'#059669',textTransform:'uppercase',letterSpacing:'0.5px'}}>✓ Submitted</div>;
-                                    if (otOK && !paOK) return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',background:'#fffbeb',color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px'}}>PA not submitted</div>;
-                                    return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>Not submitted</div>;
+                                    if (otOK && !paOK) return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',border:'1px solid #fecaca',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>PA not submitted</div>;
+                                    if (!otOK && paOK) return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',border:'1px solid #fecaca',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>Overtime not submitted</div>;
+                                    return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',border:'1px solid #fecaca',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>Overtime &amp; PA not submitted</div>;
                                   })()}
                                 </div>
                                 <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
@@ -3919,18 +3922,19 @@ export default function App() {
             <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',margin:'0 0 18px',letterSpacing:'-0.5px'}}>CARMS Outstanding</h2>
 
             <div style={{...S.dark,background:'#0f2744'}}>
+              <div style={{fontSize:'11px',color:'#93c5fd',fontWeight:600,lineHeight:1.5,marginBottom:'14px'}}>We all like to hold back a bit of Overtime or PA every now and again to manage things. Below shows whether something has been submitted in CARMS and whether PA has been submitted. Keep a track of what you're withholding.</div>
               <div style={{display:'flex',gap:'10px',marginBottom:carmsOutstanding.groups.length?'14px':0}}>
                 <div style={{flex:1,background:'rgba(255,255,255,0.08)',borderRadius:'12px',padding:'12px'}}>
-                  <div style={{fontSize:'19px',fontWeight:900,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
-                  <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.8px',marginTop:'2px'}}>Outstanding</div>
+                  <div style={{fontSize:'19px',fontWeight:900,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
+                  <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.8px',marginTop:'2px'}}>OT Outstanding</div>
+                </div>
+                <div style={{flex:1,background:'rgba(255,255,255,0.08)',borderRadius:'12px',padding:'12px'}}>
+                  <div style={{fontSize:'19px',fontWeight:900,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
+                  <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.8px',marginTop:'2px'}}>PA Outstanding</div>
                 </div>
                 <div style={{flex:1,background:'rgba(255,255,255,0.08)',borderRadius:'12px',padding:'12px'}}>
                   <div style={{fontSize:'19px',fontWeight:900,color:'#fff'}}>{carmsOutstanding.totalClaims}</div>
                   <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.8px',marginTop:'2px'}}>Claims</div>
-                </div>
-                <div style={{flex:1,background:'rgba(255,255,255,0.08)',borderRadius:'12px',padding:'12px'}}>
-                  <div style={{fontSize:'19px',fontWeight:900,color:'#fff'}}>{carmsOutstanding.periodCount}</div>
-                  <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.8px',marginTop:'2px'}}>Pay Periods</div>
                 </div>
               </div>
 
@@ -4908,6 +4912,15 @@ export default function App() {
                       <div style={{fontWeight:900,fontSize:'12px',color:'#3b82f6',textTransform:'uppercase'}}>Duty / Reason: {e.reason||'Shift'}</div>
                       {e.takeAs==='toil'&&<div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div>}
                       {e.takeAs==='mix'&&<div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>Mix — Pay + TOIL</div>}
+                      {(()=>{
+                        const otOK = isOtSubmitted(e);
+                        const hasPA = e.paRate && e.paRate!=='None';
+                        const paOK = !hasPA || isPaSubmitted(e);
+                        if (otOK && paOK) return <div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',background:'#f0fdf4',color:'#059669',textTransform:'uppercase',letterSpacing:'0.5px'}}>✓ Submitted</div>;
+                        if (otOK && !paOK) return <div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',border:'1px solid #fecaca',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>PA not submitted</div>;
+                        if (!otOK && paOK) return <div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',border:'1px solid #fecaca',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>Overtime not submitted</div>;
+                        return <div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',border:'1px solid #fecaca',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>Overtime &amp; PA not submitted</div>;
+                      })()}
                     </div>
                     <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
                       <button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
