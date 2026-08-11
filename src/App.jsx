@@ -2042,7 +2042,14 @@ export default function App() {
         const paAmt = (hasPA && !paOK) ? c.pa : 0;
         const amount = otAmt + paAmt;
         if (amount <= 0 && otOK && paOK) return; // defensive, shouldn't happen given the check above
-        items.push({ entry: e, otOutstanding: !otOK, paOutstanding: hasPA && !paOK, otAmt, paAmt, amount });
+        // TOIL doesn't have its own submit toggle — it rides on otSubmitted,
+        // same as the banking gate built earlier. An entry only has TOIL at
+        // stake if it's actually taking TOIL (or a mix) AND the overtime
+        // side is what's outstanding.
+        const takesToil = e.takeAs==='toil' || e.takeAs==='mix';
+        const toilOutstanding = !otOK && takesToil;
+        const toilHrs = toilOutstanding ? c.toilBanked : 0;
+        items.push({ entry: e, otOutstanding: !otOK, paOutstanding: hasPA && !paOK, toilOutstanding, toilHrs, otAmt, paAmt, amount });
         totalOtAmount += otAmt;
         totalPaAmount += paAmt;
       });
@@ -4097,7 +4104,7 @@ export default function App() {
                   </div>
 
                   <div style={{display:'flex',gap:'6px',marginBottom:'14px'}}>
-                    {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'}].map(f=>(
+                    {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'},{id:'toil',lbl:'TOIL'}].map(f=>(
                       <div key={f.id} onClick={()=>setCarmsFilter(f.id)} style={{flex:1,textAlign:'center',padding:'8px 4px',borderRadius:'10px',fontSize:'11px',fontWeight:800,cursor:'pointer',background:carmsFilter===f.id?'#2563eb':'rgba(255,255,255,0.08)',color:carmsFilter===f.id?'#fff':'#93c5fd'}}>{f.lbl}</div>
                     ))}
                   </div>
@@ -4106,19 +4113,24 @@ export default function App() {
                     const visibleItems = g.items.filter(it => {
                       if (carmsFilter==='ot') return it.otOutstanding;
                       if (carmsFilter==='pa') return it.paOutstanding;
+                      if (carmsFilter==='toil') return it.toilOutstanding;
                       return true;
                     });
                     if (visibleItems.length===0) return null;
-                    const visibleTotal = visibleItems.reduce((s,it)=>{
-                      if (carmsFilter==='ot') return s+it.otAmt;
-                      if (carmsFilter==='pa') return s+it.paAmt;
-                      return s+it.amount;
-                    },0);
+                    const visibleTotalLabel = (() => {
+                      if (carmsFilter==='toil') return `${visibleItems.reduce((s,it)=>s+it.toilHrs,0).toFixed(1)}h`;
+                      const total = visibleItems.reduce((s,it)=>{
+                        if (carmsFilter==='ot') return s+it.otAmt;
+                        if (carmsFilter==='pa') return s+it.paAmt;
+                        return s+it.amount;
+                      },0);
+                      return fmtGBP(total);
+                    })();
                     return (
                       <div key={g.periodIdx} style={{marginBottom:'14px'}}>
                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 4px',fontSize:'10.5px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.6px'}}>
                           <span>{g.period.short} · {g.period.month} · {fmtD(g.period.start)} – {fmtD(g.period.end)}</span>
-                          <span>{fmtGBP(visibleTotal)}</span>
+                          <span>{visibleTotalLabel}</span>
                         </div>
                         <div style={{background:'#f8fafc',borderRadius:'12px',padding:'4px 12px'}}>
                           {visibleItems.map(it=>{
@@ -4126,8 +4138,9 @@ export default function App() {
                               startEdit(it.entry);
                               setFocusCarmsToggle(true);
                             };
-                            const showOt = it.otOutstanding && carmsFilter!=='pa';
-                            const showPa = it.paOutstanding && carmsFilter!=='ot';
+                            const showOt = it.otOutstanding && carmsFilter!=='pa' && carmsFilter!=='toil';
+                            const showPa = it.paOutstanding && carmsFilter!=='ot' && carmsFilter!=='toil';
+                            const showToil = it.toilOutstanding && carmsFilter!=='ot' && carmsFilter!=='pa';
                             return (
                               <div key={it.entry.id} onClick={goToEntry} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9',cursor:'pointer'}}>
                                 <div style={{fontSize:'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',marginBottom:'6px'}}>
@@ -4143,6 +4156,12 @@ export default function App() {
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
                                     <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>PA</span>
                                     <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
+                                  </div>
+                                )}
+                                {showToil&&(
+                                  <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
+                                    <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#fffbeb',color:'#b45309'}}>TOIL</span>
+                                    <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
                                   </div>
                                 )}
                               </div>
