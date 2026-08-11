@@ -1981,7 +1981,7 @@ export default function App() {
   // CARMS Outstanding view — a UI selection step separate from actually
   // being submitted, cleared whenever the underlying outstanding set
   // changes shape so stale ticks can't linger against different claims.
-  const [carmsSelected, setCarmsSelected] = useState({});
+  const [carmsFilter, setCarmsFilter] = useState('all');
 
   // ── TOIL balance ───────────────────────────────────────────────────────────
   // All-time running balance: every hour ever banked as TOIL (from any logged
@@ -2300,20 +2300,6 @@ export default function App() {
   // separately. Cloud deletes are attempted first: if any of them fail,
   // local data is left untouched rather than risk local being wiped while
   // stale cloud data silently survives.
-  const handleMarkCarmsSubmitted = () => {
-    let count = 0;
-    const updated = entries.map(e => {
-      const otSel = carmsSelected[e.id+'-ot'];
-      const paSel = carmsSelected[e.id+'-pa'];
-      if (!otSel && !paSel) return e;
-      count++;
-      return { ...e, otSubmitted: otSel ? true : e.otSubmitted, paSubmitted: paSel ? true : e.paSubmitted };
-    });
-    setEntries(updated);
-    setCarmsSelected({});
-    addToast(count===1 ? '1 claim marked as submitted' : `${count} claims marked as submitted`);
-  };
-
   const handleWipe = async () => {
     setWipingData(true);
     if (supabase && session) {
@@ -4001,73 +3987,60 @@ export default function App() {
               ) : (
                 <>
                   <div style={{background:'rgba(217,119,6,0.12)',border:'1px solid #d97706',borderRadius:'10px',padding:'10px 12px',fontSize:'11px',color:'#fde68a',lineHeight:1.5,marginBottom:'14px'}}>
-                    This {fmtGBP(carmsOutstanding.totalAmount)} isn't in your Total Gross YTD yet — it only counts once you tick it off as submitted.
+                    This {fmtGBP(carmsOutstanding.totalAmount)} isn't in your Total Gross YTD yet — it only counts once it's been marked as submitted on the Log Overtime screen.
                   </div>
 
-                  {carmsOutstanding.groups.map(g=>(
-                    <div key={g.periodIdx} style={{marginBottom:'14px'}}>
-                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 4px',fontSize:'10.5px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.6px'}}>
-                        <span>{g.period.short} · {g.period.month} · {fmtD(g.period.start)} – {fmtD(g.period.end)}</span>
-                        <span>{fmtGBP(g.periodTotal)}</span>
-                      </div>
-                      <div style={{background:'#f8fafc',borderRadius:'12px',padding:'4px 12px'}}>
-                        {g.items.map(it=>{
-                          const otKey = it.entry.id+'-ot', paKey = it.entry.id+'-pa';
-                          const goToEntry = () => {
-                            startEdit(it.entry);
-                            setFocusCarmsToggle(true);
-                          };
-                          return (
-                            <div key={it.entry.id} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9'}}>
-                              <div onClick={goToEntry} style={{fontSize:'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',cursor:'pointer',marginBottom:'6px'}}>
-                                {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
-                              </div>
-                              {it.otOutstanding&&(
-                                <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
-                                  <div onClick={()=>setCarmsSelected(s=>({...s,[otKey]:!s[otKey]}))} style={{width:'19px',height:'19px',borderRadius:'6px',border:carmsSelected[otKey]?'none':'2px solid #e2e8f0',background:carmsSelected[otKey]?'#2563eb':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
-                                    {carmsSelected[otKey]&&<Ico n="check" s={12} c="#fff" w={3}/>}
-                                  </div>
-                                  <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
-                                  <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
-                                </div>
-                              )}
-                              {it.paOutstanding&&(
-                                <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
-                                  <div onClick={()=>setCarmsSelected(s=>({...s,[paKey]:!s[paKey]}))} style={{width:'19px',height:'19px',borderRadius:'6px',border:carmsSelected[paKey]?'none':'2px solid #e2e8f0',background:carmsSelected[paKey]?'#2563eb':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
-                                    {carmsSelected[paKey]&&<Ico n="check" s={12} c="#fff" w={3}/>}
-                                  </div>
-                                  <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>PA</span>
-                                  <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                  <div style={{display:'flex',gap:'6px',marginBottom:'14px'}}>
+                    {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'},{id:'both',lbl:'Both'}].map(f=>(
+                      <div key={f.id} onClick={()=>setCarmsFilter(f.id)} style={{flex:1,textAlign:'center',padding:'8px 4px',borderRadius:'10px',fontSize:'11px',fontWeight:800,cursor:'pointer',background:carmsFilter===f.id?'#2563eb':'rgba(255,255,255,0.08)',color:carmsFilter===f.id?'#fff':'#93c5fd'}}>{f.lbl}</div>
+                    ))}
+                  </div>
 
-                  {(()=>{
-                    const selectedCount = Object.values(carmsSelected).filter(Boolean).length;
+                  {carmsOutstanding.groups.map(g=>{
+                    const visibleItems = g.items.filter(it => {
+                      if (carmsFilter==='ot') return it.otOutstanding && !it.paOutstanding;
+                      if (carmsFilter==='pa') return it.paOutstanding && !it.otOutstanding;
+                      if (carmsFilter==='both') return it.otOutstanding && it.paOutstanding;
+                      return true;
+                    });
+                    if (visibleItems.length===0) return null;
+                    const visibleTotal = visibleItems.reduce((s,it)=>s+it.amount,0);
                     return (
-                      <>
-                        <button onClick={handleMarkCarmsSubmitted} disabled={selectedCount===0} style={{width:'100%',padding:'12px',background:selectedCount?'#2563eb':'rgba(255,255,255,0.1)',border:'none',borderRadius:'12px',color:'#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:selectedCount?'pointer':'default',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'8px',opacity:selectedCount?1:0.5}}>
-                          Mark {selectedCount||''} Selected as Submitted
-                        </button>
-                        <button onClick={()=>{
-                          const all = {};
-                          carmsOutstanding.groups.forEach(g=>g.items.forEach(it=>{
-                            if (it.otOutstanding) all[it.entry.id+'-ot'] = true;
-                            if (it.paOutstanding) all[it.entry.id+'-pa'] = true;
-                          }));
-                          setCarmsSelected(all);
-                        }} style={{width:'100%',padding:'12px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'12px',color:'#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'0.8px'}}>
-                          Select All Outstanding
-                        </button>
-                      </>
+                      <div key={g.periodIdx} style={{marginBottom:'14px'}}>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 4px',fontSize:'10.5px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.6px'}}>
+                          <span>{g.period.short} · {g.period.month} · {fmtD(g.period.start)} – {fmtD(g.period.end)}</span>
+                          <span>{fmtGBP(visibleTotal)}</span>
+                        </div>
+                        <div style={{background:'#f8fafc',borderRadius:'12px',padding:'4px 12px'}}>
+                          {visibleItems.map(it=>{
+                            const goToEntry = () => {
+                              startEdit(it.entry);
+                              setFocusCarmsToggle(true);
+                            };
+                            return (
+                              <div key={it.entry.id} onClick={goToEntry} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9',cursor:'pointer'}}>
+                                <div style={{fontSize:'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',marginBottom:'6px'}}>
+                                  {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
+                                </div>
+                                {it.otOutstanding&&(
+                                  <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
+                                    <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
+                                    <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
+                                  </div>
+                                )}
+                                {it.paOutstanding&&(
+                                  <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
+                                    <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>PA</span>
+                                    <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
-                  })()}
-                  <div style={{fontSize:'10.5px',color:'#93c5fd',lineHeight:1.5,marginTop:'10px'}}>Ticking an item off adds it into your Total Gross YTD and tax estimate from that point on — nothing retroactive, and it never rewrites what a past pay period actually showed at the time.</div>
+                  })}
                 </>
               )}
             </div>
