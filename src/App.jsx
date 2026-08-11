@@ -3927,17 +3927,21 @@ export default function App() {
                     </div>
 
                     {/* legend */}
-                    <div style={{display:'flex',justifyContent:'center',gap:'16px',marginTop:'12px',paddingTop:'12px',borderTop:'1px solid #f1f5f9'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT Recorded</span></div>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT Submitted</span></div>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#818cf8'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>Night</span></div>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
-                    </div>
-                    <div style={{display:'flex',justifyContent:'center',gap:'16px',marginTop:'9px'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#0f172a'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#059669'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.5x</span></div>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#dc2626'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>2.0x</span></div>
+                    <div style={{marginTop:'12px',paddingTop:'12px',borderTop:'1px solid #f1f5f9'}}>
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'5px',marginBottom:'9px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'center',gap:'16px',marginBottom:'9px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#818cf8'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>Night</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'center',gap:'4px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'3px'}}><div style={{width:'9px',height:'9px',borderRadius:'3px',background:'#0f172a',flexShrink:0}}/><span style={{fontSize:'10.5px',fontWeight:700,color:'#64748b',whiteSpace:'nowrap'}}>Hr Rate - 1.33x</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'3px'}}><div style={{width:'9px',height:'9px',borderRadius:'3px',background:'#059669',flexShrink:0}}/><span style={{fontSize:'10.5px',fontWeight:700,color:'#64748b',whiteSpace:'nowrap'}}>Hr Rate - 1.5x</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'3px'}}><div style={{width:'9px',height:'9px',borderRadius:'3px',background:'#dc2626',flexShrink:0}}/><span style={{fontSize:'10.5px',fontWeight:700,color:'#64748b',whiteSpace:'nowrap'}}>Hr Rate - 2.0x</span></div>
+                      </div>
                     </div>
                   </div>
 
