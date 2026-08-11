@@ -5054,10 +5054,10 @@ export default function App() {
       {/* Calendar View — day detail popover */}
       {selectedCalDay&&(
         <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:40}}>
-          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:isWide?'20px':'20px 20px 0 0',padding:'20px',width:'100%',maxWidth:'430px',maxHeight:'70%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
-              <div style={{fontWeight:900,fontSize:'16px',color:'#0f172a'}}>{new Date(selectedCalDay.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
-              <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={16} c="#64748b"/></button>
+              <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'#0f172a'}}>{new Date(selectedCalDay.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
+              <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={isWide?20:16} c="#64748b"/></button>
             </div>
             {selectedCalDay.dEntries.map(e=>{
               const c = calcEntry(e);
@@ -5067,27 +5067,27 @@ export default function App() {
               const ePANet    = c.pa>0           ? c.pa*(1-pb.paResult.rate/100)       : 0;
               const eNet = eOTNet+eNightNet+ePANet;
               return (
-                <div key={e.id} style={{background:'#f8fafc',borderRadius:'13px',padding:'13px',marginBottom:'8px'}}>
+                <div key={e.id} style={{background:'#f8fafc',borderRadius:'13px',padding:isWide?'17px':'13px',marginBottom:'8px'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'8px'}}>
                     <div style={{flex:1,paddingRight:'8px'}}>
-                      <div style={{fontWeight:900,fontSize:'12px',color:'#3b82f6',textTransform:'uppercase'}}>Duty / Reason: {e.reason||'Shift'}</div>
-                      {e.takeAs==='toil'&&<div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div>}
-                      {e.takeAs==='mix'&&<div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>Mix — Pay + TOIL</div>}
-                      {carmsBadge(e, 8)}
+                      <div style={{fontWeight:900,fontSize:isWide?'15px':'12px',color:'#3b82f6',textTransform:'uppercase'}}>Duty / Reason: {e.reason||'Shift'}</div>
+                      {e.takeAs==='toil'&&<div style={{display:'inline-block',fontSize:isWide?'10px':'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div>}
+                      {e.takeAs==='mix'&&<div style={{display:'inline-block',fontSize:isWide?'10px':'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>Mix — Pay + TOIL</div>}
+                      {carmsBadge(e, (isWide?15:12)-1)}
                     </div>
                     <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
-                      <button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
-                      <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} style={{background:confirmDel===e.id?'#fee2e2':'#fef2f2',border:confirmDel===e.id?'1.5px solid #fca5a5':'1.5px solid transparent',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={14} c="#ef4444"/></button>
+                      <button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button>
+                      <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} style={{background:confirmDel===e.id?'#fee2e2':'#fef2f2',border:confirmDel===e.id?'1.5px solid #fca5a5':'1.5px solid transparent',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button>
                     </div>
                   </div>
 
                   {/* delete confirmation */}
                   {confirmDel===e.id&&(
                     <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'10px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
-                      <span style={{fontSize:'12px',fontWeight:700,color:'#991b1b'}}>Delete this record?</span>
+                      <span style={{fontSize:isWide?'14px':'12px',fontWeight:700,color:'#991b1b'}}>Delete this record?</span>
                       <div style={{display:'flex',gap:'7px',flexShrink:0}}>
-                        <button onClick={()=>setConfirmDel(null)} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:'8px',padding:'5px 12px',fontSize:'11px',fontWeight:900,color:'#64748b',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
-                        <button onClick={()=>{ delEntry(e.id); if(selectedCalDay.dEntries.length<=1) setSelectedCalDay(null); }} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'11px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
+                        <button onClick={()=>setConfirmDel(null)} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:'8px',padding:isWide?'7px 15px':'5px 12px',fontSize:isWide?'13px':'11px',fontWeight:900,color:'#64748b',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+                        <button onClick={()=>{ delEntry(e.id); if(selectedCalDay.dEntries.length<=1) setSelectedCalDay(null); }} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:isWide?'7px 15px':'5px 12px',fontSize:isWide?'13px':'11px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
                       </div>
                     </div>
                   )}
@@ -5096,8 +5096,8 @@ export default function App() {
                       Skipped entirely when there are no notes, so no empty labelled block appears. */}
                   {e.comments&&(
                     <div style={{borderTop:'1px solid #e2e8f0',paddingTop:'10px',marginBottom:'10px'}}>
-                      <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>Notes</div>
-                      <div style={{fontSize:'11px',fontStyle:'italic',color:'#0f172a',borderLeft:'2px solid #bfdbfe',paddingLeft:'8px',whiteSpace:'pre-wrap',overflowWrap:'anywhere',lineHeight:1.5}}>{e.comments}</div>
+                      <div style={{fontSize:isWide?'11px':'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>Notes</div>
+                      <div style={{fontSize:isWide?'13px':'11px',fontStyle:'italic',color:'#0f172a',borderLeft:'2px solid #bfdbfe',paddingLeft:'8px',whiteSpace:'pre-wrap',overflowWrap:'anywhere',lineHeight:1.5}}>{e.comments}</div>
                     </div>
                   )}
 
@@ -5106,44 +5106,44 @@ export default function App() {
                     <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
                       {c.payH1>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:'11px',fontWeight:700,color:'#475569'}}>{c.payH1}h @ 1.33x {c.toilH>0&&c.otRateTier==='hours133'?'(Pay)':''} <span style={{color:'#94a3b8'}}>(£{c.r.r133.toFixed(2)}/hr)</span></span>
-                          <span style={{fontSize:'12px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot1.toFixed(2)}</span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#475569'}}>{c.payH1}h @ 1.33x {c.toilH>0&&c.otRateTier==='hours133'?'(Pay)':''} <span style={{color:'#94a3b8'}}>(£{c.r.r133.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot1.toFixed(2)}</span>
                         </div>
                       )}
                       {c.payH2>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:'11px',fontWeight:700,color:'#475569'}}>{c.payH2}h @ 1.5x {c.toilH>0&&c.otRateTier==='hours150'?'(Pay)':''} <span style={{color:'#94a3b8'}}>(£{c.r.r150.toFixed(2)}/hr)</span></span>
-                          <span style={{fontSize:'12px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot2.toFixed(2)}</span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#475569'}}>{c.payH2}h @ 1.5x {c.toilH>0&&c.otRateTier==='hours150'?'(Pay)':''} <span style={{color:'#94a3b8'}}>(£{c.r.r150.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot2.toFixed(2)}</span>
                         </div>
                       )}
                       {c.payH3>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:'11px',fontWeight:700,color:'#475569'}}>{c.payH3}h @ 2.0x {c.toilH>0&&c.otRateTier==='hours200'?'(Pay)':''} <span style={{color:'#94a3b8'}}>(£{c.r.r200.toFixed(2)}/hr)</span></span>
-                          <span style={{fontSize:'12px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot3.toFixed(2)}</span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#475569'}}>{c.payH3}h @ 2.0x {c.toilH>0&&c.otRateTier==='hours200'?'(Pay)':''} <span style={{color:'#94a3b8'}}>(£{c.r.r200.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot3.toFixed(2)}</span>
                         </div>
                       )}
                       {c.toilH>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:'11px',fontWeight:700,color:'#6d28d9'}}>{fmtHM(c.toilH)}h @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
-                          <span style={{fontSize:'12px',fontWeight:900,color:'#4c1d95'}}>{fmtHM(c.toilBanked)}h banked</span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#6d28d9'}}>{fmtHM(c.toilH)}h @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
+                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#4c1d95'}}>{fmtHM(c.toilBanked)}h banked</span>
                         </div>
                       )}
                       {c.nh>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:'11px',fontWeight:700,color:'#6366f1'}}>{c.nh}h @ +10% <span style={{color:'#94a3b8'}}>(£{(c.r.base*0.10).toFixed(2)}/hr)</span></span>
-                          <span style={{fontSize:'12px',fontWeight:900,color:'#4f46e5'}}>£{c.night.toFixed(2)}</span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#6366f1'}}>{c.nh}h @ +10% <span style={{color:'#94a3b8'}}>(£{(c.r.base*0.10).toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#4f46e5'}}>£{c.night.toFixed(2)}</span>
                         </div>
                       )}
                       {e.paRate!=='None'&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:'11px',fontWeight:700,color:'#b45309'}}>{e.paRate} allowance</span>
-                          <span style={{fontSize:'12px',fontWeight:900,color:'#92400e'}}>£{c.pa.toFixed(2)}</span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#b45309'}}>{e.paRate} allowance</span>
+                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#92400e'}}>£{c.pa.toFixed(2)}</span>
                         </div>
                       )}
                     </div>
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px',borderTop:'1px solid #e2e8f0',paddingTop:'8px',marginTop:'8px'}}>
-                      <div><div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div><div style={{fontWeight:900,fontSize:'13px',color:'#1e3a5f'}}>{fmt(c.gross)}</div></div>
-                      <div style={{textAlign:'right'}}><div style={{fontSize:'9px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div><div style={{fontWeight:900,fontSize:'13px',color:'#059669'}}>{fmt(eNet)}</div></div>
+                      <div><div style={{fontSize:isWide?'11px':'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div><div style={{fontWeight:900,fontSize:isWide?'16px':'13px',color:'#1e3a5f'}}>{fmt(c.gross)}</div></div>
+                      <div style={{textAlign:'right'}}><div style={{fontSize:isWide?'11px':'9px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div><div style={{fontWeight:900,fontSize:isWide?'16px':'13px',color:'#059669'}}>{fmt(eNet)}</div></div>
                     </div>
                   </div>
                 </div>
