@@ -1704,6 +1704,21 @@ export default function App() {
   const effectiveOtDate = e => e.otSubmittedDate || e.date;
   const effectivePaDate = e => e.paSubmittedDate || e.date;
 
+  // Shared by the List View entry row and the calendar day popup — same
+  // four states, same colours, just a different font size for each
+  // context. Extracted so the two can't quietly drift apart the way two
+  // separately-maintained copies of the same logic eventually do.
+  const carmsBadge = (e, fontSize) => {
+    const otOK = isOtSubmitted(e);
+    const hasPA = e.paRate && e.paRate!=='None';
+    const paOK = !hasPA || isPaSubmitted(e);
+    const style = {display:'inline-block',fontSize:fontSize+'px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',textTransform:'uppercase',letterSpacing:'0.5px'};
+    if (otOK && paOK) return <div style={{...style,background:'#f0fdf4',color:'#059669'}}>✓ Submitted</div>;
+    if (otOK && !paOK) return <div style={{...style,border:'1px solid #fecaca',background:'#fef2f2',color:'#b91c1c'}}>PA not submitted</div>;
+    if (!otOK && paOK) return <div style={{...style,border:'1px solid #fecaca',background:'#fef2f2',color:'#b91c1c'}}>Overtime not submitted</div>;
+    return <div style={{...style,border:'1px solid #fecaca',background:'#fef2f2',color:'#b91c1c'}}>Overtime &amp; PA not submitted</div>;
+  };
+
   // ── derived totals ─────────────────────────────────────────────────────────
   // Includes an entry if its shift date, OR either component's effective
   // (submission) date, falls in this financial year — a shift worked right
@@ -1748,13 +1763,22 @@ export default function App() {
     // whatever else was earned earlier in that prior year.
     let cum = 0;
     let totalGross=0, totalHrs=0;
+
+    // Computed once per entry rather than once per entry PER period — the
+    // loop below checks all 13 periods for every entry, so without this,
+    // calcEntry (and the date lookups) would re-run up to 13x more than
+    // necessary for the exact same result.
+    const entryCalc = new Map(fyEntries.map(e=>[e, calcEntry(e)]));
+    const entryOtDate = new Map(fyEntries.map(e=>[e, effectiveOtDate(e)]));
+    const entryPaDate = new Map(fyEntries.map(e=>[e, effectivePaDate(e)]));
+
     const periodBreakdown = PAY_PERIODS.map((p,pIdx)=>{
       // Hours worked this period — tracks the shift's own date regardless
       // of submission timing, since this is a factual record of when the
       // work happened, not when it gets paid.
       const pE = fyEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
       let hrs=0;
-      pE.forEach(e=>{ const c=calcEntry(e); hrs+=c.h1+c.h2+c.h3; });
+      pE.forEach(e=>{ const c=entryCalc.get(e); hrs+=c.h1+c.h2+c.h3; });
 
       // Money earned this period — attributed by each component's own
       // submission date, not the shift date, since OT and PA can be
@@ -1762,11 +1786,11 @@ export default function App() {
       // its own submission date falls in, matching the real payslip.
       let ot=0, night=0, pa=0;
       fyEntries.forEach(e=>{
-        const c = calcEntry(e);
-        const otDate = effectiveOtDate(e);
+        const c = entryCalc.get(e);
+        const otDate = entryOtDate.get(e);
         if (isOtSubmitted(e) && otDate>=p.start && otDate<=p.end) { ot+=c.ot; night+=c.night; }
         const hasPA = e.paRate && e.paRate!=='None';
-        const paDate = effectivePaDate(e);
+        const paDate = entryPaDate.get(e);
         if (hasPA && isPaSubmitted(e) && paDate>=p.start && paDate<=p.end) { pa+=c.pa; }
       });
 
@@ -1852,17 +1876,17 @@ export default function App() {
     // same reason — OT and PA can each land in a different YTD window.
     let otPaidToDate = 0, otNightPaidToDate = 0, hrsToDate = 0;
     fyEntries.forEach(e=>{
-      const c = calcEntry(e);
+      const c = entryCalc.get(e);
       if (e.date >= taxYearStart && e.date <= todayStr) {
         hrsToDate += c.h1 + c.h2 + c.h3;
       }
-      const otDate = effectiveOtDate(e);
+      const otDate = entryOtDate.get(e);
       if (isOtSubmitted(e) && otDate >= taxYearStart && otDate <= todayStr) {
         otPaidToDate += c.ot + c.night;
         otNightPaidToDate += c.ot + c.night; // hourly-earned only, excludes flat PA
       }
       const hasPA = e.paRate && e.paRate!=='None';
-      const paDate = effectivePaDate(e);
+      const paDate = entryPaDate.get(e);
       if (hasPA && isPaSubmitted(e) && paDate >= taxYearStart && paDate <= todayStr) {
         otPaidToDate += c.pa;
       }
@@ -1977,10 +2001,10 @@ export default function App() {
     return { groups, totalAmount, totalClaims, totalOtAmount, totalPaAmount, periodCount: groups.length };
   },[entries, calcEntry]);
 
-  // Which specific (entryId, component) pairs are currently ticked in the
-  // CARMS Outstanding view — a UI selection step separate from actually
-  // being submitted, cleared whenever the underlying outstanding set
-  // changes shape so stale ticks can't linger against different claims.
+  // Which subset of the outstanding list is currently shown — All /
+  // Overtime / PA. Overtime and PA are inclusive of each other (an item
+  // outstanding on both counts shows under either filter), since there's
+  // no longer a separate "Both" option to catch that overlap.
   const [carmsFilter, setCarmsFilter] = useState('all');
 
   // ── TOIL balance ───────────────────────────────────────────────────────────
@@ -3674,15 +3698,7 @@ export default function App() {
                                   <div style={{fontSize:'12px',fontWeight:700,color:'#3b82f6',marginTop:'2px',textTransform:'uppercase'}}>Duty / Reason: {e.reason||'Shift'}</div>
                                   {e.takeAs==='toil'&&<div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div>}
                                   {e.takeAs==='mix'&&<div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>Mix — Pay + TOIL</div>}
-                                  {(()=>{
-                                    const otOK = isOtSubmitted(e);
-                                    const hasPA = e.paRate && e.paRate!=='None';
-                                    const paOK = !hasPA || isPaSubmitted(e);
-                                    if (otOK && paOK) return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',background:'#f0fdf4',color:'#059669',textTransform:'uppercase',letterSpacing:'0.5px'}}>✓ Submitted</div>;
-                                    if (otOK && !paOK) return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',border:'1px solid #fecaca',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>PA not submitted</div>;
-                                    if (!otOK && paOK) return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',border:'1px solid #fecaca',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>Overtime not submitted</div>;
-                                    return <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',border:'1px solid #fecaca',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>Overtime &amp; PA not submitted</div>;
-                                  })()}
+                                  {carmsBadge(e, 10)}
                                 </div>
                                 <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
                                   <button onClick={()=>{setConfirmDel(null);startEdit(e);}} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
@@ -4944,15 +4960,7 @@ export default function App() {
                       <div style={{fontWeight:900,fontSize:'12px',color:'#3b82f6',textTransform:'uppercase'}}>Duty / Reason: {e.reason||'Shift'}</div>
                       {e.takeAs==='toil'&&<div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div>}
                       {e.takeAs==='mix'&&<div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>Mix — Pay + TOIL</div>}
-                      {(()=>{
-                        const otOK = isOtSubmitted(e);
-                        const hasPA = e.paRate && e.paRate!=='None';
-                        const paOK = !hasPA || isPaSubmitted(e);
-                        if (otOK && paOK) return <div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',background:'#f0fdf4',color:'#059669',textTransform:'uppercase',letterSpacing:'0.5px'}}>✓ Submitted</div>;
-                        if (otOK && !paOK) return <div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',border:'1px solid #fecaca',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>PA not submitted</div>;
-                        if (!otOK && paOK) return <div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',border:'1px solid #fecaca',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>Overtime not submitted</div>;
-                        return <div style={{display:'inline-block',fontSize:'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',border:'1px solid #fecaca',marginTop:'5px',marginLeft:'4px',background:'#fef2f2',color:'#b91c1c',textTransform:'uppercase',letterSpacing:'0.5px'}}>Overtime &amp; PA not submitted</div>;
-                      })()}
+                      {carmsBadge(e, 8)}
                     </div>
                     <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
                       <button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
