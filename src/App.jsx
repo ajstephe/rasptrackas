@@ -1622,14 +1622,16 @@ export default function App() {
     return ()=>clearTimeout(t);
   },[tab]);
 
-  // ── 14-day backup reminder ───────────────────────────────────────────────────
-  // Optional and dismissible — never blocks the app. Fires roughly every 14
+  // ── monthly backup reminder ──────────────────────────────────────────────────
+  // Optional and dismissible — never blocks the app. Fires roughly every 30
   // days, measured from whichever happened more recently: an actual backup,
   // or the last time this reminder was shown/dismissed. First-ever use just
-  // sets a baseline rather than nagging immediately.
+  // sets a baseline rather than nagging immediately. Monthly rather than
+  // more frequent, since data now syncs to the cloud automatically — this
+  // is just a periodic nudge for a downloadable hard copy, not a safety net.
   useEffect(()=>{
     if (entries.length === 0) return;
-    const REMINDER_INTERVAL = 14*24*60*60*1000;
+    const REMINDER_INTERVAL = 30*24*60*60*1000;
     const lastReminder = dualRead(KEYS.lastBackupReminder, null);
     const lastBackup   = dualRead(KEYS.backedUpAt, null);
     const baseline = Math.max(lastReminder||0, lastBackup||0);
@@ -1755,7 +1757,7 @@ export default function App() {
       setDatePickerMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
     };
     return (
-      <div onClick={ev=>ev.stopPropagation()} style={{background:'#fff',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid #e2e8f0',padding:'22px',width:'360px'}}>
+      <div onClick={ev=>ev.stopPropagation()} style={{background:'#fff',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid #e2e8f0',padding:'22px',width:'360px',maxWidth:'calc(100vw - 32px)',boxSizing:'border-box'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'18px'}}>
           <button onClick={()=>changeMonth(-1)} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cL" s={18} c="#475569"/></button>
           <div style={{fontWeight:900,fontSize:'17px',color:'#0f172a'}}>{monthLabel}</div>
@@ -2341,9 +2343,23 @@ export default function App() {
     markSaved();
   }
 
-  // Exports all logged shifts as a CSV — opens directly in Excel/Google Sheets/Numbers.
-  function handleExportCSV(start, end, sanitise){
-    const esc = v => `"${String(v??'').replace(/"/g,'""')}"`;
+  // SheetJS is loaded from a CDN at the moment it's actually needed, rather
+  // than as an npm dependency — keeps the deploy to just this one file,
+  // same as everything else here, no package.json/build step involved.
+  const loadXLSXLib = () => new Promise((resolve, reject) => {
+    if (window.XLSX) { resolve(window.XLSX); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    script.onload = () => resolve(window.XLSX);
+    script.onerror = () => reject(new Error('load failed'));
+    document.head.appendChild(script);
+  });
+
+  // Exports all logged shifts as an .xlsx workbook — opens directly in
+  // Excel/Google Sheets/Numbers. Gross/Net are real numeric cells here
+  // (not formatted text like a CSV would need), so they sum and format
+  // correctly if someone builds on top of the export in Excel.
+  async function handleExportCSV(start, end, sanitise){
     const headers = [
       'Date','Duty/Reason','1.33x Hours','1.5x Hours','2.0x Hours',
       'Night Hours (Enhanced)','PA Rate','Gross (£)','Net (£)','Rate Applied','Notes'
@@ -2366,18 +2382,23 @@ export default function App() {
       return [
         e.date, e.reason||'', c.h1||'', c.h2||'', c.h3||'',
         c.nh||'', e.paRate!=='None'?e.paRate:'',
-        c.gross.toFixed(2), result.net.toFixed(2),
+        Math.round(c.gross*100)/100, Math.round(result.net*100)/100,
         result.bandName ? `${result.bandName} (${result.rate.toFixed(1)}%)` : '',
         sanitise ? '' : (e.comments||'')
-      ].map(esc).join(',');
+      ];
     });
-    const csv = [headers.map(esc).join(','), ...rows].join('\r\n');
-    const blob = new Blob(['\uFEFF'+csv], { type:'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
     const suffix = start&&end ? `_${start}_to_${end}` : `_${new Date().toISOString().split('T')[0]}`;
-    Object.assign(document.createElement('a'),{href:url,download:`OvertimeShiftTracker_Records${suffix}.csv`}).click();
-    URL.revokeObjectURL(url);
-    addToast('CSV exported');
+    try {
+      const XLSX = await loadXLSXLib();
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      ws['!cols'] = [{wch:11},{wch:28},{wch:11},{wch:11},{wch:11},{wch:11},{wch:9},{wch:11},{wch:11},{wch:20},{wch:30}];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Overtime Records');
+      XLSX.writeFile(wb, `OvertimeShiftTracker_Records${suffix}.xlsx`);
+      addToast('Spreadsheet exported');
+    } catch (err) {
+      addToast('Could not reach the spreadsheet library — check your connection and try again');
+    }
   }
 
   const handleImport=ev=>{
@@ -2988,7 +3009,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ── 14-day backup reminder — optional, dismissible, never blocks the app ── */}
+      {/* ── monthly backup reminder — optional, dismissible, never blocks the app ── */}
       {showBackupReminder&&(
         <div className="fi no-print" style={{background:'#eff6ff',borderBottom:'1px solid #bfdbfe',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15}}>
           <div style={{background:'#dbeafe',borderRadius:'10px',padding:'7px',flexShrink:0}}><Ico n="shield" s={15} c="#2563eb"/></div>
@@ -3545,8 +3566,12 @@ export default function App() {
                   <div>
                     <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>Overtime submitted on CARMS</div>
                   </div>
-                  <div onClick={()=>setForm({...form,otSubmitted:!form.otSubmitted,otSubmittedDate:(!form.otSubmitted&&!form.otSubmittedDate)?todayStr:form.otSubmittedDate})} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.otSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
-                    <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.otSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
+                  <div onClick={()=>{
+                    if (form.otSubmitted) { setForm({...form,otSubmitted:false}); return; }
+                    setDatePickerMonth(todayStr.slice(0,7));
+                    setDatePickerFor('ot');
+                  }} style={{width:'26px',height:'26px',borderRadius:'8px',border:form.otSubmitted?'none':'2px solid #cbd5e1',background:form.otSubmitted?'#059669':'#fff',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all 0.15s'}}>
+                    {form.otSubmitted&&<Ico n="check" s={16} c="#fff" w={3}/>}
                   </div>
                 </div>
                 {form.otSubmitted&&(
@@ -3568,8 +3593,13 @@ export default function App() {
                     <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>PA Submitted on MetHR</div>
                     <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{form.paRate==='None' ? 'No PA rate selected for this shift' : `${form.paRate} — ${fmtGBP(PA_RATES[form.paRate]||0)}`}</div>
                   </div>
-                  <div onClick={()=>{ if(form.paRate!=='None') setForm({...form,paSubmitted:!form.paSubmitted,paSubmittedDate:(!form.paSubmitted&&!form.paSubmittedDate)?todayStr:form.paSubmittedDate}); }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:form.paRate==='None'?'default':'pointer',flexShrink:0,background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
-                    <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(form.paRate!=='None'&&form.paSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
+                  <div onClick={()=>{
+                    if (form.paRate==='None') return;
+                    if (form.paSubmitted) { setForm({...form,paSubmitted:false}); return; }
+                    setDatePickerMonth(todayStr.slice(0,7));
+                    setDatePickerFor('pa');
+                  }} style={{width:'26px',height:'26px',borderRadius:'8px',border:(form.paRate!=='None'&&form.paSubmitted)?'none':'2px solid #cbd5e1',background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'#fff',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:form.paRate==='None'?'default':'pointer',transition:'all 0.15s'}}>
+                    {(form.paRate!=='None'&&form.paSubmitted)&&<Ico n="check" s={16} c="#fff" w={3}/>}
                   </div>
                 </div>
                 {form.paRate!=='None'&&form.paSubmitted&&(
@@ -3746,12 +3776,12 @@ export default function App() {
                       const g = carmsOutstanding.groups.find(g=>g.periodIdx===idx);
                       if (!g) return null;
                       return (
-                        <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'11px',padding:'9px 12px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
-                            <Ico n="clock" s={13} c="#d97706"/>
-                            <span style={{fontSize:'13px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
+                        <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'13px',padding:'12px 14px',marginTop:'9px',cursor:'pointer'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:'7px',marginBottom:'4px'}}>
+                            <Ico n="clock" s={16} c="#d97706"/>
+                            <span style={{fontSize:'19px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
                           </div>
-                          <span style={{fontSize:'13px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(g.periodTotal)}</span>
+                          <div style={{fontSize:'19px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</div>
                         </div>
                       );
                     })()}
@@ -4097,12 +4127,12 @@ export default function App() {
                     const g = carmsOutstanding.groups.find(g=>g.periodIdx===cIdx);
                     if (!g) return null;
                     return (
-                      <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'11px',padding:'9px 12px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
+                      <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'13px',padding:'11px 14px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
-                          <Ico n="clock" s={13} c="#d97706"/>
-                          <span style={{fontSize:'13px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
+                          <Ico n="clock" s={14} c="#d97706"/>
+                          <span style={{fontSize:'14px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
                         </div>
-                        <span style={{fontSize:'13px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(g.periodTotal)}</span>
+                        <span style={{fontSize:'18px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</span>
                       </div>
                     );
                   })()}
@@ -5203,14 +5233,17 @@ export default function App() {
         </div>
       )}
 
-      {/* Desktop-only CARMS submission-date picker overlay — see
-           renderDatePickerGrid above for why this exists instead of the
-           native input on desktop. */}
+      {/* CARMS submission-date picker overlay. Also reachable via the
+           toggles now, not just the desktop edit-date button — turning a
+           toggle on opens this without pre-selecting anything, and the
+           toggle itself only actually flips once a day is genuinely
+           picked; dismissing without picking leaves both the toggle and
+           the date untouched. */}
       {datePickerFor&&(
         <div onClick={()=>setDatePickerFor(null)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60}}>
           {datePickerFor==='ot'
-            ? renderDatePickerGrid(form.otSubmittedDate||todayStr, v=>setForm(f=>({...f,otSubmittedDate:v})))
-            : renderDatePickerGrid(form.paSubmittedDate||todayStr, v=>setForm(f=>({...f,paSubmittedDate:v})))}
+            ? renderDatePickerGrid(form.otSubmittedDate||'', v=>setForm(f=>({...f,otSubmittedDate:v,otSubmitted:true})))
+            : renderDatePickerGrid(form.paSubmittedDate||'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})))}
         </div>
       )}
 
