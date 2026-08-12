@@ -1201,6 +1201,11 @@ export default function App() {
   const [confirmCreateDay, setConfirmCreateDay] = useState(null);
   const [focusEntryId, setFocusEntryId] = useState(null);
   const [focusCarmsToggle, setFocusCarmsToggle] = useState(false);
+
+  // Which period group in CARMS Outstanding should scroll into view and
+  // pulse, set when jumping there from a "CARMS & MetHR pending" panel in
+  // Summary — same scroll-and-fade pattern as focusEntryId/focusCarmsToggle.
+  const [pulsePeriodIdx, setPulsePeriodIdx] = useState(null);
   const [editing,      setEditing]      = useState(null);
   const [wipeConf,     setWipeConf]     = useState(false);
   const [wipingData,   setWipingData]   = useState(false);
@@ -1264,6 +1269,7 @@ export default function App() {
   const stickyRef = useRef(null);
   const entryRefs = useRef({});
   const carmsToggleRef = useRef(null);
+  const periodGroupRefs = useRef({});
 
   // Desktop-only custom date picker for the CARMS submission-date fields —
   // native <input type="date"> stays exactly as-is on mobile, where it
@@ -2583,6 +2589,23 @@ export default function App() {
     return ()=>clearTimeout(t);
   },[focusCarmsToggle, tab]);
 
+  // Jumping to a specific period group in CARMS Outstanding from a "CARMS &
+  // MetHR pending" panel in Summary — same scroll-then-fade shape as the
+  // two effects above.
+  useEffect(()=>{
+    if(pulsePeriodIdx===null || tab!=='carms') return;
+    const t = setTimeout(()=>{
+      const el = periodGroupRefs.current[pulsePeriodIdx];
+      const cont = mainRef.current;
+      if(el && cont){
+        const top = cont.scrollTop + el.getBoundingClientRect().top - cont.getBoundingClientRect().top - 12;
+        cont.scrollTo({ top: Math.max(0, top), behavior:'smooth' });
+      }
+      setTimeout(()=>setPulsePeriodIdx(null), 2200);
+    }, 220);
+    return ()=>clearTimeout(t);
+  },[pulsePeriodIdx, tab]);
+
   // ── display helpers ────────────────────────────────────────────────────────
 
   // Today's effective rates were shown on Home; now only surfaced in Options.
@@ -3723,12 +3746,12 @@ export default function App() {
                       const g = carmsOutstanding.groups.find(g=>g.periodIdx===idx);
                       if (!g) return null;
                       return (
-                        <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'11px',padding:'9px 12px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                        <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'11px',padding:'9px 12px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                             <Ico n="clock" s={13} c="#d97706"/>
-                            <span style={{fontSize:'11px',fontWeight:800,color:'#92400e'}}>CARMS &amp; MetHR pending</span>
+                            <span style={{fontSize:'13px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
                           </div>
-                          <span style={{fontSize:'13px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</span>
+                          <span style={{fontSize:'13px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(g.periodTotal)}</span>
                         </div>
                       );
                     })()}
@@ -4074,12 +4097,12 @@ export default function App() {
                     const g = carmsOutstanding.groups.find(g=>g.periodIdx===cIdx);
                     if (!g) return null;
                     return (
-                      <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'11px',padding:'9px 12px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'11px',padding:'9px 12px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                           <Ico n="clock" s={13} c="#d97706"/>
-                          <span style={{fontSize:'11px',fontWeight:800,color:'#92400e'}}>CARMS &amp; MetHR pending</span>
+                          <span style={{fontSize:'13px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
                         </div>
-                        <span style={{fontSize:'13px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</span>
+                        <span style={{fontSize:'13px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(g.periodTotal)}</span>
                       </div>
                     );
                   })()}
@@ -4154,7 +4177,7 @@ export default function App() {
                       return fmtGBP(total);
                     })();
                     return (
-                      <div key={g.periodIdx} style={{marginBottom:'14px'}}>
+                      <div key={g.periodIdx} ref={el=>periodGroupRefs.current[g.periodIdx]=el} className={pulsePeriodIdx===g.periodIdx?'carms-pulse':''} style={{marginBottom:'14px',borderRadius:'14px',border:pulsePeriodIdx===g.periodIdx?'2px solid #2563eb':'2px solid transparent'}}>
                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 4px',fontSize:'10.5px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.6px'}}>
                           <span>{g.period.short} · {g.period.month} · {fmtD(g.period.start)} – {fmtD(g.period.end)}</span>
                           <span>{visibleTotalLabel}</span>
