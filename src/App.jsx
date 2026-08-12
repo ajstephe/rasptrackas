@@ -1763,6 +1763,9 @@ export default function App() {
           <div style={{fontWeight:900,fontSize:'17px',color:'#0f172a'}}>{monthLabel}</div>
           <button onClick={()=>changeMonth(1)} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
         </div>
+        <div style={{fontSize:'12.5px',fontWeight:700,color:'#64748b',textAlign:'center',marginBottom:'14px'}}>
+          {datePickerFor==='ot' ? 'Select the date you submitted this OT to CARMS' : 'Select the date you submitted this PA claim to MetHR'}
+        </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'6px'}}>
           {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=><div key={d} style={{textAlign:'center',fontSize:'11.5px',fontWeight:800,color:'#94a3b8',padding:'4px 0'}}>{d}</div>)}
         </div>
@@ -3570,8 +3573,8 @@ export default function App() {
                     if (form.otSubmitted) { setForm({...form,otSubmitted:false}); return; }
                     setDatePickerMonth(todayStr.slice(0,7));
                     setDatePickerFor('ot');
-                  }} style={{width:'26px',height:'26px',borderRadius:'8px',border:form.otSubmitted?'none':'2px solid #cbd5e1',background:form.otSubmitted?'#059669':'#fff',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all 0.15s'}}>
-                    {form.otSubmitted&&<Ico n="check" s={16} c="#fff" w={3}/>}
+                  }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.otSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
+                    <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.otSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
                   </div>
                 </div>
                 {form.otSubmitted&&(
@@ -3598,8 +3601,8 @@ export default function App() {
                     if (form.paSubmitted) { setForm({...form,paSubmitted:false}); return; }
                     setDatePickerMonth(todayStr.slice(0,7));
                     setDatePickerFor('pa');
-                  }} style={{width:'26px',height:'26px',borderRadius:'8px',border:(form.paRate!=='None'&&form.paSubmitted)?'none':'2px solid #cbd5e1',background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'#fff',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:form.paRate==='None'?'default':'pointer',transition:'all 0.15s'}}>
-                    {(form.paRate!=='None'&&form.paSubmitted)&&<Ico n="check" s={16} c="#fff" w={3}/>}
+                  }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:form.paRate==='None'?'default':'pointer',flexShrink:0,background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
+                    <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(form.paRate!=='None'&&form.paSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
                   </div>
                 </div>
                 {form.paRate!=='None'&&form.paSubmitted&&(
