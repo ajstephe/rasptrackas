@@ -2395,13 +2395,13 @@ export default function App() {
       'Night Hours (Enhanced)','PA Rate','Submitted','Gross (£)',
       'Cumulative Taxable Income Before This Entry (£)','Net (£)','Rate Applied','Notes'
     ];
-    // DD/MM/YY as plain text — deliberately not a real date cell, since
+    // DD/MM/YYYY as plain text — deliberately not a real date cell, since
     // date-serial conversion between JS and Excel can silently shift by a
     // day around timezone boundaries. A formatted string always shows
     // exactly what it says, with no risk of that.
-    const fmtDDMMYY = dateStr => {
+    const fmtDDMMYYYY = dateStr => {
       const [y,m,d] = dateStr.split('-');
-      return `${d}/${m}/${y.slice(2)}`;
+      return `${d}/${m}/${y}`;
     };
     const submittedLabel = e => {
       const hasPA = e.paRate && e.paRate!=='None';
@@ -2445,7 +2445,7 @@ export default function App() {
       // label set separately below — this row array only ever fills
       // columns B onward.
       return [
-        '', fmtDDMMYY(e.date), e.reason||'', c.h1||'', c.h2||'', c.h3||'',
+        '', fmtDDMMYYYY(e.date), e.reason||'', c.h1||'', c.h2||'', c.h3||'',
         c.nh||'', e.paRate!=='None'?e.paRate:'',
         submittedLabel(e),
         Math.round(gross*100)/100,
@@ -2546,7 +2546,11 @@ export default function App() {
           if (cell.col===1) return; // column A is the merged period label, styled separately above
           if (isStripe) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} };
           cell.border = { top:isNewPeriod?periodBoundary:thinGrey, bottom:thinGrey, left:thinGrey, right:thinGrey };
-          cell.alignment = { vertical:'middle' };
+          // Duty/Reason (col 3) and Notes (col 14) are the two free-text
+          // fields most likely to occasionally run longer than the column
+          // width comfortably allows — wrap those specifically rather than
+          // truncating, so nothing needs manually expanding to read.
+          cell.alignment = { vertical:'middle', wrapText: cell.col===3 || cell.col===14 };
         });
         currencyCols.forEach(col => { row.getCell(col).numFmt = acctFmt; });
         // A subtle pistachio left-border accent on fully-submitted rows —
@@ -2573,7 +2577,7 @@ export default function App() {
           const len = String(expandedRows[r][i] ?? '').length;
           if (len > maxLen) maxLen = len;
         }
-        ws.getColumn(i+1).width = Math.min(Math.max(maxLen + 2, 10), 45);
+        ws.getColumn(i+1).width = Math.min(Math.max(maxLen + 2, 10), 65);
       });
 
       const buffer = await wb.xlsx.writeBuffer();
@@ -4012,9 +4016,9 @@ export default function App() {
                         <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'13px',padding:'12px 14px',marginTop:'9px',cursor:'pointer'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'7px',marginBottom:'4px'}}>
                             <Ico n="clock" s={16} c="#d97706"/>
-                            <span style={{fontSize:'19px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
+                            <span style={{fontSize:'17.5px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
                           </div>
-                          <div style={{fontSize:'19px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</div>
+                          <div style={{fontSize:'17.5px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</div>
                         </div>
                       );
                     })()}
@@ -4373,12 +4377,12 @@ export default function App() {
                     const g = carmsOutstanding.groups.find(g=>g.periodIdx===cIdx);
                     if (!g) return null;
                     return (
-                      <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} className="nav-add-pulse" style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'13px',padding:'11px 14px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
+                      <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} className="nav-add-pulse" style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'13px',padding:'18px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                           <Ico n="clock" s={14} c="#d97706"/>
-                          <span style={{fontSize:'14px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
+                          <span style={{fontSize:'12.5px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
                         </div>
-                        <span style={{fontSize:'18px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</span>
+                        <span style={{fontSize:'21.5px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</span>
                       </div>
                     );
                   })()}
