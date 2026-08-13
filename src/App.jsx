@@ -67,7 +67,7 @@ const NAV_TABS = [
   {id:'dashboard',n:'home', lbl:'Home'},
   {id:'add',      n:'plus', lbl:'Log Overtime'},
   {id:'months',   n:'cal',  lbl:'Summary'},
-  {id:'carms',    n:'check', lbl:'CARMS'},
+  {id:'carms',    n:'check', lbl:'CARMS/PA'},
   {id:'graph',    n:'clock', lbl:'TOIL'},
   {id:'settings', n:'cog',  lbl:'More..'},
 ];
@@ -707,6 +707,7 @@ const Ico = ({ n, s=20, c, w=2, f='none' }) => (
     {n==='trash' &&<><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>}
     {n==='save'  &&<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>}
     {n==='clock' &&<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>}
+    {n==='coffee' &&<><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></>}
     {n==='cR'    &&<polyline points="9 18 15 12 9 6"/>}
     {n==='cL'    &&<polyline points="15 18 9 12 15 6"/>}
     {n==='cU'    &&<polyline points="18 15 12 9 6 15"/>}
@@ -1237,6 +1238,7 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize);
   },[]);
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
   const [showBackupReminder, setShowBackupReminder] = useState(false);
   const [showFYRollover, setShowFYRollover] = useState(false);
@@ -1275,6 +1277,7 @@ export default function App() {
   const entryRefs = useRef({});
   const carmsToggleRef = useRef(null);
   const periodGroupRefs = useRef({});
+  const calSwipeStartX = useRef(null);
 
   // Desktop-only custom date picker for the CARMS submission-date fields —
   // native <input type="date"> stays exactly as-is on mobile, where it
@@ -2410,10 +2413,12 @@ export default function App() {
     };
     const inRange = e => (!start || e.date>=start) && (!end || e.date<=end);
     const sorted = [...entries].filter(inRange).sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const rowPeriodIdx = []; // parallel array, tracked purely to draw the period-boundary border below — not exported as a column
     const rows = sorted.map(e=>{
       const c = calcEntry(e);
       const gross = submittedGross(e);
       const pIdx = PAY_PERIODS.findIndex(p=>e.date>=p.start&&e.date<=p.end);
+      rowPeriodIdx.push(pIdx);
       const p = pIdx>=0 ? PAY_PERIODS[pIdx] : null;
       const pb = pIdx>=0 ? totals.periodBreakdown[pIdx] : null;
       // Every other entry within this SAME pay period, dated before this
@@ -2474,15 +2479,20 @@ export default function App() {
       const acctFmt = '_-£* #,##0.00_-;-£* #,##0.00_-;_-£* "-"??_-;_-@_-';
       const currencyCols = ['I','J','K'];
       const thinGrey = { style:'thin', color:{argb:'FFD9E2E8'} };
+      // Thick border wherever the pay period changes from the row above —
+      // same grey-blue as the header, so scanning down the list makes it
+      // obvious which dates fall within the same pay run.
+      const periodBoundary = { style:'thick', color:{argb:'FF5C7C99'} };
 
       rows.forEach((r, i) => {
         const row = ws.getRow(i+2);
         // Alternating pistachio-tinted stripe for readability on longer
         // exports, rather than a plain flat white background throughout.
         const isStripe = i % 2 === 1;
+        const isNewPeriod = i===0 || rowPeriodIdx[i] !== rowPeriodIdx[i-1];
         row.eachCell({ includeEmpty:true }, cell => {
           if (isStripe) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} };
-          cell.border = { top:thinGrey, bottom:thinGrey, left:thinGrey, right:thinGrey };
+          cell.border = { top:isNewPeriod?periodBoundary:thinGrey, bottom:thinGrey, left:thinGrey, right:thinGrey };
           cell.alignment = { vertical:'middle' };
         });
         currencyCols.forEach(col => { row.getCell(col).numFmt = acctFmt; });
@@ -3139,6 +3149,24 @@ export default function App() {
             <div style={{display:'flex',gap:'8px'}}>
               <button onClick={()=>{ setSignOutConfirmOpen(false); handleSignOut(); }} style={{flex:1,padding:'12px',background:'#2563eb',border:'none',borderRadius:'11px',color:'#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Sign Out</button>
               <button onClick={()=>setSignOutConfirmOpen(false)} style={{flex:1,padding:'12px',background:'#f1f5f9',border:'none',borderRadius:'11px',color:'#64748b',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {restoreConfirmOpen&&(
+        <div onClick={()=>setRestoreConfirmOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.55)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
+          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+            <button onClick={()=>setRestoreConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'#f1f5f9',border:'none',borderRadius:'50%',cursor:'pointer'}}>
+              <Ico n="x" s={14} c="#64748b"/>
+            </button>
+            {!isWide && <div style={{width:'36px',height:'4px',background:'#e2e8f0',borderRadius:'4px',margin:'0 auto 14px'}}/>}
+            <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>Are you sure you want to overwrite the existing data?</div>
+            <div style={{fontSize:'12px',color:'#64748b',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>Do you want to create a backup before proceeding?</div>
+            <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+              <button onClick={async ()=>{ setRestoreConfirmOpen(false); await handleExport(); fileRef.current.click(); }} style={{padding:'12px',background:'#2563eb',border:'none',borderRadius:'11px',color:'#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Back Up, Then Restore</button>
+              <button onClick={()=>{ setRestoreConfirmOpen(false); fileRef.current.click(); }} style={{padding:'12px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'11px',color:'#b91c1c',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Restore Without Backup</button>
+              <button onClick={()=>setRestoreConfirmOpen(false)} style={{padding:'12px',background:'#f1f5f9',border:'none',borderRadius:'11px',color:'#64748b',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
             </div>
           </div>
         </div>
@@ -4167,7 +4195,17 @@ export default function App() {
                   <div className="hint-pulse" style={{fontSize:'14px',color:'#94a3b8',textAlign:'center',fontWeight:600,margin:'10px 0'}}>Tap a day to view details or add an entry</div>
 
                   {/* calendar grid */}
-                  <div style={{...S.card,overflow:'hidden'}}>
+                  <div
+                    onTouchStart={isWide?undefined:(e=>{ calSwipeStartX.current = e.touches[0].clientX; })}
+                    onTouchEnd={isWide?undefined:(e=>{
+                      if (calSwipeStartX.current===null) return;
+                      const dx = e.changedTouches[0].clientX - calSwipeStartX.current;
+                      calSwipeStartX.current = null;
+                      if (Math.abs(dx) < 50) return; // too small to count as an intentional swipe
+                      if (dx > 0) setCalPeriodIdx(i=>Math.max(0,(i===null?currPeriodIdx:i)-1));
+                      else setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1));
+                    })}
+                    style={{...S.card,overflow:'hidden'}}>
                     {/* minmax(0,1fr) is essential — plain '1fr' lets long cell text (e.g. "5h@1.33x")
                         force columns wider than their share, which pushed the grid past the screen edge */}
                     <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:'3px',marginBottom:'8px'}}>
@@ -4308,7 +4346,7 @@ export default function App() {
         {/* ══════════════════════════════════════════ CARMS OUTSTANDING */}
         {tab==='carms'&&(
           <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
-            <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',margin:'0 0 18px',letterSpacing:'-0.5px'}}>CARMS Outstanding</h2>
+            <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',margin:'0 0 18px',letterSpacing:'-0.5px'}}>CARMS &amp; PA Outstanding</h2>
 
             <div style={{...S.dark,background:'#0f2744'}}>
               <div style={{fontSize:'11px',color:'#93c5fd',fontWeight:600,lineHeight:1.5,marginBottom:'14px'}}>We all like to hold back a bit of Overtime or PA every now and again to manage things. Below shows whether something has been submitted in CARMS and whether PA has been submitted. Keep a track of what you're withholding.</div>
@@ -4422,7 +4460,7 @@ export default function App() {
 
             <div style={{...S.card,background:'#fff',border:'1.5px solid #ede9fe'}}>
               <div style={{...S.lbl,fontSize:'12px',marginBottom:'8px'}}>Redeem TOIL</div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 52px 66px',gap:'8px',marginBottom:'8px'}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 52px 80px',gap:'8px',marginBottom:'8px'}}>
                 <input type="date" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',boxSizing:'border-box'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
                 <input type="number" min="0" step="1" placeholder="Hrs" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>
                 <select style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px 4px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box',background:'#fff'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
@@ -4842,7 +4880,7 @@ export default function App() {
                   <div style={{fontSize:'11px',color:'rgba(147,197,253,0.65)',marginBottom:'11px',lineHeight:1.5}}>Data is automatically synced and backed up to a secure cloud. To create a hard downloadable backup, select BACKUP. To restore from a previous hard copy, select RESTORE.</div>
                   <div style={{display:'flex',gap:'6px',marginBottom:'11px'}}>
                     <button onClick={handleExport} className={pulseBackupBtn?'backup-pulse':''} style={{flex:1,padding:'10px',background:'#2563eb',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="dl" s={12} c="#fff"/> Backup</button>
-                    <button onClick={()=>fileRef.current.click()} style={{flex:1,padding:'10px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="ul" s={12} c="#fff"/> Restore</button>
+                    <button onClick={()=>setRestoreConfirmOpen(true)} style={{flex:1,padding:'10px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="ul" s={12} c="#fff"/> Restore</button>
                     <input type="file" ref={fileRef} style={{display:'none'}} accept=".json" onChange={handleImport}/>
                   </div>
 
@@ -4914,10 +4952,13 @@ export default function App() {
                 <Ico n="cR" s={16} c="#94a3b8"/>
               </a>
               <div style={{borderTop:'1px solid #f1f5f9',margin:'14px 0'}}/>
-              <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a',marginBottom:'6px'}}>Want to say thanks?</div>
+              <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
+                <Ico n="coffee" s={16} c="#d97706"/>
+                <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Want to say thanks?</div>
+              </div>
               <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,lineHeight:1.6}}>
-                It wasn't smooth sailing putting this app together, maintaining the code and hosting it. If you want to say thanks by buying me a coffee please feel free to donate using this link{' '}
-                <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>settleup.starlingbank.com/adam-stephens-2b95aa</a>.
+                It wasn't smooth sailing putting this app together, maintaining the code and hosting it. If you want to say thanks, please feel free to{' '}
+                <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a>.
               </div>
               <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,marginTop:'8px'}}>Thanks for your support.</div>
             </div>
