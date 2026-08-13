@@ -2355,14 +2355,18 @@ export default function App() {
     markSaved();
   }
 
-  // SheetJS is loaded from a CDN at the moment it's actually needed, rather
+  // ExcelJS is loaded from a CDN at the moment it's actually needed, rather
   // than as an npm dependency — keeps the deploy to just this one file,
   // same as everything else here, no package.json/build step involved.
-  const loadXLSXLib = () => new Promise((resolve, reject) => {
-    if (window.XLSX) { resolve(window.XLSX); return; }
+  // Using ExcelJS specifically rather than the more common SheetJS here,
+  // because SheetJS's free tier doesn't reliably write cell styling (fills,
+  // fonts) into the file — confirmed by testing it directly — whereas
+  // ExcelJS's free/open-source build genuinely supports it.
+  const loadExcelJSLib = () => new Promise((resolve, reject) => {
+    if (window.ExcelJS) { resolve(window.ExcelJS); return; }
     const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    script.onload = () => resolve(window.XLSX);
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+    script.onload = () => resolve(window.ExcelJS);
     script.onerror = () => reject(new Error('load failed'));
     document.head.appendChild(script);
   });
@@ -2443,22 +2447,73 @@ export default function App() {
     });
     const suffix = start&&end ? `_${start}_to_${end}` : `_${new Date().toISOString().split('T')[0]}`;
     try {
-      const XLSX = await loadXLSXLib();
-      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      ws['!cols'] = [{wch:11},{wch:28},{wch:11},{wch:11},{wch:11},{wch:11},{wch:9},{wch:18},{wch:11},{wch:20},{wch:11},{wch:20},{wch:30}];
-      // Accounting format on the three currency columns (I, J, K) — aligned
-      // £ symbol, thousands separators, negatives in parentheses, a plain
-      // dash for zero, matching how Excel's own "Accounting" format looks.
+      const ExcelJS = await loadExcelJSLib();
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Overtime Records');
+
+      ws.addRow(headers);
+      rows.forEach(r => ws.addRow(r));
+
+      // Header row — grey-blue fill, white bold text, frozen so it stays
+      // visible while scrolling through a long list of shifts.
+      const headerRow = ws.getRow(1);
+      headerRow.height = 24;
+      headerRow.eachCell(cell => {
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF5C7C99'} };
+        cell.font = { bold:true, color:{argb:'FFFFFFFF'}, size:11 };
+        cell.alignment = { vertical:'middle', horizontal:'center', wrapText:true };
+        cell.border = { bottom:{style:'medium',color:{argb:'FF3E5A70'}} };
+      });
+      ws.views = [{ state:'frozen', ySplit:1 }];
+
+      // Currency columns (I, J, K) get the accounting format — aligned £
+      // symbol, thousands separators, a plain dash for zero, matching
+      // Excel's own built-in "Accounting" look.
       const acctFmt = '_-£* #,##0.00_-;-£* #,##0.00_-;_-£* "-"??_-;_-@_-';
-      ['I','J','K'].forEach(col => {
-        for (let r=2; r<=rows.length+1; r++){
-          const cell = ws[`${col}${r}`];
-          if (cell) cell.z = acctFmt;
+      const currencyCols = ['I','J','K'];
+      const thinGrey = { style:'thin', color:{argb:'FFD9E2E8'} };
+
+      rows.forEach((r, i) => {
+        const row = ws.getRow(i+2);
+        // Alternating pistachio-tinted stripe for readability on longer
+        // exports, rather than a plain flat white background throughout.
+        const isStripe = i % 2 === 1;
+        row.eachCell({ includeEmpty:true }, cell => {
+          if (isStripe) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} };
+          cell.border = { top:thinGrey, bottom:thinGrey, left:thinGrey, right:thinGrey };
+          cell.alignment = { vertical:'middle' };
+        });
+        currencyCols.forEach(col => { row.getCell(col).numFmt = acctFmt; });
+        // A subtle pistachio left-border accent on fully-submitted rows —
+        // ties the colour scheme to something functionally meaningful
+        // rather than purely decorative.
+        if (r[7] === 'Yes') {
+          row.getCell('A').border = { ...row.getCell('A').border, left:{style:'medium',color:{argb:'FF8FBC6B'}} };
         }
       });
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Overtime Records');
-      XLSX.writeFile(wb, `OvertimeShiftTracker_Records${suffix}.xlsx`);
+
+      // Column widths sized to the longest actual value in each column
+      // (header or data), not a guess — genuinely fits the content. Uses
+      // getColumn(index) explicitly rather than ws.columns.forEach, since
+      // a column with no non-empty data cells (e.g. PA Rate when nothing
+      // has PA, or Notes when sanitised) isn't reliably picked up by the
+      // implicit columns array otherwise. Floor is 10, not 9 — confirmed
+      // by direct testing that a width of exactly 9 gets silently dropped
+      // by this version of the library when the file is written.
+      headers.forEach((h, i) => {
+        let maxLen = String(h).length;
+        for (let r=0; r<rows.length; r++){
+          const len = String(rows[r][i] ?? '').length;
+          if (len > maxLen) maxLen = len;
+        }
+        ws.getColumn(i+1).width = Math.min(Math.max(maxLen + 2, 10), 45);
+      });
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      Object.assign(document.createElement('a'),{href:url,download:`OvertimeShiftTracker_Records${suffix}.xlsx`}).click();
+      URL.revokeObjectURL(url);
       addToast('Spreadsheet exported');
     } catch (err) {
       addToast('Could not reach the spreadsheet library — check your connection and try again');
