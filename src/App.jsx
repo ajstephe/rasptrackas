@@ -3739,8 +3739,6 @@ export default function App() {
               )}
             </div>
 
-            <div style={{display:'flex',gap:isWide?'20px':0,alignItems:'flex-start'}}>
-            <div style={{flex:isWide?'0 0 430px':1,minWidth:0}}>
             {breakdownView==='list' ? (
             <>
             {PAY_PERIODS.map((p,idx)=>{
@@ -3773,12 +3771,10 @@ export default function App() {
                         <div style={{fontSize:'11px',fontWeight:700,color:'#94a3b8'}}>{pE.length} record{pE.length!==1?'s':''}</div>
                       </div>
                     </div>
-                    {!isWide && (
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                        <div><div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'19px',color:'#1e3a5f'}}>{fmt(totG)}</div></div>
-                        <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'19px',color:'#059669'}}>{fmt(totN)}</div></div>
-                      </div>
-                    )}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
+                      <div><div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'19px',color:'#1e3a5f'}}>{fmt(totG)}</div></div>
+                      <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'19px',color:'#059669'}}>{fmt(totN)}</div></div>
+                    </div>
                     {(() => {
                       const g = carmsOutstanding.groups.find(g=>g.periodIdx===idx);
                       if (!g) return null;
@@ -3942,7 +3938,7 @@ export default function App() {
                 </div>
               );
             })}
-            {!isWide && renderFYTotalsCard()}
+            {renderFYTotalsCard()}
             </>
             ) : (
             <>
@@ -4144,46 +4140,18 @@ export default function App() {
                     );
                   })()}
 
-                  {!isWide && (
-                    <div style={{...S.card,marginTop:'9px'}}>
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                        <div><div style={{fontSize:'14px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'23px',color:'#1e3a5f'}}>{fmt(pb.combinedGross)}</div></div>
-                        <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'23px',color:'#059669'}}>{fmt(pb.combinedNet)}</div></div>
-                      </div>
+                  <div style={{...S.card,marginTop:'9px'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
+                      <div><div style={{fontSize:'14px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'23px',color:'#1e3a5f'}}>{fmt(pb.combinedGross)}</div></div>
+                      <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'23px',color:'#059669'}}>{fmt(pb.combinedNet)}</div></div>
                     </div>
-                  )}
-                  {!isWide && renderFYTotalsCard()}
+                  </div>
+                  {renderFYTotalsCard()}
                 </>
               );
             })()}
             </>
             )}
-            </div>
-
-            {isWide && (()=>{
-              const rightColIdx = breakdownView==='list'
-                ? PAY_PERIODS.findIndex(p=>p.month===expanded)
-                : (calPeriodIdx===null ? currPeriodIdx : calPeriodIdx);
-              const rightPb = rightColIdx>=0 ? totals.periodBreakdown[rightColIdx] : null;
-              return (
-                <div style={{flex:1,minWidth:0}}>
-                  {rightPb ? (
-                    <div style={S.card}>
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                        <div><div style={{fontSize:'12px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'26px',color:'#1e3a5f'}}>{fmt(rightPb.combinedGross)}</div></div>
-                        <div style={{textAlign:'right'}}><div style={{fontSize:'12px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'26px',color:'#059669'}}>{fmt(rightPb.combinedNet)}</div></div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{...S.card,textAlign:'center',color:'#94a3b8',fontSize:'12px',fontWeight:700}}>
-                      {breakdownView==='list' ? 'Expand a month to see its Gross/Net here' : 'Select a period to see its Gross/Net here'}
-                    </div>
-                  )}
-                  {renderFYTotalsCard()}
-                </div>
-              );
-            })()}
-            </div>
           </div>
         )}
 
