@@ -1717,6 +1717,17 @@ export default function App() {
   const isOtSubmitted = e => e.otSubmitted !== false;
   const isPaSubmitted = e => e.paSubmitted !== false;
 
+  // Shared by every place that needs an entry's actually-counted gross —
+  // the export, the PDF payslip preview, and the archived-year view all
+  // used to compute this same formula independently, which is exactly the
+  // kind of duplication that lets one copy drift out of sync with the
+  // others after a future change. One definition here, reused everywhere.
+  const submittedGross = e => {
+    const c = calcEntry(e);
+    const hasPA = e.paRate && e.paRate!=='None';
+    return (isOtSubmitted(e) ? (c.ot+c.night) : 0) + ((hasPA && isPaSubmitted(e)) ? c.pa : 0);
+  };
+
   // The date that decides which pay period a component's earnings actually
   // land in — the date it was submitted, not the date the shift was worked,
   // since a late submission gets processed in whichever period it goes in
@@ -2375,7 +2386,7 @@ export default function App() {
   // Excel/Google Sheets/Numbers. Gross/Net are real numeric cells here
   // (not formatted text like a CSV would need), so they sum and format
   // correctly if someone builds on top of the export in Excel.
-  async function handleExportCSV(start, end, sanitise){
+  async function handleExportSpreadsheet(start, end, sanitise){
     const headers = [
       'Date','Duty/Reason','1.33x Hours','1.5x Hours','2.0x Hours',
       'Night Hours (Enhanced)','PA Rate','Submitted','Gross (£)',
@@ -2388,15 +2399,6 @@ export default function App() {
     const fmtDDMMYY = dateStr => {
       const [y,m,d] = dateStr.split('-');
       return `${d}/${m}/${y.slice(2)}`;
-    };
-    // Only counts what's actually been submitted — an entry with unsubmitted
-    // OT and/or PA contributes £0 for that part, matching every other
-    // gross/net figure in the app. Exporting the raw, unconditional amount
-    // here would silently disagree with what the app shows everywhere else.
-    const submittedGross = e => {
-      const c = calcEntry(e);
-      const hasPA = e.paRate && e.paRate!=='None';
-      return (isOtSubmitted(e) ? (c.ot+c.night) : 0) + ((hasPA && isPaSubmitted(e)) ? c.pa : 0);
     };
     const submittedLabel = e => {
       const hasPA = e.paRate && e.paRate!=='None';
@@ -2921,9 +2923,17 @@ export default function App() {
     const paCounts = { PA1:0, PA2:0, PA3:0 };
     rangeEntries.forEach(e=>{
       const c = calcEntry(e);
-      ot += c.ot; night += c.night; pa += c.pa; hrs += c.h1+c.h2+c.h3; toilBanked += c.toilBanked;
+      const hasPA = e.paRate && e.paRate!=='None';
+      // Money figures respect submission status, same principle as
+      // totals/the spreadsheet export — an unsubmitted OT or PA claim
+      // hasn't actually landed as pay yet, so it shouldn't inflate what
+      // this payslip shows as gross/net. Hours worked stay unconditional
+      // below, since that's a factual record of the shift regardless of
+      // submission status, matching how the rest of the app treats it.
+      if (isOtSubmitted(e)) { ot += c.ot; night += c.night; toilBanked += c.toilBanked; }
+      if (hasPA && isPaSubmitted(e)) { pa += c.pa; paCounts[e.paRate] = (paCounts[e.paRate]||0)+1; }
+      hrs += c.h1+c.h2+c.h3;
       rateHrs.hours133 += c.payH1; rateHrs.hours150 += c.payH2; rateHrs.hours200 += c.payH3;
-      if (e.paRate && e.paRate!=='None') paCounts[e.paRate] = (paCounts[e.paRate]||0)+1;
     });
     const gross = ot + night + pa;
 
@@ -2963,7 +2973,7 @@ export default function App() {
       if (payslipFYYear==null) return;
       const yPeriods = generateFYPeriods(payslipFYYear);
       const start = yPeriods[0].start, end = yPeriods[11].end;
-      if (exportFormat==='csv') { handleExportCSV(start, end, sanitiseNotes); setPayslipModalOpen(false); return; }
+      if (exportFormat==='csv') { handleExportSpreadsheet(start, end, sanitiseNotes); setPayslipModalOpen(false); return; }
       // PDF: the current year's tax/NI figures are accurate (same context the
       // rest of the app uses), so it gets the normal payslip-style report.
       // A past year's cumulative context is stale, so — same reasoning as
@@ -2986,7 +2996,7 @@ export default function App() {
     } else if (payslipMode==='custom' && payslipStart && payslipEnd && payslipEnd>=payslipStart) {
       start = payslipStart; end = payslipEnd; label = `${fmtD(start)} – ${fmtD(end)}`;
     } else return;
-    if (exportFormat==='csv') { handleExportCSV(start, end, sanitiseNotes); setPayslipModalOpen(false); return; }
+    if (exportFormat==='csv') { handleExportSpreadsheet(start, end, sanitiseNotes); setPayslipModalOpen(false); return; }
     setPayslipPreview({ start, end, label, data: computePayslipData(start, end) });
     setPayslipModalOpen(false);
   };
@@ -3005,8 +3015,14 @@ export default function App() {
       let periodGross = 0;
       const rows = pEntries.map(e=>{
         const c = calcEntry(e);
-        periodGross += c.gross; totalHrs += c.h1+c.h2+c.h3; totalToilBanked += c.toilBanked;
-        return { id:e.id, date:e.date, reason:e.reason, gross:c.gross };
+        // Same submission-aware principle as everywhere else — gross and
+        // TOIL banked only count what's actually been submitted, even for
+        // a past year, since an entry can still be sitting unsubmitted.
+        // Hours worked stays unconditional below, as the factual record.
+        const rowGross = submittedGross(e);
+        periodGross += rowGross; totalHrs += c.h1+c.h2+c.h3;
+        if (isOtSubmitted(e)) totalToilBanked += c.toilBanked;
+        return { id:e.id, date:e.date, reason:e.reason, gross:rowGross };
       });
       totalShifts += pEntries.length; totalGross += periodGross;
       return { ...p, entries: rows, gross: periodGross };
@@ -5173,7 +5189,7 @@ export default function App() {
             {!fySummaryPrintMode&&(
               <div className="no-print" style={{display:'flex',gap:'8px',padding:'12px 12px 0'}}>
                 <button onClick={()=>setFySummaryPrintMode(true)} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'11px',fontWeight:900,fontSize:'11.5px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="doc" s={13} c="#fff"/> PDF</button>
-                <button onClick={()=>handleExportCSV(y.start, y.end, sanitiseNotes)} style={{flex:1,background:'#f0fdf4',color:'#059669',border:'1.5px solid #d1fae5',borderRadius:'11px',padding:'11px',fontWeight:900,fontSize:'11.5px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="table" s={13} c="#059669"/> Spreadsheet</button>
+                <button onClick={()=>handleExportSpreadsheet(y.start, y.end, sanitiseNotes)} style={{flex:1,background:'#f0fdf4',color:'#059669',border:'1.5px solid #d1fae5',borderRadius:'11px',padding:'11px',fontWeight:900,fontSize:'11.5px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="table" s={13} c="#059669"/> Spreadsheet</button>
               </div>
             )}
             {fySummaryPrintMode&&(
