@@ -2468,8 +2468,22 @@ export default function App() {
       else blocks[blocks.length-1].rows.push(rows[i]);
     }
     const blankRow = () => Array(headers.length).fill('');
+    // A period's own subtotal row — 1.33x/1.5x/2.0x hours, Gross and Net
+    // summed across every real entry in that block. Everything else
+    // (PA rate, submitted status, cumulative income, rate band, notes)
+    // doesn't have a meaningful sum, so those stay blank.
+    const totalRowFor = block => {
+      const sum = colIdx => block.rows.reduce((s,r)=>s+(parseFloat(r[colIdx])||0),0);
+      const row = blankRow();
+      row[2] = 'Period Total';
+      row[3] = sum(3) || ''; row[4] = sum(4) || ''; row[5] = sum(5) || '';
+      row[9] = Math.round(sum(9)*100)/100;
+      row[11] = Math.round(sum(11)*100)/100;
+      return row;
+    };
     const expandedRows = [];
     const expandedRowPeriodIdx = []; // parallel to expandedRows — which period each row (including its padding) belongs to
+    const totalRowIndices = []; // which expandedRows indices are subtotal rows, for distinct styling below
     const mergeRanges = []; // { label, startRow, endRow } — 1-indexed spreadsheet row numbers, filled in once expandedRows is built
     blocks.forEach(block => {
       const p = block.pIdx>=0 ? PAY_PERIODS[block.pIdx] : null;
@@ -2478,13 +2492,17 @@ export default function App() {
       // comfortably: character count × font size × a width-to-height
       // factor for rotated proportional text, divided by the default row
       // height — deliberately generous rather than exact, since font
-      // metrics vary slightly by viewer.
+      // metrics vary slightly by viewer. +1 accounts for the subtotal row
+      // always present at the end of the block, which also contributes
+      // real height, reducing how much blank padding is actually needed.
       const minRowsNeeded = label ? Math.ceil((label.length * 10 * 0.68) / 15) : 0;
-      const padTotal = Math.max(0, minRowsNeeded - block.rows.length);
+      const padTotal = Math.max(0, minRowsNeeded - (block.rows.length + 1));
       const padBefore = Math.floor(padTotal/2), padAfter = padTotal - padBefore;
       const startRow = expandedRows.length + 2; // +2: header is row 1, data starts at row 2
       for (let i=0;i<padBefore;i++) { expandedRows.push(blankRow()); expandedRowPeriodIdx.push(block.pIdx); }
       block.rows.forEach(r => { expandedRows.push(r); expandedRowPeriodIdx.push(block.pIdx); });
+      expandedRows.push(totalRowFor(block)); expandedRowPeriodIdx.push(block.pIdx);
+      totalRowIndices.push(expandedRows.length - 1);
       for (let i=0;i<padAfter;i++) { expandedRows.push(blankRow()); expandedRowPeriodIdx.push(block.pIdx); }
       const endRow = expandedRows.length + 1;
       if (label) mergeRanges.push({ label, startRow, endRow });
@@ -2536,16 +2554,29 @@ export default function App() {
       // rows count as belonging to their surrounding block for this check.
       const periodBoundary = { style:'thick', color:{argb:'FF5C7C99'} };
 
+      const totalRowSet = new Set(totalRowIndices);
       expandedRows.forEach((r, i) => {
         const row = ws.getRow(i+2);
+        const isTotalRow = totalRowSet.has(i);
         // Alternating pistachio-tinted stripe for readability on longer
         // exports, rather than a plain flat white background throughout.
         const isStripe = i % 2 === 1;
         const isNewPeriod = i===0 || expandedRowPeriodIdx[i] !== expandedRowPeriodIdx[i-1];
         row.eachCell({ includeEmpty:true }, cell => {
           if (cell.col===1) return; // column A is the merged period label, styled separately above
-          if (isStripe) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} };
-          cell.border = { top:isNewPeriod?periodBoundary:thinGrey, bottom:thinGrey, left:thinGrey, right:thinGrey };
+          if (isTotalRow) {
+            // Amber/gold for the period subtotal — a third, clearly distinct
+            // colour from the grey-blue header and pistachio stripes, but
+            // still part of the app's own established palette (the same
+            // amber used for "outstanding" elsewhere), so it reads as
+            // intentional rather than random.
+            cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFDF0D5'} };
+            cell.font = { bold:true, color:{argb:'FF92400E'} };
+            cell.border = { top:{style:'medium',color:{argb:'FFD97706'}}, bottom:thinGrey, left:thinGrey, right:thinGrey };
+          } else {
+            if (isStripe) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} };
+            cell.border = { top:isNewPeriod?periodBoundary:thinGrey, bottom:thinGrey, left:thinGrey, right:thinGrey };
+          }
           // Duty/Reason (col 3) and Notes (col 14) are the two free-text
           // fields most likely to occasionally run longer than the column
           // width comfortably allows — wrap those specifically rather than
@@ -2557,7 +2588,7 @@ export default function App() {
         // ties the colour scheme to something functionally meaningful
         // rather than purely decorative. Index 8 is 'Submitted', shifted
         // one place right by the new leading Pay Period column.
-        if (r[8] === 'Yes') {
+        if (!isTotalRow && r[8] === 'Yes') {
           row.getCell('B').border = { ...row.getCell('B').border, left:{style:'medium',color:{argb:'FF8FBC6B'}} };
         }
       });
