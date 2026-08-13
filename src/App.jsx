@@ -2391,7 +2391,7 @@ export default function App() {
   // correctly if someone builds on top of the export in Excel.
   async function handleExportSpreadsheet(start, end, sanitise){
     const headers = [
-      'Date','Duty/Reason','1.33x Hours','1.5x Hours','2.0x Hours',
+      'Pay Period','Date','Duty/Reason','1.33x Hours','1.5x Hours','2.0x Hours',
       'Night Hours (Enhanced)','PA Rate','Submitted','Gross (£)',
       'Cumulative Taxable Income Before This Entry (£)','Net (£)','Rate Applied','Notes'
     ];
@@ -2413,7 +2413,7 @@ export default function App() {
     };
     const inRange = e => (!start || e.date>=start) && (!end || e.date<=end);
     const sorted = [...entries].filter(inRange).sort((a,b)=>new Date(a.date)-new Date(b.date));
-    const rowPeriodIdx = []; // parallel array, tracked purely to draw the period-boundary border below — not exported as a column
+    const rowPeriodIdx = []; // parallel array, one entry per data row (not padding), tracks which pay period it belongs to
     const rows = sorted.map(e=>{
       const c = calcEntry(e);
       const gross = submittedGross(e);
@@ -2441,8 +2441,11 @@ export default function App() {
       // period gets paid out, not on each shift's own date within it.
       const yearFraction = p ? taxYearFractionForDate(p.end) : taxYearFractionForDate(e.date);
       const result = applyBandTax(cumulativeBefore, gross, yearFraction, periodGrossBefore);
+      // Leading '' reserves column A for the merged, rotated pay-period
+      // label set separately below — this row array only ever fills
+      // columns B onward.
       return [
-        fmtDDMMYY(e.date), e.reason||'', c.h1||'', c.h2||'', c.h3||'',
+        '', fmtDDMMYY(e.date), e.reason||'', c.h1||'', c.h2||'', c.h3||'',
         c.nh||'', e.paRate!=='None'?e.paRate:'',
         submittedLabel(e),
         Math.round(gross*100)/100,
@@ -2452,6 +2455,41 @@ export default function App() {
         sanitise ? '' : (e.comments||'')
       ];
     });
+
+    // Group the chronologically-sorted rows into consecutive blocks by pay
+    // period (they're already sorted, so same-period rows are always
+    // contiguous), then pad short blocks with blank rows — split before
+    // and after — so the merged, rotated month label always has enough
+    // vertical room to read comfortably rather than looking cramped or
+    // overflowing past its own block.
+    const blocks = [];
+    for (let i=0; i<rows.length; i++){
+      if (i===0 || rowPeriodIdx[i]!==rowPeriodIdx[i-1]) blocks.push({ pIdx: rowPeriodIdx[i], rows: [rows[i]] });
+      else blocks[blocks.length-1].rows.push(rows[i]);
+    }
+    const blankRow = () => Array(headers.length).fill('');
+    const expandedRows = [];
+    const expandedRowPeriodIdx = []; // parallel to expandedRows — which period each row (including its padding) belongs to
+    const mergeRanges = []; // { label, startRow, endRow } — 1-indexed spreadsheet row numbers, filled in once expandedRows is built
+    blocks.forEach(block => {
+      const p = block.pIdx>=0 ? PAY_PERIODS[block.pIdx] : null;
+      const label = p ? p.month : '';
+      // Rough estimate of rows needed for the rotated label to fit
+      // comfortably: character count × font size × a width-to-height
+      // factor for rotated proportional text, divided by the default row
+      // height — deliberately generous rather than exact, since font
+      // metrics vary slightly by viewer.
+      const minRowsNeeded = label ? Math.ceil((label.length * 10 * 0.68) / 15) : 0;
+      const padTotal = Math.max(0, minRowsNeeded - block.rows.length);
+      const padBefore = Math.floor(padTotal/2), padAfter = padTotal - padBefore;
+      const startRow = expandedRows.length + 2; // +2: header is row 1, data starts at row 2
+      for (let i=0;i<padBefore;i++) { expandedRows.push(blankRow()); expandedRowPeriodIdx.push(block.pIdx); }
+      block.rows.forEach(r => { expandedRows.push(r); expandedRowPeriodIdx.push(block.pIdx); });
+      for (let i=0;i<padAfter;i++) { expandedRows.push(blankRow()); expandedRowPeriodIdx.push(block.pIdx); }
+      const endRow = expandedRows.length + 1;
+      if (label) mergeRanges.push({ label, startRow, endRow });
+    });
+
     const suffix = start&&end ? `_${start}_to_${end}` : `_${new Date().toISOString().split('T')[0]}`;
     try {
       const ExcelJS = await loadExcelJSLib();
@@ -2459,7 +2497,7 @@ export default function App() {
       const ws = wb.addWorksheet('Overtime Records');
 
       ws.addRow(headers);
-      rows.forEach(r => ws.addRow(r));
+      expandedRows.forEach(r => ws.addRow(r));
 
       // Header row — grey-blue fill, white bold text, frozen so it stays
       // visible while scrolling through a long list of shifts.
@@ -2471,26 +2509,41 @@ export default function App() {
         cell.alignment = { vertical:'middle', horizontal:'center', wrapText:true };
         cell.border = { bottom:{style:'medium',color:{argb:'FF3E5A70'}} };
       });
-      ws.views = [{ state:'frozen', ySplit:1 }];
+      ws.views = [{ state:'frozen', ySplit:1, xSplit:1 }];
 
-      // Currency columns (I, J, K) get the accounting format — aligned £
-      // symbol, thousands separators, a plain dash for zero, matching
-      // Excel's own built-in "Accounting" look.
+      // Merge and rotate the pay-period label down column A, spanning
+      // each period's own block of rows (including its padding, if any).
+      mergeRanges.forEach(({label, startRow, endRow}) => {
+        ws.mergeCells(`A${startRow}:A${endRow}`);
+        const cell = ws.getCell(`A${startRow}`);
+        cell.value = label;
+        cell.alignment = { textRotation: 90, vertical:'middle', horizontal:'center' };
+        cell.font = { bold:true, size:11, color:{argb:'FF3E5A70'} };
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} };
+        cell.border = { top:{style:'thick',color:{argb:'FF5C7C99'}}, bottom:{style:'thick',color:{argb:'FF5C7C99'}}, left:{style:'thick',color:{argb:'FF5C7C99'}}, right:{style:'thick',color:{argb:'FF5C7C99'}} };
+      });
+
+      // Currency columns (J, K, L — shifted one letter right by the new
+      // Pay Period column) get the accounting format — aligned £ symbol,
+      // thousands separators, a plain dash for zero, matching Excel's own
+      // built-in "Accounting" look.
       const acctFmt = '_-£* #,##0.00_-;-£* #,##0.00_-;_-£* "-"??_-;_-@_-';
-      const currencyCols = ['I','J','K'];
+      const currencyCols = ['J','K','L'];
       const thinGrey = { style:'thin', color:{argb:'FFD9E2E8'} };
       // Thick border wherever the pay period changes from the row above —
       // same grey-blue as the header, so scanning down the list makes it
-      // obvious which dates fall within the same pay run.
+      // obvious which dates fall within the same pay run. Blank padding
+      // rows count as belonging to their surrounding block for this check.
       const periodBoundary = { style:'thick', color:{argb:'FF5C7C99'} };
 
-      rows.forEach((r, i) => {
+      expandedRows.forEach((r, i) => {
         const row = ws.getRow(i+2);
         // Alternating pistachio-tinted stripe for readability on longer
         // exports, rather than a plain flat white background throughout.
         const isStripe = i % 2 === 1;
-        const isNewPeriod = i===0 || rowPeriodIdx[i] !== rowPeriodIdx[i-1];
+        const isNewPeriod = i===0 || expandedRowPeriodIdx[i] !== expandedRowPeriodIdx[i-1];
         row.eachCell({ includeEmpty:true }, cell => {
+          if (cell.col===1) return; // column A is the merged period label, styled separately above
           if (isStripe) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} };
           cell.border = { top:isNewPeriod?periodBoundary:thinGrey, bottom:thinGrey, left:thinGrey, right:thinGrey };
           cell.alignment = { vertical:'middle' };
@@ -2498,9 +2551,10 @@ export default function App() {
         currencyCols.forEach(col => { row.getCell(col).numFmt = acctFmt; });
         // A subtle pistachio left-border accent on fully-submitted rows —
         // ties the colour scheme to something functionally meaningful
-        // rather than purely decorative.
-        if (r[7] === 'Yes') {
-          row.getCell('A').border = { ...row.getCell('A').border, left:{style:'medium',color:{argb:'FF8FBC6B'}} };
+        // rather than purely decorative. Index 8 is 'Submitted', shifted
+        // one place right by the new leading Pay Period column.
+        if (r[8] === 'Yes') {
+          row.getCell('B').border = { ...row.getCell('B').border, left:{style:'medium',color:{argb:'FF8FBC6B'}} };
         }
       });
 
@@ -2513,9 +2567,10 @@ export default function App() {
       // by direct testing that a width of exactly 9 gets silently dropped
       // by this version of the library when the file is written.
       headers.forEach((h, i) => {
+        if (i===0) { ws.getColumn(1).width = 6; return; } // Pay Period column — narrow, since text is rotated
         let maxLen = String(h).length;
-        for (let r=0; r<rows.length; r++){
-          const len = String(rows[r][i] ?? '').length;
+        for (let r=0; r<expandedRows.length; r++){
+          const len = String(expandedRows[r][i] ?? '').length;
           if (len > maxLen) maxLen = len;
         }
         ws.getColumn(i+1).width = Math.min(Math.max(maxLen + 2, 10), 45);
@@ -3954,7 +4009,7 @@ export default function App() {
                       const g = carmsOutstanding.groups.find(g=>g.periodIdx===idx);
                       if (!g) return null;
                       return (
-                        <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'13px',padding:'12px 14px',marginTop:'9px',cursor:'pointer'}}>
+                        <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'13px',padding:'12px 14px',marginTop:'9px',cursor:'pointer'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'7px',marginBottom:'4px'}}>
                             <Ico n="clock" s={16} c="#d97706"/>
                             <span style={{fontSize:'19px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
@@ -4318,7 +4373,7 @@ export default function App() {
                     const g = carmsOutstanding.groups.find(g=>g.periodIdx===cIdx);
                     if (!g) return null;
                     return (
-                      <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'13px',padding:'11px 14px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
+                      <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} className="nav-add-pulse" style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'13px',padding:'11px 14px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                           <Ico n="clock" s={14} c="#d97706"/>
                           <span style={{fontSize:'14px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
