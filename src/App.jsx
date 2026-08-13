@@ -1225,9 +1225,14 @@ export default function App() {
   // presentational: it changes which shell renders (sidebar+glance vs the
   // existing mobile chrome), never the underlying tab/data logic, which
   // stays identical either way.
-  const [isWide, setIsWide] = useState(()=>typeof window!=='undefined' && window.innerWidth>=960);
+  // isWide also covers phones/tablets rotated to landscape — without this,
+  // a phone in landscape stays under the 960px desktop threshold and just
+  // shows the narrow 430px mobile column centred in a lot of empty grey
+  // space either side, rather than actually using the width it has.
+  const computeIsWide = () => window.innerWidth>=960 || (window.innerWidth>window.innerHeight && window.innerWidth>=650);
+  const [isWide, setIsWide] = useState(()=>typeof window!=='undefined' && computeIsWide());
   useEffect(()=>{
-    const onResize = () => setIsWide(window.innerWidth>=960);
+    const onResize = () => setIsWide(computeIsWide());
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   },[]);
@@ -2365,27 +2370,48 @@ export default function App() {
   async function handleExportCSV(start, end, sanitise){
     const headers = [
       'Date','Duty/Reason','1.33x Hours','1.5x Hours','2.0x Hours',
-      'Night Hours (Enhanced)','PA Rate','Gross (£)','Net (£)','Rate Applied','Notes'
+      'Night Hours (Enhanced)','PA Rate','Submitted','Gross (£)','Net (£)','Rate Applied','Notes'
     ];
+    // Only counts what's actually been submitted — an entry with unsubmitted
+    // OT and/or PA contributes £0 for that part, matching every other
+    // gross/net figure in the app. Exporting the raw, unconditional amount
+    // here would silently disagree with what the app shows everywhere else.
+    const submittedGross = e => {
+      const c = calcEntry(e);
+      const hasPA = e.paRate && e.paRate!=='None';
+      return (isOtSubmitted(e) ? (c.ot+c.night) : 0) + ((hasPA && isPaSubmitted(e)) ? c.pa : 0);
+    };
+    const submittedLabel = e => {
+      const hasPA = e.paRate && e.paRate!=='None';
+      const otOK = isOtSubmitted(e), paOK = !hasPA || isPaSubmitted(e);
+      if (otOK && paOK) return 'Yes';
+      if (otOK && !paOK) return 'OT only (PA pending)';
+      if (!otOK && paOK) return hasPA ? 'PA only (OT pending)' : 'No';
+      return 'No';
+    };
     const inRange = e => (!start || e.date>=start) && (!end || e.date<=end);
     const sorted = [...entries].filter(inRange).sort((a,b)=>new Date(a.date)-new Date(b.date));
     const rows = sorted.map(e=>{
       const c = calcEntry(e);
+      const gross = submittedGross(e);
       // Use the pay period this entry falls in for NI (period-based), and
       // the entry's own UK tax year for pro-rating income tax thresholds —
-      // 'prior' only sums entries within THAT SAME tax year, since anything
-      // from an earlier tax year doesn't belong in this year's cumulative.
+      // 'prior' only sums SUBMITTED gross from entries within THAT SAME tax
+      // year, ordered by date, since anything unsubmitted hasn't actually
+      // landed in the cumulative total yet, and anything from an earlier
+      // tax year doesn't belong in this year's cumulative either.
       const pIdx = PAY_PERIODS.findIndex(p=>e.date>=p.start&&e.date<=p.end);
       const pb = pIdx>=0 ? totals.periodBreakdown[pIdx] : null;
       const taxYearStartForE = getUKTaxYearStart(e.date);
       const prior = entries.filter(x=>x.date>=taxYearStartForE && (x.date<e.date || (x.date===e.date && x.id<e.id)))
-        .reduce((sum,x)=>sum+calcEntry(x).gross,0);
+        .reduce((sum,x)=>sum+submittedGross(x),0);
       const periodGrossBefore = pb ? pb.baseAmt : 0;
-      const result = applyBandTax(prior, c.gross, taxYearFractionForDate(e.date), periodGrossBefore);
+      const result = applyBandTax(prior, gross, taxYearFractionForDate(e.date), periodGrossBefore);
       return [
         e.date, e.reason||'', c.h1||'', c.h2||'', c.h3||'',
         c.nh||'', e.paRate!=='None'?e.paRate:'',
-        Math.round(c.gross*100)/100, Math.round(result.net*100)/100,
+        submittedLabel(e),
+        Math.round(gross*100)/100, Math.round(result.net*100)/100,
         result.bandName ? `${result.bandName} (${result.rate.toFixed(1)}%)` : '',
         sanitise ? '' : (e.comments||'')
       ];
@@ -2394,7 +2420,7 @@ export default function App() {
     try {
       const XLSX = await loadXLSXLib();
       const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      ws['!cols'] = [{wch:11},{wch:28},{wch:11},{wch:11},{wch:11},{wch:11},{wch:9},{wch:11},{wch:11},{wch:20},{wch:30}];
+      ws['!cols'] = [{wch:11},{wch:28},{wch:11},{wch:11},{wch:11},{wch:11},{wch:9},{wch:18},{wch:11},{wch:11},{wch:20},{wch:30}];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Overtime Records');
       XLSX.writeFile(wb, `OvertimeShiftTracker_Records${suffix}.xlsx`);
@@ -3997,7 +4023,7 @@ export default function App() {
                           <span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Active Month
                         </div>
                       )}
-                      <div style={{fontWeight:900,fontSize:'21px',color:cIdx===currPeriodIdx?'#1d4ed8':'#0f172a'}}>{cPeriod.month}</div>
+                      <div style={{fontWeight:900,fontSize:'22px',color:cIdx===currPeriodIdx?'#1d4ed8':'#0f172a'}}>{cPeriod.month}</div>
                       <div style={{fontSize:'14px',fontWeight:700,color:'#3b82f6'}}>{fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
                     </div>
                     <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c="#2563eb"/></button>
@@ -4048,7 +4074,7 @@ export default function App() {
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit', position:'relative',
                                   minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
                                 }}>
-                                {date.getDate()===1&&(
+                                {(date.getDate()===1 || (wi===0 && week.slice(0,di).every(d=>!d)))&&(
                                   <span style={{position:'absolute',top:'1px',left:'3px',fontSize:'7px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.3px',lineHeight:1}}>{date.toLocaleDateString('en-GB',{month:'short'})}</span>
                                 )}
                                 <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
@@ -4233,19 +4259,19 @@ export default function App() {
                                 </div>
                                 {showOt&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
-                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
+                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
                                     <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
                                   </div>
                                 )}
                                 {showPa&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
-                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#fffbeb',color:'#f59e0b'}}>PA</span>
+                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#fffbeb',color:'#f59e0b'}}>PA</span>
                                     <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
                                   </div>
                                 )}
                                 {showToil&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
-                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
+                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
                                     <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
                                   </div>
                                 )}
