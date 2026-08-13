@@ -1769,7 +1769,7 @@ export default function App() {
           <button onClick={()=>changeMonth(1)} style={{background:'#f1f5f9',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
         </div>
         <div style={{fontSize:'12.5px',fontWeight:700,color:'#64748b',textAlign:'center',marginBottom:'14px'}}>
-          {datePickerFor==='ot' ? 'Select the date you submitted this OT to CARMS' : 'Select the date you submitted this PA claim to MetHR'}
+          {datePickerFor==='ot' ? 'Select the date you submitted this OT to CARMS' : datePickerFor==='pa' ? 'Select the date you submitted this PA claim to MetHR' : 'Select the date of this shift'}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'6px'}}>
           {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=><div key={d} style={{textAlign:'center',fontSize:'11.5px',fontWeight:800,color:'#94a3b8',padding:'4px 0'}}>{d}</div>)}
@@ -2370,7 +2370,8 @@ export default function App() {
   async function handleExportCSV(start, end, sanitise){
     const headers = [
       'Date','Duty/Reason','1.33x Hours','1.5x Hours','2.0x Hours',
-      'Night Hours (Enhanced)','PA Rate','Submitted','Gross (£)','Net (£)','Rate Applied','Notes'
+      'Night Hours (Enhanced)','PA Rate','Submitted','Gross (£)',
+      'Cumulative Taxable Income Before This Entry (£)','Net (£)','Rate Applied','Notes'
     ];
     // Only counts what's actually been submitted — an entry with unsubmitted
     // OT and/or PA contributes £0 for that part, matching every other
@@ -2394,24 +2395,36 @@ export default function App() {
     const rows = sorted.map(e=>{
       const c = calcEntry(e);
       const gross = submittedGross(e);
-      // Use the pay period this entry falls in for NI (period-based), and
-      // the entry's own UK tax year for pro-rating income tax thresholds —
-      // 'prior' only sums SUBMITTED gross from entries within THAT SAME tax
-      // year, ordered by date, since anything unsubmitted hasn't actually
-      // landed in the cumulative total yet, and anything from an earlier
-      // tax year doesn't belong in this year's cumulative either.
       const pIdx = PAY_PERIODS.findIndex(p=>e.date>=p.start&&e.date<=p.end);
+      const p = pIdx>=0 ? PAY_PERIODS[pIdx] : null;
       const pb = pIdx>=0 ? totals.periodBreakdown[pIdx] : null;
-      const taxYearStartForE = getUKTaxYearStart(e.date);
-      const prior = entries.filter(x=>x.date>=taxYearStartForE && (x.date<e.date || (x.date===e.date && x.id<e.id)))
-        .reduce((sum,x)=>sum+submittedGross(x),0);
-      const periodGrossBefore = pb ? pb.baseAmt : 0;
-      const result = applyBandTax(prior, gross, taxYearFractionForDate(e.date), periodGrossBefore);
+      // Every other entry within this SAME pay period, dated before this
+      // one — these stack on top of base salary within the period, same
+      // as the main app's own period-by-period calculation does.
+      const priorInPeriod = p ? entries.filter(x=>x.date>=p.start && x.date<=p.end && (x.date<e.date || (x.date===e.date && x.id<e.id)))
+        .reduce((sum,x)=>sum+submittedGross(x),0) : 0;
+      // Cumulative taxable income BEFORE this entry — base salary is taxed
+      // first, so overtime stacks on top of it, same as everywhere else in
+      // the app. pb.cumAfter is the proven-correct running total (base +
+      // all overtime) through the END of this period; subtracting this
+      // period's own combinedGross backs it out to "just after this
+      // period's base salary, before any of this period's overtime" —
+      // then priorInPeriod adds back only what's already been claimed
+      // earlier in this same period, ahead of this specific entry.
+      const cumulativeBefore = pb ? (pb.cumAfter - pb.combinedGross + priorInPeriod) : 0;
+      const periodGrossBefore = (pb ? pb.baseAmt : 0) + priorInPeriod;
+      // Year-fraction uses the PERIOD's end date, same as the main app's own
+      // periodBreakdown calculation — tax is assessed at the point the whole
+      // period gets paid out, not on each shift's own date within it.
+      const yearFraction = p ? taxYearFractionForDate(p.end) : taxYearFractionForDate(e.date);
+      const result = applyBandTax(cumulativeBefore, gross, yearFraction, periodGrossBefore);
       return [
         e.date, e.reason||'', c.h1||'', c.h2||'', c.h3||'',
         c.nh||'', e.paRate!=='None'?e.paRate:'',
         submittedLabel(e),
-        Math.round(gross*100)/100, Math.round(result.net*100)/100,
+        Math.round(gross*100)/100,
+        Math.round(cumulativeBefore*100)/100,
+        Math.round(result.net*100)/100,
         result.bandName ? `${result.bandName} (${result.rate.toFixed(1)}%)` : '',
         sanitise ? '' : (e.comments||'')
       ];
@@ -2420,7 +2433,7 @@ export default function App() {
     try {
       const XLSX = await loadXLSXLib();
       const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      ws['!cols'] = [{wch:11},{wch:28},{wch:11},{wch:11},{wch:11},{wch:11},{wch:9},{wch:18},{wch:11},{wch:11},{wch:20},{wch:30}];
+      ws['!cols'] = [{wch:11},{wch:28},{wch:11},{wch:11},{wch:11},{wch:11},{wch:9},{wch:18},{wch:11},{wch:20},{wch:11},{wch:20},{wch:30}];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Overtime Records');
       XLSX.writeFile(wb, `OvertimeShiftTracker_Records${suffix}.xlsx`);
@@ -3306,7 +3319,16 @@ export default function App() {
             <>
             {/* date + duty + notes */}
             <div style={S.card}>
-              <div style={{marginBottom:'13px'}}><label style={S.lbl}>Date</label><input type="date" style={{...S.inp,display:'block',boxSizing:'border-box',height:'46px'}} value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></div>
+              <div style={{marginBottom:'13px'}}>
+                <label style={S.lbl}>Date</label>
+                {isWide ? (
+                  <button onClick={()=>{ setDatePickerMonth((form.date||todayStr).slice(0,7)); setDatePickerFor('shift'); }} style={{...S.inp,display:'block',boxSizing:'border-box',height:'46px',textAlign:'left',cursor:'pointer',fontFamily:'inherit'}}>
+                    {new Date((form.date||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
+                  </button>
+                ) : (
+                  <input type="date" style={{...S.inp,display:'block',boxSizing:'border-box',height:'46px'}} value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
+                )}
+              </div>
               <div style={{marginBottom:'13px'}}><label style={S.lbl}>Duty / Reason</label><input type="text" placeholder="e.g. MPL7XX, PXX" style={S.inp} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/></div>
 
               {/* Manual Override — auto-calculated shift times/rate is now the
@@ -3595,13 +3617,19 @@ export default function App() {
                   <div>
                     <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>Overtime submitted on CARMS</div>
                   </div>
-                  <div onClick={()=>{
-                    if (form.otSubmitted) { setForm({...form,otSubmitted:false}); return; }
-                    setDatePickerMonth(todayStr.slice(0,7));
-                    setDatePickerFor('ot');
-                  }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:'pointer',flexShrink:0,background:form.otSubmitted?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
-                    <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:form.otSubmitted?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
-                  </div>
+                  {(()=>{
+                    const hasOTHours = (parseFloat(form.hours133)||0) + (parseFloat(form.hours150)||0) + (parseFloat(form.hours200)||0) > 0;
+                    return (
+                      <div onClick={()=>{
+                        if (!hasOTHours) return;
+                        if (form.otSubmitted) { setForm({...form,otSubmitted:false}); return; }
+                        setDatePickerMonth(todayStr.slice(0,7));
+                        setDatePickerFor('ot');
+                      }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:hasOTHours?'pointer':'default',flexShrink:0,background:(hasOTHours&&form.otSubmitted)?'#059669':'#e2e8f0',opacity:hasOTHours?1:0.5,transition:'background 0.15s'}}>
+                        <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(hasOTHours&&form.otSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
+                      </div>
+                    );
+                  })()}
                 </div>
                 {form.otSubmitted&&(
                   <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'12px',padding:'10px',marginTop:'9px'}}>
@@ -4260,19 +4288,19 @@ export default function App() {
                                 {showOt&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
-                                    <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
+                                    <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
                                   </div>
                                 )}
                                 {showPa&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#fffbeb',color:'#f59e0b'}}>PA</span>
-                                    <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
+                                    <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
                                   </div>
                                 )}
                                 {showToil&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
-                                    <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
+                                    <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
                                   </div>
                                 )}
                               </div>
@@ -5274,7 +5302,9 @@ export default function App() {
         <div onClick={()=>setDatePickerFor(null)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60}}>
           {datePickerFor==='ot'
             ? renderDatePickerGrid(form.otSubmittedDate||'', v=>setForm(f=>({...f,otSubmittedDate:v,otSubmitted:true})))
-            : renderDatePickerGrid(form.paSubmittedDate||'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})))}
+            : datePickerFor==='pa'
+            ? renderDatePickerGrid(form.paSubmittedDate||'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})))
+            : renderDatePickerGrid(form.date||todayStr, v=>setForm(f=>({...f,date:v})))}
         </div>
       )}
 
