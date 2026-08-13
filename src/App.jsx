@@ -3705,24 +3705,22 @@ export default function App() {
             <div ref={carmsToggleRef} className={focusCarmsToggle?'carms-pulse':''} style={{...S.card,marginBottom:'11px',border:focusCarmsToggle?'2px solid #2563eb':'1px solid #f1f5f9'}}>
               <div style={{fontWeight:900,fontSize:'15px',color:'#0f172a',marginBottom:'2px'}}>CARMS Submission</div>
               <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginBottom:'4px'}}>Toggle these to 'On' when you've submitted the claim on CARMS or via MetHR for PA.</div>
-              <div style={{padding:'11px 0',borderBottom:'1px solid #f1f5f9'}}>
+              {(()=>{
+                const hasOTHours = (parseFloat(form.hours133)||0) + (parseFloat(form.hours150)||0) + (parseFloat(form.hours200)||0) > 0;
+                return (
+              <div style={{padding:'11px 0',borderBottom:'1px solid #f1f5f9',opacity:hasOTHours?1:0.45}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                   <div>
                     <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>Overtime submitted on CARMS</div>
                   </div>
-                  {(()=>{
-                    const hasOTHours = (parseFloat(form.hours133)||0) + (parseFloat(form.hours150)||0) + (parseFloat(form.hours200)||0) > 0;
-                    return (
                       <div onClick={()=>{
                         if (!hasOTHours) return;
                         if (form.otSubmitted) { setForm({...form,otSubmitted:false}); return; }
                         setDatePickerMonth(todayStr.slice(0,7));
                         setDatePickerFor('ot');
-                      }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:hasOTHours?'pointer':'default',flexShrink:0,background:(hasOTHours&&form.otSubmitted)?'#059669':'#e2e8f0',opacity:hasOTHours?1:0.5,transition:'background 0.15s'}}>
+                      }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:hasOTHours?'pointer':'default',flexShrink:0,background:(hasOTHours&&form.otSubmitted)?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
                         <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(hasOTHours&&form.otSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
                       </div>
-                    );
-                  })()}
                 </div>
                 {form.otSubmitted&&(
                   <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'12px',padding:'10px',marginTop:'9px'}}>
@@ -3737,6 +3735,8 @@ export default function App() {
                   </div>
                 )}
               </div>
+                );
+              })()}
               <div style={{padding:'11px 0',opacity:form.paRate==='None'?0.45:1}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                   <div>
@@ -4919,6 +4919,7 @@ export default function App() {
                 It wasn't smooth sailing putting this app together, maintaining the code and hosting it. If you want to say thanks by buying me a coffee please feel free to donate using this link{' '}
                 <a href="https://paypal.me/adamjstephens" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>paypal.me/adamjstephens</a>.
               </div>
+              <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,marginTop:'8px'}}>Thanks for your support.</div>
             </div>
           </div>
         )}
