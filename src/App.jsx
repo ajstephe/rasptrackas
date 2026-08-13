@@ -4917,7 +4917,7 @@ export default function App() {
               <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a',marginBottom:'6px'}}>Want to say thanks?</div>
               <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,lineHeight:1.6}}>
                 It wasn't smooth sailing putting this app together, maintaining the code and hosting it. If you want to say thanks by buying me a coffee please feel free to donate using this link{' '}
-                <a href="https://paypal.me/adamjstephens" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>paypal.me/adamjstephens</a>.
+                <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>settleup.starlingbank.com/adam-stephens-2b95aa</a>.
               </div>
               <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,marginTop:'8px'}}>Thanks for your support.</div>
             </div>
