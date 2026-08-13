@@ -2554,6 +2554,7 @@ export default function App() {
       // rows count as belonging to their surrounding block for this check.
       const periodBoundary = { style:'thick', color:{argb:'FF5C7C99'} };
 
+      const lastDataRow = expandedRows.length + 1;
       const totalRowSet = new Set(totalRowIndices);
       expandedRows.forEach((r, i) => {
         const row = ws.getRow(i+2);
@@ -2593,6 +2594,27 @@ export default function App() {
         }
       });
 
+      // Grand total — one final row summing every real entry across the
+      // whole export, not just one period. Same grey-blue as the header
+      // rather than the amber used for period subtotals, so it reads as
+      // the overall figure rather than another period's total.
+      const grandTotalRowNum = lastDataRow + 1;
+      const grandTotal = colIdx => rows.reduce((s,r)=>s+(parseFloat(r[colIdx])||0),0);
+      const gtRow = ws.getRow(grandTotalRowNum);
+      gtRow.getCell('C').value = 'Grand Total';
+      gtRow.getCell('D').value = grandTotal(3) || '';
+      gtRow.getCell('E').value = grandTotal(4) || '';
+      gtRow.getCell('F').value = grandTotal(5) || '';
+      gtRow.getCell('J').value = Math.round(grandTotal(9)*100)/100;
+      gtRow.getCell('L').value = Math.round(grandTotal(11)*100)/100;
+      gtRow.eachCell({ includeEmpty:true }, cell => {
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF5C7C99'} };
+        cell.font = { bold:true, color:{argb:'FFFFFFFF'}, size:11 };
+        cell.border = { top:{style:'thick',color:{argb:'FF3E5A70'}} };
+        cell.alignment = { vertical:'middle' };
+      });
+      ['J','L'].forEach(col => { gtRow.getCell(col).numFmt = acctFmt; });
+
       // Column widths sized to the longest actual value in each column
       // (header or data), not a guess — genuinely fits the content. Uses
       // getColumn(index) explicitly rather than ws.columns.forEach, since
@@ -2609,6 +2631,129 @@ export default function App() {
           if (len > maxLen) maxLen = len;
         }
         ws.getColumn(i+1).width = Math.min(Math.max(maxLen + 2, 10), 65);
+      });
+
+      // AutoFilter lets Excel filter/sort directly — e.g. down to just the
+      // rows still pending submission. Starts at column B, not A: column A
+      // is the merged, rotated Pay Period label, and merged cells inside
+      // an AutoFilter range behave unreliably in Excel (a filter action can
+      // hide part of a merged block while leaving the rest visible).
+      ws.autoFilter = `B1:N${lastDataRow}`;
+
+      // Print setup — landscape and fit-to-width, since this sheet is wide;
+      // the header row repeats on every printed page so a multi-page
+      // printout still reads correctly without it.
+      ws.pageSetup = {
+        orientation: 'landscape',
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        margins: { left:0.4, right:0.4, top:0.5, bottom:0.5, header:0.2, footer:0.2 }
+      };
+      ws.pageSetup.printTitlesRow = '1:1';
+
+      // Conditional formatting on the Submitted column — anything still
+      // outstanding gets flagged in red at a glance, without needing to
+      // scan the whole column manually. Excludes blank cells explicitly,
+      // so the always-empty padding and subtotal rows aren't caught by it.
+      ws.addConditionalFormatting({
+        ref: `I2:I${lastDataRow}`,
+        rules: [{
+          type: 'expression',
+          formulae: [`AND(I2<>"Yes",I2<>"")`],
+          style: {
+            fill: { type:'pattern', pattern:'solid', bgColor:{argb:'FFFEE2E2'} },
+            font: { bold:true, color:{argb:'FFB91C1C'} }
+          }
+        }]
+      });
+
+      // ── Summary worksheet — a second tab giving the headline figures
+      // without needing to scroll or add up the detailed sheet by hand.
+      const sws = wb.addWorksheet('Summary');
+      sws.getColumn(1).width = 22; sws.getColumn(2).width = 20; sws.getColumn(3).width = 20;
+      sws.getColumn(4).width = 45; sws.getColumn(5).width = 12;
+
+      const titleCell = sws.getCell('A1');
+      titleCell.value = 'Overtime & Shift Tracker — Summary';
+      titleCell.font = { bold:true, size:14, color:{argb:'FF0F172A'} };
+      sws.mergeCells('A1:C1');
+      sws.getCell('A2').value = `Generated ${new Date().toLocaleDateString('en-GB')}`;
+      sws.getCell('A2').font = { size:10, color:{argb:'FF64748B'} };
+
+      const sectionHeaderStyle = cell => {
+        cell.font = { bold:true, size:12, color:{argb:'FFFFFFFF'} };
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF5C7C99'} };
+        cell.alignment = { vertical:'middle' };
+      };
+      const labelValueRow = (r, label, value, isCurrency) => {
+        sws.getCell(`A${r}`).value = label;
+        sws.getCell(`A${r}`).font = { bold:true, color:{argb:'FF0F172A'} };
+        const vc = sws.getCell(`B${r}`);
+        vc.value = value;
+        if (isCurrency) vc.numFmt = acctFmt;
+        vc.font = { color:{argb:'FF0F172A'} };
+      };
+
+      // Year to date
+      sws.mergeCells('A4:C4');
+      sectionHeaderStyle(sws.getCell('A4'));
+      sws.getCell('A4').value = 'Year to Date';
+      labelValueRow(5, 'Gross YTD', Math.round(totals.combinedGrossYTD*100)/100, true);
+      labelValueRow(6, 'Net YTD', Math.round(totals.combinedNetYTD*100)/100, true);
+      labelValueRow(7, 'Current TOIL Balance (hrs)', Math.round(toilLedger.balance*100)/100, false);
+
+      // By pay period — reuses the same set of periods that actually
+      // appear in the detailed sheet, respecting whatever date range was
+      // exported, rather than dumping the whole financial year regardless.
+      let r = 9;
+      sws.mergeCells(`A${r}:C${r}`);
+      sectionHeaderStyle(sws.getCell(`A${r}`));
+      sws.getCell(`A${r}`).value = 'By Pay Period';
+      r++;
+      ['Period','Gross (£)','Net (£)'].forEach((h,i) => {
+        const c = sws.getCell(r, i+1);
+        c.value = h; c.font = { bold:true, color:{argb:'FF3E5A70'} };
+        c.border = { bottom:{style:'thin',color:{argb:'FFD9E2E8'}} };
+      });
+      r++;
+      mergeRanges.forEach(({label}, i) => {
+        const pIdx = blocks[i]?.pIdx;
+        const pb = pIdx>=0 ? totals.periodBreakdown[pIdx] : null;
+        // Gross/Net shown here are this period's SUBMITTED totals from the
+        // detailed sheet's own subtotal row — matches what's actually in
+        // the export, not the app's live figures which may have since moved on.
+        const periodGross = blocks[i].rows.reduce((s,row)=>s+(parseFloat(row[9])||0),0);
+        const periodNet = blocks[i].rows.reduce((s,row)=>s+(parseFloat(row[11])||0),0);
+        sws.getCell(r,1).value = label;
+        sws.getCell(r,2).value = Math.round(periodGross*100)/100; sws.getCell(r,2).numFmt = acctFmt;
+        sws.getCell(r,3).value = Math.round(periodNet*100)/100; sws.getCell(r,3).numFmt = acctFmt;
+        if (i%2===1) [1,2,3].forEach(c=>{ sws.getCell(r,c).fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} }; });
+        r++;
+      });
+
+      // TOIL history — the full all-time ledger, same as the TOIL tab in
+      // the app itself, since TOIL carries over and isn't scoped to a tax
+      // year or the date range picked for this specific export.
+      r += 1;
+      sws.mergeCells(`A${r}:C${r}`);
+      sectionHeaderStyle(sws.getCell(`A${r}`));
+      sws.getCell(`A${r}`).value = 'TOIL History (All-Time)';
+      r++;
+      ['Date','Type','Hours','Note','Balance After'].forEach((h,i) => {
+        const c = sws.getCell(r, i+1);
+        c.value = h; c.font = { bold:true, color:{argb:'FF3E5A70'} };
+        c.border = { bottom:{style:'thin',color:{argb:'FFD9E2E8'}} };
+      });
+      r++;
+      toilLedger.rows.forEach((row, i) => {
+        sws.getCell(r,1).value = fmtDDMMYYYY(row.date);
+        sws.getCell(r,2).value = row.type==='earned' ? 'Banked' : 'Taken';
+        sws.getCell(r,3).value = Math.round(row.hours*100)/100;
+        sws.getCell(r,4).value = row.note;
+        sws.getCell(r,5).value = Math.round(row.balanceAfter*100)/100;
+        if (i%2===1) [1,2,3,4,5].forEach(c=>{ sws.getCell(r,c).fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} }; });
+        r++;
       });
 
       const buffer = await wb.xlsx.writeBuffer();
@@ -3993,9 +4138,10 @@ export default function App() {
                   {PAY_PERIODS.map((p,idx)=>{
                     const isCurr=idx===currPeriodIdx;
                     const isSel=(calPeriodIdx===null?currPeriodIdx:calPeriodIdx)===idx;
+                    const hasOutstanding = carmsOutstanding.groups.some(g=>g.periodIdx===idx);
                     return(
-                      <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flexShrink:0,padding:'4px 10px',borderRadius:'18px',border:isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:isSel?'#2563eb':isCurr?'#eff6ff':'#fff',color:isSel?'#fff':isCurr?'#2563eb':'#64748b',fontSize:'13px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',display:'flex',alignItems:'center',gap:'4px'}}>
-                        {p.short}{isCurr&&!isSel&&<span style={{display:'inline-block',width:'4px',height:'4px',borderRadius:'50%',background:'#2563eb'}}/>}
+                      <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flexShrink:0,padding:'4px 10px',borderRadius:'18px',border:isSel?'1.5px solid #2563eb':hasOutstanding?'1px solid #fecaca':isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:hasOutstanding?'#fef2f2':isSel?'#2563eb':isCurr?'#eff6ff':'#fff',color:hasOutstanding?'#b91c1c':isSel?'#fff':isCurr?'#2563eb':'#64748b',fontSize:'13px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',display:'flex',alignItems:'center',gap:'4px'}}>
+                        {p.short}{isCurr&&!isSel&&<span style={{display:'inline-block',width:'4px',height:'4px',borderRadius:'50%',background:hasOutstanding?'#b91c1c':'#2563eb'}}/>}
                       </button>
                     );
                   })}
@@ -4956,58 +5102,58 @@ export default function App() {
                  look to match the same dark-theme conventions Wipe All
                  Data's own confirm flow already uses). One shared expand
                  toggle now, not two. ── */}
-            <div style={{...S.dark,background:'#0f2744'}}>
+            <div style={{background:'#fff',borderRadius:'18px',padding:'19px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid #f1f5f9',marginBottom:'10px',position:'relative',overflow:'hidden'}}>
               <div onClick={()=>setDataManagementExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:dataManagementExpanded?'13px':0}}>
                 <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
-                  <div style={{background:'rgba(255,255,255,0.1)',padding:'11px',borderRadius:'13px'}}><Ico n="user" s={21} c="#93c5fd"/></div>
-                  <div style={{fontWeight:900,fontSize:'14px',color:'#fff',textTransform:'uppercase'}}>Account &amp; Data Management</div>
+                  <div style={{background:'#eff6ff',padding:'11px',borderRadius:'13px'}}><Ico n="user" s={21} c="#2563eb"/></div>
+                  <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Account &amp; Data Management</div>
                 </div>
-                <span style={{fontSize:'9px',fontWeight:800,color:'#93c5fd',textDecoration:'underline',flexShrink:0}}>{dataManagementExpanded?'Tap to Close':'Tap to expand'}</span>
+                <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{dataManagementExpanded?'Tap to Close':'Tap to expand'}</span>
               </div>
               {dataManagementExpanded&&(
-                <div style={{background:'rgba(0,0,0,0.2)',borderRadius:'13px',padding:'13px'}}>
-                  {session&&<div style={{fontSize:'12px',color:'#fff',fontWeight:700,marginBottom:'11px'}}>Signed in as {session.user?.email}</div>}
-                  <div style={{fontSize:'11px',color:'rgba(147,197,253,0.65)',marginBottom:'11px',lineHeight:1.5}}>Data is automatically synced and backed up to a secure cloud. To create a hard downloadable backup, select BACKUP. To restore from a previous hard copy, select RESTORE.</div>
+                <div style={{background:'#f8fafc',borderRadius:'13px',padding:'13px'}}>
+                  {session&&<div style={{fontSize:'12px',color:'#0f172a',fontWeight:700,marginBottom:'11px'}}>Signed in as {session.user?.email}</div>}
+                  <div style={{fontSize:'11px',color:'#64748b',marginBottom:'11px',lineHeight:1.5}}>Data is automatically synced and backed up to a secure cloud. To create a hard downloadable backup, select BACKUP. To restore from a previous hard copy, select RESTORE.</div>
                   <div style={{display:'flex',gap:'6px',marginBottom:'11px'}}>
                     <button onClick={handleExport} className={pulseBackupBtn?'backup-pulse':''} style={{flex:1,padding:'10px',background:'#2563eb',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="dl" s={12} c="#fff"/> Backup</button>
-                    <button onClick={()=>setRestoreConfirmOpen(true)} style={{flex:1,padding:'10px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="ul" s={12} c="#fff"/> Restore</button>
+                    <button onClick={()=>setRestoreConfirmOpen(true)} style={{flex:1,padding:'10px',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:'10px',color:'#475569',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="ul" s={12} c="#475569"/> Restore</button>
                     <input type="file" ref={fileRef} style={{display:'none'}} accept=".json" onChange={handleImport}/>
                   </div>
 
-                  <div style={{borderTop:'1px solid rgba(255,255,255,0.1)',paddingTop:'11px'}}>
+                  <div style={{borderTop:'1px solid #e2e8f0',paddingTop:'11px'}}>
                     {!wipeConf
-                      ?<button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:'10px',color:'#fca5a5',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#fca5a5"/> Wipe All Data</button>
-                      :<div style={{background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.4)',borderRadius:'12px',padding:'12px'}}>
-                          <div style={{textAlign:'center',color:'#fca5a5',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'rgba(252,165,165,0.7)'}}>{session ? 'Deletes every logged shift and all TOIL data — on this device and in the cloud. ' : 'Deletes every logged shift and all TOIL data on this device. '}This cannot be undone unless you have downloaded a backup file to your device.</span></div>
+                      ?<button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'10px',color:'#b91c1c',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#b91c1c"/> Wipe All Data</button>
+                      :<div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'12px',padding:'12px'}}>
+                          <div style={{textAlign:'center',color:'#b91c1c',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'#dc2626'}}>{session ? 'Deletes every logged shift and all TOIL data — on this device and in the cloud. ' : 'Deletes every logged shift and all TOIL data on this device. '}This cannot be undone unless you have downloaded a backup file to your device.</span></div>
                           <div style={{display:'flex',gap:'6px'}}>
                             <button onClick={handleWipe} disabled={wipingData} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:wipingData?'not-allowed':'pointer',textTransform:'uppercase',letterSpacing:'1px',opacity:wipingData?0.7:1}}>{wipingData?'Wiping…':'Yes, Delete'}</button>
-                            <button onClick={()=>setWipeConf(false)} disabled={wipingData} style={{flex:1,padding:'9px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
+                            <button onClick={()=>setWipeConf(false)} disabled={wipingData} style={{flex:1,padding:'9px',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:'8px',color:'#475569',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
                           </div>
                         </div>
                     }
                   </div>
 
                   {session&&(
-                    <div style={{borderTop:'1px solid rgba(255,255,255,0.1)',marginTop:'11px',paddingTop:'11px'}}>
+                    <div style={{borderTop:'1px solid #e2e8f0',marginTop:'11px',paddingTop:'11px'}}>
                       {!deleteAcctConf ? (
-                        <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:'10px',color:'#fca5a5',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#fca5a5"/> Delete Account</button>
+                        <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'10px',color:'#b91c1c',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#b91c1c"/> Delete Account</button>
                       ) : (
-                        <div style={{background:'rgba(239,68,68,0.15)',border:'1px solid rgba(239,68,68,0.4)',borderRadius:'12px',padding:'12px'}}>
-                          <div style={{fontSize:'11.5px',color:'#fca5a5',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>
-                          <div style={{fontSize:'10.5px',color:'rgba(252,165,165,0.7)',fontWeight:700,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Type your email to confirm: {session.user?.email}</div>
+                        <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'12px',padding:'12px'}}>
+                          <div style={{fontSize:'11.5px',color:'#b91c1c',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>
+                          <div style={{fontSize:'10.5px',color:'#dc2626',fontWeight:700,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Type your email to confirm: {session.user?.email}</div>
                           <input
                             value={deleteAcctTyped}
                             onChange={e=>setDeleteAcctTyped(e.target.value)}
                             placeholder={session.user?.email}
-                            style={{width:'100%',background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#fff',marginBottom:'10px'}}
+                            style={{width:'100%',background:'#fff',border:'1px solid #e2e8f0',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',marginBottom:'10px'}}
                           />
                           <div style={{display:'flex',gap:'6px'}}>
                             <button
                               onClick={handleDeleteAccount}
                               disabled={deleteAcctTyped !== session.user?.email || deletingAcct}
-                              style={{flex:1,padding:'9px',background:(deleteAcctTyped===session.user?.email)?'#dc2626':'rgba(239,68,68,0.3)',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:(deleteAcctTyped===session.user?.email)?'pointer':'not-allowed',textTransform:'uppercase',letterSpacing:'1px'}}
+                              style={{flex:1,padding:'9px',background:(deleteAcctTyped===session.user?.email)?'#dc2626':'#fca5a5',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:(deleteAcctTyped===session.user?.email)?'pointer':'not-allowed',textTransform:'uppercase',letterSpacing:'1px'}}
                             >{deletingAcct?'Deleting…':'Delete Permanently'}</button>
-                            <button onClick={()=>{ setDeleteAcctConf(false); setDeleteAcctTyped(''); }} style={{flex:1,padding:'9px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
+                            <button onClick={()=>{ setDeleteAcctConf(false); setDeleteAcctTyped(''); }} style={{flex:1,padding:'9px',background:'#f1f5f9',border:'1px solid #e2e8f0',borderRadius:'8px',color:'#475569',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
                           </div>
                         </div>
                       )}
@@ -5048,7 +5194,7 @@ export default function App() {
               </div>
               <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,lineHeight:1.6}}>
                 It wasn't smooth sailing putting this app together, maintaining the code and hosting it. If you want to say thanks, please feel free to{' '}
-                <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a>.
+                <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank).
               </div>
               <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,marginTop:'8px'}}>Thanks for your support.</div>
             </div>
@@ -5602,8 +5748,13 @@ export default function App() {
             );
           })}
           {session&&(
-            <button onClick={handleManualSync} disabled={manualSyncing} style={{marginTop:'auto',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit'}}>
+            <button onClick={handleManualSync} disabled={manualSyncing} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'auto'}}>
               <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={14} c="#fff"/></span> Sync
+            </button>
+          )}
+          {session&&(
+            <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>
+              <Ico n="logout" s={14} c="#fff"/> Log Out
             </button>
           )}
         </div>
