@@ -5013,7 +5013,7 @@ export default function App() {
               <div style={{borderTop:'1px solid #f1f5f9',margin:'14px 0'}}/>
               <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
                 <Ico n="coffee" s={16} c="#d97706"/>
-                <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>Want to say thanks?</div>
+                <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Want to say thanks?</div>
               </div>
               <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,lineHeight:1.6}}>
                 It wasn't smooth sailing putting this app together, maintaining the code and hosting it. If you want to say thanks, please feel free to{' '}
