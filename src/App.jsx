@@ -4888,14 +4888,22 @@ export default function App() {
             )}
 
             {/* ── Help & suggestions ── */}
-            <a href="mailto:ajstephe@me.com?subject=Overtime%20Tracker%20—%20Feedback" style={{...S.card,display:'flex',alignItems:'center',gap:'12px',textDecoration:'none',cursor:'pointer'}}>
-              <div style={{background:'#eff6ff',padding:isWide?'13px':'11px',borderRadius:'13px',flexShrink:0}}><Ico n="mail" s={isWide?23:19} c="#2563eb"/></div>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Help & Suggestions</div>
-                <div style={{fontSize:'11px',color:'#3b82f6',fontWeight:700,marginTop:'2px'}}>ajstephe@me.com</div>
+            <div style={S.card}>
+              <a href="mailto:ajstephe@me.com?subject=Overtime%20Tracker%20—%20Feedback" style={{display:'flex',alignItems:'center',gap:'12px',textDecoration:'none',cursor:'pointer'}}>
+                <div style={{background:'#eff6ff',padding:isWide?'13px':'11px',borderRadius:'13px',flexShrink:0}}><Ico n="mail" s={isWide?23:19} c="#2563eb"/></div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Help & Suggestions</div>
+                  <div style={{fontSize:'11px',color:'#3b82f6',fontWeight:700,marginTop:'2px'}}>ajstephe@me.com</div>
+                </div>
+                <Ico n="cR" s={16} c="#94a3b8"/>
+              </a>
+              <div style={{borderTop:'1px solid #f1f5f9',margin:'14px 0'}}/>
+              <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a',marginBottom:'6px'}}>Want to say thanks?</div>
+              <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,lineHeight:1.6}}>
+                It wasn't smooth sailing putting this app together, maintaining the code and hosting it. If you want to say thanks by buying me a coffee please feel free to donate using this link{' '}
+                <a href="https://paypal.me/adamjstephens" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>paypal.me/adamjstephens</a>.
               </div>
-              <Ico n="cR" s={16} c="#94a3b8"/>
-            </a>
+            </div>
           </div>
         )}
       </main>
