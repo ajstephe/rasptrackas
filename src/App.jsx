@@ -2073,7 +2073,11 @@ export default function App() {
         const periodTotal = items.reduce((s,it)=>s+it.amount,0);
         groups.push({ period: p, periodIdx: pIdx, items, periodTotal });
         totalAmount += periodTotal;
-        totalClaims += items.length;
+        // Overtime and TOIL share one toggle (otSubmitted) so they count as
+        // a single item together; PA is independent and counts separately —
+        // a day with both outstanding is genuinely two claims to submit,
+        // not one, since they go to two different systems (CARMS/MetHR).
+        totalClaims += items.reduce((s,it)=>s+(it.otOutstanding?1:0)+(it.paOutstanding?1:0),0);
       }
     });
     return { groups, totalAmount, totalClaims, totalOtAmount, totalPaAmount, periodCount: groups.length };
@@ -2373,6 +2377,14 @@ export default function App() {
       'Night Hours (Enhanced)','PA Rate','Submitted','Gross (£)',
       'Cumulative Taxable Income Before This Entry (£)','Net (£)','Rate Applied','Notes'
     ];
+    // DD/MM/YY as plain text — deliberately not a real date cell, since
+    // date-serial conversion between JS and Excel can silently shift by a
+    // day around timezone boundaries. A formatted string always shows
+    // exactly what it says, with no risk of that.
+    const fmtDDMMYY = dateStr => {
+      const [y,m,d] = dateStr.split('-');
+      return `${d}/${m}/${y.slice(2)}`;
+    };
     // Only counts what's actually been submitted — an entry with unsubmitted
     // OT and/or PA contributes £0 for that part, matching every other
     // gross/net figure in the app. Exporting the raw, unconditional amount
@@ -2419,7 +2431,7 @@ export default function App() {
       const yearFraction = p ? taxYearFractionForDate(p.end) : taxYearFractionForDate(e.date);
       const result = applyBandTax(cumulativeBefore, gross, yearFraction, periodGrossBefore);
       return [
-        e.date, e.reason||'', c.h1||'', c.h2||'', c.h3||'',
+        fmtDDMMYY(e.date), e.reason||'', c.h1||'', c.h2||'', c.h3||'',
         c.nh||'', e.paRate!=='None'?e.paRate:'',
         submittedLabel(e),
         Math.round(gross*100)/100,
@@ -2434,6 +2446,16 @@ export default function App() {
       const XLSX = await loadXLSXLib();
       const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
       ws['!cols'] = [{wch:11},{wch:28},{wch:11},{wch:11},{wch:11},{wch:11},{wch:9},{wch:18},{wch:11},{wch:20},{wch:11},{wch:20},{wch:30}];
+      // Accounting format on the three currency columns (I, J, K) — aligned
+      // £ symbol, thousands separators, negatives in parentheses, a plain
+      // dash for zero, matching how Excel's own "Accounting" format looks.
+      const acctFmt = '_-£* #,##0.00_-;-£* #,##0.00_-;_-£* "-"??_-;_-@_-';
+      ['I','J','K'].forEach(col => {
+        for (let r=2; r<=rows.length+1; r++){
+          const cell = ws[`${col}${r}`];
+          if (cell) cell.z = acctFmt;
+        }
+      });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Overtime Records');
       XLSX.writeFile(wb, `OvertimeShiftTracker_Records${suffix}.xlsx`);
@@ -4849,7 +4871,7 @@ export default function App() {
                       <div style={{background:'#d1fae5',padding:'10px',borderRadius:'11px',flexShrink:0}}><Ico n="table" s={18} c="#059669"/></div>
                       <div>
                         <div style={{fontWeight:900,fontSize:'13.5px',color:'#0f172a'}}>Spreadsheet</div>
-                        <div style={{fontSize:'10.5px',color:'#64748b',marginTop:'1px'}}>A CSV file for Excel, Sheets or Numbers</div>
+                        <div style={{fontSize:'10.5px',color:'#64748b',marginTop:'1px'}}>An XLSX file for Excel, Sheets or Numbers</div>
                       </div>
                     </button>
                   </div>
