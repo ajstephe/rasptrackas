@@ -3739,6 +3739,8 @@ export default function App() {
               )}
             </div>
 
+            <div style={{display:'flex',gap:isWide?'20px':0,alignItems:'flex-start'}}>
+            <div style={{flex:isWide?'0 0 430px':1,minWidth:0}}>
             {breakdownView==='list' ? (
             <>
             {PAY_PERIODS.map((p,idx)=>{
@@ -3771,10 +3773,12 @@ export default function App() {
                         <div style={{fontSize:'11px',fontWeight:700,color:'#94a3b8'}}>{pE.length} record{pE.length!==1?'s':''}</div>
                       </div>
                     </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                      <div><div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'19px',color:'#1e3a5f'}}>{fmt(totG)}</div></div>
-                      <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'19px',color:'#059669'}}>{fmt(totN)}</div></div>
-                    </div>
+                    {!isWide && (
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
+                        <div><div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'19px',color:'#1e3a5f'}}>{fmt(totG)}</div></div>
+                        <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'19px',color:'#059669'}}>{fmt(totN)}</div></div>
+                      </div>
+                    )}
                     {(() => {
                       const g = carmsOutstanding.groups.find(g=>g.periodIdx===idx);
                       if (!g) return null;
@@ -3938,7 +3942,7 @@ export default function App() {
                 </div>
               );
             })}
-            {renderFYTotalsCard()}
+            {!isWide && renderFYTotalsCard()}
             </>
             ) : (
             <>
@@ -4140,19 +4144,46 @@ export default function App() {
                     );
                   })()}
 
-                  {/* month total — same layout as the List View card header */}
-                  <div style={{...S.card,marginTop:'9px'}}>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                      <div><div style={{fontSize:'14px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'23px',color:'#1e3a5f'}}>{fmt(pb.combinedGross)}</div></div>
-                      <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'23px',color:'#059669'}}>{fmt(pb.combinedNet)}</div></div>
+                  {!isWide && (
+                    <div style={{...S.card,marginTop:'9px'}}>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
+                        <div><div style={{fontSize:'14px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'23px',color:'#1e3a5f'}}>{fmt(pb.combinedGross)}</div></div>
+                        <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'23px',color:'#059669'}}>{fmt(pb.combinedNet)}</div></div>
+                      </div>
                     </div>
-                  </div>
-                  {renderFYTotalsCard()}
+                  )}
+                  {!isWide && renderFYTotalsCard()}
                 </>
               );
             })()}
             </>
             )}
+            </div>
+
+            {isWide && (()=>{
+              const rightColIdx = breakdownView==='list'
+                ? PAY_PERIODS.findIndex(p=>p.month===expanded)
+                : (calPeriodIdx===null ? currPeriodIdx : calPeriodIdx);
+              const rightPb = rightColIdx>=0 ? totals.periodBreakdown[rightColIdx] : null;
+              return (
+                <div style={{flex:1,minWidth:0}}>
+                  {rightPb ? (
+                    <div style={S.card}>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
+                        <div><div style={{fontSize:'12px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'26px',color:'#1e3a5f'}}>{fmt(rightPb.combinedGross)}</div></div>
+                        <div style={{textAlign:'right'}}><div style={{fontSize:'12px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'26px',color:'#059669'}}>{fmt(rightPb.combinedNet)}</div></div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{...S.card,textAlign:'center',color:'#94a3b8',fontSize:'12px',fontWeight:700}}>
+                      {breakdownView==='list' ? 'Expand a month to see its Gross/Net here' : 'Select a period to see its Gross/Net here'}
+                    </div>
+                  )}
+                  {renderFYTotalsCard()}
+                </div>
+              );
+            })()}
+            </div>
           </div>
         )}
 
@@ -4225,26 +4256,26 @@ export default function App() {
                             const showPa = it.paOutstanding && carmsFilter!=='ot' && carmsFilter!=='toil';
                             const showToil = it.toilOutstanding && carmsFilter!=='ot' && carmsFilter!=='pa';
                             return (
-                              <div key={it.entry.id} onClick={goToEntry} style={{padding:'10px 0',borderBottom:'1px solid #f1f5f9',cursor:'pointer'}}>
-                                <div style={{fontSize:'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',marginBottom:'6px'}}>
+                              <div key={it.entry.id} onClick={goToEntry} style={{padding:isWide?'12px 0':'10px 0',borderBottom:'1px solid #f1f5f9',cursor:'pointer'}}>
+                                <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',marginBottom:'6px'}}>
                                   {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
                                 </div>
                                 {showOt&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
-                                    <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
-                                    <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
+                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
+                                    <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
                                   </div>
                                 )}
                                 {showPa&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
-                                    <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#fffbeb',color:'#f59e0b'}}>PA</span>
-                                    <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
+                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#fffbeb',color:'#f59e0b'}}>PA</span>
+                                    <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
                                   </div>
                                 )}
                                 {showToil&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
-                                    <span style={{fontSize:'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
-                                    <span style={{fontSize:'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
+                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
+                                    <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#64748b',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
                                   </div>
                                 )}
                               </div>
@@ -4774,9 +4805,9 @@ export default function App() {
         const canGenerate = payslipMode==='period' ? payslipPeriodIdx!=null : payslipMode==='financialYear' ? payslipFYYear!=null : rangeValid;
         const formatLabel = exportFormat==='csv' ? 'Spreadsheet' : 'PDF';
         return (
-          <div onClick={()=>setPayslipModalOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.55)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:60}}>
-            <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto'}}>
-              <div style={{width:'36px',height:'4px',background:'#e2e8f0',borderRadius:'4px',margin:'0 auto 14px'}}/>
+          <div onClick={()=>setPayslipModalOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.55)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
+            <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+              {!isWide && <div style={{width:'36px',height:'4px',background:'#e2e8f0',borderRadius:'4px',margin:'0 auto 14px'}}/>}
               {exportFormat===null ? (
                 <>
                   <div style={{fontSize:'15px',fontWeight:900,marginBottom:'4px'}}>Financial Reports &amp; Export</div>
