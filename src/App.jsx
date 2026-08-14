@@ -708,6 +708,7 @@ const Ico = ({ n, s=20, c, w=2, f='none' }) => (
     {n==='save'  &&<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>}
     {n==='clock' &&<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>}
     {n==='coffee' &&<><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></>}
+    {n==='checklist' &&<><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 13 1.5 1.5L13.5 11"/><path d="M9 18h6"/></>}
     {n==='cR'    &&<polyline points="9 18 15 12 9 6"/>}
     {n==='cL'    &&<polyline points="15 18 9 12 15 6"/>}
     {n==='cU'    &&<polyline points="18 15 12 9 6 15"/>}
@@ -3480,16 +3481,8 @@ export default function App() {
               <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'3px'}}>
                 Total Gross YTD
               </div>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:'4px',marginBottom:'3px'}}>
-                <div style={{fontSize:'28px',fontWeight:900,color:'#fff',letterSpacing:'-2px',lineHeight:1}}>
-                  {settings.rank&&settings.service ? fmtGBP(totals.combinedGrossYTD) : '—'}
-                </div>
-                {settings.rank&&settings.service&&(
-                  <div onClick={()=>setHomeGraphExpanded(v=>!v)} style={{display:'flex',alignItems:'center',gap:'5px',background:homeGraphExpanded?'rgba(147,197,253,0.15)':'rgba(255,255,255,0.08)',border:`1px solid ${homeGraphExpanded?'rgba(147,197,253,0.4)':'rgba(255,255,255,0.15)'}`,borderRadius:'8px',padding:'6px 10px',cursor:'pointer',flexShrink:0}}>
-                    <Ico n="bar" s={13} c="#93c5fd"/>
-                    <span style={{fontSize:'9px',fontWeight:800,color:'#93c5fd'}}>{homeGraphExpanded?'Hide Graph':'Graph'}</span>
-                  </div>
-                )}
+              <div style={{fontSize:'28px',fontWeight:900,color:'#fff',letterSpacing:'-2px',lineHeight:1,marginTop:'4px',marginBottom:'3px'}}>
+                {settings.rank&&settings.service ? fmtGBP(totals.combinedGrossYTD) : '—'}
               </div>
               <div style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginBottom:'12px'}}>
                 {settings.rank&&settings.service
@@ -3499,19 +3492,6 @@ export default function App() {
               {carmsOutstanding.totalAmount>0&&(
                 <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',cursor:'pointer'}}>
                   <Ico n="clock" s={11} c="#fbbf24"/>+{fmtGBP(carmsOutstanding.totalAmount)} not yet submitted to CARMS
-                </div>
-              )}
-
-              {/* ── Monthly Gross vs Net — toggled via the Graph button up top ── */}
-              {homeGraphExpanded&&settings.rank&&settings.service&&(
-                <div style={{borderTop:'1px solid rgba(255,255,255,0.08)',marginTop:'14px',paddingTop:'12px'}}>
-                  <div style={{fontSize:'11px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'10px'}}>Monthly Gross vs Net</div>
-                  {renderMonthlyChart(false, true)}
-                  <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#34d399',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</span></div>
-                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#f87171',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1px'}}>Net</span></div>
-                  </div>
-                  <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'#64748b'}}>Tap any point for that period's figure</div>
                 </div>
               )}
             </div>
@@ -3527,7 +3507,7 @@ export default function App() {
                   <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
                     <div style={{background:'#eff6ff',padding:'10px',borderRadius:'12px',flexShrink:0}}><Ico n="bar" s={17} c="#2563eb"/></div>
                     <div>
-                      <div style={{fontWeight:900,fontSize:'13.5px',color:'#0f172a'}}>Salary Breakdown &amp; Forecast</div>
+                      <div style={{fontWeight:900,fontSize:'13.5px',color:'#0f172a'}}>Salary Breakdown &amp; Overtime Forecast</div>
                       <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'1px'}}>Base, allowances, overtime, full-year projection</div>
                     </div>
                   </div>
@@ -3641,6 +3621,27 @@ export default function App() {
                         </div>
                       );
                     })()}
+
+                    {/* ── Monthly Gross vs Net — its own toggle, since the
+                         chart is a heavier thing to render than the rest of
+                         this card and doesn't need to load just because the
+                         card itself is open. ── */}
+                    <div style={{borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'12px'}}>
+                      <div onClick={e=>{e.stopPropagation();setHomeGraphExpanded(v=>!v);}} style={{display:'flex',alignItems:'center',gap:'5px',background:homeGraphExpanded?'#eff6ff':'#f8fafc',border:`1px solid ${homeGraphExpanded?'#bfdbfe':'#f1f5f9'}`,borderRadius:'8px',padding:'8px 12px',cursor:'pointer',width:'fit-content'}}>
+                        <Ico n="bar" s={13} c="#2563eb"/>
+                        <span style={{fontSize:'10px',fontWeight:800,color:'#2563eb'}}>{homeGraphExpanded?'Hide Monthly Gross vs Net':'Show Monthly Gross vs Net'}</span>
+                      </div>
+                      {homeGraphExpanded&&(
+                        <div style={{marginTop:'14px'}}>
+                          {renderMonthlyChart(false, false)}
+                          <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</span></div>
+                            <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#ef4444',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Net</span></div>
+                          </div>
+                          <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'#94a3b8'}}>Tap any point for that period's figure</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -3650,12 +3651,17 @@ export default function App() {
                  something outstanding, tapping through to the full view ── */}
             {carmsOutstanding.totalClaims>0&&(
               <div onClick={()=>setTab('carms')} style={{...S.card,cursor:'pointer'}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'2px'}}>
-                  <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>CARMS &amp; MetHR Outstanding</div>
-                  <span style={{fontSize:'10px',color:'#2563eb',fontWeight:800}}>View all →</span>
+                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                  <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'2px'}}>
+                      <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>CARMS &amp; MetHR Outstanding</div>
+                      <span style={{fontSize:'10px',color:'#2563eb',fontWeight:800,flexShrink:0}}>View all →</span>
+                    </div>
+                    <div style={{fontSize:'19px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+                    <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} across {carmsOutstanding.periodCount} pay period{carmsOutstanding.periodCount!==1?'s':''}</div>
+                  </div>
                 </div>
-                <div style={{fontSize:'19px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
-                <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} across {carmsOutstanding.periodCount} pay period{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             )}
 
