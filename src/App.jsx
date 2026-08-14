@@ -3455,6 +3455,7 @@ export default function App() {
         </div>
       )}
 
+      <div style={{display:'flex',flex:1,overflow:'hidden'}}>
       <main ref={mainRef} className="no-print" style={S.main}>
 
         {/* ══════════════════════════════════════════ DASHBOARD */}
@@ -3658,20 +3659,6 @@ export default function App() {
               </div>
             )}
 
-            {/* ── Current pay period — tap through to Calendar view in Summary ── */}
-            {totals.curr&&(
-              <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,cursor:'pointer'}}>
-                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                  <div style={{background:'#f0fdfa',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={19} c="#0d9488"/></div>
-                  <div>
-                    <div style={{fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Current Pay Period</div>
-                    <div style={{fontSize:'17px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{totals.curr.month}</div>
-                    <div style={{fontSize:'10.5px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* ── TOIL summary card — stays a genuine warning card in red when
                  overdrawn (a real status worth the saturated colour), but
                  drops to a neutral white card with a coloured icon chip
@@ -3690,6 +3677,20 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {/* ── Current pay period — tap through to Calendar view in Summary ── */}
+            {totals.curr&&(
+              <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,cursor:'pointer'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                  <div style={{background:'#f0fdfa',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={19} c="#0d9488"/></div>
+                  <div>
+                    <div style={{fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Current Pay Period</div>
+                    <div style={{fontSize:'17px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{totals.curr.month}</div>
+                    <div style={{fontSize:'10.5px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div style={{fontSize:'10.5px',color:'#b91c1c',textAlign:'center',lineHeight:1.5,padding:'8px 12px 0'}}>This calculator is accurate to the best of our knowledge and is a guide. Always double check your payslip for precise figures.</div>
           </div>
@@ -5250,6 +5251,64 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* ── Desktop secondary column — gives the empty space beside the
+           main column on a wide screen an actual job, rather than just
+           being padding around a phone-width layout. Shown on Home, Log
+           Overtime, Summary, and More — not on CARMS/PA or TOIL
+           themselves, since a summary of exactly what's already the main
+           focus there would just be redundant. ── */}
+      {isWide && ['dashboard','add','months','settings'].includes(tab) && (
+        <aside className="no-print" style={{width:'320px',flexShrink:0,padding:'24px 24px 24px 0',overflowY:'auto'}}>
+          <div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px',padding:'0 2px'}}>At a Glance</div>
+
+          {(()=>{
+            const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
+            return (
+              <div style={{background:'#fff',borderRadius:'16px',padding:'16px',border:'1px solid #f1f5f9',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',marginBottom:'12px'}}>
+                <div style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a',marginBottom:'4px'}}>Gross &amp; Net OT — Current Period</div>
+                <div style={{fontSize:'22px',fontWeight:900,color:'#0f172a',marginTop:'2px'}}>
+                  {pb?fmtGBP(pb.combinedGross):'£0.00'}{' '}
+                  <span style={{fontSize:'14px',fontWeight:800,color:'#059669'}}>({pb?fmtGBP(pb.combinedNet):'£0.00'})</span>
+                </div>
+                <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'2px'}}>{pb?pb.month:'—'} · submitted only</div>
+              </div>
+            );
+          })()}
+
+          <div style={{background:'#fff',borderRadius:'16px',padding:'16px',border:'1px solid #f1f5f9',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',marginBottom:'12px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}}>
+              <span style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a'}}>CARMS &amp; PA Outstanding</span>
+              {carmsOutstanding.totalClaims>0&&<span onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:800,color:'#2563eb',cursor:'pointer'}}>View all →</span>}
+            </div>
+            {carmsOutstanding.totalClaims===0
+              ? <div style={{fontSize:'11px',color:'#94a3b8',fontWeight:600,padding:'6px 0'}}>Nothing outstanding right now.</div>
+              : (()=>{
+                  const allItems = carmsOutstanding.groups.flatMap(g=>g.items.map(it=>({...it, period:g.period})));
+                  const shown = allItems.slice(0,3);
+                  return (
+                    <>
+                      {shown.map((it,i)=>(
+                        <div key={it.entry.id+String(it.otOutstanding)+String(it.paOutstanding)} onClick={()=>setTab('carms')} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 0',borderTop:i===0?'none':'1px solid #f1f5f9',cursor:'pointer'}}>
+                          <div>
+                            <div style={{fontSize:'11.5px',fontWeight:700,color:'#0f172a'}}>{it.entry.reason||'Shift'}</div>
+                            <div style={{fontSize:'9.5px',color:'#94a3b8'}}>{it.otOutstanding?'Overtime':it.entry.paRate} · {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
+                          </div>
+                          <div style={{fontSize:'12.5px',fontWeight:900,color:'#d97706'}}>{fmtGBP(it.amount)}</div>
+                        </div>
+                      ))}
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#fffbeb',borderRadius:'10px',padding:'9px 11px',marginTop:'8px'}}>
+                        <span style={{fontSize:'10px',fontWeight:800,color:'#92400e'}}>{carmsOutstanding.totalClaims} CLAIM{carmsOutstanding.totalClaims!==1?'S':''} TOTAL</span>
+                        <span style={{fontSize:'14px',fontWeight:900,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalAmount)}</span>
+                      </div>
+                    </>
+                  );
+                })()
+            }
+          </div>
+        </aside>
+      )}
+      </div>
 
       {/* Financial Reports & Export — shared modal for both PDF and Spreadsheet formats */}
       {payslipModalOpen&&(()=>{
