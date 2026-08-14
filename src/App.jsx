@@ -3630,7 +3630,7 @@ export default function App() {
                          since on a wide desktop card the two sections sat
                          close enough to read as one continuous block. ── */}
                     <div style={{borderTop:'2px solid #e2e8f0',marginTop:'22px',paddingTop:'20px'}}>
-                      <div style={{fontSize:'11px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>Monthly Gross vs Net</div>
+                      <div style={{fontSize:'11px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>Monthly OT Gross/Net</div>
                       <div style={{maxWidth:isWide?'75%':'100%',margin:'0 auto'}}>
                         {renderMonthlyChart(false, false)}
                       </div>
@@ -3652,10 +3652,7 @@ export default function App() {
                 <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
                   <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'2px'}}>
-                      <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>CARMS &amp; MetHR Outstanding</div>
-                      <span style={{fontSize:'10px',color:'#2563eb',fontWeight:800,flexShrink:0}}>View all →</span>
-                    </div>
+                    <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a',marginBottom:'2px'}}>CARMS &amp; MetHR Outstanding</div>
                     <div style={{fontSize:'19px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
                     <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} across {carmsOutstanding.periodCount} pay period{carmsOutstanding.periodCount!==1?'s':''}</div>
                   </div>
@@ -3696,7 +3693,31 @@ export default function App() {
               </div>
             )}
 
-            <div style={{fontSize:'10.5px',color:'#b91c1c',textAlign:'center',lineHeight:1.5,padding:'8px 12px 0'}}>This calculator is accurate to the best of our knowledge and is a guide. Always double check your payslip for precise figures.</div>
+            {/* ── At a Glance — mobile-only equivalent of the desktop
+                 secondary column's own widget, since phones don't have
+                 that extra space to show it persistently alongside
+                 everything else. Positioned as the last card on Home. ── */}
+            {!isWide&&(()=>{
+              const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
+              return (
+                <div style={S.card}>
+                  <div style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
+                  <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
+                    <div>
+                      <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div>
+                      <div style={{fontSize:'18px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div>
+                      <div style={{fontSize:'18px',fontWeight:900,color:'#059669',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
+                    </div>
+                  </div>
+                  <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'8px'}}>{pb?pb.month:'—'} · submitted only</div>
+                </div>
+              );
+            })()}
+
+            <div style={{fontSize:'10.5px',color:'#b91c1c',textAlign:'center',lineHeight:1.5,padding:'8px 12px 0'}}>For guidance only. Always verify amounts against your payslip.</div>
           </div>
         )}
 
@@ -3739,7 +3760,7 @@ export default function App() {
                   hours grid instead. */}
               <div style={{marginBottom:'13px'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#eff6ff',border:'1.5px solid #bfdbfe',borderRadius:'13px',padding:'12px 13px'}}>
-                  <div style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>Rostered Shift / Actual Shift</div>
+                  <div style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>Rostered CARM Shift / Actual Shift</div>
                   <div onClick={()=>{
                       const switchingToManual = form.recordShiftTimes; // currently auto → about to go manual
                       setForm(f=>syncShiftTimesIntoForm({...f, recordShiftTimes:!switchingToManual, otRateTier: !switchingToManual && !f.otRateTier ? 'hours133' : f.otRateTier}));
@@ -3766,8 +3787,9 @@ export default function App() {
                       <>
                         <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>
                           <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#94a3b8'}}/>
-                          <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Rostered Shift</div>
+                          <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Rostered CARM Shift</div>
                         </div>
+                        <div style={{fontSize:'9.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'5px'}}>Quick presets</div>
                         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'5px',marginBottom:'12px'}}>
                           {[['07:00','15:00'],['07:00','19:00'],['08:00','20:00'],['13:00','23:00']].map(([start,end])=>{
                             const isSelected = form.rosteredStart===start && form.rosteredEnd===end;
@@ -4014,7 +4036,7 @@ export default function App() {
                 otherwise there's nothing to track for that part. */}
             <div ref={carmsToggleRef} className={focusCarmsToggle?'carms-pulse':''} style={{...S.card,marginBottom:'11px',border:focusCarmsToggle?'2px solid #2563eb':'1px solid #f1f5f9'}}>
               <div style={{fontWeight:900,fontSize:'15px',color:'#0f172a',marginBottom:'2px'}}>CARMS Submission</div>
-              <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginBottom:'4px'}}>Toggle these to 'On' when you've submitted the claim on CARMS or via MetHR for PA.</div>
+              <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginBottom:'4px'}}>Toggle when Overtime and/or PA claims have been submitted on the relevant system.</div>
               {(()=>{
                 const hasOTHours = (parseFloat(form.hours133)||0) + (parseFloat(form.hours150)||0) + (parseFloat(form.hours200)||0) > 0;
                 return (
@@ -4075,7 +4097,7 @@ export default function App() {
                   </div>
                 )}
               </div>
-              <div style={{fontSize:'10.5px',color:'#94a3b8',lineHeight:1.5,marginTop:'4px'}}>Both default to <b>off</b> when you log a new shift — you're recording that you worked it, not that you've claimed it yet.</div>
+              <div style={{fontSize:'10.5px',color:'#94a3b8',lineHeight:1.5,marginTop:'4px'}}>Toggles default to <b>off</b> when you log a new shift — you're recording that you worked it, not that you've claimed it on the relevant systems.</div>
             </div>
 
             {/* live preview */}
@@ -5656,7 +5678,7 @@ export default function App() {
         <div onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50,padding:'16px'}}>
           <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:'20px',padding:'20px 16px',width:'100%',maxWidth:'480px',maxHeight:'85vh',overflow:'auto',position:'relative'}}>
             <button onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',top:'14px',right:'14px',background:'#f1f5f9',border:'none',borderRadius:'50%',width:'30px',height:'30px',fontSize:'15px',fontWeight:900,color:'#475569',cursor:'pointer'}}>✕</button>
-            <div style={{fontSize:'13px',fontWeight:900,color:'#0f172a',marginBottom:'16px',paddingRight:'36px'}}>{chartModal==='cum'?'Cumulative Gross Earnings':'Monthly Gross vs Net'}</div>
+            <div style={{fontSize:'13px',fontWeight:900,color:'#0f172a',marginBottom:'16px',paddingRight:'36px'}}>{chartModal==='cum'?'Cumulative Gross Earnings':'Monthly OT Gross/Net'}</div>
             {chartModal==='cum' ? renderCumulativeChart(true) : renderMonthlyChart(true)}
             {chartModal==='cum' && (
               <div style={{textAlign:'center',marginTop:'10px',fontSize:'12px',fontWeight:700,color:'#64748b'}}>Running total: <strong style={{color:'#1e3a5f'}}>£{totals.totalGross.toFixed(2)}</strong></div>
