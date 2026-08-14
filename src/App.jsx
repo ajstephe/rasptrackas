@@ -3508,7 +3508,7 @@ export default function App() {
                   <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
                     <div style={{background:'#eff6ff',padding:'10px',borderRadius:'12px',flexShrink:0}}><Ico n="bar" s={17} c="#2563eb"/></div>
                     <div>
-                      <div style={{fontWeight:900,fontSize:'13.5px',color:'#0f172a'}}>Salary Breakdown &amp; Overtime Forecast</div>
+                      <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Salary Breakdown &amp; Overtime Forecast</div>
                       <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'1px'}}>Base, allowances, overtime, full-year projection</div>
                     </div>
                   </div>
@@ -3653,7 +3653,7 @@ export default function App() {
                 <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
                   <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a',marginBottom:'2px'}}>CARMS &amp; MetHR Outstanding</div>
+                    <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'2px'}}>CARMS &amp; MetHR Outstanding</div>
                     <div style={{fontSize:'19px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
                     <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} across {carmsOutstanding.periodCount} pay period{carmsOutstanding.periodCount!==1?'s':''}</div>
                   </div>
@@ -3705,7 +3705,7 @@ export default function App() {
                   <div style={{display:'flex',alignItems:'flex-start',gap:'12px'}}>
                     <div style={{background:'#f0fdf4',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cash" s={19} c="#059669"/></div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
+                      <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
                       <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
                         <div>
                           <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div>
