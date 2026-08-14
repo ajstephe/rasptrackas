@@ -4134,10 +4134,16 @@ export default function App() {
                 <div style={{display:'flex',gap:'5px',overflowX:'auto',paddingTop:isWide?0:'8px',scrollbarWidth:'none',msOverflowStyle:'none',justifyContent:isWide?'center':'flex-start'}}>
                   {PAY_PERIODS.map((p,idx)=>{
                     const isCurr=idx===currPeriodIdx, isOpen=expanded===p.month;
+                    // Matches Calendar View's own guarantee that exactly one
+                    // pill always reads as "active" — falls back to the
+                    // current period when nothing's been manually expanded,
+                    // rather than leaving every pill unselected once a card
+                    // gets collapsed.
+                    const isActive = expanded===null ? isCurr : isOpen;
                     const hasOutstanding = carmsOutstanding.groups.some(g=>g.periodIdx===idx);
                     return(
-                      <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flexShrink:0,padding:'4px 10px',borderRadius:'18px',border:isOpen?'1.5px solid #2563eb':hasOutstanding?'1px solid #fecaca':isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:hasOutstanding?'#fef2f2':isOpen?'#2563eb':isCurr?'#eff6ff':'#fff',color:hasOutstanding?'#b91c1c':isOpen?'#fff':isCurr?'#2563eb':'#64748b',fontSize:'13px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',display:'flex',alignItems:'center',gap:'4px'}}>
-                        {p.short}{isCurr&&!isOpen&&<span style={{display:'inline-block',width:'4px',height:'4px',borderRadius:'50%',background:hasOutstanding?'#b91c1c':'#2563eb'}}/>}
+                      <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flexShrink:0,padding:'4px 10px',borderRadius:'18px',border:isActive?'1.5px solid #2563eb':hasOutstanding?'1px solid #fecaca':isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:hasOutstanding?'#fef2f2':isActive?'#2563eb':isCurr?'#eff6ff':'#fff',color:hasOutstanding?'#b91c1c':isActive?'#fff':isCurr?'#2563eb':'#64748b',fontSize:'13px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',display:'flex',alignItems:'center',gap:'4px'}}>
+                        {p.short}{isCurr&&!isActive&&<span style={{display:'inline-block',width:'4px',height:'4px',borderRadius:'50%',background:hasOutstanding?'#b91c1c':'#2563eb'}}/>}
                       </button>
                     );
                   })}
