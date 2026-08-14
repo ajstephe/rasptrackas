@@ -2392,7 +2392,7 @@ export default function App() {
   async function handleExportSpreadsheet(start, end, sanitise){
     const headers = [
       'Pay Period','Date','Duty/Reason','1.33x Hours','1.5x Hours','2.0x Hours',
-      'Night Hours (Enhanced)','PA Rate','Submitted','Gross (£)',
+      'Night Hours (Enhanced)','PA Rate','Submitted','Breakdown','Gross (£)',
       'Cumulative Taxable Income Before This Entry (£)','Net (£)','Rate Applied','Notes'
     ];
     // DD/MM/YYYY as plain text — deliberately not a real date cell, since
@@ -2441,13 +2441,28 @@ export default function App() {
       // period gets paid out, not on each shift's own date within it.
       const yearFraction = p ? taxYearFractionForDate(p.end) : taxYearFractionForDate(e.date);
       const result = applyBandTax(cumulativeBefore, gross, yearFraction, periodGrossBefore);
+      // A plain-language breakdown of exactly how the Gross figure was made
+      // up — e.g. "4hr@1.5x=£60.00 + PA2@£90.00". Respects submission
+      // status the same way Gross itself does, so the parts shown here
+      // always add up to the Gross value in the next column, rather than
+      // showing OT/PA components that haven't actually been claimed yet.
+      const hasPA = e.paRate && e.paRate!=='None';
+      const breakdownParts = [];
+      if (isOtSubmitted(e)) {
+        if (c.payH1>0) breakdownParts.push(`${c.payH1}hr@1.33x=£${c.ot1.toFixed(2)}`);
+        if (c.payH2>0) breakdownParts.push(`${c.payH2}hr@1.5x=£${c.ot2.toFixed(2)}`);
+        if (c.payH3>0) breakdownParts.push(`${c.payH3}hr@2.0x=£${c.ot3.toFixed(2)}`);
+        if (c.nh>0) breakdownParts.push(`${c.nh}hr night=£${c.night.toFixed(2)}`);
+      }
+      if (hasPA && isPaSubmitted(e)) breakdownParts.push(`${e.paRate}@£${c.pa.toFixed(2)}`);
+      const breakdown = breakdownParts.join(' + ') || '—';
       // Leading '' reserves column A for the merged, rotated pay-period
       // label set separately below — this row array only ever fills
       // columns B onward.
       return [
         '', fmtDDMMYYYY(e.date), e.reason||'', c.h1||'', c.h2||'', c.h3||'',
         c.nh||'', e.paRate!=='None'?e.paRate:'',
-        submittedLabel(e),
+        submittedLabel(e), breakdown,
         Math.round(gross*100)/100,
         Math.round(cumulativeBefore*100)/100,
         Math.round(result.net*100)/100,
@@ -2477,8 +2492,8 @@ export default function App() {
       const row = blankRow();
       row[2] = 'Period Total';
       row[3] = sum(3) || ''; row[4] = sum(4) || ''; row[5] = sum(5) || '';
-      row[9] = Math.round(sum(9)*100)/100;
-      row[11] = Math.round(sum(11)*100)/100;
+      row[10] = Math.round(sum(10)*100)/100;
+      row[12] = Math.round(sum(12)*100)/100;
       return row;
     };
     const expandedRows = [];
@@ -2541,12 +2556,12 @@ export default function App() {
         cell.border = { top:{style:'thick',color:{argb:'FF5C7C99'}}, bottom:{style:'thick',color:{argb:'FF5C7C99'}}, left:{style:'thick',color:{argb:'FF5C7C99'}}, right:{style:'thick',color:{argb:'FF5C7C99'}} };
       });
 
-      // Currency columns (J, K, L — shifted one letter right by the new
-      // Pay Period column) get the accounting format — aligned £ symbol,
-      // thousands separators, a plain dash for zero, matching Excel's own
-      // built-in "Accounting" look.
+      // Currency columns (K, L, M — shifted one letter right by the new
+      // Pay Period and Breakdown columns) get the accounting format —
+      // aligned £ symbol, thousands separators, a plain dash for zero,
+      // matching Excel's own built-in "Accounting" look.
       const acctFmt = '_-£* #,##0.00_-;-£* #,##0.00_-;_-£* "-"??_-;_-@_-';
-      const currencyCols = ['J','K','L'];
+      const currencyCols = ['K','L','M'];
       const thinGrey = { style:'thin', color:{argb:'FFD9E2E8'} };
       // Thick border wherever the pay period changes from the row above —
       // same grey-blue as the header, so scanning down the list makes it
@@ -2578,11 +2593,11 @@ export default function App() {
             if (isStripe) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} };
             cell.border = { top:isNewPeriod?periodBoundary:thinGrey, bottom:thinGrey, left:thinGrey, right:thinGrey };
           }
-          // Duty/Reason (col 3) and Notes (col 14) are the two free-text
-          // fields most likely to occasionally run longer than the column
-          // width comfortably allows — wrap those specifically rather than
-          // truncating, so nothing needs manually expanding to read.
-          cell.alignment = { vertical:'middle', wrapText: cell.col===3 || cell.col===14 };
+          // Duty/Reason (col 3), Breakdown (col 10) and Notes (col 15) are
+          // the three fields most likely to occasionally run longer than
+          // the column width comfortably allows — wrap those specifically
+          // rather than truncating, so nothing needs manually expanding to read.
+          cell.alignment = { vertical:'middle', wrapText: cell.col===3 || cell.col===10 || cell.col===15 };
         });
         currencyCols.forEach(col => { row.getCell(col).numFmt = acctFmt; });
         // A subtle pistachio left-border accent on fully-submitted rows —
@@ -2605,15 +2620,15 @@ export default function App() {
       gtRow.getCell('D').value = grandTotal(3) || '';
       gtRow.getCell('E').value = grandTotal(4) || '';
       gtRow.getCell('F').value = grandTotal(5) || '';
-      gtRow.getCell('J').value = Math.round(grandTotal(9)*100)/100;
-      gtRow.getCell('L').value = Math.round(grandTotal(11)*100)/100;
+      gtRow.getCell('K').value = Math.round(grandTotal(10)*100)/100;
+      gtRow.getCell('M').value = Math.round(grandTotal(12)*100)/100;
       gtRow.eachCell({ includeEmpty:true }, cell => {
         cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF5C7C99'} };
         cell.font = { bold:true, color:{argb:'FFFFFFFF'}, size:11 };
         cell.border = { top:{style:'thick',color:{argb:'FF3E5A70'}} };
         cell.alignment = { vertical:'middle' };
       });
-      ['J','L'].forEach(col => { gtRow.getCell(col).numFmt = acctFmt; });
+      ['K','M'].forEach(col => { gtRow.getCell(col).numFmt = acctFmt; });
 
       // Column widths sized to the longest actual value in each column
       // (header or data), not a guess — genuinely fits the content. Uses
@@ -2638,7 +2653,7 @@ export default function App() {
       // is the merged, rotated Pay Period label, and merged cells inside
       // an AutoFilter range behave unreliably in Excel (a filter action can
       // hide part of a merged block while leaving the rest visible).
-      ws.autoFilter = `B1:N${lastDataRow}`;
+      ws.autoFilter = `B1:O${lastDataRow}`;
 
       // Print setup — landscape and fit-to-width, since this sheet is wide;
       // the header row repeats on every printed page so a multi-page
@@ -2723,8 +2738,8 @@ export default function App() {
         // Gross/Net shown here are this period's SUBMITTED totals from the
         // detailed sheet's own subtotal row — matches what's actually in
         // the export, not the app's live figures which may have since moved on.
-        const periodGross = blocks[i].rows.reduce((s,row)=>s+(parseFloat(row[9])||0),0);
-        const periodNet = blocks[i].rows.reduce((s,row)=>s+(parseFloat(row[11])||0),0);
+        const periodGross = blocks[i].rows.reduce((s,row)=>s+(parseFloat(row[10])||0),0);
+        const periodNet = blocks[i].rows.reduce((s,row)=>s+(parseFloat(row[12])||0),0);
         sws.getCell(r,1).value = label;
         sws.getCell(r,2).value = Math.round(periodGross*100)/100; sws.getCell(r,2).numFmt = acctFmt;
         sws.getCell(r,3).value = Math.round(periodNet*100)/100; sws.getCell(r,3).numFmt = acctFmt;
@@ -3373,12 +3388,12 @@ export default function App() {
       {/* ── sign-out confirmation — bottom sheet, same pattern as the export
            modal, with an explicit close (×) as well as Cancel ── */}
       {signOutConfirmOpen&&(
-        <div onClick={()=>setSignOutConfirmOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.55)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:60}}>
-          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative'}}>
+        <div onClick={()=>setSignOutConfirmOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.55)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
+          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'#fff',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <button onClick={()=>setSignOutConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'#f1f5f9',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
-            <div style={{width:'36px',height:'4px',background:'#e2e8f0',borderRadius:'4px',margin:'0 auto 14px'}}/>
+            {!isWide && <div style={{width:'36px',height:'4px',background:'#e2e8f0',borderRadius:'4px',margin:'0 auto 14px'}}/>}
             <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>Sign out?</div>
             <div style={{fontSize:'12px',color:'#64748b',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>You'll need your password again to get back in. Data already synced stays exactly as it is.</div>
             <div style={{display:'flex',gap:'8px'}}>
@@ -4119,9 +4134,10 @@ export default function App() {
                 <div style={{display:'flex',gap:'5px',overflowX:'auto',paddingTop:isWide?0:'8px',scrollbarWidth:'none',msOverflowStyle:'none',justifyContent:isWide?'center':'flex-start'}}>
                   {PAY_PERIODS.map((p,idx)=>{
                     const isCurr=idx===currPeriodIdx, isOpen=expanded===p.month;
+                    const hasOutstanding = carmsOutstanding.groups.some(g=>g.periodIdx===idx);
                     return(
-                      <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flexShrink:0,padding:'4px 10px',borderRadius:'18px',border:isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:isOpen?'#2563eb':isCurr?'#eff6ff':'#fff',color:isOpen?'#fff':isCurr?'#2563eb':'#64748b',fontSize:'13px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',display:'flex',alignItems:'center',gap:'4px'}}>
-                        {p.short}{isCurr&&!isOpen&&<span style={{display:'inline-block',width:'4px',height:'4px',borderRadius:'50%',background:'#2563eb'}}/>}
+                      <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flexShrink:0,padding:'4px 10px',borderRadius:'18px',border:isOpen?'1.5px solid #2563eb':hasOutstanding?'1px solid #fecaca':isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:hasOutstanding?'#fef2f2':isOpen?'#2563eb':isCurr?'#eff6ff':'#fff',color:hasOutstanding?'#b91c1c':isOpen?'#fff':isCurr?'#2563eb':'#64748b',fontSize:'13px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',display:'flex',alignItems:'center',gap:'4px'}}>
+                        {p.short}{isCurr&&!isOpen&&<span style={{display:'inline-block',width:'4px',height:'4px',borderRadius:'50%',background:hasOutstanding?'#b91c1c':'#2563eb'}}/>}
                       </button>
                     );
                   })}
@@ -5753,8 +5769,8 @@ export default function App() {
             </button>
           )}
           {session&&(
-            <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>
-              <Ico n="logout" s={14} c="#fff"/> Log Out
+            <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',marginTop:'10px'}}>
+              <FireExitIcon size={14}/> Log Out
             </button>
           )}
         </div>
