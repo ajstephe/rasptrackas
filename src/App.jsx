@@ -3792,7 +3792,7 @@ export default function App() {
                     {form.dutyType!=='rdw' && (
                       <>
                         <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>
-                          <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#94a3b8'}}/>
+                          <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#2563eb'}}/>
                           <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Rostered CARM Shift</div>
                         </div>
                         <div style={{fontSize:'9.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'5px'}}>Quick presets</div>
