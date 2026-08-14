@@ -1248,8 +1248,11 @@ export default function App() {
   const [archiveExpandedPeriod, setArchiveExpandedPeriod] = useState(null); // short label of the expanded period within that year, or null
   const [taxImpactExpanded, setTaxImpactExpanded] = useState(false);
   const [dataManagementExpanded, setDataManagementExpanded] = useState(false);
-  const [homeGraphExpanded, setHomeGraphExpanded] = useState(false);
   const [salaryBreakdownExpanded, setSalaryBreakdownExpanded] = useState(false);
+  // Navigating away from Home resets its expandable sections back to their
+  // starting (collapsed) state, so returning to Home later doesn't leave
+  // something open from a previous visit that's easy to forget was expanded.
+  useEffect(()=>{ if (tab!=='dashboard') setSalaryBreakdownExpanded(false); },[tab]);
   const [taxCalcActualDetailOpen, setTaxCalcActualDetailOpen] = useState(false);
   const [taxCalcForecastDetailOpen, setTaxCalcForecastDetailOpen] = useState(false);
   const [configExpanded, setConfigExpanded] = useState(false);
@@ -1595,9 +1598,6 @@ export default function App() {
       setExportDataExpanded(false);
       setFinancialYearsExpanded(false);
       setDataManagementExpanded(false);
-    }
-    if(prevTabRef.current==='dashboard' && tab!=='dashboard'){
-      setHomeGraphExpanded(false);
     }
     if(prevTabRef.current==='carms' && tab!=='carms'){
       setCarmsFilter('all');
@@ -3519,7 +3519,7 @@ export default function App() {
                     {/* breakdown rows — London Weighting/Allowance shown as YTD out of full year */}
                     <div style={{borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'12px',display:'flex',flexDirection:'column',gap:'6px'}}>
                       {[
-                        ['Base Salary',      totals.salaryYTD, null],
+                        ['Base Salary (YTD)', totals.salaryYTD, null],
                         ['London Weighting', settings.rank&&settings.service ? totals.lwYTD : null, totals.lwAnnualTotal],
                         ['London Allowance', settings.rank&&settings.service ? totals.laYTD : null, totals.laAnnualTotal],
                       ].map(([label,val,fullYear])=>(
@@ -3622,25 +3622,23 @@ export default function App() {
                       );
                     })()}
 
-                    {/* ── Monthly Gross vs Net — its own toggle, since the
-                         chart is a heavier thing to render than the rest of
-                         this card and doesn't need to load just because the
-                         card itself is open. ── */}
-                    <div style={{borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'12px'}}>
-                      <div onClick={e=>{e.stopPropagation();setHomeGraphExpanded(v=>!v);}} style={{display:'flex',alignItems:'center',gap:'5px',background:homeGraphExpanded?'#eff6ff':'#f8fafc',border:`1px solid ${homeGraphExpanded?'#bfdbfe':'#f1f5f9'}`,borderRadius:'8px',padding:'8px 12px',cursor:'pointer',width:'fit-content'}}>
-                        <Ico n="bar" s={13} c="#2563eb"/>
-                        <span style={{fontSize:'10px',fontWeight:800,color:'#2563eb'}}>{homeGraphExpanded?'Hide Monthly Gross vs Net':'Show Monthly Gross vs Net'}</span>
+                    {/* ── Monthly Gross vs Net — expands and collapses
+                         together with the rest of the card now, rather than
+                         needing its own separate toggle. A clearly visible
+                         divider (not just the usual faint hairline) marks
+                         where the gauge bars end and the chart begins,
+                         since on a wide desktop card the two sections sat
+                         close enough to read as one continuous block. ── */}
+                    <div style={{borderTop:'2px solid #e2e8f0',marginTop:'22px',paddingTop:'20px'}}>
+                      <div style={{fontSize:'11px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>Monthly Gross vs Net</div>
+                      <div style={{maxWidth:isWide?'75%':'100%',margin:'0 auto'}}>
+                        {renderMonthlyChart(false, false)}
                       </div>
-                      {homeGraphExpanded&&(
-                        <div style={{marginTop:'14px'}}>
-                          {renderMonthlyChart(false, false)}
-                          <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
-                            <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</span></div>
-                            <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#ef4444',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Net</span></div>
-                          </div>
-                          <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'#94a3b8'}}>Tap any point for that period's figure</div>
-                        </div>
-                      )}
+                      <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#ef4444',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Net</span></div>
+                      </div>
+                      <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'#94a3b8'}}>Tap any point for that period's figure</div>
                     </div>
                   </div>
                 )}
@@ -4745,13 +4743,13 @@ export default function App() {
             <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',marginBottom:'14px',letterSpacing:'-0.5px'}}>TOIL</h2>
 
             <div style={{background:toilLedger.balance<0?'#fef2f2':'#f5f3ff',border:toilLedger.balance<0?'1.5px solid #fecaca':'1.5px solid #ddd6fe',borderRadius:'16px',padding:'16px',marginBottom:'14px'}}>
-              <div style={{fontSize:'12px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
-              <div style={{fontSize:'30px',fontWeight:900,color:toilLedger.balance<0?'#991b1b':'#4c1d95'}}>{fmtHM(toilLedger.balance)} h</div>
-              <div style={{fontSize:'12px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
+              <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
+              <div style={{fontSize:'26px',fontWeight:900,color:toilLedger.balance<0?'#991b1b':'#4c1d95'}}>{fmtHM(toilLedger.balance)} h</div>
+              <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
             </div>
 
             <div style={{...S.card,background:'#fff',border:'1.5px solid #ede9fe'}}>
-              <div style={{...S.lbl,fontSize:'12px',marginBottom:'8px'}}>Redeem TOIL</div>
+              <div style={{...S.lbl,fontSize:'11px',marginBottom:'8px'}}>Redeem TOIL</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 52px 80px',gap:'8px',marginBottom:'8px'}}>
                 <input type="date" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',boxSizing:'border-box'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
                 <input type="number" min="0" step="1" placeholder="Hrs" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>
@@ -4763,7 +4761,7 @@ export default function App() {
                 </select>
               </div>
               <input type="text" placeholder="Note (optional) — e.g. half day, appointment" style={{width:'100%',boxSizing:'border-box',border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',marginBottom:'8px'}} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
-              <button onClick={addToilTaken} style={{width:'100%',background:'#7c3aed',color:'#fff',border:'none',borderRadius:'10px',padding:'11px',fontWeight:900,fontSize:'14px',cursor:'pointer',fontFamily:'inherit'}}>Redeem TOIL</button>
+              <button onClick={addToilTaken} style={{width:'100%',background:'#7c3aed',color:'#fff',border:'none',borderRadius:'10px',padding:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Redeem TOIL</button>
             </div>
 
             <div style={{...S.lbl,fontSize:'11px',margin:'14px 0 8px'}}>Ledger</div>
@@ -5272,12 +5270,18 @@ export default function App() {
             const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
             return (
               <div style={{background:'#fff',borderRadius:'16px',padding:'16px',border:'1px solid #f1f5f9',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',marginBottom:'12px'}}>
-                <div style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a',marginBottom:'4px'}}>Gross &amp; Net OT — Current Period</div>
-                <div style={{fontSize:'22px',fontWeight:900,color:'#0f172a',marginTop:'2px'}}>
-                  {pb?fmtGBP(pb.combinedGross):'£0.00'}{' '}
-                  <span style={{fontSize:'14px',fontWeight:800,color:'#059669'}}>({pb?fmtGBP(pb.combinedNet):'£0.00'})</span>
+                <div style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
+                <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
+                  <div>
+                    <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div>
+                    <div style={{fontSize:'18px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div>
+                    <div style={{fontSize:'18px',fontWeight:900,color:'#059669',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
+                  </div>
                 </div>
-                <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'2px'}}>{pb?pb.month:'—'} · submitted only</div>
+                <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'8px'}}>{pb?pb.month:'—'} · submitted only</div>
               </div>
             );
           })()}
@@ -5837,12 +5841,8 @@ export default function App() {
            unchanged rather than being restructured into a row layout. ── */}
       {isWide&&(
         <div className="no-print" style={{position:'fixed',top:0,left:0,bottom:0,width:'230px',background:'#0f2744',padding:'22px 16px',display:'flex',flexDirection:'column',zIndex:30,boxSizing:'border-box'}}>
-          <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'0 8px 20px',borderBottom:'1px solid rgba(255,255,255,0.1)',marginBottom:'16px'}}>
-            <ClockCashIcon width={30} height={20}/>
-            <div style={{display:'flex',flexDirection:'column',lineHeight:1.15,minWidth:0,overflow:'hidden'}}>
-              <span style={{fontSize:'17px',fontWeight:900,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>OT Tracker</span>
-              <span style={{fontSize:'12.5px',fontWeight:700,color:'#93c5fd',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Adam Stephens</span>
-            </div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'0 8px 20px',borderBottom:'1px solid rgba(255,255,255,0.1)',marginBottom:'16px'}}>
+            <ClockCashIcon width={34} height={23}/>
           </div>
           {NAV_TABS.map(t=>{
             const isAdd = t.id==='add';
