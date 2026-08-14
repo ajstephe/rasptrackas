@@ -709,6 +709,7 @@ const Ico = ({ n, s=20, c, w=2, f='none' }) => (
     {n==='clock' &&<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>}
     {n==='coffee' &&<><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></>}
     {n==='checklist' &&<><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 13 1.5 1.5L13.5 11"/><path d="M9 18h6"/></>}
+    {n==='cash' &&<><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.3"/><path d="M6 12h.01M18 12h.01"/></>}
     {n==='cR'    &&<polyline points="9 18 15 12 9 6"/>}
     {n==='cL'    &&<polyline points="15 18 9 12 15 6"/>}
     {n==='cU'    &&<polyline points="18 15 12 9 6 15"/>}
@@ -3701,18 +3702,23 @@ export default function App() {
               const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
               return (
                 <div style={S.card}>
-                  <div style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
-                  <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
-                    <div>
-                      <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div>
-                      <div style={{fontSize:'18px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
-                    </div>
-                    <div style={{textAlign:'right'}}>
-                      <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div>
-                      <div style={{fontSize:'18px',fontWeight:900,color:'#059669',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
+                  <div style={{display:'flex',alignItems:'flex-start',gap:'12px'}}>
+                    <div style={{background:'#f0fdf4',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cash" s={19} c="#059669"/></div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
+                      <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
+                        <div>
+                          <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div>
+                          <div style={{fontSize:'18px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
+                        </div>
+                        <div style={{textAlign:'right'}}>
+                          <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div>
+                          <div style={{fontSize:'18px',fontWeight:900,color:'#059669',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
+                        </div>
+                      </div>
+                      <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'8px'}}>{pb?pb.month:'—'} · submitted only</div>
                     </div>
                   </div>
-                  <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'8px'}}>{pb?pb.month:'—'} · submitted only</div>
                 </div>
               );
             })()}
@@ -5330,7 +5336,7 @@ export default function App() {
                         </div>
                       ))}
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#fffbeb',borderRadius:'10px',padding:'9px 11px',marginTop:'8px'}}>
-                        <span style={{fontSize:'10px',fontWeight:800,color:'#92400e'}}>{carmsOutstanding.totalClaims} CLAIM{carmsOutstanding.totalClaims!==1?'S':''} TOTAL</span>
+                        <span style={{fontSize:'10px',fontWeight:800,color:'#92400e'}}>{carmsOutstanding.totalClaims} CLAIM{carmsOutstanding.totalClaims!==1?'S':''} TO SUBMIT</span>
                         <span style={{fontSize:'14px',fontWeight:900,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalAmount)}</span>
                       </div>
                     </>
