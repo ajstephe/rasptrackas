@@ -4485,11 +4485,23 @@ export default function App() {
                 // A day only reads as "fully submitted" once every entry on
                 // it has both parts settled — overtime, and PA if there is
                 // any. One outstanding piece keeps the whole day flagged,
-                // same as a day with nothing submitted at all.
-                const isFullySubmitted = dEntries.length>0 && dEntries.every(e =>
-                  isOtSubmitted(e) && (!e.paRate || e.paRate==='None' || isPaSubmitted(e))
-                );
-                return { ds, dEntries, totalHrs, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, rateColor, periodIdx: cIdx };
+                // same as a day with nothing submitted at all. An entry with
+                // zero claimable OT hours (actual shift matched the roster —
+                // logged purely for the record, not as an overtime claim)
+                // has nothing to submit on the OT side, so it never keeps a
+                // day flagged as outstanding on that account alone.
+                const isFullySubmitted = dEntries.length>0 && dEntries.every(e => {
+                  const c = calcEntry(e);
+                  const entryHasOT = c.h1+c.h2+c.h3 > 0;
+                  return (!entryHasOT || isOtSubmitted(e)) && (!e.paRate || e.paRate==='None' || isPaSubmitted(e));
+                });
+                // A day where the only thing logged is a record-keeping entry
+                // — no overtime hours, no PA — has nothing to claim at all,
+                // so it shouldn't read as red (outstanding) or green
+                // (submitted); neither applies when there was never anything
+                // to submit in the first place.
+                const isRecordOnly = dEntries.length>0 && totalHrs===0 && !hasPA;
+                return { ds, dEntries, totalHrs, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, isRecordOnly, rateColor, periodIdx: cIdx };
               };
 
               return (
@@ -4559,22 +4571,23 @@ export default function App() {
                                 style={{
                                   ...(isWide ? {height:'48px'} : {aspectRatio:'1', minHeight:'42px'}),
                                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid transparent',
-                                  background: info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
+                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.isRecordOnly?'1px solid #e2e8f0':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid transparent',
+                                  background: info.isRecordOnly?'#f8fafc':info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit', position:'relative',
                                   minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
                                 }}>
                                 {(date.getDate()===1 || (wi===0 && week.slice(0,di).every(d=>!d)))&&(
                                   <span style={{position:'absolute',top:'1px',left:'3px',fontSize:'7px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.3px',lineHeight:1}}>{date.toLocaleDateString('en-GB',{month:'short'})}</span>
                                 )}
-                                <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
+                                <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.isRecordOnly?'#64748b':info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
                                 {info.totalHrs>0&&(
                                   <span style={{fontSize:'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
                                 )}
-                                {(info.hasPA||info.hasToil)&&(
+                                {(info.hasPA||info.hasToil||info.isRecordOnly)&&(
                                   <div style={{display:'flex',gap:'2px',flexShrink:0}}>
                                     {info.hasPA&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#f59e0b',flexShrink:0}}/>}
                                     {info.hasToil&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#7c3aed',flexShrink:0}}/>}
+                                    {info.isRecordOnly&&<div title="Shift recorded — No OT" style={{width:'4px',height:'4px',borderRadius:'50%',background:'#94a3b8',flexShrink:0}}/>}
                                   </div>
                                 )}
                               </button>
@@ -4594,6 +4607,7 @@ export default function App() {
                         <div style={{display:'flex',gap:'10px'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#94a3b8'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT</span></div>
                         </div>
                         <div style={{display:'flex',gap:'10px'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#0f172a'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
