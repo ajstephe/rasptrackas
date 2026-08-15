@@ -2104,6 +2104,31 @@ export default function App() {
   // outstanding on both counts shows under either filter), since there's
   // no longer a separate "Both" option to catch that overlap.
   const [carmsFilter, setCarmsFilter] = useState('all');
+  // Sequential numbering for the CARMS/PA list — oldest claim is #1, and the
+  // numbers shift automatically as claims get submitted, since this is
+  // recomputed fresh from whatever's still outstanding rather than being
+  // assigned once and stuck to an entry. Numbers whatever the current filter
+  // actually shows: Overtime and PA are two separate claims on the same
+  // entry (matching how the CARMS/PA badge itself counts them), while TOIL
+  // rides on the same toggle as Overtime and only gets its own number when
+  // the TOIL filter is the one actually displaying it.
+  const carmsClaimNumbers = useMemo(()=>{
+    const flat = [];
+    carmsOutstanding.groups.forEach(g=>{
+      g.items.forEach(it=>{
+        if (carmsFilter==='toil') {
+          if (it.toilOutstanding) flat.push({ key: it.entry.id+'-toil', date: it.entry.date });
+        } else {
+          if (it.otOutstanding && carmsFilter!=='pa') flat.push({ key: it.entry.id+'-ot', date: it.entry.date });
+          if (it.paOutstanding && carmsFilter!=='ot') flat.push({ key: it.entry.id+'-pa', date: it.entry.date });
+        }
+      });
+    });
+    flat.sort((a,b)=> a.date===b.date ? 0 : (a.date<b.date ? -1 : 1));
+    const map = new Map();
+    flat.forEach((f,i)=>map.set(f.key, i+1));
+    return map;
+  },[carmsOutstanding, carmsFilter]);
 
   // ── TOIL balance ───────────────────────────────────────────────────────────
   // All-time running balance: every hour ever banked as TOIL (from any logged
@@ -4757,18 +4782,21 @@ export default function App() {
                                 </div>
                                 {showOt&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
+                                    <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'20px':'17px'}}>#{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
                                     <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
                                     <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
                                   </div>
                                 )}
                                 {showPa&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
+                                    <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'20px':'17px'}}>#{carmsClaimNumbers.get(it.entry.id+'-pa')}</span>
                                     <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#fffbeb',color:'#f59e0b'}}>PA</span>
                                     <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
                                   </div>
                                 )}
                                 {showToil&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
+                                    <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'20px':'17px'}}>#{carmsClaimNumbers.get(it.entry.id+'-toil')}</span>
                                     <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
                                     <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
                                   </div>
