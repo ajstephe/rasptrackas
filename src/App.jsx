@@ -1756,9 +1756,9 @@ export default function App() {
     if (otOK && paOK) return <div style={{...style,background:'#f0fdf4',color:'#059669'}}>✓ Submitted</div>;
     const goToEntry = (ev) => { ev.stopPropagation(); setSelectedCalDay(null); setConfirmDel(null); startEdit(e); setFocusCarmsToggle(true); };
     const clickable = {...style,border:'1px solid #fecaca',background:'#fef2f2',color:'#b91c1c',cursor:'pointer'};
-    if (otOK && !paOK) return <div onClick={goToEntry} style={clickable}>PA not submitted</div>;
-    if (!otOK && paOK) return <div onClick={goToEntry} style={clickable}>Overtime not submitted</div>;
-    return <div onClick={goToEntry} style={clickable}>Overtime &amp; PA not submitted</div>;
+    if (otOK && !paOK) return <div onClick={goToEntry} style={clickable}>✗ PA not submitted</div>;
+    if (!otOK && paOK) return <div onClick={goToEntry} style={clickable}>✗ Overtime not submitted</div>;
+    return <div onClick={goToEntry} style={clickable}>✗ Overtime &amp; PA not submitted</div>;
   };
 
   // Desktop-only custom calendar picker for the CARMS submission-date
@@ -4188,7 +4188,7 @@ export default function App() {
                   rather than floating loose in the open page. */}
               {breakdownView==='list'&&(
                 <div style={isWide?{background:'#f8fafc',border:'1px solid #f1f5f9',borderRadius:'14px',padding:'10px 14px',marginTop:'8px'}:{}}>
-                <div style={{display:'flex',gap:'5px',overflowX:'auto',paddingTop:isWide?0:'8px',scrollbarWidth:'none',msOverflowStyle:'none',justifyContent:isWide?'center':'flex-start'}}>
+                <div style={{display:'flex',gap:'3px',paddingTop:isWide?0:'8px',justifyContent:'center'}}>
                   {PAY_PERIODS.map((p,idx)=>{
                     const isCurr=idx===currPeriodIdx, isOpen=expanded===p.month;
                     // Matches Calendar View's own guarantee that exactly one
@@ -4199,8 +4199,11 @@ export default function App() {
                     const isActive = expanded===null ? isCurr : isOpen;
                     const hasOutstanding = carmsOutstanding.groups.some(g=>g.periodIdx===idx);
                     return(
-                      <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flexShrink:0,padding:'4px 10px',borderRadius:'18px',border:isActive?'1.5px solid #2563eb':hasOutstanding?'1px solid #fecaca':isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:hasOutstanding?'#fef2f2':isActive?'#2563eb':isCurr?'#eff6ff':'#fff',color:hasOutstanding?'#b91c1c':isActive?'#fff':isCurr?'#2563eb':'#64748b',fontSize:'13px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',display:'flex',alignItems:'center',gap:'4px'}}>
-                        {p.short}{isCurr&&!isActive&&<span style={{display:'inline-block',width:'4px',height:'4px',borderRadius:'50%',background:hasOutstanding?'#b91c1c':'#2563eb'}}/>}
+                      // flex:1 with minWidth:0 lets all twelve periods share the
+                      // row evenly and fit without horizontal scrolling, rather
+                      // than each sizing to its own text and overflowing.
+                      <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isActive?'1.5px solid #2563eb':hasOutstanding?'1px solid #fecaca':isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:hasOutstanding?'#fef2f2':isActive?'#2563eb':isCurr?'#eff6ff':'#fff',color:hasOutstanding?'#b91c1c':isActive?'#fff':isCurr?'#2563eb':'#64748b',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
+                        {p.short}
                       </button>
                     );
                   })}
@@ -4213,14 +4216,14 @@ export default function App() {
                   above, for consistency between the two. */}
               {breakdownView==='calendar'&&(
                 <div style={isWide?{background:'#f8fafc',border:'1px solid #f1f5f9',borderRadius:'14px',padding:'10px 14px',marginTop:'8px'}:{}}>
-                <div style={{display:'flex',gap:'5px',paddingTop:isWide?0:'8px',justifyContent:isWide?'center':'flex-start',...(isWide?{flexWrap:'wrap'}:{overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'})}}>
+                <div style={{display:'flex',gap:'3px',paddingTop:isWide?0:'8px',justifyContent:'center'}}>
                   {PAY_PERIODS.map((p,idx)=>{
                     const isCurr=idx===currPeriodIdx;
                     const isSel=(calPeriodIdx===null?currPeriodIdx:calPeriodIdx)===idx;
                     const hasOutstanding = carmsOutstanding.groups.some(g=>g.periodIdx===idx);
                     return(
-                      <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flexShrink:0,padding:'4px 10px',borderRadius:'18px',border:isSel?'1.5px solid #2563eb':hasOutstanding?'1px solid #fecaca':isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:hasOutstanding?'#fef2f2':isSel?'#2563eb':isCurr?'#eff6ff':'#fff',color:hasOutstanding?'#b91c1c':isSel?'#fff':isCurr?'#2563eb':'#64748b',fontSize:'13px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',display:'flex',alignItems:'center',gap:'4px'}}>
-                        {p.short}{isCurr&&!isSel&&<span style={{display:'inline-block',width:'4px',height:'4px',borderRadius:'50%',background:hasOutstanding?'#b91c1c':'#2563eb'}}/>}
+                      <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isSel?'1.5px solid #2563eb':hasOutstanding?'1px solid #fecaca':isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:hasOutstanding?'#fef2f2':isSel?'#2563eb':isCurr?'#eff6ff':'#fff',color:hasOutstanding?'#b91c1c':isSel?'#fff':isCurr?'#2563eb':'#64748b',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
+                        {p.short}
                       </button>
                     );
                   })}
@@ -5866,9 +5869,22 @@ export default function App() {
            unchanged rather than being restructured into a row layout. ── */}
       {isWide&&(
         <div className="no-print" style={{position:'fixed',top:0,left:0,bottom:0,width:'230px',background:'#0f2744',padding:'22px 16px',display:'flex',flexDirection:'column',zIndex:30,boxSizing:'border-box'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'0 8px 20px',borderBottom:'1px solid rgba(255,255,255,0.1)',marginBottom:'16px'}}>
-            <ClockCashIcon width={34} height={23}/>
-          </div>
+          {/* Today's date, in place of the logo — two compact lines so the
+              header stays the same height as the icon it replaced and fits
+              the fixed 230px column without wrapping awkwardly. */}
+          {(()=>{
+            const now = new Date();
+            const dayName = now.toLocaleDateString('en-GB',{weekday:'long'});
+            const dd = now.getDate();
+            const suffix = (dd%10===1&&dd!==11)?'st':(dd%10===2&&dd!==12)?'nd':(dd%10===3&&dd!==13)?'rd':'th';
+            const monthName = now.toLocaleDateString('en-GB',{month:'long'});
+            return (
+              <div style={{textAlign:'center',padding:'0 8px 16px',borderBottom:'1px solid rgba(255,255,255,0.1)',marginBottom:'16px'}}>
+                <div style={{fontSize:'11px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px'}}>{dayName}</div>
+                <div style={{fontSize:'15px',fontWeight:900,color:'#fff',marginTop:'2px',whiteSpace:'nowrap'}}>{dd}{suffix} {monthName}</div>
+              </div>
+            );
+          })()}
           {NAV_TABS.map(t=>{
             const isAdd = t.id==='add';
             const isActive = tab===t.id;
@@ -5893,7 +5909,7 @@ export default function App() {
           )}
           {session&&(
             <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',marginTop:'10px'}}>
-              <FireExitIcon size={14}/> Log Out
+              <FireExitIcon size={14}/> Sign Out
             </button>
           )}
         </div>
