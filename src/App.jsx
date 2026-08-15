@@ -3671,8 +3671,8 @@ export default function App() {
                 <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
                   <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'2px'}}>CARMS &amp; MetHR Outstanding</div>
-                    <div style={{fontSize:'19px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+                    <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'2px'}}>CARMS &amp; MetHR Awaiting Submission</div>
+                    <div style={{fontSize:'17px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
                     <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} across {carmsOutstanding.periodCount} pay period{carmsOutstanding.periodCount!==1?'s':''}</div>
                   </div>
                 </div>
@@ -3727,11 +3727,11 @@ export default function App() {
                       <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
                         <div>
                           <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div>
-                          <div style={{fontSize:'18px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
+                          <div style={{fontSize:'17px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
                         </div>
                         <div style={{textAlign:'right'}}>
                           <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div>
-                          <div style={{fontSize:'18px',fontWeight:900,color:'#059669',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
+                          <div style={{fontSize:'17px',fontWeight:900,color:'#059669',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
                         </div>
                       </div>
                       <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'8px'}}>{pb?pb.month:'—'} · submitted only</div>
@@ -4296,7 +4296,7 @@ export default function App() {
                         <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'13px',padding:'12px 14px',marginTop:'9px',cursor:'pointer'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'7px',marginBottom:'4px'}}>
                             <Ico n="clock" s={16} c="#d97706"/>
-                            <span style={{fontSize:'17.5px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
+                            <span style={{fontSize:'17.5px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR Awaiting Submission</span>
                           </div>
                           <div style={{fontSize:'17.5px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</div>
                         </div>
@@ -4660,7 +4660,7 @@ export default function App() {
                       <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} className="nav-add-pulse" style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'13px',padding:'18px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                           <Ico n="clock" s={14} c="#d97706"/>
-                          <span style={{fontSize:'12.5px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR pending</span>
+                          <span style={{fontSize:'12.5px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR Awaiting Submission</span>
                         </div>
                         <span style={{fontSize:'21.5px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</span>
                       </div>
@@ -5307,11 +5307,13 @@ export default function App() {
 
       {/* ── Desktop secondary column — gives the empty space beside the
            main column on a wide screen an actual job, rather than just
-           being padding around a phone-width layout. Shown on Home, Log
-           Overtime, Summary, and More — not on CARMS/PA or TOIL
-           themselves, since a summary of exactly what's already the main
-           focus there would just be redundant. ── */}
-      {isWide && ['dashboard','add','months','settings'].includes(tab) && (
+           being padding around a phone-width layout. Shown on every tab
+           for continuity, including CARMS/PA and TOIL themselves — even
+           though some of what it shows overlaps with the main content on
+           those two, having the column consistently present throughout
+           the app was judged more valuable than trimming a duplicate
+           figure on two screens. ── */}
+      {isWide && (
         <aside className="no-print" style={{width:'320px',flexShrink:0,padding:'24px 24px 24px 0',overflowY:'auto'}}>
           <div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px',padding:'0 2px'}}>At a Glance</div>
 
