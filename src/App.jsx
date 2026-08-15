@@ -4782,21 +4782,21 @@ export default function App() {
                                 </div>
                                 {showOt&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
-                                    <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'20px':'17px'}}>#{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
+                                    <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'20px':'17px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
                                     <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
                                     <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
                                   </div>
                                 )}
                                 {showPa&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
-                                    <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'20px':'17px'}}>#{carmsClaimNumbers.get(it.entry.id+'-pa')}</span>
+                                    <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'20px':'17px'}}>{carmsClaimNumbers.get(it.entry.id+'-pa')}</span>
                                     <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#fffbeb',color:'#f59e0b'}}>PA</span>
                                     <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
                                   </div>
                                 )}
                                 {showToil&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'4px 0'}}>
-                                    <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'20px':'17px'}}>#{carmsClaimNumbers.get(it.entry.id+'-toil')}</span>
+                                    <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'20px':'17px'}}>{carmsClaimNumbers.get(it.entry.id+'-toil')}</span>
                                     <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
                                     <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
                                   </div>
