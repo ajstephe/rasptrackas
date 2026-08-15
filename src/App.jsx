@@ -4306,13 +4306,11 @@ export default function App() {
                               <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA3 × {pa3}</span>
                             </div>
                           </div>
-                          {totalToilBanked>0&&(
-                            <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer'}}>
-                              <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
-                              <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
-                              <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
-                            </div>
-                          )}
+                          <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
+                            <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
+                            <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
+                          </div>
                         </div>
                       </div>
 
@@ -4595,13 +4593,11 @@ export default function App() {
                           <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA3 × {ppa3}</span>
                         </div>
                       </div>
-                      {pToilBanked>0&&(
-                        <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
-                          <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(pToilWorked)}h worked → {fmtHM(pToilBanked)}h banked</div>
-                          <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
-                        </div>
-                      )}
+                      <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
+                        <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(pToilWorked)}h worked → {fmtHM(pToilBanked)}h banked</div>
+                        <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
+                      </div>
                     </div>
                   </div>
 
