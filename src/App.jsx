@@ -1730,7 +1730,14 @@ export default function App() {
   const submittedGross = e => {
     const c = calcEntry(e);
     const hasPA = e.paRate && e.paRate!=='None';
-    return (isOtSubmitted(e) ? (c.ot+c.night) : 0) + ((hasPA && isPaSubmitted(e)) ? c.pa : 0);
+    // Night allowance is paid automatically — it never needs its own CARMS
+    // submission. It only rides on the OT toggle when the entry also has
+    // genuine overtime hours (the toggle covers both together, since
+    // they're the same worked hours). An entry with only night hours has
+    // nothing to submit, so its night pay always counts.
+    const hasOTHours = c.h1 + c.h2 + c.h3 > 0;
+    const otPart = hasOTHours ? (isOtSubmitted(e) ? c.ot + c.night : 0) : c.night;
+    return otPart + ((hasPA && isPaSubmitted(e)) ? c.pa : 0);
   };
 
   // The date that decides which pay period a component's earnings actually
@@ -1875,7 +1882,16 @@ export default function App() {
       fyEntries.forEach(e=>{
         const c = entryCalc.get(e);
         const otDate = entryOtDate.get(e);
-        if (isOtSubmitted(e) && otDate>=p.start && otDate<=p.end) { ot+=c.ot; night+=c.night; }
+        // Night allowance is automatic and only waits on the OT toggle when
+        // there are genuine overtime hours on the entry too — see
+        // submittedGross for the full reasoning. A night-only entry's
+        // allowance lands in its own period unconditionally.
+        const hasOTHours = c.h1 + c.h2 + c.h3 > 0;
+        if (!hasOTHours) {
+          if (otDate>=p.start && otDate<=p.end) night+=c.night;
+        } else if (isOtSubmitted(e) && otDate>=p.start && otDate<=p.end) {
+          ot+=c.ot; night+=c.night;
+        }
         const hasPA = e.paRate && e.paRate!=='None';
         const paDate = entryPaDate.get(e);
         if (hasPA && isPaSubmitted(e) && paDate>=p.start && paDate<=p.end) { pa+=c.pa; }
@@ -1968,7 +1984,16 @@ export default function App() {
         hrsToDate += c.h1 + c.h2 + c.h3;
       }
       const otDate = entryOtDate.get(e);
-      if (isOtSubmitted(e) && otDate >= taxYearStart && otDate <= todayStr) {
+      // Same principle as periodBreakdown above — night allowance from a
+      // night-only entry counts unconditionally, since there's no OT to
+      // wait on.
+      const hasOTHoursYTD = c.h1 + c.h2 + c.h3 > 0;
+      if (!hasOTHoursYTD) {
+        if (otDate >= taxYearStart && otDate <= todayStr) {
+          otPaidToDate += c.night;
+          otNightPaidToDate += c.night;
+        }
+      } else if (isOtSubmitted(e) && otDate >= taxYearStart && otDate <= todayStr) {
         otPaidToDate += c.ot + c.night;
         otNightPaidToDate += c.ot + c.night; // hourly-earned only, excludes flat PA
       }
@@ -2066,10 +2091,23 @@ export default function App() {
       const items = [];
       pE.forEach(e=>{
         const hasPA = e.paRate && e.paRate!=='None';
-        const otOK = isOtSubmitted(e);
+        const c = calcEntry(e);
+        // Night allowance is paid automatically and never needs its own
+        // CARMS submission — only genuine overtime hours (the 1.33x/1.5x/2.0x
+        // tiers) do. An entry with only night hours (no OT hours) has
+        // nothing to claim, so it should never show as outstanding here,
+        // regardless of what its own otSubmitted flag happens to be — that
+        // toggle is disabled for exactly this reason on the Log Overtime
+        // form (see hasOTHours there).
+        const hasOTHours = c.h1 + c.h2 + c.h3 > 0;
+        const otOK = !hasOTHours || isOtSubmitted(e);
         const paOK = !hasPA || isPaSubmitted(e);
         if (otOK && paOK) return; // nothing outstanding on this entry
-        const c = calcEntry(e);
+        // !otOK can only be true when hasOTHours is true (otOK is always
+        // true otherwise), so night allowance tied to genuinely unsubmitted
+        // OT hours is correctly still part of the outstanding amount here —
+        // it's only excluded for night-only entries, which never reach
+        // !otOK at all.
         const otAmt = !otOK ? (c.ot + c.night) : 0;
         const paAmt = (hasPA && !paOK) ? c.pa : 0;
         const amount = otAmt + paAmt;
@@ -2475,7 +2513,14 @@ export default function App() {
       // showing OT/PA components that haven't actually been claimed yet.
       const hasPA = e.paRate && e.paRate!=='None';
       const breakdownParts = [];
-      if (isOtSubmitted(e)) {
+      // Night allowance is automatic and only waits on the OT toggle when
+      // there are genuine overtime hours on the entry too — same principle
+      // as submittedGross, so this breakdown stays consistent with the
+      // Gross figure it's explaining.
+      const hasOTHoursBD = c.h1 + c.h2 + c.h3 > 0;
+      if (!hasOTHoursBD) {
+        if (c.nh>0) breakdownParts.push(`${c.nh}hr night=£${c.night.toFixed(2)}`);
+      } else if (isOtSubmitted(e)) {
         if (c.payH1>0) breakdownParts.push(`${c.payH1}hr@1.33x=£${c.ot1.toFixed(2)}`);
         if (c.payH2>0) breakdownParts.push(`${c.payH2}hr@1.5x=£${c.ot2.toFixed(2)}`);
         if (c.payH3>0) breakdownParts.push(`${c.payH3}hr@2.0x=£${c.ot3.toFixed(2)}`);
@@ -3215,7 +3260,14 @@ export default function App() {
       // this payslip shows as gross/net. Hours worked stay unconditional
       // below, since that's a factual record of the shift regardless of
       // submission status, matching how the rest of the app treats it.
-      if (isOtSubmitted(e)) { ot += c.ot; night += c.night; toilBanked += c.toilBanked; }
+      // Night allowance is automatic and only waits on the OT toggle when
+      // there are genuine overtime hours on the entry too.
+      const hasOTHoursPS = c.h1 + c.h2 + c.h3 > 0;
+      if (!hasOTHoursPS) {
+        night += c.night;
+      } else if (isOtSubmitted(e)) {
+        ot += c.ot; night += c.night; toilBanked += c.toilBanked;
+      }
       if (hasPA && isPaSubmitted(e)) { pa += c.pa; paCounts[e.paRate] = (paCounts[e.paRate]||0)+1; }
       hrs += c.h1+c.h2+c.h3;
       rateHrs.hours133 += c.payH1; rateHrs.hours150 += c.payH2; rateHrs.hours200 += c.payH3;
