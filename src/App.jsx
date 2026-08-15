@@ -3287,7 +3287,7 @@ export default function App() {
       // Archived Financial Years — it opens that gross-only, period-grouped
       // view instead, now with a Print button for exactly this purpose.
       if (payslipFYYear===CURRENT_FY_YEAR) {
-        setPayslipPreview({ start, end, label: `FY ${payslipFYYear}/${(payslipFYYear+1).toString().slice(-2)}`, data: computePayslipData(start, end) });
+        setPayslipPreview({ start, end, rangeLabel: `${yPeriods[0].month} – ${yPeriods[11].month}`, label: `FY ${payslipFYYear}/${(payslipFYYear+1).toString().slice(-2)}`, data: computePayslipData(start, end) });
       } else {
         setArchiveExpandedPeriod(null);
         setFySummaryPrintMode(true);
@@ -5165,7 +5165,7 @@ export default function App() {
                         <div key={y} onClick={()=>{ if(!isCurrent){ setArchiveExpandedPeriod(null); setFySummaryPrintMode(false); setFySummaryYear(y); } }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',background:isCurrent?'#eff6ff':'#f8fafc',border:isCurrent?'2px solid #2563eb':'1px solid #f1f5f9',cursor:isCurrent?'default':'pointer'}}>
                           <div>
                             <div style={{fontWeight:800,fontSize:'13px',color:'#0f172a'}}>{label}</div>
-                            <div style={{fontSize:'10px',color:'#94a3b8',marginTop:'1px'}}>{fmtD(yPeriods[0].start)} – {fmtD(yPeriods[11].end)}</div>
+                            <div style={{fontSize:'10px',color:'#94a3b8',marginTop:'1px'}}>{yPeriods[0].month} – {yPeriods[11].month}</div>
                           </div>
                           {isCurrent
                             ? <span style={{fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.5px',padding:'2px 7px',borderRadius:'20px',background:'#2563eb',color:'#fff'}}>Current</span>
@@ -5483,7 +5483,7 @@ export default function App() {
                         <div key={y} onClick={()=>setPayslipFYYear(y)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:y===payslipFYYear?'1.5px solid #2563eb':'1.5px solid #f1f5f9',background:y===payslipFYYear?'#eff6ff':'#fff',cursor:'pointer'}}>
                           <div>
                             <div style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a'}}>{y} / {(y+1).toString().slice(-2)}{isCurrent&&<span style={{color:'#2563eb',fontSize:'9px',marginLeft:'6px'}}>· Current</span>}</div>
-                            <div style={{fontSize:'10px',color:'#94a3b8',marginTop:'1px'}}>{fmtD(yPeriods[0].start)} – {fmtD(yPeriods[11].end)}{!isCurrent&&exportFormat==='pdf'&&' · gross only, no tax/NI'}</div>
+                            <div style={{fontSize:'10px',color:'#94a3b8',marginTop:'1px'}}>{yPeriods[0].month} – {yPeriods[11].month}{!isCurrent&&exportFormat==='pdf'&&' · gross only, no tax/NI'}</div>
                           </div>
                           <div style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${y===payslipFYYear?'#2563eb':'#cbd5e1'}`,flexShrink:0,position:'relative'}}>
                             {y===payslipFYYear&&<div style={{position:'absolute',inset:'3px',background:'#2563eb',borderRadius:'50%'}}/>}
@@ -5499,7 +5499,7 @@ export default function App() {
                 {payslipMode==='period'
                   ? (payslipPeriodIdx!=null ? `${fmtD(PAY_PERIODS[payslipPeriodIdx].start)} – ${fmtD(PAY_PERIODS[payslipPeriodIdx].end)}` : 'Pick a pay period')
                   : payslipMode==='financialYear'
-                    ? (payslipFYYear!=null ? `${fmtD(generateFYPeriods(payslipFYYear)[0].start)} – ${fmtD(generateFYPeriods(payslipFYYear)[11].end)}` : 'Pick a financial year')
+                    ? (payslipFYYear!=null ? `${generateFYPeriods(payslipFYYear)[0].month} – ${generateFYPeriods(payslipFYYear)[11].month}` : 'Pick a financial year')
                     : (rangeValid ? `${fmtD(payslipStart)} – ${fmtD(payslipEnd)}` : 'Pick a valid start and end date')}
               </div>
 
@@ -5548,7 +5548,7 @@ export default function App() {
                   </div>
                   <div>
                     <div style={{fontSize:'9px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'3px'}}>Period</div>
-                    <div style={{fontWeight:800,fontSize:'13px'}}>{fmtD(payslipPreview.start)} – {fmtD(payslipPreview.end)}</div>
+                    <div style={{fontWeight:800,fontSize:'13px'}}>{payslipPreview.rangeLabel || `${fmtD(payslipPreview.start)} – ${fmtD(payslipPreview.end)}`}</div>
                   </div>
                 </div>
               </div>
