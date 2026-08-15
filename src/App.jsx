@@ -2133,6 +2133,10 @@ export default function App() {
         if (carmsFilter==='toil') {
           if (it.toilOutstanding) flat.push({ key: it.entry.id+'-toil', date: it.entry.date });
         } else {
+          // TOIL never gets its own key here — outside the dedicated TOIL
+          // filter it's shown merged into the same row as Overtime (they're
+          // the same submission), so it borrows the '-ot' number rather
+          // than needing one of its own.
           if (it.otOutstanding && carmsFilter!=='pa') flat.push({ key: it.entry.id+'-ot', date: it.entry.date });
           if (it.paOutstanding && carmsFilter!=='ot') flat.push({ key: it.entry.id+'-pa', date: it.entry.date });
         }
@@ -4698,12 +4702,30 @@ export default function App() {
                             const showOt = it.otOutstanding && carmsFilter!=='pa' && carmsFilter!=='toil';
                             const showPa = it.paOutstanding && carmsFilter!=='ot' && carmsFilter!=='toil';
                             const showToil = it.toilOutstanding && carmsFilter!=='ot' && carmsFilter!=='pa';
+                            // Overtime and TOIL are the same submission — TOIL only
+                            // banks once the underlying OT is submitted, so whenever
+                            // both are outstanding on one entry they share a single
+                            // numbered row rather than each claiming their own number.
+                            // A day showing TOIL on its own (the dedicated TOIL filter
+                            // tab, where showOt is always false) still gets its own row.
+                            const mergeOtToil = showOt && showToil;
                             return (
                               <div key={it.entry.id} onClick={goToEntry} style={{padding:isWide?'12px 0':'10px 0',borderBottom:'1px solid #f1f5f9',cursor:'pointer'}}>
                                 <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',marginBottom:'6px'}}>
                                   {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
                                 </div>
-                                {showOt&&(
+                                {mergeOtToil&&(
+                                  <div style={{display:'flex',alignItems:'center',gap:'5px',padding:'4px 0'}}>
+                                    <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
+                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
+                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
+                                    <div style={{marginLeft:'auto',textAlign:'right'}}>
+                                      <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706'}}>{fmtGBP(it.otAmt)}</div>
+                                      <div style={{fontSize:isWide?'9.5px':'8.5px',fontWeight:700,color:'#7c3aed'}}>+ {it.toilHrs.toFixed(1)}h TOIL</div>
+                                    </div>
+                                  </div>
+                                )}
+                                {showOt&&!mergeOtToil&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'5px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
                                     <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
@@ -4717,7 +4739,7 @@ export default function App() {
                                     <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
                                   </div>
                                 )}
-                                {showToil&&(
+                                {showToil&&!mergeOtToil&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'5px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-toil')}</span>
                                     <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
