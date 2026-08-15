@@ -4688,7 +4688,7 @@ export default function App() {
             <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',margin:'0 0 18px',letterSpacing:'-0.5px'}}>CARMS &amp; PA Outstanding</h2>
 
             <div style={{...S.dark,background:'#0f2744'}}>
-              <div style={{fontSize:'11px',color:'#93c5fd',fontWeight:600,lineHeight:1.5,marginBottom:'14px'}}>We all like to hold back a bit of Overtime or PA every now and again to manage things. Below shows whether something has been submitted in CARMS and whether PA has been submitted. Keep a track of what you're withholding.</div>
+              <div style={{fontSize:'11px',color:'#93c5fd',fontWeight:600,lineHeight:1.5,marginBottom:'14px'}}>Spacing out your overtime for a steadier payday, or quietly dodging the taxman as £100k creeps closer — either way, good thinking. This is everything still sitting unclaimed in CARMS and PA, so nothing gets left behind.</div>
               <div style={{display:'flex',gap:'10px',marginBottom:carmsOutstanding.groups.length?'14px':0}}>
                 <div style={{flex:1,background:'rgba(255,255,255,0.08)',borderRadius:'12px',padding:'12px'}}>
                   <div style={{fontSize:'19px',fontWeight:900,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
@@ -5274,7 +5274,7 @@ export default function App() {
               <button onClick={()=>setSignOutConfirmOpen(true)} style={{...S.card,width:'100%',display:'flex',alignItems:'center',gap:'12px',background:'#059669',border:'1px solid #059669',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
                 <div style={{background:'rgba(255,255,255,0.15)',padding:'11px',borderRadius:'13px',flexShrink:0}}><FireExitIcon size={19}/></div>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:900,fontSize:'13px',color:'#fff'}}>Sign Out</div>
+                  <div style={{fontWeight:900,fontSize:'14px',color:'#fff'}}>Sign Out</div>
                 </div>
                 <Ico n="cR" s={16} c="rgba(255,255,255,0.7)"/>
               </button>
@@ -5296,10 +5296,10 @@ export default function App() {
                 <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Want to say thanks?</div>
               </div>
               <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,lineHeight:1.6}}>
-                It wasn't smooth sailing putting this app together, maintaining the code and hosting it. If you want to say thanks, please feel free to{' '}
+                A lot of late nights, caffeine, and swearing went into building and hosting this. If it's making your life easier and you'd like to say thanks, you can{' '}
                 <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank).
               </div>
-              <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,marginTop:'8px'}}>Thanks for your support.</div>
+              <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
             </div>
           </div>
         )}
