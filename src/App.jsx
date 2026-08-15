@@ -5319,7 +5319,7 @@ export default function App() {
             const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
             return (
               <div style={{background:'#fff',borderRadius:'16px',padding:'16px',border:'1px solid #f1f5f9',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',marginBottom:'12px'}}>
-                <div style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
+                <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
                 <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
                   <div>
                     <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div>
@@ -5337,7 +5337,7 @@ export default function App() {
 
           <div style={{background:'#fff',borderRadius:'16px',padding:'16px',border:'1px solid #f1f5f9',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',marginBottom:'12px'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}}>
-              <span style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a'}}>CARMS &amp; PA Outstanding</span>
+              <span style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>CARMS &amp; PA Outstanding</span>
               {carmsOutstanding.totalClaims>0&&<span onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:800,color:'#2563eb',cursor:'pointer'}}>View all →</span>}
             </div>
             {carmsOutstanding.totalClaims===0
