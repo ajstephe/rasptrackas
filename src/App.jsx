@@ -2440,7 +2440,28 @@ export default function App() {
       if (!otOK && paOK) return hasPA ? 'PA only (OT pending)' : 'No';
       return 'No';
     };
-    const inRange = e => (!start || e.date>=start) && (!end || e.date<=end);
+    // Which entries fall "within" a date range for export purposes is based
+    // on submission date, not the shift's own date — same principle as
+    // periodBreakdown's own FY attribution. A shift worked in late March but
+    // submitted in April belongs to the new financial year's export, since
+    // that's when it actually became real money on CARMS/MetHR, matching
+    // how the Home screen's own totals already treat it. An entry qualifies
+    // if EITHER its OT or PA submission date falls in range — an entry with
+    // only one side submitted still needs to show up once that side lands.
+    const inRange = e => {
+      if (!start && !end) return true;
+      const hasPA = e.paRate && e.paRate!=='None';
+      const otDate = isOtSubmitted(e) ? effectiveOtDate(e) : null;
+      const paDate = (hasPA && isPaSubmitted(e)) ? effectivePaDate(e) : null;
+      const dateInRange = d => d!=null && (!start || d>=start) && (!end || d<=end);
+      if (dateInRange(otDate) || dateInRange(paDate)) return true;
+      // An entry with nothing submitted at all has no submission date to go
+      // by — fall back to its own shift date, so unsubmitted work already
+      // sitting in this window still shows up (as £0, same as everywhere
+      // else) rather than silently vanishing from the export entirely.
+      if (otDate==null && paDate==null) return (!start || e.date>=start) && (!end || e.date<=end);
+      return false;
+    };
     const sorted = [...entries].filter(inRange).sort((a,b)=>new Date(a.date)-new Date(b.date));
     const rowPeriodIdx = []; // parallel array, one entry per data row (not padding), tracks which pay period it belongs to
     const rows = sorted.map(e=>{
@@ -3296,18 +3317,34 @@ export default function App() {
   const computeArchivedYear = (year) => {
     const yPeriods = generateFYPeriods(year);
     let totalShifts = 0, totalGross = 0, totalHrs = 0, totalToilBanked = 0;
+    // Same submission-date attribution as periodBreakdown and the
+    // spreadsheet export — a shift's OT and PA can each land in a different
+    // pay period, depending on when each was actually submitted, same as
+    // the real payslip. An entry with nothing submitted yet falls back to
+    // its own shift date, so it still shows up (at £0) rather than
+    // vanishing. Each period only counts the portion of an entry's gross
+    // that actually belongs to it — an entry whose OT and PA submission
+    // dates straddle two different periods appears in both, but each period
+    // shows only its own share, so nothing gets double-counted overall.
     const periods = yPeriods.map(p=>{
-      const pEntries = entries.filter(e=>e.date>=p.start&&e.date<=p.end).sort((a,b)=>a.date.localeCompare(b.date));
+      const pEntries = entries.filter(e=>{
+        const hasPA = e.paRate && e.paRate!=='None';
+        const otDate = isOtSubmitted(e) ? effectiveOtDate(e) : null;
+        const paDate = (hasPA && isPaSubmitted(e)) ? effectivePaDate(e) : null;
+        const inP = d => d!=null && d>=p.start && d<=p.end;
+        if (inP(otDate) || inP(paDate)) return true;
+        if (otDate==null && paDate==null) return e.date>=p.start && e.date<=p.end;
+        return false;
+      }).sort((a,b)=>a.date.localeCompare(b.date));
       let periodGross = 0;
       const rows = pEntries.map(e=>{
         const c = calcEntry(e);
-        // Same submission-aware principle as everywhere else — gross and
-        // TOIL banked only count what's actually been submitted, even for
-        // a past year, since an entry can still be sitting unsubmitted.
-        // Hours worked stays unconditional below, as the factual record.
-        const rowGross = submittedGross(e);
+        const hasPA = e.paRate && e.paRate!=='None';
+        const otInThisPeriod = isOtSubmitted(e) && effectiveOtDate(e)>=p.start && effectiveOtDate(e)<=p.end;
+        const paInThisPeriod = hasPA && isPaSubmitted(e) && effectivePaDate(e)>=p.start && effectivePaDate(e)<=p.end;
+        const rowGross = (otInThisPeriod ? c.ot : 0) + (paInThisPeriod ? c.pa : 0);
         periodGross += rowGross; totalHrs += c.h1+c.h2+c.h3;
-        if (isOtSubmitted(e)) totalToilBanked += c.toilBanked;
+        if (otInThisPeriod) totalToilBanked += c.toilBanked;
         return { id:e.id, date:e.date, reason:e.reason, gross:rowGross };
       });
       totalShifts += pEntries.length; totalGross += periodGross;
