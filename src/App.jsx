@@ -3343,6 +3343,27 @@ export default function App() {
         .carms-pulse{animation:carmsPulse 1.6s ease-out;}
         @keyframes navAddPulse{0%,100%{opacity:1}50%{opacity:0.45}}
         .nav-add-pulse{animation:navAddPulse 1.8s ease-in-out infinite;}
+        /* ── Fluid mobile nav ───────────────────────────────────────────
+           Six tabs at fixed sizes leave almost no slack on a 320px phone
+           (an iPhone SE) — "Log Overtime" in particular ends up exactly
+           filling its slot with nothing to spare, so anything that nudges
+           it wider (a longer label, a larger system font) would break the
+           row. clamp() scales the icons, labels and padding continuously
+           with viewport width instead: small phones get proportionally
+           smaller elements, while anything from ~390px up is pinned to the
+           original sizes, so nothing changes on the phones that already
+           fit comfortably. CSS width/height overrides the SVG's own
+           width/height attributes, which can't take clamp() themselves. */
+        nav .nav-ico svg{
+          width:clamp(15px, 4.6vw, 18px) !important;
+          height:clamp(15px, 4.6vw, 18px) !important;
+        }
+        nav .nav-ico-add svg{
+          width:clamp(18px, 5.4vw, 21px) !important;
+          height:clamp(18px, 5.4vw, 21px) !important;
+        }
+        nav .nav-lbl{ font-size:clamp(6.4px, 2.05vw, 8px) !important; letter-spacing:clamp(0.1px, 0.13vw, 0.5px) !important; }
+        nav button{ padding-left:clamp(1px, 1vw, 4px) !important; padding-right:clamp(1px, 1vw, 4px) !important; }
         .star-tap{transition:transform 0.12s}
         .star-tap:active{transform:scale(1.35)}
         .hint-pulse{animation:subtlePulse 1.8s ease-in-out infinite}
@@ -5852,11 +5873,11 @@ export default function App() {
               <div style={{position:'absolute',top:'2px',right:'calc(50% - 16px)',background:'#d97706',color:'#fff',fontSize:'8px',fontWeight:900,width:'14px',height:'14px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>{carmsOutstanding.totalClaims>9?'9+':carmsOutstanding.totalClaims}</div>
             )}
             {t.id==='add' ? (
-              <span className="nav-add-pulse" style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
+              <span className="nav-add-pulse nav-ico-add" style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
             ) : (
-              <Ico n={t.n} s={18} c={tab===t.id?'#2563eb':'#94a3b8'} w={tab===t.id?2.5:2}/>
+              <span className="nav-ico" style={{display:'flex'}}><Ico n={t.n} s={18} c={tab===t.id?'#2563eb':'#94a3b8'} w={tab===t.id?2.5:2}/></span>
             )}
-            <span style={S.nLbl} className={t.id==='add'?'nav-add-pulse':''}>{t.lbl}</span>
+            <span style={S.nLbl} className={`nav-lbl${t.id==='add'?' nav-add-pulse':''}`}>{t.lbl}</span>
           </button>
         ))}
       </nav>
