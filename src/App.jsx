@@ -5343,19 +5343,36 @@ export default function App() {
             {carmsOutstanding.totalClaims===0
               ? <div style={{fontSize:'11px',color:'#94a3b8',fontWeight:600,padding:'6px 0'}}>Nothing outstanding right now.</div>
               : (()=>{
-                  const allItems = carmsOutstanding.groups.flatMap(g=>g.items.map(it=>({...it, period:g.period})));
-                  const shown = allItems.slice(0,3);
+                  // One row per CLAIM, not per entry: an entry with both
+                  // overtime and PA outstanding is two separate submissions
+                  // (CARMS and MetHR), so it gets a row each with its own
+                  // amount — mirroring the CARMS/PA tab, and keeping the row
+                  // count consistent with the "claims to submit" total below,
+                  // which has always counted them separately.
+                  const allClaims = [];
+                  carmsOutstanding.groups.forEach(g=>g.items.forEach(it=>{
+                    if (it.otOutstanding) allClaims.push({ entry:it.entry, kind:'Overtime', amount:it.otAmt, key:it.entry.id+'-ot' });
+                    if (it.paOutstanding) allClaims.push({ entry:it.entry, kind:it.entry.paRate, amount:it.paAmt, key:it.entry.id+'-pa' });
+                  }));
+                  const LIMIT = 4;
+                  const shown = allClaims.slice(0, LIMIT);
+                  const hidden = allClaims.length - shown.length;
                   return (
                     <>
-                      {shown.map((it,i)=>(
-                        <div key={it.entry.id+String(it.otOutstanding)+String(it.paOutstanding)} onClick={()=>setTab('carms')} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 0',borderTop:i===0?'none':'1px solid #f1f5f9',cursor:'pointer'}}>
-                          <div>
-                            <div style={{fontSize:'11.5px',fontWeight:700,color:'#0f172a'}}>{it.entry.reason||'Shift'}</div>
-                            <div style={{fontSize:'9.5px',color:'#94a3b8'}}>{it.otOutstanding?'Overtime':it.entry.paRate} · {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
+                      {shown.map((cl,i)=>(
+                        <div key={cl.key} onClick={()=>setTab('carms')} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',padding:'9px 0',borderTop:i===0?'none':'1px solid #f1f5f9',cursor:'pointer'}}>
+                          <div style={{minWidth:0}}>
+                            <div style={{fontSize:'11.5px',fontWeight:700,color:'#0f172a',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cl.entry.reason||'Shift'}</div>
+                            <div style={{fontSize:'9.5px',color:'#94a3b8'}}>{cl.kind} · {new Date(cl.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
                           </div>
-                          <div style={{fontSize:'12.5px',fontWeight:900,color:'#d97706'}}>{fmtGBP(it.amount)}</div>
+                          <div style={{fontSize:'12.5px',fontWeight:900,color:'#d97706',flexShrink:0}}>{fmtGBP(cl.amount)}</div>
                         </div>
                       ))}
+                      {hidden>0&&(
+                        <div onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:800,color:'#2563eb',padding:'8px 0 0',cursor:'pointer',borderTop:'1px solid #f1f5f9',marginTop:'2px'}}>
+                          +{hidden} more claim{hidden!==1?'s':''} →
+                        </div>
+                      )}
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#fffbeb',borderRadius:'10px',padding:'9px 11px',marginTop:'8px'}}>
                         <span style={{fontSize:'10px',fontWeight:800,color:'#92400e'}}>{carmsOutstanding.totalClaims} CLAIM{carmsOutstanding.totalClaims!==1?'S':''} TO SUBMIT</span>
                         <span style={{fontSize:'14px',fontWeight:900,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalAmount)}</span>
