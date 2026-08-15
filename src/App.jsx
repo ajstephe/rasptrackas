@@ -959,7 +959,6 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
     // password intentionally stays in state — it's needed to wrap the data key next
   };
 
-  const recoveryTooShort = recoveryWord.length > 0 && recoveryWord.length < RECOVERY_MIN_LENGTH;
   const recoveryTooCommon = RECOVERY_BLOCKLIST.includes(recoveryWord.toLowerCase());
 
   const handleRecoverySetup = async () => {
@@ -2050,7 +2049,7 @@ export default function App() {
     const niF = estimateAnnualNI(proj);
     const netF = proj - pensionF.amount - breakdownF.totalTax - niF;
     const band = getTaxBand(taxableGrossF, 1);
-    return { proj, pensionF, taxableGrossF, overF, paLostF, paRemainingF, extraTaxF, breakdownF, niF, netF, bandName: band.name };
+    return { proj, pensionablePayF, pensionF, taxableGrossF, overF, paLostF, paRemainingF, extraTaxF, breakdownF, niF, netF, bandName: band.name };
   },[settings, totals]);
 
   // ── CARMS outstanding claims ──────────────────────────────────────────────
@@ -2736,8 +2735,6 @@ export default function App() {
       });
       r++;
       mergeRanges.forEach(({label}, i) => {
-        const pIdx = blocks[i]?.pIdx;
-        const pb = pIdx>=0 ? totals.periodBreakdown[pIdx] : null;
         // Gross/Net shown here are this period's SUBMITTED totals from the
         // detailed sheet's own subtotal row — matches what's actually in
         // the export, not the app's live figures which may have since moved on.
@@ -3703,7 +3700,7 @@ export default function App() {
               return (
                 <div style={S.card}>
                   <div style={{display:'flex',alignItems:'flex-start',gap:'12px'}}>
-                    <div style={{background:'#f0fdf4',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cash" s={19} c="#059669"/></div>
+                    <div style={{background:'#dcfce7',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cash" s={19} c="#15803d"/></div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
                       <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
@@ -4945,7 +4942,7 @@ export default function App() {
               // treats projections (yearFraction = 1). Sourced from the
               // shared taxForecast memo (see its own definition above)
               // rather than computed inline here.
-              const { pensionF, taxableGrossF, overF, paLostF, paRemainingF, extraTaxF, breakdownF, niF, netF } = taxForecast;
+              const { pensionablePayF, pensionF, taxableGrossF, overF, paLostF, paRemainingF, extraTaxF, breakdownF, niF, netF } = taxForecast;
 
               // Actual — year to date, same principle: taxable (post-pension)
               // YTD figure drives the taper assessment. Personal Allowance is
