@@ -1729,11 +1729,24 @@ export default function App() {
   // context. Extracted so the two can't quietly drift apart the way two
   // separately-maintained copies of the same logic eventually do.
   const carmsBadge = (e, fontSize) => {
-    const otOK = isOtSubmitted(e);
+    const c = calcEntry(e);
+    // An entry with zero claimable OT hours (actual shift matched the
+    // roster — logged for the record, not as an overtime claim) has
+    // nothing to submit on the OT side, so it's never treated as
+    // outstanding on that account — same principle as carmsOutstanding
+    // and the calendar's own isFullySubmitted check.
+    const hasOTHours = c.h1+c.h2+c.h3 > 0;
+    const otOK = !hasOTHours || isOtSubmitted(e);
     const hasPA = e.paRate && e.paRate!=='None';
     const paOK = !hasPA || isPaSubmitted(e);
     const style = {display:'inline-block',fontSize:fontSize+'px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',textTransform:'uppercase',letterSpacing:'0.5px'};
-    if (otOK && paOK) return <div style={{...style,background:'#f0fdf4',color:'#059669'}}>✓ Submitted</div>;
+    if (otOK && paOK) {
+      // Nothing was ever submittable on this entry at all (no OT hours,
+      // no PA) — the shift is purely a record, so a "Submitted" badge
+      // would be as misleading as an "outstanding" one. Show neither.
+      if (!hasOTHours && !hasPA) return null;
+      return <div style={{...style,background:'#f0fdf4',color:'#059669'}}>✓ Submitted</div>;
+    }
     const goToEntry = (ev) => { ev.stopPropagation(); setSelectedCalDay(null); setConfirmDel(null); startEdit(e); setFocusCarmsToggle(true); };
     const clickable = {...style,border:'1px solid #fecaca',background:'#fef2f2',color:'#b91c1c',cursor:'pointer'};
     if (otOK && !paOK) return <div onClick={goToEntry} style={clickable}>✗ PA not submitted</div>;
