@@ -164,17 +164,12 @@ const generateShiftTimesLine = f => {
   return SHIFT_TIMES_MARKER + parts.join('  |  ');
 };
 
-// ─── Overtime / night auto-calculation from rostered vs actual shift times ───
+// ─── Overtime auto-calculation from rostered vs actual shift times ───
 // Overtime = how much longer the actual shift ran than the rostered one
 // (duration comparison, not a clock-window comparison — an early start that's
 // offset by an early finish of the same size produces zero overtime). On a
 // Rest Day Working (RDW) shift there's no roster to compare against, so the
 // whole actual shift is overtime.
-//
-// Night enhancement is calculated completely separately, over the WHOLE
-// actual shift regardless of the rostered/overtime split — any hour worked
-// 2000–0600 is paid at the enhanced rate, whether it happens to fall inside
-// the rostered portion of the shift or the overtime portion.
 const shiftDurationMinutes = (start, end) => {
   if (!start || !end) return 0;
   let s = toMinutesOfDay(start), e = toMinutesOfDay(end);
@@ -187,30 +182,6 @@ const calcAutoOTHours = f => {
   if (f.dutyType === 'rdw') return actualDur / 60;
   const rosteredDur = shiftDurationMinutes(f.rosteredStart, f.rosteredEnd);
   return Math.max(0, (actualDur - rosteredDur) / 60);
-};
-
-// Overlap, in minutes, between [startAbs,endAbs) and every recurring
-// 2000–0600 night band, checked a day either side to safely catch shifts
-// that start very early (catching the tail of the previous night) or run
-// very late (running into the following night).
-const nightBandOverlapMinutes = (startAbs, endAbs) => {
-  if (endAbs <= startAbs) return 0;
-  let total = 0;
-  const dayStart = Math.floor(startAbs / 1440) - 1;
-  const dayEnd   = Math.ceil(endAbs / 1440) + 1;
-  for (let d = dayStart; d <= dayEnd; d++) {
-    const bandStart = d*1440 + 20*60, bandEnd = bandStart + 10*60; // 20:00 → 06:00 next day
-    const os = Math.max(startAbs, bandStart), oe = Math.min(endAbs, bandEnd);
-    if (oe > os) total += oe - os;
-  }
-  return total;
-};
-
-const calcAutoNightHours = f => {
-  if (!f.actualStart || !f.actualEnd) return 0;
-  const startAbs = toMinutesOfDay(f.actualStart);
-  const endAbs = startAbs + shiftDurationMinutes(f.actualStart, f.actualEnd);
-  return Math.floor(nightBandOverlapMinutes(startAbs, endAbs) / 60);
 };
 
 // Which of the three overtime rate tiers a given field name/key maps to —
@@ -1314,7 +1285,7 @@ export default function App() {
   useEffect(()=>{ toilTakenRef.current = toilTaken; },[toilTaken]);
   useEffect(()=>{ settingsRef.current = settings; },[settings]);
 
-  const blankForm = { date:todayStr, reason:'', hours133:'', hours150:'', hours200:'', nightWorkHours:'', nightHours:'', paRate:'None', comments:'', recordShiftTimes:true, rosteredStart:'', rosteredEnd:'', actualStart:'', actualEnd:'', dutyType:'normal', otRateTier:'hours133', otAuto:true, nightAuto:true, takeAs:'pay', toilHours:'', otSubmitted:false, paSubmitted:false, otSubmittedDate:'', paSubmittedDate:'' };
+  const blankForm = { date:todayStr, reason:'', hours133:'', hours150:'', hours200:'', paRate:'None', comments:'', recordShiftTimes:true, rosteredStart:'', rosteredEnd:'', actualStart:'', actualEnd:'', dutyType:'normal', otRateTier:'hours133', otAuto:true, takeAs:'pay', toilHours:'', otSubmitted:false, paSubmitted:false, otSubmittedDate:'', paSubmittedDate:'' };
   const [form, setForm] = useState(blankForm);
 
   // ── cloud push sync ──────────────────────────────────────────────────────
@@ -1698,7 +1669,12 @@ export default function App() {
     const h1 = parseFloat(e.hours133)||0;
     const h2 = parseFloat(e.hours150)||0;
     const h3 = parseFloat(e.hours200)||0;
-    const nh = parseFloat(e.nightHours)||0;
+    // Night hours no longer factor into any calculation — kept as a fixed
+    // zero here (rather than removed from the returned shape entirely) so
+    // every downstream site that reads c.nh/c.night keeps working exactly
+    // as before, just always contributing nothing, instead of needing every
+    // one of those call sites updated individually.
+    const nh = 0;
     // TOIL hours (worked at e.otRateTier's rate, taken as time instead of
     // pay) reduce the CASH overtime calculation only — h1/h2/h3 still
     // reflect hours actually worked, so hours-worked totals stay correct.
@@ -1709,7 +1685,7 @@ export default function App() {
     const ot1 = payH1*r.r133, ot2 = payH2*r.r150, ot3 = payH3*r.r200;
     const ot  = ot1+ot2+ot3;
     const toilBanked = e.otRateTier ? toilH * RATE_TIER_MULT[e.otRateTier] : 0;
-    const night = nh * r.base * 0.10;          // 10% of base rate per night hour
+    const night = 0;
     const pa    = PA_RATES[e.paRate]||0;
     const gross = ot + night + pa;
     return { h1, h2, h3, payH1, payH2, payH3, ot1, ot2, ot3, nh, ot, night, pa, gross, r, toilH, toilBanked, otRateTier:e.otRateTier, takeAs:e.takeAs };
@@ -2207,17 +2183,6 @@ export default function App() {
     setForm(f=>({ ...f, [form.otRateTier]: auto ? String(auto) : '' }));
   },[form.rosteredStart, form.rosteredEnd, form.actualStart, form.actualEnd, form.dutyType, form.otAuto, form.otRateTier, form.recordShiftTimes]);
 
-  // Night hours: the WHOLE actual shift, regardless of duty type — any hour
-  // worked 2000–0600 is paid, whether it's inside the rostered portion or the
-  // overtime portion of the shift.
-  useEffect(()=>{
-    if (!form.recordShiftTimes || !form.nightAuto) return;
-    const auto = calcAutoNightHours(form);
-    const current = parseFloat(form.nightHours)||0;
-    if (current===auto) return;
-    setForm(f=>({ ...f, nightHours: auto ? String(auto) : '', nightWorkHours: auto ? String(auto) : '' }));
-  },[form.actualStart, form.actualEnd, form.nightAuto, form.recordShiftTimes]);
-
   // Which rate tier TOIL banking applies to — in auto-calc mode this is just
   // form.otRateTier; in manual mode there's no rate-pill selector, so we look
   // at which single hours133/150/200 box actually has something in it. If
@@ -2261,14 +2226,13 @@ export default function App() {
     const h1 = parseFloat(form.hours133)||0;
     const h2 = parseFloat(form.hours150)||0;
     const h3 = parseFloat(form.hours200)||0;
-    const nh = parseFloat(form.nightHours)||0;
     const toilH = form.otRateTier ? (parseFloat(form.toilHours)||0) : 0;
     const payH1 = form.otRateTier==='hours133' ? Math.max(0,h1-toilH) : h1;
     const payH2 = form.otRateTier==='hours150' ? Math.max(0,h2-toilH) : h2;
     const payH3 = form.otRateTier==='hours200' ? Math.max(0,h3-toilH) : h3;
     const ot    = payH1*r.r133 + payH2*r.r150 + payH3*r.r200;
     const toilBanked = form.otRateTier ? toilH * RATE_TIER_MULT[form.otRateTier] : 0;
-    const night = nh * r.base * 0.10;
+    const night = 0; // night hours no longer factor into any calculation
     const pa    = PA_RATES[form.paRate]||0;
     const gross = ot + night + pa;
     // Use the pay period this shift falls in for NI (period-based, no annual
@@ -2336,13 +2300,12 @@ export default function App() {
       const dayTotals = dEntries.reduce((acc,e)=>{
         const c=calcEntry(e);
         acc.hrs += c.h1+c.h2+c.h3;
-        if(c.nh>0) acc.night = true;
         if(e.paRate && e.paRate!=='None') acc.pa = true;
         return acc;
-      },{hrs:0,night:false,pa:false});
+      },{hrs:0,pa:false});
       setSelectedCalDay({
         ds: targetDate, dEntries, periodIdx,
-        totalHrs: dayTotals.hrs, hasNight: dayTotals.night, hasPA: dayTotals.pa, hasOT: true,
+        totalHrs: dayTotals.hrs, hasPA: dayTotals.pa, hasOT: true,
       });
       if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'});
     } else {
@@ -2457,7 +2420,7 @@ export default function App() {
   async function handleExportSpreadsheet(start, end, sanitise){
     const headers = [
       'Pay Period','Date','Duty/Reason','1.33x Hours','1.5x Hours','2.0x Hours',
-      'Night Hours (Enhanced)','PA Rate','Submitted','Breakdown','Gross (£)',
+      'PA Rate','Submitted','Breakdown','Gross (£)',
       'Cumulative Taxable Income Before This Entry (£)','Net (£)','Rate Applied','Notes'
     ];
     // DD/MM/YYYY as plain text — deliberately not a real date cell, since
@@ -2513,18 +2476,10 @@ export default function App() {
       // showing OT/PA components that haven't actually been claimed yet.
       const hasPA = e.paRate && e.paRate!=='None';
       const breakdownParts = [];
-      // Night allowance is automatic and only waits on the OT toggle when
-      // there are genuine overtime hours on the entry too — same principle
-      // as submittedGross, so this breakdown stays consistent with the
-      // Gross figure it's explaining.
-      const hasOTHoursBD = c.h1 + c.h2 + c.h3 > 0;
-      if (!hasOTHoursBD) {
-        if (c.nh>0) breakdownParts.push(`${c.nh}hr night=£${c.night.toFixed(2)}`);
-      } else if (isOtSubmitted(e)) {
+      if (isOtSubmitted(e)) {
         if (c.payH1>0) breakdownParts.push(`${c.payH1}hr@1.33x=£${c.ot1.toFixed(2)}`);
         if (c.payH2>0) breakdownParts.push(`${c.payH2}hr@1.5x=£${c.ot2.toFixed(2)}`);
         if (c.payH3>0) breakdownParts.push(`${c.payH3}hr@2.0x=£${c.ot3.toFixed(2)}`);
-        if (c.nh>0) breakdownParts.push(`${c.nh}hr night=£${c.night.toFixed(2)}`);
       }
       if (hasPA && isPaSubmitted(e)) breakdownParts.push(`${e.paRate}@£${c.pa.toFixed(2)}`);
       const breakdown = breakdownParts.join(' + ') || '—';
@@ -2533,7 +2488,7 @@ export default function App() {
       // columns B onward.
       return [
         '', fmtDDMMYYYY(e.date), e.reason||'', c.h1||'', c.h2||'', c.h3||'',
-        c.nh||'', e.paRate!=='None'?e.paRate:'',
+        e.paRate!=='None'?e.paRate:'',
         submittedLabel(e), breakdown,
         Math.round(gross*100)/100,
         Math.round(cumulativeBefore*100)/100,
@@ -2564,8 +2519,8 @@ export default function App() {
       const row = blankRow();
       row[2] = 'Period Total';
       row[3] = sum(3) || ''; row[4] = sum(4) || ''; row[5] = sum(5) || '';
-      row[10] = Math.round(sum(10)*100)/100;
-      row[12] = Math.round(sum(12)*100)/100;
+      row[9] = Math.round(sum(9)*100)/100;
+      row[11] = Math.round(sum(11)*100)/100;
       return row;
     };
     const expandedRows = [];
@@ -2628,12 +2583,12 @@ export default function App() {
         cell.border = { top:{style:'thick',color:{argb:'FF5C7C99'}}, bottom:{style:'thick',color:{argb:'FF5C7C99'}}, left:{style:'thick',color:{argb:'FF5C7C99'}}, right:{style:'thick',color:{argb:'FF5C7C99'}} };
       });
 
-      // Currency columns (K, L, M — shifted one letter right by the new
-      // Pay Period and Breakdown columns) get the accounting format —
-      // aligned £ symbol, thousands separators, a plain dash for zero,
-      // matching Excel's own built-in "Accounting" look.
+      // Currency columns (J, K, L — Gross/Cumulative/Net, shifted one letter
+      // left now that Night Hours has been removed) get the accounting
+      // format — aligned £ symbol, thousands separators, a plain dash for
+      // zero, matching Excel's own built-in "Accounting" look.
       const acctFmt = '_-£* #,##0.00_-;-£* #,##0.00_-;_-£* "-"??_-;_-@_-';
-      const currencyCols = ['K','L','M'];
+      const currencyCols = ['J','K','L'];
       const thinGrey = { style:'thin', color:{argb:'FFD9E2E8'} };
       // Thick border wherever the pay period changes from the row above —
       // same grey-blue as the header, so scanning down the list makes it
@@ -2665,11 +2620,11 @@ export default function App() {
             if (isStripe) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} };
             cell.border = { top:isNewPeriod?periodBoundary:thinGrey, bottom:thinGrey, left:thinGrey, right:thinGrey };
           }
-          // Duty/Reason (col 3), Breakdown (col 10) and Notes (col 15) are
+          // Duty/Reason (col 3), Breakdown (col 9) and Notes (col 14) are
           // the three fields most likely to occasionally run longer than
           // the column width comfortably allows — wrap those specifically
           // rather than truncating, so nothing needs manually expanding to read.
-          cell.alignment = { vertical:'middle', wrapText: cell.col===3 || cell.col===10 || cell.col===15 };
+          cell.alignment = { vertical:'middle', wrapText: cell.col===3 || cell.col===9 || cell.col===14 };
         });
         currencyCols.forEach(col => { row.getCell(col).numFmt = acctFmt; });
         // A subtle pistachio left-border accent on fully-submitted rows —
@@ -2692,15 +2647,15 @@ export default function App() {
       gtRow.getCell('D').value = grandTotal(3) || '';
       gtRow.getCell('E').value = grandTotal(4) || '';
       gtRow.getCell('F').value = grandTotal(5) || '';
-      gtRow.getCell('K').value = Math.round(grandTotal(10)*100)/100;
-      gtRow.getCell('M').value = Math.round(grandTotal(12)*100)/100;
+      gtRow.getCell('J').value = Math.round(grandTotal(9)*100)/100;
+      gtRow.getCell('L').value = Math.round(grandTotal(11)*100)/100;
       gtRow.eachCell({ includeEmpty:true }, cell => {
         cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF5C7C99'} };
         cell.font = { bold:true, color:{argb:'FFFFFFFF'}, size:11 };
         cell.border = { top:{style:'thick',color:{argb:'FF3E5A70'}} };
         cell.alignment = { vertical:'middle' };
       });
-      ['K','M'].forEach(col => { gtRow.getCell(col).numFmt = acctFmt; });
+      ['J','L'].forEach(col => { gtRow.getCell(col).numFmt = acctFmt; });
 
       // Column widths sized to the longest actual value in each column
       // (header or data), not a guess — genuinely fits the content. Uses
@@ -2725,7 +2680,7 @@ export default function App() {
       // is the merged, rotated Pay Period label, and merged cells inside
       // an AutoFilter range behave unreliably in Excel (a filter action can
       // hide part of a merged block while leaving the rest visible).
-      ws.autoFilter = `B1:O${lastDataRow}`;
+      ws.autoFilter = `B1:N${lastDataRow}`;
 
       // Print setup — landscape and fit-to-width, since this sheet is wide;
       // the header row repeats on every printed page so a multi-page
@@ -2744,10 +2699,10 @@ export default function App() {
       // scan the whole column manually. Excludes blank cells explicitly,
       // so the always-empty padding and subtotal rows aren't caught by it.
       ws.addConditionalFormatting({
-        ref: `I2:I${lastDataRow}`,
+        ref: `H2:H${lastDataRow}`,
         rules: [{
           type: 'expression',
-          formulae: [`AND(I2<>"Yes",I2<>"")`],
+          formulae: [`AND(H2<>"Yes",H2<>"")`],
           style: {
             fill: { type:'pattern', pattern:'solid', bgColor:{argb:'FFFEE2E2'} },
             font: { bold:true, color:{argb:'FFB91C1C'} }
@@ -2808,8 +2763,8 @@ export default function App() {
         // Gross/Net shown here are this period's SUBMITTED totals from the
         // detailed sheet's own subtotal row — matches what's actually in
         // the export, not the app's live figures which may have since moved on.
-        const periodGross = blocks[i].rows.reduce((s,row)=>s+(parseFloat(row[10])||0),0);
-        const periodNet = blocks[i].rows.reduce((s,row)=>s+(parseFloat(row[12])||0),0);
+        const periodGross = blocks[i].rows.reduce((s,row)=>s+(parseFloat(row[9])||0),0);
+        const periodNet = blocks[i].rows.reduce((s,row)=>s+(parseFloat(row[11])||0),0);
         sws.getCell(r,1).value = label;
         sws.getCell(r,2).value = Math.round(periodGross*100)/100; sws.getCell(r,2).numFmt = acctFmt;
         sws.getCell(r,3).value = Math.round(periodNet*100)/100; sws.getCell(r,3).numFmt = acctFmt;
@@ -3255,19 +3210,12 @@ export default function App() {
       const c = calcEntry(e);
       const hasPA = e.paRate && e.paRate!=='None';
       // Money figures respect submission status, same principle as
-      // totals/the spreadsheet export — an unsubmitted OT or PA claim
-      // hasn't actually landed as pay yet, so it shouldn't inflate what
-      // this payslip shows as gross/net. Hours worked stay unconditional
-      // below, since that's a factual record of the shift regardless of
+      // totals/the spreadsheet export — an unsubmitted OT claim hasn't
+      // actually landed as pay yet, so it shouldn't inflate what this
+      // payslip shows as gross/net. Hours worked stay unconditional below,
+      // since that's a factual record of the shift regardless of
       // submission status, matching how the rest of the app treats it.
-      // Night allowance is automatic and only waits on the OT toggle when
-      // there are genuine overtime hours on the entry too.
-      const hasOTHoursPS = c.h1 + c.h2 + c.h3 > 0;
-      if (!hasOTHoursPS) {
-        night += c.night;
-      } else if (isOtSubmitted(e)) {
-        ot += c.ot; night += c.night; toilBanked += c.toilBanked;
-      }
+      if (isOtSubmitted(e)) { ot += c.ot; toilBanked += c.toilBanked; }
       if (hasPA && isPaSubmitted(e)) { pa += c.pa; paCounts[e.paRate] = (paCounts[e.paRate]||0)+1; }
       hrs += c.h1+c.h2+c.h3;
       rateHrs.hours133 += c.payH1; rateHrs.hours150 += c.payH2; rateHrs.hours200 += c.payH3;
@@ -3631,9 +3579,8 @@ export default function App() {
                         </div>
                       ))}
                       {[
-                        ['Overtime',        totals.totalOTGross,    totals.totalOTNet],
-                        ['PA',              totals.totalPAGross,    totals.totalPANet],
-                        ['Night Allowance', totals.totalNightGross, totals.totalNightNet],
+                        ['Overtime', totals.totalOTGross, totals.totalOTNet],
+                        ['PA',       totals.totalPAGross, totals.totalPANet],
                       ].map(([label,gross,net])=>(
                         <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                           <span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>{label}</span>
@@ -4082,54 +4029,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* night hours — single input; every hour entered here is automatically
-                subject to the 10% enhancement, no separate confirmation step */}
-            {(()=>{
-              const formRates = getRates(settings.rank, settings.service, form.date||todayStr);
-              const nightRate = formRates.base * 0.10;
-              const nightHrs  = parseFloat(form.nightHours)||0;
-              const auto = form.recordShiftTimes;
-              return (
-                <div style={{background:'#0f172a',borderRadius:'13px',padding:'13px',marginBottom:'10px',border:'1px solid #1e293b'}}>
-                  {/* header */}
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:'7px'}}>
-                      <Ico n="moon" s={13} c="#818cf8"/>
-                      <div style={{fontSize:'10px',fontWeight:900,color:'#c7d2fe',textTransform:'uppercase',letterSpacing:'1px'}}>Night Work (2000–0600)</div>
-                    </div>
-                    <div style={{fontSize:'9px',fontWeight:700,color:'#6366f1',background:'rgba(99,102,241,0.15)',padding:'3px 8px',borderRadius:'8px'}}>+10% / hr</div>
-                  </div>
-
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                    <div style={{background:'rgba(99,102,241,0.12)',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
-                      <div style={{fontSize:'8.5px',fontWeight:900,color:'#818cf8',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'5px'}}>Hours worked</div>
-                      <input
-                        type="number" step="1" min="0" placeholder="0"
-                        style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,background:'#1e293b',fontSize:'16px',padding:'6px',color:'#e0e7ff',borderRadius:'9px',border:'none',outline:'none',fontFamily:'inherit'}}
-                        value={form.nightHours}
-                        onChange={e=>{ const v=e.target.value; setForm({...form, nightAuto:false, nightWorkHours:v, nightHours:v}); }}
-                      />
-                      {auto&&(form.nightAuto
-                        ? <div style={{fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'5px',background:'rgba(34,197,94,0.18)',color:'#4ade80',display:'inline-block'}}>auto-calculated</div>
-                        : <div onClick={()=>setForm({...form, nightAuto:true})} style={{fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'5px',background:'rgba(251,191,36,0.18)',color:'#fbbf24',display:'inline-block',cursor:'pointer'}}>edited — tap to reset</div>
-                      )}
-                    </div>
-                    <div style={{background:'rgba(99,102,241,0.12)',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
-                      <div style={{fontSize:'8.5px',fontWeight:900,color:'#818cf8',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'5px'}}>Enhancement rate</div>
-                      <div style={{background:'#1e293b',borderRadius:'9px',padding:'6px',fontSize:'16px',fontWeight:900,color:'#e0e7ff'}}>£{nightRate.toFixed(2)}<span style={{fontSize:'10px',fontWeight:700,color:'#6366f1'}}>/hr</span></div>
-                    </div>
-                  </div>
-
-                  {nightHrs>0&&(
-                    <div style={{marginTop:'9px',background:'rgba(99,102,241,0.12)',borderRadius:'10px',padding:'9px 12px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <span style={{fontSize:'11px',fontWeight:700,color:'#a5b4fc'}}>{nightHrs} hrs × £{nightRate.toFixed(2)}</span>
-                      <span style={{fontSize:'14px',fontWeight:900,color:'#c7d2fe'}}>£{(nightHrs*nightRate).toFixed(2)}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
             {/* CARMS Submission — independent of logging the shift itself.
                 Both default to false via blankForm; editing an existing
                 entry reflects whatever it's already set to. PA toggle only
@@ -4204,7 +4103,7 @@ export default function App() {
             {/* live preview */}
             {preview.has&&(
               <div style={{background:'linear-gradient(135deg,#1e3a5f,#1d4ed8)',borderRadius:'15px',padding:'14px 18px',marginBottom:'11px'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom: (preview.night>0||preview.toilBanked>0)?'10px':0}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom: preview.toilBanked>0?'10px':0}}>
                   <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1px'}}>This Shift</div>
                   <div style={{display:'flex',gap:'18px',alignItems:'center'}}>
                     <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.5px'}}>Gross</div><div style={{fontSize:'23px',fontWeight:900,color:'#fff'}}>{fmt(preview.gross)}</div></div>
@@ -4214,14 +4113,8 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                {preview.night>0&&(
-                  <div style={{borderTop:'1px solid rgba(255,255,255,0.1)',paddingTop:'8px',display:'flex',alignItems:'center',gap:'6px',marginBottom:preview.toilBanked>0?'6px':0}}>
-                    <Ico n="moon" s={11} c="#818cf8"/>
-                    <span style={{fontSize:'15px',fontWeight:700,color:'#a5b4fc'}}>inc. £{preview.night.toFixed(2)} night enhancement</span>
-                  </div>
-                )}
                 {preview.toilBanked>0&&(
-                  <div style={{borderTop:preview.night>0?'none':'1px solid rgba(255,255,255,0.1)',paddingTop:preview.night>0?0:'8px',display:'flex',alignItems:'center',gap:'6px'}}>
+                  <div style={{borderTop:'1px solid rgba(255,255,255,0.1)',paddingTop:'8px',display:'flex',alignItems:'center',gap:'6px'}}>
                     <Ico n="clock" s={11} c="#c4b5fd"/>
                     <span style={{fontSize:'15px',fontWeight:700,color:'#c4b5fd'}}>+ {fmtHM(preview.toilBanked)}h TOIL banked (not included in Gross/Net above)</span>
                   </div>
@@ -4335,14 +4228,14 @@ export default function App() {
             {PAY_PERIODS.map((p,idx)=>{
               const pE=fyEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
               const pb=totals.periodBreakdown[idx];
-              let h133=0,h150=0,h200=0,totalNight=0,pa1=0,pa2=0,pa3=0,totalToilWorked=0,totalToilBanked=0;
+              let h133=0,h150=0,h200=0,pa1=0,pa2=0,pa3=0,totalToilWorked=0,totalToilBanked=0;
               pE.forEach(e=>{
                 const c=calcEntry(e);
-                h133+=c.h1; h150+=c.h2; h200+=c.h3; totalNight+=c.nh;
+                h133+=c.h1; h150+=c.h2; h200+=c.h3;
                 totalToilWorked+=c.toilH; totalToilBanked+=c.toilBanked;
                 if(e.paRate==='PA1')pa1++; else if(e.paRate==='PA2')pa2++; else if(e.paRate==='PA3')pa3++;
               });
-              const gOT=pb.ot, gNight=pb.night, gPA=pb.pa;
+              const gOT=pb.ot, gPA=pb.pa;
               const totG=pb.combinedGross, totN=pb.combinedNet;
               const isExp=expanded===p.month, isCurr=idx===currPeriodIdx;
 
@@ -4409,12 +4302,6 @@ export default function App() {
                               <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA3 × {pa3}</span>
                             </div>
                           </div>
-                          <div style={{background:'#0f172a',borderRadius:'13px',padding:'11px',border:'1px solid #1e293b'}}>
-                            <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="moon" s={11} c="#818cf8"/><div style={{fontSize:'11px',fontWeight:900,color:'#c7d2fe',textTransform:'uppercase',letterSpacing:'0.5px'}}>Night (2000–0600)</div></div>
-                            <div style={{fontSize:'14px',fontWeight:700,color:'#e0e7ff',marginBottom:'1px'}}>Gross: {fmt(gNight)}</div>
-                            <div style={{fontSize:'13px',fontWeight:700,color:'#818cf8',marginBottom:'6px'}}>Net: {fmt(pb.nightResult.net)}</div>
-                            <div style={{fontSize:'12px',fontWeight:700,color:'#6366f1'}}>{totalNight}h @ +10%</div>
-                          </div>
                           {totalToilBanked>0&&(
                             <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer'}}>
                               <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
@@ -4434,9 +4321,8 @@ export default function App() {
                           const isFut=e.date>todayStr;
                           // individual records use the period-blended rate for each component
                           const eOTNet    = c.ot>0    ? c.ot*(1-pb.otResult.rate/100)       : 0;
-                          const eNightNet = c.nh>0    ? c.night*(1-pb.nightResult.rate/100) : 0;
                           const ePANet    = c.pa>0    ? c.pa*(1-pb.paResult.rate/100)       : 0;
-                          const eNet = eOTNet+eNightNet+ePANet;
+                          const eNet = eOTNet+ePANet;
                           return(
                             <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'#eff6ff':'#fff',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid #bfdbfe':'1px solid #f1f5f9',padding:'13px',marginBottom:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
                               {isFut&&<div style={{position:'absolute',top:'-6px',right:'9px',background:'#2563eb',color:'#fff',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',textTransform:'uppercase',letterSpacing:'1px'}}>Planned</div>}
@@ -4499,12 +4385,6 @@ export default function App() {
                                       <span style={{fontSize:'14px',fontWeight:900,color:'#4c1d95'}}>{fmtHM(c.toilBanked)}h banked</span>
                                     </div>
                                   )}
-                                  {c.nh>0&&(
-                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                      <span style={{fontSize:'13px',fontWeight:700,color:'#6366f1'}}>{c.nh}h @ +10% <span style={{color:'#94a3b8'}}>(£{(c.r.base*0.10).toFixed(2)}/hr)</span></span>
-                                      <span style={{fontSize:'14px',fontWeight:900,color:'#4f46e5'}}>£{c.night.toFixed(2)}</span>
-                                    </div>
-                                  )}
                                   {e.paRate!=='None'&&(
                                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                                       <span style={{fontSize:'13px',fontWeight:700,color:'#b45309'}}>{e.paRate} allowance</span>
@@ -4543,10 +4423,10 @@ export default function App() {
 
               // period-level totals for the breakdown boxes (mirrors List View)
               const pb = totals.periodBreakdown[cIdx];
-              let ph133=0, ph150=0, ph200=0, pNight=0, ppa1=0, ppa2=0, ppa3=0, pToilWorked=0, pToilBanked=0;
+              let ph133=0, ph150=0, ph200=0, ppa1=0, ppa2=0, ppa3=0, pToilWorked=0, pToilBanked=0;
               cEntries.forEach(e=>{
                 const c = calcEntry(e);
-                ph133+=c.h1; ph150+=c.h2; ph200+=c.h3; pNight+=c.nh;
+                ph133+=c.h1; ph150+=c.h2; ph200+=c.h3;
                 pToilWorked+=c.toilH; pToilBanked+=c.toilBanked;
                 if(e.paRate==='PA1')ppa1++; else if(e.paRate==='PA2')ppa2++; else if(e.paRate==='PA3')ppa3++;
               });
@@ -4558,7 +4438,6 @@ export default function App() {
                 let h1=0,h2=0,h3=0;
                 dEntries.forEach(e=>{ const c=calcEntry(e); h1+=c.h1; h2+=c.h2; h3+=c.h3; });
                 const totalHrs = h1+h2+h3;
-                const hasNight = dEntries.some(e=>parseFloat(e.nightHours)>0);
                 const hasPA = dEntries.some(e=>e.paRate&&e.paRate!=='None');
                 const hasToil = dEntries.some(e=>e.otRateTier&&(parseFloat(e.toilHours)||0)>0);
                 // Hours text is colored by rate tier — blue 1.33x, green 1.5x,
@@ -4574,7 +4453,7 @@ export default function App() {
                 const isFullySubmitted = dEntries.length>0 && dEntries.every(e =>
                   isOtSubmitted(e) && (!e.paRate || e.paRate==='None' || isPaSubmitted(e))
                 );
-                return { ds, dEntries, totalHrs, hasNight, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, rateColor, periodIdx: cIdx };
+                return { ds, dEntries, totalHrs, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, rateColor, periodIdx: cIdx };
               };
 
               return (
@@ -4656,9 +4535,8 @@ export default function App() {
                                 {info.totalHrs>0&&(
                                   <span style={{fontSize:'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
                                 )}
-                                {(info.hasNight||info.hasPA||info.hasToil)&&(
+                                {(info.hasPA||info.hasToil)&&(
                                   <div style={{display:'flex',gap:'2px',flexShrink:0}}>
-                                    {info.hasNight&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#818cf8',flexShrink:0}}/>}
                                     {info.hasPA&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#f59e0b',flexShrink:0}}/>}
                                     {info.hasToil&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#7c3aed',flexShrink:0}}/>}
                                   </div>
@@ -4678,7 +4556,6 @@ export default function App() {
                       </div>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'8px'}}>
                         <div style={{display:'flex',gap:'10px'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#818cf8'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>Night</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
                         </div>
@@ -4713,12 +4590,6 @@ export default function App() {
                           <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA2 × {ppa2}</span>
                           <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA3 × {ppa3}</span>
                         </div>
-                      </div>
-                      <div style={{background:'#0f172a',borderRadius:'13px',padding:'11px',border:'1px solid #1e293b'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="moon" s={11} c="#818cf8"/><div style={{fontSize:'11px',fontWeight:900,color:'#c7d2fe',textTransform:'uppercase',letterSpacing:'0.5px'}}>Night (2000–0600)</div></div>
-                        <div style={{fontSize:'14px',fontWeight:700,color:'#e0e7ff',marginBottom:'1px'}}>Gross: {fmt(pb.night)}</div>
-                        <div style={{fontSize:'13px',fontWeight:700,color:'#818cf8',marginBottom:'6px'}}>Net: {fmt(pb.nightResult.net)}</div>
-                        <div style={{fontSize:'12px',fontWeight:700,color:'#6366f1'}}>{pNight}h @ +10%</div>
                       </div>
                       {pToilBanked>0&&(
                         <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer'}}>
@@ -4993,10 +4864,6 @@ export default function App() {
                           ))}
                         </div>
                       ))}
-                    </div>
-                    <div style={{marginTop:'10px',background:'rgba(37,99,235,0.06)',borderRadius:'10px',padding:'8px 10px',display:'flex',alignItems:'center',gap:'6px'}}>
-                      <Ico n="moon" s={12} c="#6366f1"/>
-                      <span style={{fontSize:'10px',fontWeight:700,color:'#4f46e5'}}>Night enhancement is 10% of the hourly rates: £{(svcData.post.base*0.10).toFixed(2)}/hr</span>
                     </div>
 
                     <div style={{borderTop:'1px solid #dbeafe',marginTop:'16px',paddingTop:'14px'}}>
@@ -5654,20 +5521,6 @@ export default function App() {
                       </>
                     )}
 
-                    {d.night>0&&(
-                      <>
-                        <div style={sectionTitle}>Night Enhancement</div>
-                        <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12.5px'}}>
-                          <thead><tr><th style={thStyle}>Detail</th><th style={{...thStyle,textAlign:'right'}}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
-                          <tbody><tr>
-                            <td style={{...rowStyle,fontWeight:700,color:'#334155'}}>2000–0600<div style={{fontSize:'10px',color:'#94a3b8'}}>Across whole actual shift, rostered or overtime</div></td>
-                            <td style={{...rowStyle,textAlign:'right'}}>+10%</td>
-                            <td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.night)}</td>
-                          </tr></tbody>
-                        </table>
-                      </>
-                    )}
-
                     {hasPA&&(
                       <>
                         <div style={sectionTitle}>Protection Allowance</div>
@@ -5706,7 +5559,7 @@ export default function App() {
                     )}
 
                     <div style={{background:'#f8fafc',borderRadius:'12px',padding:'16px 18px',margin:'22px 0'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',fontWeight:800,color:'#0f172a'}}><span>Gross Overtime, Night &amp; PA</span><span>{fmtGBP(d.gross)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',fontWeight:800,color:'#0f172a'}}><span>Gross Overtime &amp; PA</span><span>{fmtGBP(d.gross)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. Income Tax{d.bandName?` (${d.bandName})`:''}</span><span>−{fmtGBP(d.tax)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. National Insurance</span><span>−{fmtGBP(d.ni)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0 0',marginTop:'6px',borderTop:'1px solid #e2e8f0',fontSize:'17px',fontWeight:900,color:'#059669'}}><span>Estimated Net</span><span>{fmtGBP(d.net)}</span></div>
@@ -5847,9 +5700,8 @@ export default function App() {
               const c = calcEntry(e);
               const pb = totals.periodBreakdown[selectedCalDay.periodIdx];
               const eOTNet    = c.h1+c.h2+c.h3>0 ? c.ot*(1-pb.otResult.rate/100)       : 0;
-              const eNightNet = c.nh>0           ? c.night*(1-pb.nightResult.rate/100) : 0;
               const ePANet    = c.pa>0           ? c.pa*(1-pb.paResult.rate/100)       : 0;
-              const eNet = eOTNet+eNightNet+ePANet;
+              const eNet = eOTNet+ePANet;
               return (
                 <div key={e.id} style={{background:'#f8fafc',borderRadius:'13px',padding:isWide?'17px':'13px',marginBottom:'8px'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'8px'}}>
@@ -5910,12 +5762,6 @@ export default function App() {
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                           <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#6d28d9'}}>{fmtHM(c.toilH)}h @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
                           <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#4c1d95'}}>{fmtHM(c.toilBanked)}h banked</span>
-                        </div>
-                      )}
-                      {c.nh>0&&(
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#6366f1'}}>{c.nh}h @ +10% <span style={{color:'#94a3b8'}}>(£{(c.r.base*0.10).toFixed(2)}/hr)</span></span>
-                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#4f46e5'}}>£{c.night.toFixed(2)}</span>
                         </div>
                       )}
                       {e.paRate!=='None'&&(
