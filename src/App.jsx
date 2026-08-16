@@ -4382,6 +4382,13 @@ export default function App() {
                                   {e.takeAs==='toil'&&<div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div>}
                                   {e.takeAs==='mix'&&<div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>Mix — Pay + TOIL</div>}
                                   {carmsBadge(e, 10)}
+                                  {/* Same neutral record-only indicator as the calendar day
+                                      view — an entry with no claimable OT hours and no PA has
+                                      nothing to submit, so it gets its own label rather than
+                                      no badge at all or a misleading submitted/outstanding one. */}
+                                  {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
+                                    <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#cbd5e1',color:'#334155',textTransform:'uppercase',letterSpacing:'0.5px'}}>ⓘ Shift Record — No OT Claim</div>
+                                  )}
                                 </div>
                                 <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
                                   <button onClick={()=>{setConfirmDel(null);startEdit(e);}} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
@@ -5795,7 +5802,7 @@ export default function App() {
                           than being folded into the submission-tracking system
                           at all. */}
                       {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
-                        <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#cbd5e1',color:'#334155',textTransform:'uppercase',letterSpacing:'0.5px'}}>Shift Record — No OT Claim</div>
+                        <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#cbd5e1',color:'#334155',textTransform:'uppercase',letterSpacing:'0.5px'}}>ⓘ Shift Record — No OT Claim</div>
                       )}
                     </div>
                     <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
