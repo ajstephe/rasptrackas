@@ -5381,7 +5381,7 @@ export default function App() {
                     if (it.otOutstanding) allClaims.push({ entry:it.entry, kind:'Overtime', amount:it.otAmt, key:it.entry.id+'-ot' });
                     if (it.paOutstanding) allClaims.push({ entry:it.entry, kind:it.entry.paRate, amount:it.paAmt, key:it.entry.id+'-pa' });
                   }));
-                  const LIMIT = 4;
+                  const LIMIT = 5;
                   const shown = allClaims.slice(0, LIMIT);
                   const hidden = allClaims.length - shown.length;
                   return (
