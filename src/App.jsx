@@ -5795,7 +5795,7 @@ export default function App() {
                           than being folded into the submission-tracking system
                           at all. */}
                       {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
-                        <div style={{display:'inline-block',fontSize:isWide?'10px':'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#cbd5e1',color:'#334155',textTransform:'uppercase',letterSpacing:'0.5px'}}>Shift Record — No OT Claim</div>
+                        <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#cbd5e1',color:'#334155',textTransform:'uppercase',letterSpacing:'0.5px'}}>Shift Record — No OT Claim</div>
                       )}
                     </div>
                     <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
