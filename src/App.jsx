@@ -5580,7 +5580,7 @@ export default function App() {
               </div>
 
               <div style={{padding:'22px 26px 10px'}}>
-                {d.clippedFrom&&<div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'10px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'#92400e',lineHeight:1.5}}>This range crosses 6 April, where the tax year resets. Figures below cover {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)} only, since combining two tax years' allowances into one total wouldn't be accurate.</div>}
+                {d.clippedFrom&&<div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'10px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'#1e40af',lineHeight:1.5}}>The tax year restarts on 6 April, so this summary only covers {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)} — the part that falls in the current tax year. That's what keeps the figures accurate.</div>}
                 {d.rangeEntries.length===0 ? (
                   <div style={{textAlign:'center',padding:'30px 10px',color:'#94a3b8',fontSize:'13px',fontWeight:600}}>No shifts recorded in this range.</div>
                 ) : (
