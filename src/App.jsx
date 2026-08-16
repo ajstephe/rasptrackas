@@ -4584,15 +4584,15 @@ export default function App() {
                                 style={{
                                   ...(isWide ? {height:'48px'} : {aspectRatio:'1', minHeight:'42px'}),
                                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.isRecordOnly?'1px solid #e2e8f0':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid transparent',
-                                  background: info.isRecordOnly?'#f8fafc':info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
+                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.isRecordOnly?'1px solid #cbd5e1':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid transparent',
+                                  background: info.isRecordOnly?'#e2e8f0':info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit', position:'relative',
                                   minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
                                 }}>
                                 {(date.getDate()===1 || (wi===0 && week.slice(0,di).every(d=>!d)))&&(
                                   <span style={{position:'absolute',top:'1px',left:'3px',fontSize:'7px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.3px',lineHeight:1}}>{date.toLocaleDateString('en-GB',{month:'short'})}</span>
                                 )}
-                                <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.isRecordOnly?'#64748b':info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
+                                <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.isRecordOnly?'#475569':info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
                                 {info.totalHrs>0&&(
                                   <span style={{fontSize:'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
                                 )}
@@ -4614,7 +4614,7 @@ export default function App() {
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f8fafc',border:'1px solid #e2e8f0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT — Shift Record</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT — Shift Record</span></div>
                       </div>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'8px'}}>
                         <div style={{display:'flex',gap:'10px'}}>
@@ -5647,7 +5647,7 @@ export default function App() {
               </div>
 
               <div style={{fontSize:'9.5px',color:'#94a3b8',lineHeight:1.6,padding:'16px 26px 26px',borderTop:'1px solid #f1f5f9',marginTop:'6px'}}>
-                <strong style={{color:'#64748b'}}>This is an unofficial summary</strong> generated from records entered into Overtime &amp; Shift Tracker by Adam Stephens. Tax and National Insurance figures are estimates based on cumulative marginal rates for the tax year and may not exactly match your official payslip, particularly for date ranges spanning more than one pay period. Always verify against payroll before relying on these figures for a dispute or claim.
+                <strong style={{color:'#64748b'}}>A note on these figures.</strong> This summary is generated from what you've logged in the app, for your own reference — it isn't an official payslip. Tax and National Insurance are estimated using cumulative marginal rates for the tax year, so they can differ slightly from your actual payslip, especially across date ranges spanning more than one pay period. Worth cross-checking against your payslip if the figures matter to you.
               </div>
             </div>
           </div>
@@ -5795,7 +5795,7 @@ export default function App() {
                           than being folded into the submission-tracking system
                           at all. */}
                       {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
-                        <div style={{display:'inline-block',fontSize:isWide?'10px':'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f1f5f9',color:'#64748b',textTransform:'uppercase',letterSpacing:'0.5px'}}>Shift Record — No OT Claim</div>
+                        <div style={{display:'inline-block',fontSize:isWide?'10px':'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#cbd5e1',color:'#334155',textTransform:'uppercase',letterSpacing:'0.5px'}}>Shift Record — No OT Claim</div>
                       )}
                     </div>
                     <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
