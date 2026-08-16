@@ -4596,11 +4596,10 @@ export default function App() {
                                 {info.totalHrs>0&&(
                                   <span style={{fontSize:'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
                                 )}
-                                {(info.hasPA||info.hasToil||info.isRecordOnly)&&(
+                                {(info.hasPA||info.hasToil)&&(
                                   <div style={{display:'flex',gap:'2px',flexShrink:0}}>
                                     {info.hasPA&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#f59e0b',flexShrink:0}}/>}
                                     {info.hasToil&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#7c3aed',flexShrink:0}}/>}
-                                    {info.isRecordOnly&&<div title="Shift recorded — No OT" style={{width:'4px',height:'4px',borderRadius:'50%',background:'#94a3b8',flexShrink:0}}/>}
                                   </div>
                                 )}
                               </button>
@@ -4615,12 +4614,12 @@ export default function App() {
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f8fafc',border:'1px solid #e2e8f0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT — Shift Record</span></div>
                       </div>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'8px'}}>
                         <div style={{display:'flex',gap:'10px'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
-                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#94a3b8'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT</span></div>
                         </div>
                         <div style={{display:'flex',gap:'10px'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#0f172a'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
@@ -5789,6 +5788,15 @@ export default function App() {
                       {e.takeAs==='toil'&&<div style={{display:'inline-block',fontSize:isWide?'10px':'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div>}
                       {e.takeAs==='mix'&&<div style={{display:'inline-block',fontSize:isWide?'10px':'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f5f3ff',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>Mix — Pay + TOIL</div>}
                       {carmsBadge(e, (isWide?15:12)-1)}
+                      {/* Grey record-only pill — shown only here in the calendar
+                          day view, not in List View, CARMS/PA, or any export.
+                          A shift with no claimable OT hours and no PA has
+                          nothing to submit, so it gets a neutral label rather
+                          than being folded into the submission-tracking system
+                          at all. */}
+                      {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
+                        <div style={{display:'inline-block',fontSize:isWide?'10px':'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#f1f5f9',color:'#64748b',textTransform:'uppercase',letterSpacing:'0.5px'}}>Shift Record — No OT Claim</div>
+                      )}
                     </div>
                     <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
                       <button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button>
