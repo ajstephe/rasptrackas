@@ -4706,13 +4706,13 @@ export default function App() {
                     </div>
                     <div style={{display:'flex',flexDirection:'column',gap:'3px'}}>
                       {weeks.map((week,wi)=>(
-                        <div key={wi} style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:'3px'}}>
+                        <div key={`${cIdx}-${wi}`} style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:'3px'}}>
                           {week.map((date,di)=>{
-                            if (!date) return <div key={di} style={{minWidth:0}}/>;
+                            if (!date) return <div key={`${cIdx}-${wi}-${di}-empty`} style={{minWidth:0}}/>;
                             const info = dayInfo(date);
                             const isToday = info.ds===todayStr;
                             return (
-                              <button key={di} onClick={()=>{
+                              <button key={info.ds} onClick={()=>{
                                   if (info.hasOT) { setSelectedCalDay(info); }
                                   else { setConfirmCreateDay(info.ds); }
                                 }}
