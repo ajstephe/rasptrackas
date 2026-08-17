@@ -204,6 +204,7 @@ const fmtHM  = n=>{
 };
 const fmtGBP = n=>`£${n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const fmtD   = d=>new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+const fmtDDMM = d=>{ const dt=new Date(d+'T12:00:00'); return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`; };
 
 // Keeps the auto-generated shift-times line in sync with the top of Notes,
 // without disturbing anything else the person has typed underneath it.
@@ -1723,6 +1724,48 @@ export default function App() {
   // an empty string reaching a date comparison).
   const effectiveOtDate = e => e.otSubmittedDate || e.date;
   const effectivePaDate = e => e.paSubmittedDate || e.date;
+
+  // Which pay period a given date falls into, by index into PAY_PERIODS.
+  // Shared helper — several places used to inline this same lookup
+  // independently, which is exactly the kind of duplication that drifts.
+  const periodIdxForDate = d => PAY_PERIODS.findIndex(p=>d>=p.start&&d<=p.end);
+
+  // Detects a shift whose money lands in a different pay period than the
+  // one it was actually worked in — a late submission that crosses a
+  // period boundary. Only meaningful once submitted, since unsubmitted
+  // money isn't attributed to any period yet. Returns the target month
+  // label so the UI can say where it actually counts.
+  const crossPeriodInfo = e => {
+    const c = calcEntry(e);
+    const ownIdx = periodIdxForDate(e.date);
+    const hasOTHours = c.h1+c.h2+c.h3 > 0;
+    const hasPA = e.paRate && e.paRate!=='None';
+    const otMoved = hasOTHours && isOtSubmitted(e) && periodIdxForDate(effectiveOtDate(e)) !== ownIdx;
+    const paMoved = hasPA && isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e)) !== ownIdx;
+    if (!otMoved && !paMoved) return null;
+    const otIdx = otMoved ? periodIdxForDate(effectiveOtDate(e)) : null;
+    const paIdx = paMoved ? periodIdxForDate(effectivePaDate(e)) : null;
+    // Common case: everything that moved, moved to the same period —
+    // one combined label. The rare case (OT and PA submitted weeks apart,
+    // landing in two different other periods) falls back to a slightly
+    // longer combined label rather than needing two separate pills.
+    if (otMoved && paMoved && otIdx===paIdx) {
+      return { label: PAY_PERIODS[otIdx]?.short || PAY_PERIODS[otIdx]?.month, both: true };
+    }
+    if (otMoved && !paMoved) return { label: PAY_PERIODS[otIdx]?.short || PAY_PERIODS[otIdx]?.month, ot: true };
+    if (paMoved && !otMoved) return { label: PAY_PERIODS[paIdx]?.short || PAY_PERIODS[paIdx]?.month, pa: true };
+    return { label: `${PAY_PERIODS[otIdx]?.short||PAY_PERIODS[otIdx]?.month} / ${PAY_PERIODS[paIdx]?.short||PAY_PERIODS[paIdx]?.month}`, both: true };
+  };
+
+  // Renders a tier's date list with dates whose money isn't counted in
+  // this period's total (unsubmitted, or moved to another period via a
+  // late submission) shown in a lighter shade — so it's visually clear
+  // which dates are behind the line's own £ figure and which aren't,
+  // rather than the two silently not adding up. Used by both the List
+  // View and Calendar View period-breakdown boxes.
+  const renderDatePills = (dates, normalColor) => dates.map((x,i)=>(
+    <span key={i} style={{color: x.counted?normalColor:'#cbd5e1'}}>{x.d}{i<dates.length-1?', ':''}</span>
+  ));
 
   // Shared by the List View entry row and the calendar day popup — same
   // four states, same colours, just a different font size for each
@@ -4280,11 +4323,34 @@ export default function App() {
               const pE=fyEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
               const pb=totals.periodBreakdown[idx];
               let h133=0,h150=0,h200=0,pa1=0,pa2=0,pa3=0,totalToilWorked=0,totalToilBanked=0;
+              // Per-tier date lists and gross — which specific shifts made up
+              // each rate-tier line, so the box can show "4h @ 1.5x —
+              // 02/07, 07/07" instead of just the total. Hours stay
+              // unconditional on submission status (a factual record of
+              // work, same principle as h133/h150/h200 themselves), but the
+              // £ figure on each line only sums dates whose money is
+              // genuinely counted in THIS period's gross — otherwise an
+              // unsubmitted or cross-period-moved shift would show a £
+              // amount here that contradicts the box's own Gross figure
+              // above it. A date not contributing to the line's own total
+              // still appears (the hours did happen), just in a muted
+              // colour so it's clear why it's not adding up here.
+              const tierDates = { t133:[], t150:[], t200:[] };
+              const tierGross = { t133:0, t150:0, t200:0 };
+              const paDates = { PA1:[], PA2:[], PA3:[] };
+              const paGross = { PA1:0, PA2:0, PA3:0 };
               pE.forEach(e=>{
                 const c=calcEntry(e);
                 h133+=c.h1; h150+=c.h2; h200+=c.h3;
                 totalToilWorked+=c.toilH; totalToilBanked+=c.toilBanked;
-                if(e.paRate==='PA1')pa1++; else if(e.paRate==='PA2')pa2++; else if(e.paRate==='PA3')pa3++;
+                const otCounted = isOtSubmitted(e) && periodIdxForDate(effectiveOtDate(e))===idx;
+                const paCounted = isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e))===idx;
+                if (c.h1>0) { tierDates.t133.push({d:fmtDDMM(e.date),counted:otCounted}); if(otCounted) tierGross.t133+=c.ot1; }
+                if (c.h2>0) { tierDates.t150.push({d:fmtDDMM(e.date),counted:otCounted}); if(otCounted) tierGross.t150+=c.ot2; }
+                if (c.h3>0) { tierDates.t200.push({d:fmtDDMM(e.date),counted:otCounted}); if(otCounted) tierGross.t200+=c.ot3; }
+                if(e.paRate==='PA1'){pa1++; paDates.PA1.push({d:fmtDDMM(e.date),counted:paCounted}); if(paCounted) paGross.PA1+=c.pa;}
+                else if(e.paRate==='PA2'){pa2++; paDates.PA2.push({d:fmtDDMM(e.date),counted:paCounted}); if(paCounted) paGross.PA2+=c.pa;}
+                else if(e.paRate==='PA3'){pa3++; paDates.PA3.push({d:fmtDDMM(e.date),counted:paCounted}); if(paCounted) paGross.PA3+=c.pa;}
               });
               const gOT=pb.ot, gPA=pb.pa;
               const totG=pb.combinedGross, totN=pb.combinedNet;
@@ -4336,29 +4402,46 @@ export default function App() {
                           <div style={{fontSize:'11px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
                           <div style={{fontSize:'14px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: {fmt(gOT)}</div>
                           <div style={{fontSize:'13px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: {fmt(pb.otResult.net)}</div>
-                          <div style={{borderTop:'1px solid #eff6ff',paddingTop:'5px'}}>
-                            {h133>0&&<div style={{fontSize:'12px',fontWeight:700,color:'#64748b',marginBottom:'2px'}}>{h133}h @ 1.33x</div>}
-                            {h150>0&&<div style={{fontSize:'12px',fontWeight:700,color:'#64748b',marginBottom:'2px'}}>{h150}h @ 1.5x</div>}
-                            {h200>0&&<div style={{fontSize:'12px',fontWeight:700,color:'#64748b'}}>{h200}h @ 2.0x</div>}
+                          <div style={{borderTop:'1px solid #eff6ff',paddingTop:'6px'}}>
+                            {h133>0&&<div style={{marginBottom:'6px'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{h133}h @ 1.33x</span><span>{fmt(tierGross.t133)}</span></div>
+                              <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t133,'#64748b')}</div>
+                            </div>}
+                            {h150>0&&<div style={{marginBottom:'6px'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{h150}h @ 1.5x</span><span>{fmt(tierGross.t150)}</span></div>
+                              <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t150,'#64748b')}</div>
+                            </div>}
+                            {h200>0&&<div>
+                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{h200}h @ 2.0x</span><span>{fmt(tierGross.t200)}</span></div>
+                              <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t200,'#64748b')}</div>
+                            </div>}
                           </div>
                         </div>
-                        <div style={{display:'flex',flexDirection:'column',gap:'9px'}}>
-                          <div style={{background:'#fff',borderRadius:'13px',padding:'11px',border:'1px solid #fde68a'}}>
-                            <div style={{fontSize:'11px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'5px'}}>PA</div>
-                            <div style={{fontSize:'14px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: {fmt(gPA)}</div>
-                            <div style={{fontSize:'13px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: {fmt(pb.paResult.net)}</div>
-                            <div style={{display:'flex',justifyContent:'space-between',borderTop:'1px solid #fef3c7',paddingTop:'6px'}}>
-                              <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA1 × {pa1}</span>
-                              <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA2 × {pa2}</span>
-                              <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA3 × {pa3}</span>
-                            </div>
-                          </div>
-                          <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer'}}>
-                            <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
-                            <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
-                            <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
+                        <div style={{background:'#fff',borderRadius:'13px',padding:'13px',border:'1px solid #fde68a'}}>
+                          <div style={{fontSize:'11px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>PA</div>
+                          <div style={{fontSize:'14px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: {fmt(gPA)}</div>
+                          <div style={{fontSize:'13px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: {fmt(pb.paResult.net)}</div>
+                          <div style={{borderTop:'1px solid #fef3c7',paddingTop:'6px'}}>
+                            {pa1>0&&<div style={{marginBottom:'6px'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA1 × {pa1}</span><span>{fmt(paGross.PA1)}</span></div>
+                              <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA1,'#b45309')}</div>
+                            </div>}
+                            {pa2>0&&<div style={{marginBottom:'6px'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA2 × {pa2}</span><span>{fmt(paGross.PA2)}</span></div>
+                              <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA2,'#b45309')}</div>
+                            </div>}
+                            {pa3>0&&<div>
+                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA3 × {pa3}</span><span>{fmt(paGross.PA3)}</span></div>
+                              <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA3,'#b45309')}</div>
+                            </div>}
+                            {pa1===0&&pa2===0&&pa3===0&&<div style={{fontSize:'12px',fontWeight:700,color:'#b45309'}}>None this period</div>}
                           </div>
                         </div>
+                      </div>
+                      <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer',marginBottom:'9px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
+                        <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
+                        <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
                       </div>
 
                       <div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',textAlign:'center',marginBottom:'9px'}}>Individual Records</div>
@@ -4389,6 +4472,9 @@ export default function App() {
                                   {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
                                     <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#cbd5e1',color:'#334155',textTransform:'uppercase',letterSpacing:'0.5px'}}>ⓘ Shift Record — No OT Claim</div>
                                   )}
+                                  {(()=>{ const xp = crossPeriodInfo(e); return xp && (
+                                    <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#e0e7ff',color:'#4338ca',textTransform:'uppercase',letterSpacing:'0.5px'}}>↷ Counted in {xp.label}</div>
+                                  ); })()}
                                 </div>
                                 <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
                                   <button onClick={()=>{setConfirmDel(null);startEdit(e);}} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
@@ -4480,11 +4566,22 @@ export default function App() {
               // period-level totals for the breakdown boxes (mirrors List View)
               const pb = totals.periodBreakdown[cIdx];
               let ph133=0, ph150=0, ph200=0, ppa1=0, ppa2=0, ppa3=0, pToilWorked=0, pToilBanked=0;
+              const pTierDates = { t133:[], t150:[], t200:[] };
+              const pTierGross = { t133:0, t150:0, t200:0 };
+              const pPaDates = { PA1:[], PA2:[], PA3:[] };
+              const pPaGross = { PA1:0, PA2:0, PA3:0 };
               cEntries.forEach(e=>{
                 const c = calcEntry(e);
                 ph133+=c.h1; ph150+=c.h2; ph200+=c.h3;
                 pToilWorked+=c.toilH; pToilBanked+=c.toilBanked;
-                if(e.paRate==='PA1')ppa1++; else if(e.paRate==='PA2')ppa2++; else if(e.paRate==='PA3')ppa3++;
+                const otCounted = isOtSubmitted(e) && periodIdxForDate(effectiveOtDate(e))===cIdx;
+                const paCounted = isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e))===cIdx;
+                if (c.h1>0) { pTierDates.t133.push({d:fmtDDMM(e.date),counted:otCounted}); if(otCounted) pTierGross.t133+=c.ot1; }
+                if (c.h2>0) { pTierDates.t150.push({d:fmtDDMM(e.date),counted:otCounted}); if(otCounted) pTierGross.t150+=c.ot2; }
+                if (c.h3>0) { pTierDates.t200.push({d:fmtDDMM(e.date),counted:otCounted}); if(otCounted) pTierGross.t200+=c.ot3; }
+                if(e.paRate==='PA1'){ppa1++; pPaDates.PA1.push({d:fmtDDMM(e.date),counted:paCounted}); if(paCounted) pPaGross.PA1+=c.pa;}
+                else if(e.paRate==='PA2'){ppa2++; pPaDates.PA2.push({d:fmtDDMM(e.date),counted:paCounted}); if(paCounted) pPaGross.PA2+=c.pa;}
+                else if(e.paRate==='PA3'){ppa3++; pPaDates.PA3.push({d:fmtDDMM(e.date),counted:paCounted}); if(paCounted) pPaGross.PA3+=c.pa;}
               });
 
               const dayInfo = (date) => {
@@ -4521,7 +4618,14 @@ export default function App() {
                 // (submitted); neither applies when there was never anything
                 // to submit in the first place.
                 const isRecordOnly = dEntries.length>0 && totalHrs===0 && !hasPA;
-                return { ds, dEntries, totalHrs, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, isRecordOnly, rateColor, periodIdx: cIdx };
+                // A fully-submitted day whose money actually landed in a
+                // different pay period (late submission crossing a period
+                // boundary) gets its own marker — distinct from both the
+                // green "submitted here" and red "outstanding" states,
+                // since neither is quite true: it's submitted, just not
+                // counted in this period's total.
+                const crossInfo = (isFullySubmitted && dEntries.length===1) ? crossPeriodInfo(dEntries[0]) : null;
+                return { ds, dEntries, totalHrs, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, isRecordOnly, crossInfo, rateColor, periodIdx: cIdx };
               };
 
               return (
@@ -4591,17 +4695,20 @@ export default function App() {
                                 style={{
                                   ...(isWide ? {height:'48px'} : {aspectRatio:'1', minHeight:'42px'}),
                                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.isRecordOnly?'1px solid #cbd5e1':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid transparent',
-                                  background: info.isRecordOnly?'#e2e8f0':info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
+                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.crossInfo?'1px solid #c7d2fe':info.isRecordOnly?'1px solid #cbd5e1':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid transparent',
+                                  background: info.crossInfo?'#eef2ff':info.isRecordOnly?'#e2e8f0':info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit', position:'relative',
                                   minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
                                 }}>
                                 {(date.getDate()===1 || (wi===0 && week.slice(0,di).every(d=>!d)))&&(
                                   <span style={{position:'absolute',top:'1px',left:'3px',fontSize:'7px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.3px',lineHeight:1}}>{date.toLocaleDateString('en-GB',{month:'short'})}</span>
                                 )}
-                                <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.isRecordOnly?'#475569':info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
+                                <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.crossInfo?'#4338ca':info.isRecordOnly?'#475569':info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
                                 {info.totalHrs>0&&(
-                                  <span style={{fontSize:'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
+                                  <span style={{fontSize:'9px',fontWeight:900,color:info.crossInfo?'#4338ca':info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
+                                )}
+                                {info.crossInfo&&(
+                                  <span style={{fontSize:'6.5px',fontWeight:900,color:'#4338ca',lineHeight:1,whiteSpace:'nowrap'}}>↷ {info.crossInfo.label.toUpperCase()}</span>
                                 )}
                                 {(info.hasPA||info.hasToil)&&(
                                   <div style={{display:'flex',gap:'2px',flexShrink:0}}>
@@ -4643,29 +4750,46 @@ export default function App() {
                       <div style={{fontSize:'11px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
                       <div style={{fontSize:'14px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: {fmt(pb.ot)}</div>
                       <div style={{fontSize:'13px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: {fmt(pb.otResult.net)}</div>
-                      <div style={{borderTop:'1px solid #eff6ff',paddingTop:'5px'}}>
-                        {ph133>0&&<div style={{fontSize:'12px',fontWeight:700,color:'#64748b',marginBottom:'2px'}}>{ph133}h @ 1.33x</div>}
-                        {ph150>0&&<div style={{fontSize:'12px',fontWeight:700,color:'#64748b',marginBottom:'2px'}}>{ph150}h @ 1.5x</div>}
-                        {ph200>0&&<div style={{fontSize:'12px',fontWeight:700,color:'#64748b'}}>{ph200}h @ 2.0x</div>}
+                      <div style={{borderTop:'1px solid #eff6ff',paddingTop:'6px'}}>
+                        {ph133>0&&<div style={{marginBottom:'6px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{ph133}h @ 1.33x</span><span>{fmt(pTierGross.t133)}</span></div>
+                          <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(pTierDates.t133,'#64748b')}</div>
+                        </div>}
+                        {ph150>0&&<div style={{marginBottom:'6px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{ph150}h @ 1.5x</span><span>{fmt(pTierGross.t150)}</span></div>
+                          <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(pTierDates.t150,'#64748b')}</div>
+                        </div>}
+                        {ph200>0&&<div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{ph200}h @ 2.0x</span><span>{fmt(pTierGross.t200)}</span></div>
+                          <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(pTierDates.t200,'#64748b')}</div>
+                        </div>}
                       </div>
                     </div>
-                    <div style={{display:'flex',flexDirection:'column',gap:'9px'}}>
-                      <div style={{background:'#fff',borderRadius:'13px',padding:'11px',border:'1px solid #fde68a'}}>
-                        <div style={{fontSize:'11px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'5px'}}>PA</div>
-                        <div style={{fontSize:'14px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: {fmt(pb.pa)}</div>
-                        <div style={{fontSize:'13px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: {fmt(pb.paResult.net)}</div>
-                        <div style={{display:'flex',justifyContent:'space-between',borderTop:'1px solid #fef3c7',paddingTop:'6px'}}>
-                          <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA1 × {ppa1}</span>
-                          <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA2 × {ppa2}</span>
-                          <span style={{fontSize:'12px',fontWeight:700,color:'#78716c'}}>PA3 × {ppa3}</span>
-                        </div>
-                      </div>
-                      <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
-                        <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(pToilWorked)}h worked → {fmtHM(pToilBanked)}h banked</div>
-                        <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
+                    <div style={{background:'#fff',borderRadius:'13px',padding:'13px',border:'1px solid #fde68a'}}>
+                      <div style={{fontSize:'11px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>PA</div>
+                      <div style={{fontSize:'14px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: {fmt(pb.pa)}</div>
+                      <div style={{fontSize:'13px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: {fmt(pb.paResult.net)}</div>
+                      <div style={{borderTop:'1px solid #fef3c7',paddingTop:'6px'}}>
+                        {ppa1>0&&<div style={{marginBottom:'6px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA1 × {ppa1}</span><span>{fmt(pPaGross.PA1)}</span></div>
+                          <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(pPaDates.PA1,'#b45309')}</div>
+                        </div>}
+                        {ppa2>0&&<div style={{marginBottom:'6px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA2 × {ppa2}</span><span>{fmt(pPaGross.PA2)}</span></div>
+                          <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(pPaDates.PA2,'#b45309')}</div>
+                        </div>}
+                        {ppa3>0&&<div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA3 × {ppa3}</span><span>{fmt(pPaGross.PA3)}</span></div>
+                          <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(pPaDates.PA3,'#b45309')}</div>
+                        </div>}
+                        {ppa1===0&&ppa2===0&&ppa3===0&&<div style={{fontSize:'12px',fontWeight:700,color:'#b45309'}}>None this period</div>}
                       </div>
                     </div>
+                  </div>
+                  <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer',marginTop:'9px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
+                    <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(pToilWorked)}h worked → {fmtHM(pToilBanked)}h banked</div>
+                    <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
                   </div>
 
                   {(() => {
@@ -5804,6 +5928,9 @@ export default function App() {
                       {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
                         <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#cbd5e1',color:'#334155',textTransform:'uppercase',letterSpacing:'0.5px'}}>ⓘ Shift Record — No OT Claim</div>
                       )}
+                      {(()=>{ const xp = crossPeriodInfo(e); return xp && (
+                        <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#e0e7ff',color:'#4338ca',textTransform:'uppercase',letterSpacing:'0.5px'}}>↷ Counted in {xp.label}</div>
+                      ); })()}
                     </div>
                     <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
                       <button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} style={{background:'#f1f5f9',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button>
