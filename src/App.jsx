@@ -1757,14 +1757,16 @@ export default function App() {
     return { label: `${PAY_PERIODS[otIdx]?.short||PAY_PERIODS[otIdx]?.month} / ${PAY_PERIODS[paIdx]?.short||PAY_PERIODS[paIdx]?.month}`, both: true };
   };
 
-  // Renders a tier's date list with dates whose money isn't counted in
-  // this period's total (unsubmitted, or moved to another period via a
-  // late submission) shown in a lighter shade — so it's visually clear
-  // which dates are behind the line's own £ figure and which aren't,
-  // rather than the two silently not adding up. Used by both the List
-  // View and Calendar View period-breakdown boxes.
+  // Renders a tier's date list. A date whose shift was worked in a
+  // different period from the one being viewed here — its money counted
+  // in this period via a late submission — is coloured blue, matching
+  // the calendar's own split-shaded cell for the same situation. A date
+  // whose money isn't counted in this period's total at all (shouldn't
+  // normally occur, since only counted entries are ever pushed, but kept
+  // as a safety fallback) shows in a lighter shade instead. Used by both
+  // the List View and Calendar View period-breakdown boxes.
   const renderDatePills = (dates, normalColor) => dates.map((x,i)=>(
-    <span key={i} style={{color: x.counted?normalColor:'#cbd5e1'}}>{x.d}{i<dates.length-1?', ':''}</span>
+    <span key={i} style={{color: !x.counted?'#cbd5e1':x.cross?'#2563eb':normalColor}}>{x.d}{i<dates.length-1?', ':''}</span>
   ));
 
   // Shared by the List View entry row and the calendar day popup — same
@@ -4351,15 +4353,16 @@ export default function App() {
                 const c=calcEntry(e);
                 const otCounted = isOtSubmitted(e) && periodIdxForDate(effectiveOtDate(e))===idx;
                 const paCounted = isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e))===idx;
+                const isCross = periodIdxForDate(e.date)!==idx;
                 if (otCounted) {
-                  if (c.h1>0) { tierHours.t133+=c.h1; tierDates.t133.push({d:fmtDDMM(e.date),counted:true}); tierGross.t133+=c.ot1; }
-                  if (c.h2>0) { tierHours.t150+=c.h2; tierDates.t150.push({d:fmtDDMM(e.date),counted:true}); tierGross.t150+=c.ot2; }
-                  if (c.h3>0) { tierHours.t200+=c.h3; tierDates.t200.push({d:fmtDDMM(e.date),counted:true}); tierGross.t200+=c.ot3; }
+                  if (c.h1>0) { tierHours.t133+=c.h1; tierDates.t133.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t133+=c.ot1; }
+                  if (c.h2>0) { tierHours.t150+=c.h2; tierDates.t150.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t150+=c.ot2; }
+                  if (c.h3>0) { tierHours.t200+=c.h3; tierDates.t200.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t200+=c.ot3; }
                 }
                 if (paCounted) {
-                  if(e.paRate==='PA1'){pa1++; paDates.PA1.push({d:fmtDDMM(e.date),counted:true}); paGross.PA1+=c.pa;}
-                  else if(e.paRate==='PA2'){pa2++; paDates.PA2.push({d:fmtDDMM(e.date),counted:true}); paGross.PA2+=c.pa;}
-                  else if(e.paRate==='PA3'){pa3++; paDates.PA3.push({d:fmtDDMM(e.date),counted:true}); paGross.PA3+=c.pa;}
+                  if(e.paRate==='PA1'){pa1++; paDates.PA1.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA1+=c.pa;}
+                  else if(e.paRate==='PA2'){pa2++; paDates.PA2.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA2+=c.pa;}
+                  else if(e.paRate==='PA3'){pa3++; paDates.PA3.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA3+=c.pa;}
                 }
               });
               const gOT=pb.ot, gPA=pb.pa;
@@ -4596,15 +4599,16 @@ export default function App() {
                 const c = calcEntry(e);
                 const otCounted = isOtSubmitted(e) && periodIdxForDate(effectiveOtDate(e))===cIdx;
                 const paCounted = isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e))===cIdx;
+                const isCross = periodIdxForDate(e.date)!==cIdx;
                 if (otCounted) {
-                  if (c.h1>0) { pTierHours.t133+=c.h1; pTierDates.t133.push({d:fmtDDMM(e.date),counted:true}); pTierGross.t133+=c.ot1; }
-                  if (c.h2>0) { pTierHours.t150+=c.h2; pTierDates.t150.push({d:fmtDDMM(e.date),counted:true}); pTierGross.t150+=c.ot2; }
-                  if (c.h3>0) { pTierHours.t200+=c.h3; pTierDates.t200.push({d:fmtDDMM(e.date),counted:true}); pTierGross.t200+=c.ot3; }
+                  if (c.h1>0) { pTierHours.t133+=c.h1; pTierDates.t133.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pTierGross.t133+=c.ot1; }
+                  if (c.h2>0) { pTierHours.t150+=c.h2; pTierDates.t150.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pTierGross.t150+=c.ot2; }
+                  if (c.h3>0) { pTierHours.t200+=c.h3; pTierDates.t200.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pTierGross.t200+=c.ot3; }
                 }
                 if (paCounted) {
-                  if(e.paRate==='PA1'){ppa1++; pPaDates.PA1.push({d:fmtDDMM(e.date),counted:true}); pPaGross.PA1+=c.pa;}
-                  else if(e.paRate==='PA2'){ppa2++; pPaDates.PA2.push({d:fmtDDMM(e.date),counted:true}); pPaGross.PA2+=c.pa;}
-                  else if(e.paRate==='PA3'){ppa3++; pPaDates.PA3.push({d:fmtDDMM(e.date),counted:true}); pPaGross.PA3+=c.pa;}
+                  if(e.paRate==='PA1'){ppa1++; pPaDates.PA1.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pPaGross.PA1+=c.pa;}
+                  else if(e.paRate==='PA2'){ppa2++; pPaDates.PA2.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pPaGross.PA2+=c.pa;}
+                  else if(e.paRate==='PA3'){ppa3++; pPaDates.PA3.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pPaGross.PA3+=c.pa;}
                 }
               });
 
@@ -4752,15 +4756,15 @@ export default function App() {
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'linear-gradient(135deg, #f0fdf4 50%, #dbeafe 50%)',border:'1px solid #93c5fd'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted — Other Period</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT — Shift Record</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'linear-gradient(135deg, #f0fdf4 50%, #dbeafe 50%)',border:'1px solid #93c5fd'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Counted In Other Period</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT — User Record</span></div>
                       </div>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'8px'}}>
                         <div style={{display:'flex',gap:'10px'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
                         </div>
-                        <div style={{display:'flex',gap:'10px'}}>
+                        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'6px'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#0f172a'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#059669'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.5x</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#dc2626'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>2.0x</span></div>
