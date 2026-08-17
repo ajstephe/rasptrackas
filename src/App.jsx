@@ -4723,7 +4723,7 @@ export default function App() {
                                 style={{
                                   ...(isWide ? {height:'48px'} : {aspectRatio:'1', minHeight:'46px'}),
                                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.crossInfo?'1px solid #93c5fd':info.isRecordOnly?'1px solid #cbd5e1':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid transparent',
+                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.crossInfo?'1px solid #93c5fd':info.isRecordOnly?'1px solid #cbd5e1':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid #eef2f6',
                                   background: info.crossInfo?'linear-gradient(135deg, #f0fdf4 50%, #dbeafe 50%)':info.isRecordOnly?'#e2e8f0':info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit', position:'relative',
                                   minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
