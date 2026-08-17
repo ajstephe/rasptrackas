@@ -4576,14 +4576,14 @@ export default function App() {
               // period-level totals for the breakdown boxes (mirrors List View)
               const pb = totals.periodBreakdown[cIdx];
               // Hours-worked stats stay period-local (see List View comment
-              // for the reasoning). OT Pay / PA box data below iterates
+              // for the reasoning) — cTotalHrs above already covers the
+              // Total O/T Hours stat. OT Pay / PA box data below iterates
               // every entry in the year and groups by submission-period
               // attribution instead, carrying each shift's original worked
               // date.
-              let ph133=0, ph150=0, ph200=0, pToilWorked=0, pToilBanked=0;
+              let pToilWorked=0, pToilBanked=0;
               cEntries.forEach(e=>{
                 const c = calcEntry(e);
-                ph133+=c.h1; ph150+=c.h2; ph200+=c.h3;
                 pToilWorked+=c.toilH; pToilBanked+=c.toilBanked;
               });
               let ppa1=0, ppa2=0, ppa3=0;
