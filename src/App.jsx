@@ -4322,35 +4322,45 @@ export default function App() {
             {PAY_PERIODS.map((p,idx)=>{
               const pE=fyEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
               const pb=totals.periodBreakdown[idx];
-              let h133=0,h150=0,h200=0,pa1=0,pa2=0,pa3=0,totalToilWorked=0,totalToilBanked=0;
-              // Per-tier date lists and gross — which specific shifts made up
-              // each rate-tier line, so the box can show "4h @ 1.5x —
-              // 02/07, 07/07" instead of just the total. Hours stay
-              // unconditional on submission status (a factual record of
-              // work, same principle as h133/h150/h200 themselves), but the
-              // £ figure on each line only sums dates whose money is
-              // genuinely counted in THIS period's gross — otherwise an
-              // unsubmitted or cross-period-moved shift would show a £
-              // amount here that contradicts the box's own Gross figure
-              // above it. A date not contributing to the line's own total
-              // still appears (the hours did happen), just in a muted
-              // colour so it's clear why it's not adding up here.
-              const tierDates = { t133:[], t150:[], t200:[] };
-              const tierGross = { t133:0, t150:0, t200:0 };
-              const paDates = { PA1:[], PA2:[], PA3:[] };
-              const paGross = { PA1:0, PA2:0, PA3:0 };
+              // Hours-worked stats (top-of-card "Total O/T Hours", TOIL
+              // worked/banked) stay period-local — what actually happened
+              // in this period, regardless of submission status, matching
+              // what the calendar cells for these dates show.
+              let h133=0,h150=0,h200=0,totalToilWorked=0,totalToilBanked=0;
               pE.forEach(e=>{
                 const c=calcEntry(e);
                 h133+=c.h1; h150+=c.h2; h200+=c.h3;
                 totalToilWorked+=c.toilH; totalToilBanked+=c.toilBanked;
+              });
+              // OT Pay / PA box data is different on purpose: it iterates
+              // EVERY entry in the financial year, not just ones worked in
+              // this period, and groups each by which period its money is
+              // actually submitted to — same attribution periodBreakdown
+              // itself already uses. A shift worked 15 Jul but submitted
+              // 16 Aug shows up here, in August's box, carrying its
+              // original worked date (15/07) rather than the submission
+              // date, so the box always matches what's genuinely in its
+              // own Gross figure above it.
+              let pa1=0,pa2=0,pa3=0;
+              const tierHours = { t133:0, t150:0, t200:0 };
+              const tierDates = { t133:[], t150:[], t200:[] };
+              const tierGross = { t133:0, t150:0, t200:0 };
+              const paDates = { PA1:[], PA2:[], PA3:[] };
+              const paGross = { PA1:0, PA2:0, PA3:0 };
+              fyEntries.forEach(e=>{
+                const c=calcEntry(e);
                 const otCounted = isOtSubmitted(e) && periodIdxForDate(effectiveOtDate(e))===idx;
                 const paCounted = isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e))===idx;
-                if (c.h1>0) { tierDates.t133.push({d:fmtDDMM(e.date),counted:otCounted}); if(otCounted) tierGross.t133+=c.ot1; }
-                if (c.h2>0) { tierDates.t150.push({d:fmtDDMM(e.date),counted:otCounted}); if(otCounted) tierGross.t150+=c.ot2; }
-                if (c.h3>0) { tierDates.t200.push({d:fmtDDMM(e.date),counted:otCounted}); if(otCounted) tierGross.t200+=c.ot3; }
-                if(e.paRate==='PA1'){pa1++; paDates.PA1.push({d:fmtDDMM(e.date),counted:paCounted}); if(paCounted) paGross.PA1+=c.pa;}
-                else if(e.paRate==='PA2'){pa2++; paDates.PA2.push({d:fmtDDMM(e.date),counted:paCounted}); if(paCounted) paGross.PA2+=c.pa;}
-                else if(e.paRate==='PA3'){pa3++; paDates.PA3.push({d:fmtDDMM(e.date),counted:paCounted}); if(paCounted) paGross.PA3+=c.pa;}
+                if (otCounted) {
+                  if (c.h1>0) { tierHours.t133+=c.h1; tierDates.t133.push({d:fmtDDMM(e.date),counted:true}); tierGross.t133+=c.ot1; }
+                  if (c.h2>0) { tierHours.t150+=c.h2; tierDates.t150.push({d:fmtDDMM(e.date),counted:true}); tierGross.t150+=c.ot2; }
+                  if (c.h3>0) { tierHours.t200+=c.h3; tierDates.t200.push({d:fmtDDMM(e.date),counted:true}); tierGross.t200+=c.ot3; }
+                }
+                if (paCounted) {
+                  if(e.paRate==='PA1'){pa1++; paDates.PA1.push({d:fmtDDMM(e.date),counted:true}); paGross.PA1+=c.pa;}
+                  else if(e.paRate==='PA2'){pa2++; paDates.PA2.push({d:fmtDDMM(e.date),counted:true}); paGross.PA2+=c.pa;}
+                  else if(e.paRate==='PA3'){pa3++; paDates.PA3.push({d:fmtDDMM(e.date),counted:true}); paGross.PA3+=c.pa;}
+                }
               });
               const gOT=pb.ot, gPA=pb.pa;
               const totG=pb.combinedGross, totN=pb.combinedNet;
@@ -4403,16 +4413,16 @@ export default function App() {
                           <div style={{fontSize:'14px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: {fmt(gOT)}</div>
                           <div style={{fontSize:'13px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: {fmt(pb.otResult.net)}</div>
                           <div style={{borderTop:'1px solid #eff6ff',paddingTop:'6px'}}>
-                            {h133>0&&<div style={{marginBottom:'6px'}}>
-                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{h133}h @ 1.33x</span><span>{fmt(tierGross.t133)}</span></div>
+                            {tierHours.t133>0&&<div style={{marginBottom:'6px'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t133}h @ 1.33x</span><span>{fmt(tierGross.t133)}</span></div>
                               <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t133,'#64748b')}</div>
                             </div>}
-                            {h150>0&&<div style={{marginBottom:'6px'}}>
-                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{h150}h @ 1.5x</span><span>{fmt(tierGross.t150)}</span></div>
+                            {tierHours.t150>0&&<div style={{marginBottom:'6px'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t150}h @ 1.5x</span><span>{fmt(tierGross.t150)}</span></div>
                               <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t150,'#64748b')}</div>
                             </div>}
-                            {h200>0&&<div>
-                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{h200}h @ 2.0x</span><span>{fmt(tierGross.t200)}</span></div>
+                            {tierHours.t200>0&&<div>
+                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t200}h @ 2.0x</span><span>{fmt(tierGross.t200)}</span></div>
                               <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t200,'#64748b')}</div>
                             </div>}
                           </div>
@@ -4565,23 +4575,37 @@ export default function App() {
 
               // period-level totals for the breakdown boxes (mirrors List View)
               const pb = totals.periodBreakdown[cIdx];
-              let ph133=0, ph150=0, ph200=0, ppa1=0, ppa2=0, ppa3=0, pToilWorked=0, pToilBanked=0;
-              const pTierDates = { t133:[], t150:[], t200:[] };
-              const pTierGross = { t133:0, t150:0, t200:0 };
-              const pPaDates = { PA1:[], PA2:[], PA3:[] };
-              const pPaGross = { PA1:0, PA2:0, PA3:0 };
+              // Hours-worked stats stay period-local (see List View comment
+              // for the reasoning). OT Pay / PA box data below iterates
+              // every entry in the year and groups by submission-period
+              // attribution instead, carrying each shift's original worked
+              // date.
+              let ph133=0, ph150=0, ph200=0, pToilWorked=0, pToilBanked=0;
               cEntries.forEach(e=>{
                 const c = calcEntry(e);
                 ph133+=c.h1; ph150+=c.h2; ph200+=c.h3;
                 pToilWorked+=c.toilH; pToilBanked+=c.toilBanked;
+              });
+              let ppa1=0, ppa2=0, ppa3=0;
+              const pTierHours = { t133:0, t150:0, t200:0 };
+              const pTierDates = { t133:[], t150:[], t200:[] };
+              const pTierGross = { t133:0, t150:0, t200:0 };
+              const pPaDates = { PA1:[], PA2:[], PA3:[] };
+              const pPaGross = { PA1:0, PA2:0, PA3:0 };
+              fyEntries.forEach(e=>{
+                const c = calcEntry(e);
                 const otCounted = isOtSubmitted(e) && periodIdxForDate(effectiveOtDate(e))===cIdx;
                 const paCounted = isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e))===cIdx;
-                if (c.h1>0) { pTierDates.t133.push({d:fmtDDMM(e.date),counted:otCounted}); if(otCounted) pTierGross.t133+=c.ot1; }
-                if (c.h2>0) { pTierDates.t150.push({d:fmtDDMM(e.date),counted:otCounted}); if(otCounted) pTierGross.t150+=c.ot2; }
-                if (c.h3>0) { pTierDates.t200.push({d:fmtDDMM(e.date),counted:otCounted}); if(otCounted) pTierGross.t200+=c.ot3; }
-                if(e.paRate==='PA1'){ppa1++; pPaDates.PA1.push({d:fmtDDMM(e.date),counted:paCounted}); if(paCounted) pPaGross.PA1+=c.pa;}
-                else if(e.paRate==='PA2'){ppa2++; pPaDates.PA2.push({d:fmtDDMM(e.date),counted:paCounted}); if(paCounted) pPaGross.PA2+=c.pa;}
-                else if(e.paRate==='PA3'){ppa3++; pPaDates.PA3.push({d:fmtDDMM(e.date),counted:paCounted}); if(paCounted) pPaGross.PA3+=c.pa;}
+                if (otCounted) {
+                  if (c.h1>0) { pTierHours.t133+=c.h1; pTierDates.t133.push({d:fmtDDMM(e.date),counted:true}); pTierGross.t133+=c.ot1; }
+                  if (c.h2>0) { pTierHours.t150+=c.h2; pTierDates.t150.push({d:fmtDDMM(e.date),counted:true}); pTierGross.t150+=c.ot2; }
+                  if (c.h3>0) { pTierHours.t200+=c.h3; pTierDates.t200.push({d:fmtDDMM(e.date),counted:true}); pTierGross.t200+=c.ot3; }
+                }
+                if (paCounted) {
+                  if(e.paRate==='PA1'){ppa1++; pPaDates.PA1.push({d:fmtDDMM(e.date),counted:true}); pPaGross.PA1+=c.pa;}
+                  else if(e.paRate==='PA2'){ppa2++; pPaDates.PA2.push({d:fmtDDMM(e.date),counted:true}); pPaGross.PA2+=c.pa;}
+                  else if(e.paRate==='PA3'){ppa3++; pPaDates.PA3.push({d:fmtDDMM(e.date),counted:true}); pPaGross.PA3+=c.pa;}
+                }
               });
 
               const dayInfo = (date) => {
@@ -4693,7 +4717,7 @@ export default function App() {
                                   else { setConfirmCreateDay(info.ds); }
                                 }}
                                 style={{
-                                  ...(isWide ? {height:'48px'} : {aspectRatio:'1', minHeight:'42px'}),
+                                  ...(isWide ? {height:'48px'} : {aspectRatio:'1', minHeight:'46px'}),
                                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
                                   borderRadius:'10px', border: isToday?'2px solid #2563eb':info.crossInfo?'1px solid #c7d2fe':info.isRecordOnly?'1px solid #cbd5e1':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid transparent',
                                   background: info.crossInfo?'#eef2ff':info.isRecordOnly?'#e2e8f0':info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
@@ -4707,11 +4731,11 @@ export default function App() {
                                 {info.totalHrs>0&&(
                                   <span style={{fontSize:'9px',fontWeight:900,color:info.crossInfo?'#4338ca':info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
                                 )}
-                                {info.crossInfo&&(
-                                  <span style={{fontSize:'6.5px',fontWeight:900,color:'#4338ca',lineHeight:1,whiteSpace:'nowrap'}}>↷ {info.crossInfo.label.toUpperCase()}</span>
-                                )}
-                                {(info.hasPA||info.hasToil)&&(
-                                  <div style={{display:'flex',gap:'2px',flexShrink:0}}>
+                                {(info.crossInfo||info.hasPA||info.hasToil)&&(
+                                  <div style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
+                                    {info.crossInfo&&(
+                                      <span style={{fontSize:'6.5px',fontWeight:900,color:'#4338ca',lineHeight:1,whiteSpace:'nowrap'}}>↷{info.crossInfo.label.toUpperCase()}</span>
+                                    )}
                                     {info.hasPA&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#f59e0b',flexShrink:0}}/>}
                                     {info.hasToil&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#7c3aed',flexShrink:0}}/>}
                                   </div>
@@ -4751,16 +4775,16 @@ export default function App() {
                       <div style={{fontSize:'14px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: {fmt(pb.ot)}</div>
                       <div style={{fontSize:'13px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: {fmt(pb.otResult.net)}</div>
                       <div style={{borderTop:'1px solid #eff6ff',paddingTop:'6px'}}>
-                        {ph133>0&&<div style={{marginBottom:'6px'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{ph133}h @ 1.33x</span><span>{fmt(pTierGross.t133)}</span></div>
+                        {pTierHours.t133>0&&<div style={{marginBottom:'6px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{pTierHours.t133}h @ 1.33x</span><span>{fmt(pTierGross.t133)}</span></div>
                           <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(pTierDates.t133,'#64748b')}</div>
                         </div>}
-                        {ph150>0&&<div style={{marginBottom:'6px'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{ph150}h @ 1.5x</span><span>{fmt(pTierGross.t150)}</span></div>
+                        {pTierHours.t150>0&&<div style={{marginBottom:'6px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{pTierHours.t150}h @ 1.5x</span><span>{fmt(pTierGross.t150)}</span></div>
                           <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(pTierDates.t150,'#64748b')}</div>
                         </div>}
-                        {ph200>0&&<div>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{ph200}h @ 2.0x</span><span>{fmt(pTierGross.t200)}</span></div>
+                        {pTierHours.t200>0&&<div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{pTierHours.t200}h @ 2.0x</span><span>{fmt(pTierGross.t200)}</span></div>
                           <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(pTierDates.t200,'#64748b')}</div>
                         </div>}
                       </div>
