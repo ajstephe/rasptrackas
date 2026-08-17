@@ -4728,7 +4728,7 @@ export default function App() {
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit', position:'relative',
                                   minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
                                 }}>
-                                <span style={{position:'absolute',top:'1px',left:'3px',fontSize:'7px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.3px',lineHeight:1}}>{date.toLocaleDateString('en-GB',{month:'short'})}</span>
+                                <span style={{position:'absolute',top:'1px',left:'3px',fontSize:'7px',fontWeight:900,color:date.getMonth()%2===0?'#2563eb':'#0d9488',textTransform:'uppercase',letterSpacing:'0.3px',lineHeight:1}}>{date.toLocaleDateString('en-GB',{month:'short'})}</span>
                                 <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.crossInfo?'#1e3a5f':info.isRecordOnly?'#475569':info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
                                 {info.totalHrs>0&&(
                                   <span style={{fontSize:'9px',fontWeight:900,color:info.crossInfo?'#1e3a5f':info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
