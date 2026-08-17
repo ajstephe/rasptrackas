@@ -4728,9 +4728,7 @@ export default function App() {
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit', position:'relative',
                                   minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
                                 }}>
-                                {(date.getDate()===1 || (wi===0 && week.slice(0,di).every(d=>!d)))&&(
-                                  <span style={{position:'absolute',top:'1px',left:'3px',fontSize:'7px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.3px',lineHeight:1}}>{date.toLocaleDateString('en-GB',{month:'short'})}</span>
-                                )}
+                                <span style={{position:'absolute',top:'1px',left:'3px',fontSize:'7px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.3px',lineHeight:1}}>{date.toLocaleDateString('en-GB',{month:'short'})}</span>
                                 <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.crossInfo?'#1e3a5f':info.isRecordOnly?'#475569':info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
                                 {info.totalHrs>0&&(
                                   <span style={{fontSize:'9px',fontWeight:900,color:info.crossInfo?'#1e3a5f':info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
@@ -4759,12 +4757,12 @@ export default function App() {
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'linear-gradient(135deg, #f0fdf4 50%, #dbeafe 50%)',border:'1px solid #93c5fd'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Counted In Other Period</span></div>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT — User Record</span></div>
                       </div>
-                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'8px'}}>
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'8px'}}>
                         <div style={{display:'flex',gap:'10px'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
                         </div>
-                        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'6px'}}>
+                        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#0f172a'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#059669'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.5x</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#dc2626'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>2.0x</span></div>
