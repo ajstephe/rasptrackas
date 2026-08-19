@@ -4763,7 +4763,7 @@ export default function App() {
                                 {(info.crossInfo||info.hasPA||info.hasToil)&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
                                     {info.crossInfo&&(
-                                      <span style={{fontSize:isWide?'9px':'8px',fontWeight:900,color:'#4338ca',lineHeight:1,whiteSpace:'nowrap',background:'#e0e7ff',padding:'1px 4px',borderRadius:'5px',border:'1px solid #a5b4fc'}}>↷{info.crossInfo.label.toUpperCase()}</span>
+                                      <span style={{fontSize:'6.5px',fontWeight:900,color:'#1e3a5f',lineHeight:1,whiteSpace:'nowrap'}}>↷{info.crossInfo.label.toUpperCase()}</span>
                                     )}
                                     {info.hasPA&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#f59e0b',flexShrink:0}}/>}
                                     {info.hasToil&&<div style={{width:'4px',height:'4px',borderRadius:'50%',background:'#7c3aed',flexShrink:0}}/>}
