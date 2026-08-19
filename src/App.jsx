@@ -4959,7 +4959,7 @@ export default function App() {
                                   <div style={{display:'flex',alignItems:'center',gap:'5px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
                                     <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
-                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
+                                    <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
                                     <div style={{marginLeft:'auto',textAlign:'right'}}>
                                       <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706'}}>{fmtGBP(it.otAmt)}</div>
                                       <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:700,color:'#7c3aed'}}>+ {it.toilHrs.toFixed(1)}h TOIL</div>
@@ -4983,7 +4983,7 @@ export default function App() {
                                 {showToil&&!mergeOtToil&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'5px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-toil')}</span>
-                                    <span style={{fontSize:isWide?'10.5px':'8.5px',fontWeight:800,padding:'2px 6px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
+                                    <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
                                     <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
                                   </div>
                                 )}
