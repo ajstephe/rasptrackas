@@ -3286,19 +3286,36 @@ export default function App() {
     let ot=0, night=0, pa=0, hrs=0, toilBanked=0;
     const rateHrs = { hours133:0, hours150:0, hours200:0 };
     const paCounts = { PA1:0, PA2:0, PA3:0 };
+    // Hours worked stay unconditional and period-local — a factual record
+    // of the shift regardless of submission status or where its money
+    // ends up, matching how the rest of the app treats hours.
     rangeEntries.forEach(e=>{
       const c = calcEntry(e);
-      const hasPA = e.paRate && e.paRate!=='None';
-      // Money figures respect submission status, same principle as
-      // totals/the spreadsheet export — an unsubmitted OT claim hasn't
-      // actually landed as pay yet, so it shouldn't inflate what this
-      // payslip shows as gross/net. Hours worked stay unconditional below,
-      // since that's a factual record of the shift regardless of
-      // submission status, matching how the rest of the app treats it.
-      if (isOtSubmitted(e)) { ot += c.ot; toilBanked += c.toilBanked; }
-      if (hasPA && isPaSubmitted(e)) { pa += c.pa; paCounts[e.paRate] = (paCounts[e.paRate]||0)+1; }
       hrs += c.h1+c.h2+c.h3;
       rateHrs.hours133 += c.payH1; rateHrs.hours150 += c.payH2; rateHrs.hours200 += c.payH3;
+    });
+    // Money is attributed by submission date, not the shift's own date —
+    // same principle as periodBreakdown and the OT Pay/PA boxes. A shift
+    // worked just before this range but submitted within it still counts
+    // here; one worked within this range but not submitted until after it
+    // doesn't count until then. So this iterates every entry in the app,
+    // not just rangeEntries above, since a late submission's shift date
+    // can fall well outside the window whose money it belongs to.
+    entries.forEach(e=>{
+      const c = calcEntry(e);
+      const hasPA = e.paRate && e.paRate!=='None';
+      const hasOTHours = c.h1+c.h2+c.h3 > 0;
+      const otDate = effectiveOtDate(e);
+      const paDate = effectivePaDate(e);
+      const otDateInRange = otDate>=effectiveStart && otDate<=end;
+      if (!hasOTHours) {
+        if (otDateInRange) night += c.night;
+      } else if (isOtSubmitted(e) && otDateInRange) {
+        ot += c.ot; night += c.night; toilBanked += c.toilBanked;
+      }
+      if (hasPA && isPaSubmitted(e) && paDate>=effectiveStart && paDate<=end) {
+        pa += c.pa; paCounts[e.paRate] = (paCounts[e.paRate]||0)+1;
+      }
     });
     const gross = ot + night + pa;
 
@@ -3442,7 +3459,7 @@ export default function App() {
   }
 
   return (
-    <div style={isWide ? {...S.wrap, maxWidth:'980px', margin:'0 auto 0 250px'} : S.wrap}>
+    <div style={isWide ? {...S.wrap, maxWidth:'1180px', margin:'0 auto 0 250px'} : S.wrap}>
       <style>{`
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         ::-webkit-scrollbar{display:none}
@@ -3794,6 +3811,16 @@ export default function App() {
                     <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'2px'}}>CARMS &amp; MetHR Awaiting Submission</div>
                     <div style={{fontSize:'17px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
                     <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} across {carmsOutstanding.periodCount} pay period{carmsOutstanding.periodCount!==1?'s':''}</div>
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:'10px',marginTop:'11px',paddingTop:'11px',borderTop:'1px solid #f1f5f9'}}>
+                  <div style={{flex:1,display:'flex',justifyContent:'space-between'}}>
+                    <span style={{fontSize:'10.5px',fontWeight:700,color:'#94a3b8'}}>Overtime unclaimed</span>
+                    <span style={{fontSize:'11.5px',fontWeight:800,color:'#78350f'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span>
+                  </div>
+                  <div style={{flex:1,display:'flex',justifyContent:'space-between'}}>
+                    <span style={{fontSize:'10.5px',fontWeight:700,color:'#94a3b8'}}>PA unclaimed</span>
+                    <span style={{fontSize:'11.5px',fontWeight:800,color:'#78350f'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span>
                   </div>
                 </div>
               </div>
@@ -4721,17 +4748,17 @@ export default function App() {
                                   else { setConfirmCreateDay(info.ds); }
                                 }}
                                 style={{
-                                  ...(isWide ? {height:'48px'} : {aspectRatio:'1', minHeight:'46px'}),
+                                  ...(isWide ? {height:'62px'} : {aspectRatio:'1', minHeight:'46px'}),
                                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
                                   borderRadius:'10px', border: isToday?'2px solid #2563eb':info.crossInfo?'1px solid #93c5fd':info.isRecordOnly?'1px solid #cbd5e1':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid #eef2f6',
                                   background: info.crossInfo?'linear-gradient(135deg, #f0fdf4 50%, #dbeafe 50%)':info.isRecordOnly?'#e2e8f0':info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit', position:'relative',
                                   minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
                                 }}>
-                                <span style={{position:'absolute',top:'1px',left:'3px',fontSize:'7px',fontWeight:900,color:date.getMonth()%2===0?'#2563eb':'#0d9488',textTransform:'uppercase',letterSpacing:'0.3px',lineHeight:1}}>{date.toLocaleDateString('en-GB',{month:'short'})}</span>
-                                <span style={{fontSize:'13px',fontWeight:info.hasOT?900:600,color:info.crossInfo?'#1e3a5f':info.isRecordOnly?'#475569':info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
+                                <span style={{position:'absolute',top:'1px',left:'3px',fontSize:isWide?'8px':'7px',fontWeight:900,color:date.getMonth()%2===0?'#2563eb':'#0d9488',textTransform:'uppercase',letterSpacing:'0.3px',lineHeight:1}}>{date.toLocaleDateString('en-GB',{month:'short'})}</span>
+                                <span style={{fontSize:isWide?'16px':'13px',fontWeight:info.hasOT?900:600,color:info.crossInfo?'#1e3a5f':info.isRecordOnly?'#475569':info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
                                 {info.totalHrs>0&&(
-                                  <span style={{fontSize:'9px',fontWeight:900,color:info.crossInfo?'#1e3a5f':info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
+                                  <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:info.crossInfo?'#1e3a5f':info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
                                 )}
                                 {(info.crossInfo||info.hasPA||info.hasToil)&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
@@ -4755,7 +4782,7 @@ export default function App() {
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'linear-gradient(135deg, #f0fdf4 50%, #dbeafe 50%)',border:'1px solid #93c5fd'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Counted In Other Period</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT — User Record</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT — Info Only</span></div>
                       </div>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'8px'}}>
                         <div style={{display:'flex',gap:'10px'}}>
@@ -5561,6 +5588,14 @@ export default function App() {
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#fffbeb',borderRadius:'10px',padding:'9px 11px',marginTop:'8px'}}>
                         <span style={{fontSize:'10px',fontWeight:800,color:'#92400e'}}>{carmsOutstanding.totalClaims} CLAIM{carmsOutstanding.totalClaims!==1?'S':''} TO SUBMIT</span>
                         <span style={{fontSize:'14px',fontWeight:900,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalAmount)}</span>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'8px 11px 0'}}>
+                        <span style={{fontSize:'9.5px',fontWeight:700,color:'#94a3b8'}}>Overtime unclaimed</span>
+                        <span style={{fontSize:'10.5px',fontWeight:800,color:'#78350f'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'3px 11px 0'}}>
+                        <span style={{fontSize:'9.5px',fontWeight:700,color:'#94a3b8'}}>PA unclaimed</span>
+                        <span style={{fontSize:'10.5px',fontWeight:800,color:'#78350f'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span>
                       </div>
                     </>
                   );
