@@ -3929,12 +3929,11 @@ export default function App() {
               <div style={{marginBottom:'13px'}}><label style={S.lbl}>Duty / Reason</label><input type="text" placeholder="e.g. MPL7XX, PXX" style={S.inp} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/></div>
 
               {(()=>{
-                // Desktop-only: Rostered/Actual sits beside Select O/T
-                // Rate + Take As + Protection Allowance instead of all
-                // four stacking full-width one after another. Off on
-                // mobile, and off in manual-entry mode too (there's no
-                // Rostered/Actual box in that mode to pair against).
-                const showTwoCol = isWide && form.recordShiftTimes;
+                // Desktop-only: Rostered/Actual (or, in manual-entry mode,
+                // a short explainer in its place) sits beside the rate
+                // section + Protection Allowance instead of everything
+                // stacking full-width one after another. Off on mobile.
+                const showTwoCol = isWide;
 
                 // Manual Override — auto-calculated shift times/rate is now
                 // the default; flip this on to fall back to the classic
@@ -4018,6 +4017,20 @@ export default function App() {
                         {form.dutyType==='rdw' && (
                           <div style={{fontSize:'9.5px',fontWeight:600,color:'#3b82f6',marginTop:'10px',lineHeight:1.5}}>On a Rest Day Working (RDW) shift, the whole shift counts as overtime at the rate you select below — no rostered comparison needed.</div>
                         )}
+                      </div>
+                    )}
+
+                    {/* Manual entry mode has no Rostered/Actual times to show
+                        — on mobile that just means nothing renders here, same
+                        as before. On desktop, where this box now always sits
+                        beside the rate section, an empty box would leave an
+                        odd gap next to it, so it shows a short explainer
+                        instead, centred to fill the stretched height. */}
+                    {!form.recordShiftTimes && showTwoCol && (
+                      <div style={{background:'#eff6ff',border:'1.5px solid #bfdbfe',borderTop:'none',borderRadius:'0 0 13px 13px',marginTop:'-13px',padding:'15px 13px 13px',flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
+                        <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'#dbeafe',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'12px'}}><Ico n="edit" s={20} c="#2563eb"/></div>
+                        <div style={{fontWeight:900,fontSize:'13.5px',color:'#1e3a5f',marginBottom:'6px'}}>Manual Entry</div>
+                        <div style={{fontSize:'10.5px',color:'#3b82f6',fontWeight:600,lineHeight:1.6,maxWidth:'260px'}}>Recording overtime hours directly against each rate tier instead of comparing rostered vs actual shift times. Switch back if this shift fits a single tier.</div>
                       </div>
                     )}
                   </div>
@@ -4187,9 +4200,9 @@ export default function App() {
 
             {/* PA allowance renders inside the card above when the desktop
                 two-column layout is active (see showTwoCol) — this
-                standalone card is the mobile / manual-entry fallback only,
-                kept pixel-identical to the original single-column form. */}
-            {!(isWide && form.recordShiftTimes) && (
+                standalone card is the mobile fallback only, kept
+                pixel-identical to the original single-column form. */}
+            {!isWide && (
             <div style={{...S.card,background:'#fffbeb',border:'1px solid #fde68a'}}>
               <div style={{fontSize:'12px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
               <div style={{display:'flex',gap:'6px'}}>
