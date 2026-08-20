@@ -3805,22 +3805,24 @@ export default function App() {
                  something outstanding, tapping through to the full view ── */}
             {carmsOutstanding.totalClaims>0&&(
               <div onClick={()=>setTab('carms')} style={{...S.card,cursor:'pointer'}}>
-                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                  <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'2px'}}>CARMS &amp; MetHR Awaiting Submission</div>
-                    <div style={{fontSize:'17px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
-                    <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} across {carmsOutstanding.periodCount} pay period{carmsOutstanding.periodCount!==1?'s':''}</div>
+                <div style={{display:'flex',alignItems:'flex-start',gap:'12px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'12px',flex:1,minWidth:0}}>
+                    <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'2px'}}>CARMS &amp; MetHR Awaiting Submission</div>
+                      <div style={{fontSize:'17px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+                      <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} across {carmsOutstanding.periodCount} pay period{carmsOutstanding.periodCount!==1?'s':''}</div>
+                    </div>
                   </div>
-                </div>
-                <div style={{display:'flex',gap:'10px',marginTop:'11px',paddingTop:'11px',borderTop:'1px solid #f1f5f9'}}>
-                  <div style={{flex:1,display:'flex',justifyContent:'space-between'}}>
-                    <span style={{fontSize:'10.5px',fontWeight:700,color:'#94a3b8'}}>Overtime unclaimed</span>
-                    <span style={{fontSize:'11.5px',fontWeight:800,color:'#78350f'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span>
-                  </div>
-                  <div style={{flex:1,display:'flex',justifyContent:'space-between'}}>
-                    <span style={{fontSize:'10.5px',fontWeight:700,color:'#94a3b8'}}>PA unclaimed</span>
-                    <span style={{fontSize:'11.5px',fontWeight:800,color:'#78350f'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span>
+                  <div style={{flexShrink:0,display:'flex',flexDirection:'column',gap:'6px',paddingLeft:'12px',borderLeft:'1px solid #f1f5f9',textAlign:'right'}}>
+                    <div>
+                      <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>Overtime</div>
+                      <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>PA</div>
+                      <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -5591,11 +5593,11 @@ export default function App() {
                       </div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'8px 11px 0'}}>
                         <span style={{fontSize:'9.5px',fontWeight:700,color:'#94a3b8'}}>Overtime unclaimed</span>
-                        <span style={{fontSize:'10.5px',fontWeight:800,color:'#78350f'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span>
+                        <span style={{fontSize:'10.5px',fontWeight:800,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span>
                       </div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'3px 11px 0'}}>
                         <span style={{fontSize:'9.5px',fontWeight:700,color:'#94a3b8'}}>PA unclaimed</span>
-                        <span style={{fontSize:'10.5px',fontWeight:800,color:'#78350f'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span>
+                        <span style={{fontSize:'10.5px',fontWeight:800,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span>
                       </div>
                     </>
                   );
