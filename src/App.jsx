@@ -3940,7 +3940,7 @@ export default function App() {
                 // free-entry hours grid instead.
                 const rosteredActualBlock = (
                   <div style={{marginBottom:showTwoCol?0:'13px',display:'flex',flexDirection:'column',flex:showTwoCol?1:'none'}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#eff6ff',border:'1.5px solid #bfdbfe',borderRadius:'13px',padding:'12px 13px'}}>
+                    <div style={{display:'flex',flexDirection:showTwoCol?'column':'row',alignItems:showTwoCol?'flex-start':'center',justifyContent:showTwoCol?'flex-start':'space-between',gap:showTwoCol?'8px':0,background:'#eff6ff',border:'1.5px solid #bfdbfe',borderRadius:'13px',padding:'12px 13px'}}>
                       <div style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>Rostered CARM Shift / Actual Shift</div>
                       <div onClick={()=>{
                           const switchingToManual = form.recordShiftTimes; // currently auto → about to go manual
