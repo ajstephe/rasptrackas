@@ -4680,15 +4680,14 @@ export default function App() {
                 // through CARMS and PA goes through MetHR on separate
                 // timelines, so it's normal for one side to already be
                 // submitted and counted in a different period while the
-                // other is still outstanding. crossInfo (drives the
-                // asterisk marker) fires whenever either side moved.
-                // fullyCrossInfo only fires once the *whole* day is settled
-                // too — that's what still drives the special green/blue
-                // split cell background, since a day with something
-                // genuinely still outstanding should keep reading as such.
+                // other is still outstanding. This drives the asterisk
+                // marker only — the cell's background/border always just
+                // reflects plain submitted/outstanding status, same as
+                // every other day, so there's a single consistent signal
+                // for "is this done" and a single separate one for "did
+                // part of it move periods" rather than the two overlapping.
                 const crossInfo = dEntries.length===1 ? crossPeriodInfo(dEntries[0]) : null;
-                const fullyCrossInfo = isFullySubmitted ? crossInfo : null;
-                return { ds, dEntries, totalHrs, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, isRecordOnly, crossInfo, fullyCrossInfo, rateColor, periodIdx: cIdx };
+                return { ds, dEntries, totalHrs, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, isRecordOnly, crossInfo, rateColor, periodIdx: cIdx };
               };
 
               return (
@@ -4758,18 +4757,19 @@ export default function App() {
                                 style={{
                                   ...(isWide ? {height:'62px'} : {aspectRatio:'1', minHeight:'46px'}),
                                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.fullyCrossInfo?'1px solid #93c5fd':info.isRecordOnly?'1px solid #cbd5e1':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid #eef2f6',
-                                  background: info.fullyCrossInfo?'linear-gradient(135deg, #f0fdf4 50%, #dbeafe 50%)':info.isRecordOnly?'#e2e8f0':info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
+                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.isRecordOnly?'1px solid #cbd5e1':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid #eef2f6',
+                                  background: info.isRecordOnly?'#e2e8f0':info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit', position:'relative',
                                   minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
                                 }}>
                                 <span style={{position:'absolute',top:'1px',left:'3px',fontSize:isWide?'8px':'7px',fontWeight:900,color:date.getMonth()%2===0?'#2563eb':'#0d9488',textTransform:'uppercase',letterSpacing:'0.3px',lineHeight:1}}>{date.toLocaleDateString('en-GB',{month:'short'})}</span>
-                                {/* Cross-period marker — a small rounded sparkle inset into the
-                                    top-right corner (mirroring the month tag's top-left spot) so it
-                                    never competes with the PA/TOIL dots below. Drawn with rounded
-                                    stroke caps rather than a font glyph so it renders identically
-                                    on every device, and fires on partial cross-period submissions
-                                    (see crossInfo above) as well as fully-submitted ones. */}
+                                {/* Cross-period marker — the sole signal for "part of this day
+                                    counted in a different period", independent of the cell's normal
+                                    submitted/outstanding colouring. A small rounded sparkle inset
+                                    into the top-right corner (mirroring the month tag's top-left
+                                    spot) so it never competes with the PA/TOIL dots below. Drawn
+                                    with rounded stroke caps rather than a font glyph so it renders
+                                    identically on every device. */}
                                 {info.crossInfo&&(
                                   <svg style={{position:'absolute',top:isWide?'3px':'2px',right:isWide?'3px':'2px'}} width={isWide?12:10} height={isWide?12:10} viewBox="0 0 24 24" fill="none">
                                     <g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round">
@@ -4779,9 +4779,9 @@ export default function App() {
                                     </g>
                                   </svg>
                                 )}
-                                <span style={{fontSize:isWide?'16px':'13px',fontWeight:info.hasOT?900:600,color:info.fullyCrossInfo?'#1e3a5f':info.isRecordOnly?'#475569':info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
+                                <span style={{fontSize:isWide?'16px':'13px',fontWeight:info.hasOT?900:600,color:info.isRecordOnly?'#475569':info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
                                 {info.totalHrs>0&&(
-                                  <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:info.fullyCrossInfo?'#1e3a5f':info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
+                                  <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
                                 )}
                                 {(info.hasPA||info.hasToil)&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
@@ -4801,7 +4801,6 @@ export default function App() {
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'linear-gradient(135deg, #f0fdf4 50%, #dbeafe 50%)',border:'1px solid #93c5fd'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Counted In Other Period</span></div>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT — Info Only</span></div>
                       </div>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'8px'}}>
