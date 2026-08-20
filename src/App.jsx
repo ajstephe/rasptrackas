@@ -3928,220 +3928,268 @@ export default function App() {
               </div>
               <div style={{marginBottom:'13px'}}><label style={S.lbl}>Duty / Reason</label><input type="text" placeholder="e.g. MPL7XX, PXX" style={S.inp} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/></div>
 
-              {/* Manual Override — auto-calculated shift times/rate is now the
-                  default; flip this on to fall back to the classic free-entry
-                  hours grid instead. */}
-              <div style={{marginBottom:'13px'}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#eff6ff',border:'1.5px solid #bfdbfe',borderRadius:'13px',padding:'12px 13px'}}>
-                  <div style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>Rostered CARM Shift / Actual Shift</div>
-                  <div onClick={()=>{
-                      const switchingToManual = form.recordShiftTimes; // currently auto → about to go manual
-                      setForm(f=>syncShiftTimesIntoForm({...f, recordShiftTimes:!switchingToManual, otRateTier: !switchingToManual && !f.otRateTier ? 'hours133' : f.otRateTier}));
-                    }} style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',flexShrink:0}}>
-                    <span style={{fontSize:'9px',fontWeight:600,color:'#64748b'}}>Input Hours Manually</span>
-                    <div style={{width:'32px',height:'18px',borderRadius:'10px',position:'relative',flexShrink:0,transition:'background 0.2s',background:!form.recordShiftTimes?'#2563eb':'#e2e8f0'}}>
-                      <div style={{width:'14px',height:'14px',borderRadius:'50%',background:'#fff',position:'absolute',top:'2px',transition:'left 0.2s',left:!form.recordShiftTimes?'16px':'2px',boxShadow:'0 1px 2px rgba(0,0,0,0.3)'}}/>
-                    </div>
-                  </div>
-                </div>
+              {(()=>{
+                // Desktop-only: Rostered/Actual sits beside Select O/T
+                // Rate + Take As + Protection Allowance instead of all
+                // four stacking full-width one after another. Off on
+                // mobile, and off in manual-entry mode too (there's no
+                // Rostered/Actual box in that mode to pair against).
+                const showTwoCol = isWide && form.recordShiftTimes;
 
-                {form.recordShiftTimes&&(
-                  <div style={{background:'#eff6ff',border:'1.5px solid #bfdbfe',borderTop:'none',borderRadius:'0 0 13px 13px',marginTop:'-13px',padding:'15px 13px 13px'}}>
-                    <div style={{height:'2px'}}/>
-
-                    {/* Normal Duty vs Rest Day Working (RDW) — on RDW there's no
-                        roster to compare against, so the whole shift is overtime */}
-                    <div style={{display:'flex',gap:'6px',background:'#dbeafe',borderRadius:'11px',padding:'3px',marginBottom:'13px'}}>
-                      <button onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'normal'}))} style={{flex:1,border:'none',background:form.dutyType!=='rdw'?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer',boxShadow:form.dutyType!=='rdw'?'0 2px 6px rgba(37,99,235,0.25)':'none'}}>Normal Duty</button>
-                      <button onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'rdw',rosteredStart:'',rosteredEnd:''}))} style={{flex:1,border:'none',background:form.dutyType==='rdw'?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer',boxShadow:form.dutyType==='rdw'?'0 2px 6px rgba(37,99,235,0.25)':'none'}}>Rest Day Working (RDW)</button>
+                // Manual Override — auto-calculated shift times/rate is now
+                // the default; flip this on to fall back to the classic
+                // free-entry hours grid instead.
+                const rosteredActualBlock = (
+                  <div style={{marginBottom:showTwoCol?0:'13px',display:'flex',flexDirection:'column',flex:showTwoCol?1:'none'}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'#eff6ff',border:'1.5px solid #bfdbfe',borderRadius:'13px',padding:'12px 13px'}}>
+                      <div style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>Rostered CARM Shift / Actual Shift</div>
+                      <div onClick={()=>{
+                          const switchingToManual = form.recordShiftTimes; // currently auto → about to go manual
+                          setForm(f=>syncShiftTimesIntoForm({...f, recordShiftTimes:!switchingToManual, otRateTier: !switchingToManual && !f.otRateTier ? 'hours133' : f.otRateTier}));
+                        }} style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',flexShrink:0}}>
+                        <span style={{fontSize:'9px',fontWeight:600,color:'#64748b'}}>Input Hours Manually</span>
+                        <div style={{width:'32px',height:'18px',borderRadius:'10px',position:'relative',flexShrink:0,transition:'background 0.2s',background:!form.recordShiftTimes?'#2563eb':'#e2e8f0'}}>
+                          <div style={{width:'14px',height:'14px',borderRadius:'50%',background:'#fff',position:'absolute',top:'2px',transition:'left 0.2s',left:!form.recordShiftTimes?'16px':'2px',boxShadow:'0 1px 2px rgba(0,0,0,0.3)'}}/>
+                        </div>
+                      </div>
                     </div>
 
-                    {form.dutyType!=='rdw' && (
-                      <>
+                    {form.recordShiftTimes&&(
+                      <div style={{background:'#eff6ff',border:'1.5px solid #bfdbfe',borderTop:'none',borderRadius:'0 0 13px 13px',marginTop:'-13px',padding:'15px 13px 13px',flex:showTwoCol?1:'none',display:'flex',flexDirection:'column',justifyContent:form.dutyType==='rdw'?'center':'flex-start'}}>
+                        <div style={{height:'2px'}}/>
+
+                        {/* Normal Duty vs Rest Day Working (RDW) — on RDW there's no
+                            roster to compare against, so the whole shift is overtime */}
+                        <div style={{display:'flex',gap:'6px',background:'#dbeafe',borderRadius:'11px',padding:'3px',marginBottom:'13px'}}>
+                          <button onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'normal'}))} style={{flex:1,border:'none',background:form.dutyType!=='rdw'?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer',boxShadow:form.dutyType!=='rdw'?'0 2px 6px rgba(37,99,235,0.25)':'none'}}>Normal Duty</button>
+                          <button onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'rdw',rosteredStart:'',rosteredEnd:''}))} style={{flex:1,border:'none',background:form.dutyType==='rdw'?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer',boxShadow:form.dutyType==='rdw'?'0 2px 6px rgba(37,99,235,0.25)':'none'}}>Rest Day Working (RDW)</button>
+                        </div>
+
+                        {form.dutyType!=='rdw' && (
+                          <>
+                            <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>
+                              <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#2563eb'}}/>
+                              <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Rostered CARM Shift</div>
+                            </div>
+                            <div style={{fontSize:'9.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'5px'}}>Quick presets</div>
+                            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'5px',marginBottom:'12px'}}>
+                              {[['07:00','15:00'],['07:00','19:00'],['08:00','20:00'],['13:00','23:00']].map(([start,end])=>{
+                                const isSelected = form.rosteredStart===start && form.rosteredEnd===end;
+                                return (
+                                  <button key={start+end} onClick={()=>setForm(f=>syncShiftTimesIntoForm(isSelected ? {...f,rosteredStart:'',rosteredEnd:''} : {...f,rosteredStart:start,rosteredEnd:end}))} style={{padding:'7px 2px',borderRadius:'9px',border:isSelected?'1.5px solid #2563eb':'1px solid #e2e8f0',background:isSelected?'#eff6ff':'#fff',color:isSelected?'#2563eb':'#64748b',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
+                                    {start.replace(':','')}–{end.replace(':','')}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px',marginBottom:'5px'}}>
+                              <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
+                                <TimeSelect value={form.rosteredStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredStart:v}))}/>
+                              </div>
+                              <div><label style={{...S.lbl,marginBottom:'5px'}}>End</label>
+                                <TimeSelect value={form.rosteredEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredEnd:v}))}/>
+                              </div>
+                            </div>
+                            {form.rosteredStart&&form.rosteredEnd&&toMinutesOfDay(form.rosteredEnd)<=toMinutesOfDay(form.rosteredStart)&&(
+                              <div style={{fontSize:'9.5px',fontWeight:700,color:'#2563eb',marginBottom:'12px'}}>↷ Ends the next day</div>
+                            )}
+                          </>
+                        )}
+
+                        {form.dutyType!=='rdw' && (
+                          <div style={{height:'1px',background:'#e2e8f0',margin:'14px 0'}}/>
+                        )}
+
                         <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>
                           <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#2563eb'}}/>
-                          <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Rostered CARM Shift</div>
+                          <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Actual Shift Worked</div>
                         </div>
-                        <div style={{fontSize:'9.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'5px'}}>Quick presets</div>
-                        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'5px',marginBottom:'12px'}}>
-                          {[['07:00','15:00'],['07:00','19:00'],['08:00','20:00'],['13:00','23:00']].map(([start,end])=>{
-                            const isSelected = form.rosteredStart===start && form.rosteredEnd===end;
-                            return (
-                              <button key={start+end} onClick={()=>setForm(f=>syncShiftTimesIntoForm(isSelected ? {...f,rosteredStart:'',rosteredEnd:''} : {...f,rosteredStart:start,rosteredEnd:end}))} style={{padding:'7px 2px',borderRadius:'9px',border:isSelected?'1.5px solid #2563eb':'1px solid #e2e8f0',background:isSelected?'#eff6ff':'#fff',color:isSelected?'#2563eb':'#64748b',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
-                                {start.replace(':','')}–{end.replace(':','')}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px',marginBottom:'5px'}}>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px'}}>
                           <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
-                            <TimeSelect value={form.rosteredStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredStart:v}))}/>
+                            <TimeSelect value={form.actualStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualStart:v}))}/>
                           </div>
                           <div><label style={{...S.lbl,marginBottom:'5px'}}>End</label>
-                            <TimeSelect value={form.rosteredEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredEnd:v}))}/>
+                            <TimeSelect value={form.actualEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualEnd:v}))}/>
                           </div>
                         </div>
-                        {form.rosteredStart&&form.rosteredEnd&&toMinutesOfDay(form.rosteredEnd)<=toMinutesOfDay(form.rosteredStart)&&(
-                          <div style={{fontSize:'9.5px',fontWeight:700,color:'#2563eb',marginBottom:'12px'}}>↷ Ends the next day</div>
+                        {form.actualStart&&form.actualEnd&&toMinutesOfDay(form.actualEnd)<=toMinutesOfDay(form.actualStart)&&(
+                          <div style={{fontSize:'9.5px',fontWeight:700,color:'#2563eb',marginTop:'7px'}}>↷ Ends the next day</div>
                         )}
-                      </>
-                    )}
-
-                    {form.dutyType!=='rdw' && (
-                      <div style={{height:'1px',background:'#e2e8f0',margin:'14px 0'}}/>
-                    )}
-
-                    <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>
-                      <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#2563eb'}}/>
-                      <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Actual Shift Worked</div>
-                    </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px'}}>
-                      <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
-                        <TimeSelect value={form.actualStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualStart:v}))}/>
+                        {form.dutyType==='rdw' && (
+                          <div style={{fontSize:'9.5px',fontWeight:600,color:'#3b82f6',marginTop:'10px',lineHeight:1.5}}>On a Rest Day Working (RDW) shift, the whole shift counts as overtime at the rate you select below — no rostered comparison needed.</div>
+                        )}
                       </div>
-                      <div><label style={{...S.lbl,marginBottom:'5px'}}>End</label>
-                        <TimeSelect value={form.actualEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualEnd:v}))}/>
-                      </div>
-                    </div>
-                    {form.actualStart&&form.actualEnd&&toMinutesOfDay(form.actualEnd)<=toMinutesOfDay(form.actualStart)&&(
-                      <div style={{fontSize:'9.5px',fontWeight:700,color:'#2563eb',marginTop:'7px'}}>↷ Ends the next day</div>
                     )}
-                    {form.dutyType==='rdw' && (
-                      <div style={{fontSize:'9.5px',fontWeight:600,color:'#3b82f6',marginTop:'10px',lineHeight:1.5}}>On a Rest Day Working (RDW) shift, the whole shift counts as overtime at the rate you select below — no rostered comparison needed.</div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Notes — sits above the overtime rate section, after
-                  Rostered/Actual, still inside the same outer card */}
-              <div style={{marginBottom:'13px'}}><label style={S.lbl}>Notes</label><textarea ref={notesRef} rows="4" placeholder="Shift notes or incident details..." style={{...S.ta,lineHeight:1.5}} value={form.comments} onChange={e=>setForm({...form,comments:e.target.value})}
-                onFocus={e=>{
-                  // Cursor lands on the blank line left after the auto-generated
-                  // shift-times summary — but only on the person's own tap into
-                  // the box, never forced automatically (that pops the keyboard
-                  // up and blocks the screen right after picking a time).
-                  const line = generateShiftTimesLine(form);
-                  if (line) {
-                    const pos = line.length+2;
-                    const target = e.target;
-                    setTimeout(()=>{ try{ target.setSelectionRange(pos,pos); }catch(_){} },0);
-                  }
-                }}/></div>
-
-              {/* overtime hours — nested within the same outer card, sitting
-                  right after Notes */}
-              {(()=>{
-                const formRates = getRates(settings.rank, settings.service, form.date||todayStr);
-
-                if (!form.recordShiftTimes) {
-                  // classic manual entry — unchanged, still the fallback for
-                  // shifts that genuinely span more than one rate tier
-                  return (
-                    <div style={{background:'#eff6ff',border:'1.5px solid #dbeafe',borderRadius:'13px',padding:'14px 13px'}}>
-                      <div style={{fontSize:'10px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'4px'}}>Overtime Hours</div>
-                      <div style={{fontSize:'9px',fontWeight:600,color:'#64748b',textAlign:'center',marginBottom:'13px'}}>Record only the hours worked on overtime — not your whole shift</div>
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'9px'}}>
-                        {['hours133','hours150','hours200'].map((h,i)=>(
-                          <div key={h} style={{textAlign:'center'}}>
-                            <label style={{...S.lbl,color:'#3b82f6',textAlign:'center',display:'block'}}>{[1.33,1.5,2.0][i]}x</label>
-                            <input type="number" step="0.25" placeholder="0" style={{...S.inp,textAlign:'center',fontWeight:900,background:'#fff',fontSize:'17px',padding:'11px 6px'}} value={form[h]} onChange={e=>setForm({...form,[h]:e.target.value})}/>
-                            <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:700,marginTop:'4px'}}>£{(formRates[['r133','r150','r200'][i]]||0).toFixed(2)}/hr</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }
-
-                // Record Shift Times is on — one rate for the whole shift,
-                // hours calculated from rostered/actual times (still editable,
-                // for a recall the times themselves don't capture).
-                const tier = form.otRateTier || 'hours133';
-                const otHours = parseFloat(form[tier])||0;
-                const basisReady = form.dutyType==='rdw' ? !!(form.actualStart&&form.actualEnd) : !!(form.rosteredStart&&form.rosteredEnd&&form.actualStart&&form.actualEnd);
-                let basisText = 'Set your shift times above to calculate overtime';
-                if (basisReady) {
-                  const actualDur = shiftDurationMinutes(form.actualStart, form.actualEnd)/60;
-                  basisText = form.dutyType==='rdw'
-                    ? `RDW — full ${actualDur.toFixed(2).replace(/\.00$/,'')}h actual shift counts as overtime`
-                    : `${actualDur.toFixed(1)}h actual − ${(shiftDurationMinutes(form.rosteredStart,form.rosteredEnd)/60).toFixed(1)}h rostered = ${otHours.toFixed(2).replace(/\.00$/,'')}h overtime`;
-                }
-
-                return (
-                  <div style={{background:'#eff6ff',border:'1.5px solid #dbeafe',borderRadius:'13px',padding:'12px 13px'}}>
-                    <div className="hint-pulse" style={{fontSize:'12px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'9px'}}>Select O/T Rate for this Shift</div>
-                    <div style={{display:'flex',gap:'6px',marginBottom:'9px'}}>
-                      {['hours133','hours150','hours200'].map((h,i)=>(
-                        <button key={h} onClick={()=>setForm(f=>{
-                          if (f.otRateTier===h) return f;
-                          const val = f.otRateTier ? f[f.otRateTier] : '';
-                          return {...f, otRateTier:h, hours133:'', hours150:'', hours200:'', [h]:val};
-                        })} style={{flex:1,padding:'8px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:tier===h?'#2563eb':'#fff',color:tier===h?'#fff':'#3b82f6',boxShadow:tier===h?'0 4px 11px rgba(37,99,235,0.35)':'none'}}>{[1.33,1.5,2.0][i]}x</button>
-                      ))}
-                    </div>
-                    <div style={{background:'#fff',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
-                      <label style={{...S.lbl,marginBottom:'4px',display:'block'}}>Overtime Hours</label>
-                      <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'transparent',fontFamily:'inherit',color:'#0f172a'}}
-                        value={form[tier]}
-                        onChange={e=>setForm({...form, otAuto:false, [tier]:e.target.value})}/>
-                      {form.otAuto
-                        ? <span style={{display:'inline-block',fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'4px',background:'#dcfce7',color:'#166534'}}>auto-calculated</span>
-                        : <span onClick={()=>setForm({...form, otAuto:true})} style={{display:'inline-block',fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'4px',background:'#fef3c7',color:'#92400e',cursor:'pointer'}}>edited — tap to reset</span>}
-                    </div>
-                    <div style={{fontSize:'9px',color:'#64748b',textAlign:'center',marginTop:'6px',lineHeight:1.4}}>{basisText}</div>
                   </div>
                 );
-              })()}
 
-              {/* Take As — Pay / TOIL / Mix — shown whenever there's a single clear
-                  rate to bank TOIL against, whether that's from auto-calc
-                  (form.otRateTier) or manual entry (exactly one tier box filled in) */}
-              {effectiveTier && (parseFloat(form[effectiveTier])||0) > 0 && (()=>{
-                const tier = effectiveTier;
-                const total = parseFloat(form[tier])||0;
-                const toilH = Math.min(total, parseFloat(form.toilHours)||0);
-                const payH = Math.max(0, total-toilH);
-                return (
-                  <div style={{background:'#6d28d9',border:'none',borderRadius:'13px',padding:'14px 13px',marginTop:'13px'}}>
-                    <div style={{fontSize:'10px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Take Overtime As</div>
-                    <div style={{display:'flex',gap:'6px',background:'rgba(0,0,0,0.18)',borderRadius:'11px',padding:'3px'}}>
-                      {[['pay','Pay','#1e40af'],['toil','TOIL','#6d28d9'],['mix','Mix','#334155']].map(([m,lbl,col])=>(
-                        <button key={m} onClick={()=>setForm(f=>{
-                          const t = parseFloat(f[tier])||0;
-                          const th = m==='pay' ? 0 : m==='toil' ? t : (parseFloat(f.toilHours)||0);
-                          return {...f, takeAs:m, toilHours: th?String(th):'0'};
-                        })} style={{flex:1,border:'none',background:form.takeAs===m?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:form.takeAs===m?col:'rgba(255,255,255,0.8)',cursor:'pointer',boxShadow:form.takeAs===m?'0 2px 6px rgba(0,0,0,0.25)':'none'}}>{lbl}</button>
+                const notesBlock = (
+                  <div style={{marginBottom:'13px'}}><label style={S.lbl}>Notes</label><textarea ref={notesRef} rows="4" placeholder="Shift notes or incident details..." style={{...S.ta,lineHeight:1.5}} value={form.comments} onChange={e=>setForm({...form,comments:e.target.value})}
+                    onFocus={e=>{
+                      // Cursor lands on the blank line left after the auto-generated
+                      // shift-times summary — but only on the person's own tap into
+                      // the box, never forced automatically (that pops the keyboard
+                      // up and blocks the screen right after picking a time).
+                      const line = generateShiftTimesLine(form);
+                      if (line) {
+                        const pos = line.length+2;
+                        const target = e.target;
+                        setTimeout(()=>{ try{ target.setSelectionRange(pos,pos); }catch(_){} },0);
+                      }
+                    }}/></div>
+                );
+
+                const otRateBlock = (()=>{
+                  const formRates = getRates(settings.rank, settings.service, form.date||todayStr);
+
+                  if (!form.recordShiftTimes) {
+                    // classic manual entry — unchanged, still the fallback for
+                    // shifts that genuinely span more than one rate tier
+                    return (
+                      <div style={{background:'#eff6ff',border:'1.5px solid #dbeafe',borderRadius:'13px',padding:'14px 13px'}}>
+                        <div style={{fontSize:'10px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'4px'}}>Overtime Hours</div>
+                        <div style={{fontSize:'9px',fontWeight:600,color:'#64748b',textAlign:'center',marginBottom:'13px'}}>Record only the hours worked on overtime — not your whole shift</div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'9px'}}>
+                          {['hours133','hours150','hours200'].map((h,i)=>(
+                            <div key={h} style={{textAlign:'center'}}>
+                              <label style={{...S.lbl,color:'#3b82f6',textAlign:'center',display:'block'}}>{[1.33,1.5,2.0][i]}x</label>
+                              <input type="number" step="0.25" placeholder="0" style={{...S.inp,textAlign:'center',fontWeight:900,background:'#fff',fontSize:'17px',padding:'11px 6px'}} value={form[h]} onChange={e=>setForm({...form,[h]:e.target.value})}/>
+                              <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:700,marginTop:'4px'}}>£{(formRates[['r133','r150','r200'][i]]||0).toFixed(2)}/hr</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Record Shift Times is on — one rate for the whole shift,
+                  // hours calculated from rostered/actual times (still editable,
+                  // for a recall the times themselves don't capture).
+                  const tier = form.otRateTier || 'hours133';
+                  const otHours = parseFloat(form[tier])||0;
+                  const basisReady = form.dutyType==='rdw' ? !!(form.actualStart&&form.actualEnd) : !!(form.rosteredStart&&form.rosteredEnd&&form.actualStart&&form.actualEnd);
+                  let basisText = 'Set your shift times above to calculate overtime';
+                  if (basisReady) {
+                    const actualDur = shiftDurationMinutes(form.actualStart, form.actualEnd)/60;
+                    basisText = form.dutyType==='rdw'
+                      ? `RDW — full ${actualDur.toFixed(2).replace(/\.00$/,'')}h actual shift counts as overtime`
+                      : `${actualDur.toFixed(1)}h actual − ${(shiftDurationMinutes(form.rosteredStart,form.rosteredEnd)/60).toFixed(1)}h rostered = ${otHours.toFixed(2).replace(/\.00$/,'')}h overtime`;
+                  }
+
+                  return (
+                    <div style={{background:'#eff6ff',border:'1.5px solid #dbeafe',borderRadius:'13px',padding:'12px 13px'}}>
+                      <div className="hint-pulse" style={{fontSize:'12px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'9px'}}>Select O/T Rate for this Shift</div>
+                      <div style={{display:'flex',gap:'6px',marginBottom:'9px'}}>
+                        {['hours133','hours150','hours200'].map((h,i)=>(
+                          <button key={h} onClick={()=>setForm(f=>{
+                            if (f.otRateTier===h) return f;
+                            const val = f.otRateTier ? f[f.otRateTier] : '';
+                            return {...f, otRateTier:h, hours133:'', hours150:'', hours200:'', [h]:val};
+                          })} style={{flex:1,padding:'8px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:tier===h?'#2563eb':'#fff',color:tier===h?'#fff':'#3b82f6',boxShadow:tier===h?'0 4px 11px rgba(37,99,235,0.35)':'none'}}>{[1.33,1.5,2.0][i]}x</button>
+                        ))}
+                      </div>
+                      <div style={{background:'#fff',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
+                        <label style={{...S.lbl,marginBottom:'4px',display:'block'}}>Overtime Hours</label>
+                        <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'transparent',fontFamily:'inherit',color:'#0f172a'}}
+                          value={form[tier]}
+                          onChange={e=>setForm({...form, otAuto:false, [tier]:e.target.value})}/>
+                        {form.otAuto
+                          ? <span style={{display:'inline-block',fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'4px',background:'#dcfce7',color:'#166534'}}>auto-calculated</span>
+                          : <span onClick={()=>setForm({...form, otAuto:true})} style={{display:'inline-block',fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'4px',background:'#fef3c7',color:'#92400e',cursor:'pointer'}}>edited — tap to reset</span>}
+                      </div>
+                      <div style={{fontSize:'9px',color:'#64748b',textAlign:'center',marginTop:'6px',lineHeight:1.4}}>{basisText}</div>
+                    </div>
+                  );
+                })();
+
+                // Take As — Pay / TOIL / Mix — shown whenever there's a single clear
+                // rate to bank TOIL against, whether that's from auto-calc
+                // (form.otRateTier) or manual entry (exactly one tier box filled in)
+                const takeAsBlock = effectiveTier && (parseFloat(form[effectiveTier])||0) > 0 && (()=>{
+                  const tier = effectiveTier;
+                  const total = parseFloat(form[tier])||0;
+                  const toilH = Math.min(total, parseFloat(form.toilHours)||0);
+                  const payH = Math.max(0, total-toilH);
+                  return (
+                    <div style={{background:'#6d28d9',border:'none',borderRadius:'13px',padding:'14px 13px',marginTop:showTwoCol?0:'13px'}}>
+                      <div style={{fontSize:'10px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Take Overtime As</div>
+                      <div style={{display:'flex',gap:'6px',background:'rgba(0,0,0,0.18)',borderRadius:'11px',padding:'3px'}}>
+                        {[['pay','Pay','#1e40af'],['toil','TOIL','#6d28d9'],['mix','Mix','#334155']].map(([m,lbl,col])=>(
+                          <button key={m} onClick={()=>setForm(f=>{
+                            const t = parseFloat(f[tier])||0;
+                            const th = m==='pay' ? 0 : m==='toil' ? t : (parseFloat(f.toilHours)||0);
+                            return {...f, takeAs:m, toilHours: th?String(th):'0'};
+                          })} style={{flex:1,border:'none',background:form.takeAs===m?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:form.takeAs===m?col:'rgba(255,255,255,0.8)',cursor:'pointer',boxShadow:form.takeAs===m?'0 2px 6px rgba(0,0,0,0.25)':'none'}}>{lbl}</button>
+                        ))}
+                      </div>
+                      {form.takeAs==='mix' && (
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'12px'}}>
+                          <div style={{background:'#eff6ff',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
+                            <div style={{fontSize:'9px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:'6px'}}>Pay Hours</div>
+                            <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'#fff',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'#0f172a'}}
+                              value={payH.toFixed(2).replace(/\.00$/,'')}
+                              onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(total-v)}); }}/>
+                          </div>
+                          <div style={{background:'#f5f3ff',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
+                            <div style={{fontSize:'9px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:'6px'}}>TOIL Hours</div>
+                            <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'#fff',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'#0f172a'}}
+                              value={toilH.toFixed(2).replace(/\.00$/,'')}
+                              onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(v)}); }}/>
+                          </div>
+                        </div>
+                      )}
+                      {toilH>0 && (
+                        <div style={{marginTop:'12px',background:'#f5f3ff',borderRadius:'10px',padding:'10px 13px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <span style={{fontSize:'11px',fontWeight:700,color:'#6d28d9'}}>{fmtHM(toilH)}h worked @ {RATE_TIER_MULT[tier]}x</span>
+                          <span style={{fontSize:'14px',fontWeight:900,color:'#4c1d95'}}>{fmtHM(toilH*RATE_TIER_MULT[tier])}h banked</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })();
+
+                const paBlock = (
+                  <div style={{...S.card,background:'#fffbeb',border:'1px solid #fde68a',marginBottom:showTwoCol?0:'10px',flex:showTwoCol?1:'none',display:'flex',flexDirection:'column',justifyContent:'center'}}>
+                    <div style={{fontSize:'12px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
+                    <div style={{display:'flex',gap:'6px'}}>
+                      {['None','PA1','PA2','PA3'].map(pa=>(
+                        <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'#fff',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
+                          <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
+                          <span style={{fontSize:'9px',fontWeight:700,opacity:form.paRate===pa?0.85:0.55}}>{PA_LABELS[pa]}</span>
+                        </button>
                       ))}
                     </div>
-                    {form.takeAs==='mix' && (
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'12px'}}>
-                        <div style={{background:'#eff6ff',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                          <div style={{fontSize:'9px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:'6px'}}>Pay Hours</div>
-                          <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'#fff',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'#0f172a'}}
-                            value={payH.toFixed(2).replace(/\.00$/,'')}
-                            onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(total-v)}); }}/>
-                        </div>
-                        <div style={{background:'#f5f3ff',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                          <div style={{fontSize:'9px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:'6px'}}>TOIL Hours</div>
-                          <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'#fff',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'#0f172a'}}
-                            value={toilH.toFixed(2).replace(/\.00$/,'')}
-                            onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(v)}); }}/>
-                        </div>
-                      </div>
-                    )}
-                    {toilH>0 && (
-                      <div style={{marginTop:'12px',background:'#f5f3ff',borderRadius:'10px',padding:'10px 13px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                        <span style={{fontSize:'11px',fontWeight:700,color:'#6d28d9'}}>{fmtHM(toilH)}h worked @ {RATE_TIER_MULT[tier]}x</span>
-                        <span style={{fontSize:'14px',fontWeight:900,color:'#4c1d95'}}>{fmtHM(toilH*RATE_TIER_MULT[tier])}h banked</span>
-                      </div>
-                    )}
                   </div>
+                );
+
+                return showTwoCol ? (
+                  <>
+                    <div style={{display:'grid',gridTemplateColumns:'400px 1fr',gap:'20px',alignItems:'stretch',marginBottom:'13px'}}>
+                      {rosteredActualBlock}
+                      <div style={{display:'flex',flexDirection:'column',gap:'13px'}}>
+                        {otRateBlock}
+                        {takeAsBlock}
+                        {paBlock}
+                      </div>
+                    </div>
+                    {notesBlock}
+                  </>
+                ) : (
+                  <>
+                    {rosteredActualBlock}
+                    {notesBlock}
+                    {otRateBlock}
+                    {takeAsBlock}
+                  </>
                 );
               })()}
             </div>
 
-            {/* PA allowance */}
+            {/* PA allowance renders inside the card above when the desktop
+                two-column layout is active (see showTwoCol) — this
+                standalone card is the mobile / manual-entry fallback only,
+                kept pixel-identical to the original single-column form. */}
+            {!(isWide && form.recordShiftTimes) && (
             <div style={{...S.card,background:'#fffbeb',border:'1px solid #fde68a'}}>
               <div style={{fontSize:'12px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
               <div style={{display:'flex',gap:'6px'}}>
@@ -4153,6 +4201,7 @@ export default function App() {
                 ))}
               </div>
             </div>
+            )}
 
             {/* CARMS Submission — independent of logging the shift itself.
                 Both default to false via blankForm; editing an existing
