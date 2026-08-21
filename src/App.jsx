@@ -1217,11 +1217,14 @@ export default function App() {
   const [archiveExpandedPeriod, setArchiveExpandedPeriod] = useState(null); // short label of the expanded period within that year, or null
   const [taxImpactExpanded, setTaxImpactExpanded] = useState(false);
   const [dataManagementExpanded, setDataManagementExpanded] = useState(false);
-  const [salaryBreakdownExpanded, setSalaryBreakdownExpanded] = useState(false);
-  // Navigating away from Home resets its expandable sections back to their
-  // starting (collapsed) state, so returning to Home later doesn't leave
-  // something open from a previous visit that's easy to forget was expanded.
-  useEffect(()=>{ if (tab!=='dashboard') setSalaryBreakdownExpanded(false); },[tab]);
+  // Starts open on desktop (there's room), collapsed on mobile — matches
+  // the same isWide-only default the redesigned Home tile row assumes.
+  const [salaryBreakdownExpanded, setSalaryBreakdownExpanded] = useState(isWide);
+  // Navigating away from Home resets this back to its starting state —
+  // collapsed on mobile, open on desktop — so returning to Home later
+  // doesn't leave something open from a previous visit that's easy to
+  // forget was expanded (mobile), while desktop keeps its always-open default.
+  useEffect(()=>{ if (tab!=='dashboard') setSalaryBreakdownExpanded(isWide); },[tab]);
   const [taxCalcActualDetailOpen, setTaxCalcActualDetailOpen] = useState(false);
   const [taxCalcForecastDetailOpen, setTaxCalcForecastDetailOpen] = useState(false);
   const [configExpanded, setConfigExpanded] = useState(false);
@@ -3630,6 +3633,17 @@ export default function App() {
               </div>
             )}
 
+            {/* ── Stat tile row (desktop only) — Total Gross YTD, TOIL,
+                 Current Pay Period and CARMS Outstanding used to be four
+                 separate stacked cards; on desktop they now sit in one row
+                 so the headline figures read together at a glance. Each
+                 card is wrapped with a CSS `order` (and Salary Breakdown
+                 with `gridColumn:'1 / -1'`) rather than physically
+                 reordered in the JSX below, so mobile's DOM order — and
+                 therefore its layout — is completely unchanged: `order`
+                 and `gridColumn` are no-ops outside a grid/flex container. ── */}
+            <div style={isWide?{display:'grid',gridTemplateColumns:'1.2fr 0.85fr 0.85fr 1.35fr',gap:'16px',alignItems:'stretch',marginBottom:'16px'}:undefined}>
+            <div style={isWide?{order:1}:undefined}>
             {/* ── Total combined earnings card — the main/first card, now with Tax Threshold merged in below a divider ── */}
             <div style={S.dark}>
               <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
@@ -3652,7 +3666,9 @@ export default function App() {
                 </div>
               )}
             </div>
+            </div>
 
+            <div style={isWide?{order:5,gridColumn:'1 / -1'}:undefined}>
             {/* ── Salary Breakdown & Forecast — collapsed by default, same
                  tap-to-expand pattern as Account & Data Management below.
                  Keeps the top card to just the headline figure, with the
@@ -3800,11 +3816,42 @@ export default function App() {
                 )}
               </div>
             )}
+            </div>
 
+            <div style={isWide?{order:4}:undefined}>
             {/* ── CARMS Outstanding — only shown once there's actually
-                 something outstanding, tapping through to the full view ── */}
+                 something outstanding, tapping through to the full view.
+                 Desktop: icon/label sit on their own row and the
+                 total/hairline/OT-PA split reflow onto a second row below,
+                 so the card reads properly at tile width instead of
+                 cramming everything into the mobile version's single row. ── */}
             {carmsOutstanding.totalClaims>0&&(
-              <div onClick={()=>setTab('carms')} style={{...S.card,cursor:'pointer'}}>
+              <div onClick={()=>setTab('carms')} style={isWide?{...S.card,cursor:'pointer',display:'flex',flexDirection:'column'}:{...S.card,cursor:'pointer'}}>
+                {isWide ? (
+                  <>
+                    <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
+                      <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
+                      <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',lineHeight:1.3}}>CARMS &amp; MetHR<br/>Awaiting Submission</div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'stretch',gap:'14px',flex:1}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:'21px',fontWeight:900,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+                        <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'2px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
+                      </div>
+                      <div style={{width:'1px',background:'#fde68a',flexShrink:0}}/>
+                      <div style={{display:'flex',flexDirection:'column',justifyContent:'center',gap:'6px',flexShrink:0}}>
+                        <div>
+                          <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>Overtime</div>
+                          <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>PA</div>
+                          <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
                 <div style={{display:'flex',alignItems:'flex-start',gap:'12px'}}>
                   <div style={{display:'flex',alignItems:'center',gap:'12px',flex:1,minWidth:0}}>
                     <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
@@ -3825,9 +3872,12 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+                )}
               </div>
             )}
+            </div>
 
+            <div style={isWide?{order:2}:undefined}>
             {/* ── TOIL summary card — stays a genuine warning card in red when
                  overdrawn (a real status worth the saturated colour), but
                  drops to a neutral white card with a coloured icon chip
@@ -3846,7 +3896,9 @@ export default function App() {
                 </div>
               </div>
             </div>
+            </div>
 
+            <div style={isWide?{order:3}:undefined}>
             {/* ── Current pay period — tap through to Calendar view in Summary ── */}
             {totals.curr&&(
               <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,cursor:'pointer'}}>
@@ -3860,6 +3912,8 @@ export default function App() {
                 </div>
               </div>
             )}
+            </div>
+            </div>
 
             {/* ── At a Glance — mobile-only equivalent of the desktop
                  secondary column's own widget, since phones don't have
@@ -4412,6 +4466,13 @@ export default function App() {
 
             {breakdownView==='list' ? (
             <>
+            {/* Desktop: period cards reflow into a 2-column grid instead of
+                one long vertical stack; the currently-open card spans both
+                columns (via gridColumn below) so its OT Pay/PA boxes and
+                entry rows keep full width. Mobile is untouched — `display`
+                only turns into `grid` on isWide, so this container behaves
+                like a normal block wrapper otherwise. ── */}
+            <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}:undefined}>
             {PAY_PERIODS.map((p,idx)=>{
               const pE=fyEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
               const pb=totals.periodBreakdown[idx];
@@ -4461,7 +4522,7 @@ export default function App() {
               const isExp=expanded===p.month, isCurr=idx===currPeriodIdx;
 
               return(
-                <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:isCurr?'#eff6ff':'#fff',borderRadius:'17px',border:isCurr?'2px solid #2563eb':'1px solid #f1f5f9',borderLeft:isCurr?'5px solid #2563eb':'1px solid #f1f5f9',boxShadow:isCurr?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 5px rgba(0,0,0,0.04)',marginBottom:'9px',overflow:'hidden'}}>
+                <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:isCurr?'#eff6ff':'#fff',borderRadius:'17px',border:isCurr?'2px solid #2563eb':'1px solid #f1f5f9',borderLeft:isCurr?'5px solid #2563eb':'1px solid #f1f5f9',boxShadow:isCurr?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 5px rgba(0,0,0,0.04)',marginBottom:'9px',overflow:'hidden',...(isWide&&isExp?{gridColumn:'1 / -1'}:{})}}>
                   <button onClick={()=>setExpanded(isExp?null:p.month)} style={{width:'100%',textAlign:'left',padding:'16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'11px'}}>
                       <div>
@@ -4655,6 +4716,7 @@ export default function App() {
                 </div>
               );
             })}
+            </div>
             {renderFYTotalsCard()}
             </>
             ) : (
@@ -4769,7 +4831,15 @@ export default function App() {
                     <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c="#2563eb"/></button>
                   </div>
 
-                  {/* stats strip — Shifts and Total O/T Hours */}
+                  {/* stats strip — Shifts and Total O/T Hours. Desktop:
+                       a slim inline line instead of a full boxed card,
+                       freeing vertical space for the taller calendar grid
+                       below. Mobile keeps the original boxed strip. ── */}
+                  {isWide ? (
+                    <div style={{fontSize:'12.5px',fontWeight:700,color:'#94a3b8',textAlign:'center',marginBottom:'16px'}}>
+                      <span style={{color:'#1e3a5f',fontWeight:900}}>{cEntries.length}</span> shift{cEntries.length!==1?'s':''} logged &nbsp;·&nbsp; <span style={{color:'#1e3a5f',fontWeight:900}}>{cTotalHrs}</span> total O/T hours
+                    </div>
+                  ) : (
                   <div style={{...S.card,display:'flex',padding:'16px',background:cIdx===currPeriodIdx?'#eff6ff':'#fff',border:cIdx===currPeriodIdx?'2px solid #2563eb':'1px solid #f1f5f9',boxShadow:cIdx===currPeriodIdx?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 6px rgba(0,0,0,0.05)'}}>
                     <div style={{flex:1,textAlign:'center'}}>
                       <div style={{fontSize:'12px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.5px'}}>Shifts Logged</div>
@@ -4782,6 +4852,7 @@ export default function App() {
                       <div style={{fontSize:'22px',fontWeight:900,color:'#1e3a5f'}}>{cTotalHrs}</div>
                     </div>
                   </div>
+                  )}
 
                   <div className="hint-pulse" style={{fontSize:'14px',color:'#94a3b8',textAlign:'center',fontWeight:600,margin:'10px 0'}}>Tap a day to view details or add an entry</div>
 
@@ -4817,7 +4888,7 @@ export default function App() {
                                   else { setConfirmCreateDay(info.ds); }
                                 }}
                                 style={{
-                                  ...(isWide ? {height:'62px'} : {aspectRatio:'1', minHeight:'46px'}),
+                                  ...(isWide ? {height:'76px'} : {aspectRatio:'1', minHeight:'46px'}),
                                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
                                   borderRadius:'10px', border: isToday?'2px solid #2563eb':info.isRecordOnly?'1px solid #cbd5e1':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid #eef2f6',
                                   background: info.isRecordOnly?'#e2e8f0':info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
@@ -4858,7 +4929,29 @@ export default function App() {
                       ))}
                     </div>
 
-                    {/* legend */}
+                    {/* legend — desktop: one horizontal wrapped row instead
+                         of the two-column stacked layout, so it no longer
+                         needs the manual flex-align matching between
+                         columns; mobile keeps the original two-column
+                         layout unchanged. ── */}
+                    {isWide ? (
+                      <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'18px',marginTop:'16px',paddingTop:'16px',borderTop:'1px solid #f1f5f9'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>No OT — Info Only</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
+                          <span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Counted Other Period</span>
+                        </div>
+                        <div style={{width:'1px',height:'16px',background:'#f1f5f9'}}/>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>PA</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
+                        <div style={{width:'1px',height:'16px',background:'#f1f5f9'}}/>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#0f172a'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#059669'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>1.5x</span></div>
+                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#dc2626'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>2.0x</span></div>
+                      </div>
+                    ) : (
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginTop:'12px',paddingTop:'12px',borderTop:'1px solid #f1f5f9'}}>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
@@ -4883,6 +4976,7 @@ export default function App() {
                         </div>
                       </div>
                     </div>
+                    )}
                   </div>
 
                   {/* period breakdown boxes — same layout as List View */}
@@ -5092,13 +5186,18 @@ export default function App() {
           <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
             <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',marginBottom:'14px',letterSpacing:'-0.5px'}}>TOIL</h2>
 
-            <div style={{background:toilLedger.balance<0?'#fef2f2':'#f5f3ff',border:toilLedger.balance<0?'1.5px solid #fecaca':'1.5px solid #ddd6fe',borderRadius:'16px',padding:'16px',marginBottom:'14px'}}>
+            {/* Desktop: Balance and Redeem sit side by side — both are
+                naturally compact, so the extra width is better spent
+                putting them next to each other than stacking full-width
+                the way mobile has to. Mobile is untouched. ── */}
+            <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1.3fr',gap:'16px',alignItems:'stretch',marginBottom:'14px'}:undefined}>
+            <div style={{background:toilLedger.balance<0?'#fef2f2':'#f5f3ff',border:toilLedger.balance<0?'1.5px solid #fecaca':'1.5px solid #ddd6fe',borderRadius:'16px',padding:'16px',marginBottom:isWide?0:'14px',...(isWide?{display:'flex',flexDirection:'column',justifyContent:'center'}:{})}}>
               <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
               <div style={{fontSize:'26px',fontWeight:900,color:toilLedger.balance<0?'#991b1b':'#4c1d95'}}>{fmtHM(toilLedger.balance)} h</div>
               <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
             </div>
 
-            <div style={{...S.card,background:'#fff',border:'1.5px solid #ede9fe'}}>
+            <div style={{...S.card,background:'#fff',border:'1.5px solid #ede9fe',marginBottom:isWide?0:'10px'}}>
               <div style={{...S.lbl,fontSize:'11px',marginBottom:'8px'}}>Redeem TOIL</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 52px 80px',gap:'8px',marginBottom:'8px'}}>
                 <input type="date" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',boxSizing:'border-box'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
@@ -5113,13 +5212,16 @@ export default function App() {
               <input type="text" placeholder="Note (optional) — e.g. half day, appointment" style={{width:'100%',boxSizing:'border-box',border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',marginBottom:'8px'}} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
               <button onClick={addToilTaken} style={{width:'100%',background:'#7c3aed',color:'#fff',border:'none',borderRadius:'10px',padding:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Redeem TOIL</button>
             </div>
+            </div>
 
             <div style={{...S.lbl,fontSize:'11px',margin:'14px 0 8px'}}>Ledger</div>
             <div style={{fontSize:'11.5px',fontWeight:600,color:'#94a3b8',lineHeight:1.5,marginBottom:'10px'}}>Green entries post automatically whenever you log a shift as TOIL or Mix. Red entries result when you redeem TOIL in the box above.</div>
             {toilLedger.rows.length===0 ? (
               <div style={{fontSize:'14px',color:'#94a3b8',textAlign:'center',padding:'20px'}}>No TOIL activity yet</div>
-            ) : toilLedger.rows.map(l=>(
-              <div key={l.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'11px 12px',marginBottom:'8px',borderRadius:'11px',gap:'10px',background:l.type==='earned'?'#f0fdf4':'#fef2f2',border:l.type==='earned'?'1px solid #bbf7d0':'1px solid #fecaca'}}>
+            ) : (
+            <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}:undefined}>
+            {toilLedger.rows.map(l=>(
+              <div key={l.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'11px 12px',marginBottom:isWide?0:'8px',borderRadius:'11px',gap:'10px',background:l.type==='earned'?'#f0fdf4':'#fef2f2',border:l.type==='earned'?'1px solid #bbf7d0':'1px solid #fecaca'}}>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:'13.5px',fontWeight:700,color:'#334155'}}>{l.note}</div>
                   <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'4px'}}>
@@ -5137,6 +5239,8 @@ export default function App() {
                 </div>
               </div>
             ))}
+            </div>
+            )}
           </div>
         )}
 
@@ -5147,6 +5251,13 @@ export default function App() {
               <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',margin:0,letterSpacing:'-0.5px'}}>Options, Settings, Export and Backup</h2>
               {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'#065f46'}}>Saved</span></div>}
             </div>
+
+            {/* ── Desktop: the six settings sections below reflow into a
+                 2-column grid instead of one long vertical stack. Each
+                 card still expands independently — a taller expanded card
+                 just makes its own grid row taller, same as any 2-up
+                 layout. Mobile is untouched (grid only turns on at isWide). ── */}
+            <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}:undefined}>
 
             {/* ── Configuration — now a single collapsible unit like the
                  other cards, except it forces itself open for as long as
@@ -5597,6 +5708,7 @@ export default function App() {
                 <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank).
               </div>
               <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
+            </div>
             </div>
           </div>
         )}

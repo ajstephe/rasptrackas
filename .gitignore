@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+.env
+.env.local
+.env.*.local
+
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+*.log
+
+# local safety backups made during editing sessions — never meant to be committed
+src/App.jsx.bak-*
