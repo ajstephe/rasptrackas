@@ -5439,6 +5439,13 @@ export default function App() {
                  layout. Mobile is untouched (grid only turns on at isWide). ── */}
             <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}:undefined}>
 
+            {/* ── Mobile-only section labels — pure grouping, no functional
+                 change: the cards underneath are the exact same accordions
+                 either way. Desktop's 2-column grid doesn't get these,
+                 since a full-width label would just look like a stray
+                 orphaned grid cell there. ── */}
+            {!isWide && <div style={{fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',padding:'2px 4px 6px'}}>Pay &amp; Tax</div>}
+
             {/* ── Configuration — now a single collapsible unit like the
                  other cards, except it forces itself open for as long as
                  rank/pay point setup is incomplete (see configShown above)
@@ -5764,6 +5771,8 @@ export default function App() {
               );
             })()}
 
+            {!isWide && <div style={{fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',padding:'8px 4px 6px'}}>Data</div>}
+
             {/* ── Financial Years — generated calendar, every past year with data is browsable ── */}
             {(()=>{
               const cardHeader = (
@@ -5926,6 +5935,8 @@ export default function App() {
                 </>
               );
             })()}
+
+            {!isWide && <div style={{fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',padding:'8px 4px 6px'}}>Support</div>}
 
             {/* ── Sign Out — its own full box-button, same size/shape as the
                  other cards, matching how Help & Suggestions below is
