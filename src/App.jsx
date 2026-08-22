@@ -4017,23 +4017,23 @@ export default function App() {
                  Gross&Net stays informational like before. ── */}
             <div style={S.card}>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr'}}>
-                <div onClick={()=>setTab('graph')} style={{cursor:'pointer',padding:'0 12px 14px 0',borderRight:'1px solid #f1f5f9',borderBottom:'1px solid #f1f5f9'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:'9px',marginBottom:'10px'}}>
-                    <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={16} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
-                    <div style={{fontSize:'9px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
-                  </div>
-                  <div style={{fontSize:'16px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#0f172a'}}>{fmtHM(toilLedger.balance)} h</div>
-                  <div style={{fontSize:'9.5px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
-                </div>
-                <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{cursor:'pointer',padding:'0 0 14px 12px',borderBottom:'1px solid #f1f5f9'}}>
+                <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{cursor:'pointer',padding:'0 12px 14px 0',borderRight:'1px solid #f1f5f9',borderBottom:'1px solid #f1f5f9'}}>
                   {totals.curr ? (<>
-                    <div style={{display:'flex',alignItems:'center',gap:'9px',marginBottom:'10px'}}>
-                      <div style={{background:'#f0fdfa',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="cal" s={16} c="#0d9488"/></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'11px'}}>
+                      <div style={{background:'#f0fdfa',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={19} c="#0d9488"/></div>
                       <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Current Period</div>
                     </div>
                     <div style={{fontSize:'16px',fontWeight:900,color:'#0f172a'}}>{totals.curr.month}</div>
                     <div style={{fontSize:'9.5px',fontWeight:600,color:'#94a3b8',marginTop:'2px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
                   </>) : <div/>}
+                </div>
+                <div onClick={()=>setTab('graph')} style={{cursor:'pointer',padding:'0 0 14px 12px',borderBottom:'1px solid #f1f5f9'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'11px'}}>
+                    <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="clock" s={19} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
+                    <div style={{fontSize:'9px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
+                  </div>
+                  <div style={{fontSize:'16px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#0f172a'}}>{fmtHM(toilLedger.balance)} h</div>
+                  <div style={{fontSize:'9.5px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
                 </div>
               </div>
               {(()=>{
