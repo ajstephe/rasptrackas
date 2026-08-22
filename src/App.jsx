@@ -2243,7 +2243,23 @@ export default function App() {
   // Keep the Overtime Hours figure in sync with rostered/actual times and duty
   // type, unless the person has manually overridden it (form.otAuto false) —
   // e.g. to add hours for a recall the times themselves don't capture.
+  //
+  // Skip the very next pass whenever a different record gets loaded into the
+  // form (opening an entry to edit it, or clearing back to a blank new one).
+  // Without this, the effect below reruns the instant startEdit() populates
+  // the form — and if its freshly-computed figure doesn't exactly match what
+  // was actually saved (e.g. a record logged before this auto-calc existed,
+  // or with the Overtime Hours nudged by hand under an older app version
+  // that didn't flip otAuto off), it silently overwrites the saved hours
+  // right as the record opens, reading as the overtime having vanished. It
+  // should only ever recalculate in response to the person actually
+  // changing a time picker, never as a side effect of switching which
+  // record is loaded.
+  const skipAutoCalcRef = useRef(false);
+  useEffect(()=>{ skipAutoCalcRef.current = true; },[editing]);
+
   useEffect(()=>{
+    if (skipAutoCalcRef.current) { skipAutoCalcRef.current = false; return; }
     if (!form.recordShiftTimes || !form.otAuto || !form.otRateTier) return;
     const auto = Math.round(calcAutoOTHours(form)*100)/100;
     const current = parseFloat(form[form.otRateTier])||0;
@@ -3682,7 +3698,7 @@ export default function App() {
             <div style={isWide?{display:'grid',gridTemplateColumns:'1.2fr 0.85fr 0.85fr 1.35fr',gap:'16px',alignItems:'stretch',marginBottom:'16px'}:undefined}>
             <div style={isWide?{order:1,display:'flex',flexDirection:'column'}:undefined}>
             {/* ── Total combined earnings card — the main/first card, now with Tax Threshold merged in below a divider ── */}
-            <div style={isWide?{...S.dark,flex:1,display:'flex',flexDirection:'column',justifyContent:'center'}:S.dark}>
+            <div style={isWide?{...S.dark,flex:1,display:'flex',flexDirection:'column'}:S.dark}>
               <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
 
               {/* header */}
@@ -3712,7 +3728,7 @@ export default function App() {
                  six-line breakdown and both gauge bars tucked away here
                  rather than all visible at once on first open. ── */}
             {settings.rank&&settings.service&&(
-              <div style={{...S.card,cursor:'pointer'}} onClick={()=>setSalaryBreakdownExpanded(v=>!v)}>
+              <div style={{...S.card,cursor:isWide?'default':'pointer'}} onClick={()=>{ if(!isWide) setSalaryBreakdownExpanded(v=>!v); }}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
                   <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
                     <div style={{background:'#eff6ff',padding:'10px',borderRadius:'12px',flexShrink:0}}><Ico n="bar" s={17} c="#2563eb"/></div>
@@ -3721,7 +3737,7 @@ export default function App() {
                       <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'1px'}}>Base, allowances, overtime, full-year projection</div>
                     </div>
                   </div>
-                  <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{salaryBreakdownExpanded?'Tap to Close':'Tap to expand'}</span>
+                  {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{salaryBreakdownExpanded?'Tap to Close':'Tap to expand'}</span>}
                 </div>
 
                 {salaryBreakdownExpanded&&(
@@ -3929,8 +3945,8 @@ export default function App() {
                  when the balance is fine, rather than being solid purple
                  for no functional reason. ── */}
             <div onClick={()=>setTab('graph')} style={toilLedger.balance<0
-              ? {...S.card,background:'#fef2f2',border:'1px solid #fecaca',cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column',justifyContent:'center'}:{})}
-              : {...S.card,cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column',justifyContent:'center'}:{})}
+              ? {...S.card,background:'#fef2f2',border:'1px solid #fecaca',cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column'}:{})}
+              : {...S.card,cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column'}:{})}
             }>
               {isWide ? (
                 <>
@@ -3962,7 +3978,7 @@ export default function App() {
             <div style={isWide?{order:3,display:'flex',flexDirection:'column'}:undefined}>
             {/* ── Current pay period — tap through to Calendar view in Summary ── */}
             {totals.curr&&(
-              <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column',justifyContent:'center'}:{})}}>
+              <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column'}:{})}}>
                 {isWide ? (
                   <>
                     {/* Desktop: icon + label on their own top row, matching
@@ -4047,17 +4063,28 @@ export default function App() {
             <>
             {/* date + duty + notes */}
             <div style={S.card}>
-              <div style={{marginBottom:'13px'}}>
-                <label style={S.lbl}>Date</label>
-                {isWide ? (
-                  <button onClick={()=>{ setDatePickerMonth((form.date||todayStr).slice(0,7)); setDatePickerFor('shift'); }} style={{...S.inp,display:'block',boxSizing:'border-box',height:'46px',textAlign:'left',cursor:'pointer',fontFamily:'inherit'}}>
-                    {new Date((form.date||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
-                  </button>
-                ) : (
-                  <input type="date" style={{...S.inp,display:'block',boxSizing:'border-box',height:'46px'}} value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
-                )}
-              </div>
-              <div style={{marginBottom:'13px'}}><label style={S.lbl}>Duty / Reason</label><input type="text" placeholder="e.g. MPL7XX, PXX" style={S.inp} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/></div>
+              {isWide ? (
+                <div style={{display:'flex',gap:'12px',marginBottom:'13px'}}>
+                  <div style={{flex:'0 0 calc(50% - 6px)',minWidth:0}}>
+                    <label style={S.lbl}>Date</label>
+                    <button onClick={()=>{ setDatePickerMonth((form.date||todayStr).slice(0,7)); setDatePickerFor('shift'); }} style={{...S.inp,display:'block',boxSizing:'border-box',width:'100%',height:'46px',textAlign:'left',cursor:'pointer',fontFamily:'inherit'}}>
+                      {new Date((form.date||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
+                    </button>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <label style={S.lbl}>Duty / Reason</label>
+                    <input type="text" placeholder="e.g. MPL7XX, PXX" style={{...S.inp,width:'100%',boxSizing:'border-box'}} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{marginBottom:'13px'}}>
+                    <label style={S.lbl}>Date</label>
+                    <input type="date" style={{...S.inp,display:'block',boxSizing:'border-box',height:'46px'}} value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
+                  </div>
+                  <div style={{marginBottom:'13px'}}><label style={S.lbl}>Duty / Reason</label><input type="text" placeholder="e.g. MPL7XX, PXX" style={S.inp} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/></div>
+                </>
+              )}
 
               {(()=>{
                 // Desktop-only: Rostered/Actual (or, in manual-entry mode,
@@ -5012,21 +5039,24 @@ export default function App() {
                          columns; mobile keeps the original two-column
                          layout unchanged. ── */}
                     {isWide ? (
-                      <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'18px',marginTop:'16px',paddingTop:'16px',borderTop:'1px solid #f1f5f9'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>No OT — Info Only</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
-                          <span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Counted Other Period</span>
+                      <div style={{display:'flex',flexDirection:'column',gap:'10px',marginTop:'16px',paddingTop:'16px',borderTop:'1px solid #f1f5f9'}}>
+                        <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'18px'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>No OT — Info Only</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
+                            <span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Counted Other Period</span>
+                          </div>
                         </div>
-                        <div style={{width:'1px',height:'16px',background:'#f1f5f9'}}/>
-                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>PA</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
-                        <div style={{width:'1px',height:'16px',background:'#f1f5f9'}}/>
-                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#0f172a'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#059669'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>1.5x</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#dc2626'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>2.0x</span></div>
+                        <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'18px'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>PA</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
+                          <div style={{width:'1px',height:'16px',background:'#cbd5e1',flexShrink:0}}/>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#0f172a'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#059669'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>1.5x</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#dc2626'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>2.0x</span></div>
+                        </div>
                       </div>
                     ) : (
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginTop:'12px',paddingTop:'12px',borderTop:'1px solid #f1f5f9'}}>
@@ -5848,17 +5878,36 @@ export default function App() {
                 </div>
                 <Ico n="cR" s={16} c="#94a3b8"/>
               </a>
-              <div style={{borderTop:'1px solid #f1f5f9',margin:'14px 0'}}/>
-              <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
-                <Ico n="coffee" s={16} c="#d97706"/>
-                <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Want to say thanks?</div>
-              </div>
-              <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,lineHeight:1.6}}>
-                A lot of late nights, caffeine, and swearing went into building and hosting this. If it's making your life easier and you'd like to say thanks, you can{' '}
-                <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank).
-              </div>
-              <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
+              {!isWide && (
+                <>
+                  <div style={{borderTop:'1px solid #f1f5f9',margin:'14px 0'}}/>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
+                    <Ico n="coffee" s={16} c="#d97706"/>
+                    <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Want to say thanks?</div>
+                  </div>
+                  <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,lineHeight:1.6}}>
+                    A lot of late nights, caffeine, and swearing went into making this. If it's made your life easier and you'd like to say thanks, you can{' '}
+                    <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank). Thanks.
+                  </div>
+                </>
+              )}
             </div>
+
+            {/* ── Want to say thanks — its own card on desktop instead of
+                 sharing the Help & Suggestions box. ── */}
+            {isWide && (
+              <div style={S.card}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
+                  <Ico n="coffee" s={16} c="#d97706"/>
+                  <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Want to say thanks?</div>
+                </div>
+                <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,lineHeight:1.6}}>
+                  A lot of late nights, caffeine, and swearing went into building and hosting this. If it's making your life easier and you'd like to say thanks, you can{' '}
+                  <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank).
+                </div>
+                <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
+              </div>
+            )}
             </div>
 
             {/* ── Backdrop for the desktop popup cards above — click
