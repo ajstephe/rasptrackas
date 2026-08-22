@@ -3739,7 +3739,7 @@ export default function App() {
             <div style={{...S.card,cursor:isWide?'default':'pointer'}} onClick={()=>{ if(!isWide) setSalaryBreakdownExpanded(v=>!v); }}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
-                  <div style={{background:'#eff6ff',padding:'10px',borderRadius:'12px',flexShrink:0}}><Ico n="bar" s={17} c="#2563eb"/></div>
+                  <div style={{background:'#eff6ff',padding:isWide?'10px':'11px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:19} c="#2563eb"/></div>
                   <div>
                     <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Salary Breakdown &amp; Overtime Forecast</div>
                     <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'1px'}}>Base, allowances, overtime, full-year projection</div>
