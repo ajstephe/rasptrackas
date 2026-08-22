@@ -3140,8 +3140,13 @@ export default function App() {
   // centred, scrollable popup instead of expanding inline and pushing
   // its 2-column grid row-mate taller. Mobile keeps the original inline
   // accordion untouched — this only takes effect when isOpen && isWide.
+  // zIndex 56/55 (card/backdrop) is deliberately BELOW 60 — several of
+  // these cards open their own follow-on modal (Financial Reports &
+  // Export's PDF/Spreadsheet chooser, Account & Data Management's
+  // Restore confirm), and those already use zIndex:60. Sitting above
+  // them here would bury an unclickable modal behind this one.
   const asModalStyle = (base, isOpen) => (isWide && isOpen)
-    ? {...base, position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)', width:'min(640px, 90vw)', maxHeight:'80vh', overflowY:'auto', zIndex:61, boxShadow:'0 24px 64px rgba(0,0,0,0.35)', cursor:'default'}
+    ? {...base, position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)', width:'min(640px, 90vw)', maxHeight:'80vh', overflowY:'auto', zIndex:56, boxShadow:'0 24px 64px rgba(0,0,0,0.35)', cursor:'default'}
     : base;
 
   // ── Trends charts — shared between the inline (small) card and the
@@ -5732,7 +5737,7 @@ export default function App() {
                  closes the other four first), so closing all five here is
                  equivalent to closing whichever one is actually open. ── */}
             {isWide && (configExpanded&&!configSetupIncomplete || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded) && (
-              <div onClick={()=>{ setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.55)',zIndex:60}}/>
+              <div onClick={()=>{ setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.55)',zIndex:55}}/>
             )}
           </div>
         )}
