@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { createClient } from "@supabase/supabase-js";
 
 // ─── financial year — generated, not hardcoded ────────────────────────────────
@@ -1248,6 +1249,11 @@ export default function App() {
   const [pulseBackupBtn, setPulseBackupBtn] = useState(false);
 
   const mainRef   = useRef(null);
+  // Portal target for the More.. tab's desktop popup cards — rendering
+  // into this node (a sibling of <main>, not a descendant) means the
+  // popups escape <main>'s own overflowY:auto scroll container entirely,
+  // so they're never clipped or dragged around by its internal scroll.
+  const contentWrapRef = useRef(null);
   const fileRef   = useRef(null);
   const monthRefs = useRef({});
   const stickyRef = useRef(null);
@@ -3145,9 +3151,15 @@ export default function App() {
   // Export's PDF/Spreadsheet chooser, Account & Data Management's
   // Restore confirm), and those already use zIndex:60. Sitting above
   // them here would bury an unclickable modal behind this one.
-  const asModalStyle = (base, isOpen) => (isWide && isOpen)
-    ? {...base, position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)', width:'min(640px, 90vw)', maxHeight:'80vh', overflowY:'auto', zIndex:56, boxShadow:'0 24px 64px rgba(0,0,0,0.35)', cursor:'default'}
-    : base;
+  // Rendered as a genuinely separate element from the collapsed grid
+  // card (never the same DOM node transformed in place) — the grid
+  // card underneath stays permanently in normal flow, so opening,
+  // closing, or switching between cards never reflows or moves any of
+  // the others. position:'absolute' (not 'fixed') so it centres on the
+  // sidebar-excluded content wrapper (see its position:'relative'
+  // above) instead of the full browser viewport, and is unaffected by
+  // <main>'s own internal scroll.
+  const modalBoxStyle = (base) => ({...base, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%, -50%)', width:'min(640px, 90vw)', maxHeight:'80vh', overflowY:'auto', zIndex:56, boxShadow:'0 24px 64px rgba(0,0,0,0.35)', cursor:'default'});
 
   // ── Trends charts — shared between the inline (small) card and the
   // enlarge modal (big), so both stay pixel-for-pixel consistent. Tapping a
@@ -3636,7 +3648,12 @@ export default function App() {
         </div>
       )}
 
-      <div style={{display:'flex',flex:1,overflow:'hidden'}}>
+      {/* position:relative — the positioning context for the More.. tab's
+           desktop popup cards below, so they centre on this sidebar-
+           excluded content area (main+aside) rather than the full browser
+           viewport, and stay put regardless of main's own internal scroll
+           (this row itself never scrolls — only <main> does, internally). ── */}
+      <div ref={contentWrapRef} style={{display:'flex',flex:1,overflow:'hidden',position:'relative'}}>
       <main ref={mainRef} className="no-print" style={S.main}>
 
         {/* ══════════════════════════════════════════ DASHBOARD */}
@@ -3915,14 +3932,30 @@ export default function App() {
               ? {...S.card,background:'#fef2f2',border:'1px solid #fecaca',cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column',justifyContent:'center'}:{})}
               : {...S.card,cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column',justifyContent:'center'}:{})}
             }>
-              <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="clock" s={19} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
-                <div>
-                  <div style={{fontSize:'10.5px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
-                  <div style={{fontSize:'17px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#0f172a',marginTop:'1px'}}>{fmtHM(toilLedger.balance)} h</div>
-                  <div style={{fontSize:'10.5px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'1px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
+              {isWide ? (
+                <>
+                  {/* Desktop: icon + label on their own top row, matching
+                      the CARMS tile's layout for a consistent design
+                      language across the stat-tile row. ── */}
+                  <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
+                    <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="clock" s={19} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
+                    <div style={{fontSize:'10.5px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:'21px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#0f172a'}}>{fmtHM(toilLedger.balance)} h</div>
+                    <div style={{fontSize:'10.5px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
+                  </div>
+                </>
+              ) : (
+                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                  <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="clock" s={19} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
+                  <div>
+                    <div style={{fontSize:'10.5px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
+                    <div style={{fontSize:'17px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#0f172a',marginTop:'1px'}}>{fmtHM(toilLedger.balance)} h</div>
+                    <div style={{fontSize:'10.5px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'1px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             </div>
 
@@ -3930,14 +3963,30 @@ export default function App() {
             {/* ── Current pay period — tap through to Calendar view in Summary ── */}
             {totals.curr&&(
               <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column',justifyContent:'center'}:{})}}>
-                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                  <div style={{background:'#f0fdfa',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={19} c="#0d9488"/></div>
-                  <div>
-                    <div style={{fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Current Pay Period</div>
-                    <div style={{fontSize:'17px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{totals.curr.month}</div>
-                    <div style={{fontSize:'10.5px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
+                {isWide ? (
+                  <>
+                    {/* Desktop: icon + label on their own top row, matching
+                        the CARMS tile's layout for a consistent design
+                        language across the stat-tile row. ── */}
+                    <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
+                      <div style={{background:'#f0fdfa',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={19} c="#0d9488"/></div>
+                      <div style={{fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Current Pay Period</div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:'21px',fontWeight:900,color:'#0f172a'}}>{totals.curr.month}</div>
+                      <div style={{fontSize:'10.5px',fontWeight:600,color:'#94a3b8',marginTop:'2px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                    <div style={{background:'#f0fdfa',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={19} c="#0d9488"/></div>
+                    <div>
+                      <div style={{fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Current Pay Period</div>
+                      <div style={{fontSize:'17px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{totals.curr.month}</div>
+                      <div style={{fontSize:'10.5px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
             </div>
@@ -5291,16 +5340,17 @@ export default function App() {
                  other cards, except it forces itself open for as long as
                  rank/pay point setup is incomplete (see configShown above)
                  — that part was never meant to be hideable. ── */}
-            <div style={asModalStyle(S.card, configExpanded&&!configSetupIncomplete)}>
-              <div onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setConfigExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:configSetupIncomplete?'default':'pointer',marginBottom:configShown?'13px':0}}>
-                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <div style={{background:'#eff6ff',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
-                  <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Config, Rates &amp; Payscales</div>
+            {(()=>{
+              const cardHeader = (
+                <div onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setConfigExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete))?'13px':0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                    <div style={{background:'#eff6ff',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
+                    <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Config, Rates &amp; Payscales</div>
+                  </div>
+                  {!configSetupIncomplete && <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{configShown?'Tap to Close':'Tap to expand'}</span>}
                 </div>
-                {!configSetupIncomplete && <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{configShown?'Tap to Close':'Tap to expand'}</span>}
-              </div>
-
-              {configShown && (
+              );
+              const cardBody = configShown && (
               <>
               <div style={{marginBottom:'13px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'7px'}}>
@@ -5380,8 +5430,27 @@ export default function App() {
                 );
               })()}
               </>
-              )}
-            </div>
+              );
+              // Desktop: only the genuinely user-toggled open state pops
+              // out as a modal — the forced-open-while-setup-incomplete
+              // case stays inline even on desktop (it's a first-run nudge,
+              // not something tapped open, so it shouldn't hijack into a
+              // popup the moment you land on this tab).
+              const showInline = configShown && (!isWide || configSetupIncomplete);
+              const showModal = isWide && configExpanded && !configSetupIncomplete;
+              return (
+                <>
+                  <div style={S.card}>
+                    {cardHeader}
+                    {showInline && cardBody}
+                  </div>
+                  {showModal && contentWrapRef.current && createPortal(
+                    <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
+                    contentWrapRef.current
+                  )}
+                </>
+              );
+            })()}
 
             {/* ── Tax & 100K+ Calculator — Actual (YTD) and Forecast (full year), side by side ── */}
             {settings.rank&&settings.service&&(()=>{
@@ -5430,16 +5499,16 @@ export default function App() {
                 </div>
               );
 
-              return (
-                <div ref={taxImpactCardRef} style={asModalStyle(S.card, taxImpactExpanded)}>
-                  <div onClick={()=>{ if(isWide){setConfigExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setTaxImpactExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:taxImpactExpanded?'12px':0,cursor:'pointer'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                      <div style={{background:over?'#fef2f2':'#f0fdf4',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="calc" s={isWide?21:17} c={over?'#dc2626':'#059669'}/></div>
-                      <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Tax & 100K+ Calculator</div>
-                    </div>
-                    <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{taxImpactExpanded?'Tap to Close':'Tap to expand'}</span>
+              const cardHeader = (
+                <div onClick={()=>{ if(isWide){setConfigExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setTaxImpactExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(taxImpactExpanded&&!isWide)?'12px':0,cursor:'pointer'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                    <div style={{background:over?'#fef2f2':'#f0fdf4',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="calc" s={isWide?21:17} c={over?'#dc2626':'#059669'}/></div>
+                    <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Tax & 100K+ Calculator</div>
                   </div>
-                  {taxImpactExpanded&&(
+                  <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{taxImpactExpanded?'Tap to Close':'Tap to expand'}</span>
+                </div>
+              );
+              const cardBody = taxImpactExpanded&&(
                     <>
                       <div style={{display:'flex',alignItems:'flex-start',gap:'8px',marginBottom:'13px'}}>
                         <Ico n="shield" s={13} c="#94a3b8"/>
@@ -5577,21 +5646,33 @@ export default function App() {
 
                       <div style={{fontSize:'9.5px',color:'#94a3b8',lineHeight:1.5,marginTop:'10px'}}>Based on your current pay rate projected across the tax year. Pension figures follow the 2015 Police Pension Scheme (England & Wales) rates effective 1 April 2026. Please do your own due diligence and if needs be consult an accountant/HMRC or your pension provider.</div>
                     </>
+                  );
+              return (
+                <>
+                  <div ref={taxImpactCardRef} style={S.card}>
+                    {cardHeader}
+                    {!isWide && cardBody}
+                  </div>
+                  {isWide && taxImpactExpanded && contentWrapRef.current && createPortal(
+                    <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'12px'}}>{cardBody}</div></div>,
+                    contentWrapRef.current
                   )}
-                </div>
+                </>
               );
             })()}
 
             {/* ── Financial Years — generated calendar, every past year with data is browsable ── */}
-            <div style={asModalStyle(S.card, financialYearsExpanded)}>
-              <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setFinancialYearsExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:financialYearsExpanded?'11px':0,cursor:'pointer'}}>
-                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <div style={{background:'#eff6ff',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cal" s={isWide?21:17} c="#2563eb"/></div>
-                  <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Archived Financial Years</div>
+            {(()=>{
+              const cardHeader = (
+                <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setFinancialYearsExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(financialYearsExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                    <div style={{background:'#eff6ff',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cal" s={isWide?21:17} c="#2563eb"/></div>
+                    <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Archived Financial Years</div>
+                  </div>
+                  <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{financialYearsExpanded?'Tap to Close':'Tap to expand'}</span>
                 </div>
-                <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{financialYearsExpanded?'Tap to Close':'Tap to expand'}</span>
-              </div>
-              {financialYearsExpanded&&(
+              );
+              const cardBody = financialYearsExpanded&&(
                 <>
                   <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
                     {[CURRENT_FY_YEAR, ...yearsWithData].map(y=>{
@@ -5614,26 +5695,52 @@ export default function App() {
                   </div>
                   <div style={{fontSize:'9.5px',color:'#94a3b8',textAlign:'center',marginTop:'10px',lineHeight:1.5}}>Dates are generated from your confirmed pay pattern (4-4-5 weeks, 52 weeks/year). Archived data is only retained for 4 years.</div>
                 </>
-              )}
-            </div>
+              );
+              return (
+                <>
+                  <div style={S.card}>
+                    {cardHeader}
+                    {!isWide && cardBody}
+                  </div>
+                  {isWide && financialYearsExpanded && contentWrapRef.current && createPortal(
+                    <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
+                    contentWrapRef.current
+                  )}
+                </>
+              );
+            })()}
 
             {/* ── Export to spreadsheet — separate from backup ── */}
-            <div style={asModalStyle(S.card, exportDataExpanded)}>
-              <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setDataManagementExpanded(false);} setExportDataExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:exportDataExpanded?'11px':0,cursor:'pointer'}}>
-                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <div style={{background:'#fffbeb',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="share" s={isWide?21:17} c="#d97706"/></div>
-                  <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Financial Reports &amp; Export</div>
+            {(()=>{
+              const cardHeader = (
+                <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setDataManagementExpanded(false);} setExportDataExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(exportDataExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                    <div style={{background:'#fffbeb',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="share" s={isWide?21:17} c="#d97706"/></div>
+                    <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Financial Reports &amp; Export</div>
+                  </div>
+                  <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{exportDataExpanded?'Tap to Close':'Tap to expand'}</span>
                 </div>
-                <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{exportDataExpanded?'Tap to Close':'Tap to expand'}</span>
-              </div>
-              {exportDataExpanded&&(
+              );
+              const cardBody = exportDataExpanded&&(
                 <>
                   <button onClick={()=>{setExportFormat(null);setPayslipMode('period');setPayslipPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);setPayslipFYYear(CURRENT_FY_YEAR);setPayslipModalOpen(true);}} disabled={entries.length===0} style={{width:'100%',padding:'12px',background: entries.length===0 ? '#f1f5f9' : '#2563eb',border:'none',borderRadius:'11px',color: entries.length===0 ? '#94a3b8' : '#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor: entries.length===0 ? 'default' : 'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',textTransform:'uppercase',letterSpacing:'1px',boxShadow: entries.length===0 ? 'none' : '0 4px 14px rgba(37,99,235,0.3)'}}><Ico n="share" s={13} c={entries.length===0?'#94a3b8':'#fff'}/> Export to PDF or Spreadsheet</button>
                   {entries.length===0&&<div style={{fontSize:'10px',color:'#94a3b8',textAlign:'center',marginTop:'8px',fontWeight:600}}>Log a shift first to enable export</div>}
                   <div style={{fontSize:'9.5px',color:'#94a3b8',textAlign:'center',marginTop:'8px',lineHeight:1.5}}>Archived data is only retained for 4 years.</div>
                 </>
-              )}
-            </div>
+              );
+              return (
+                <>
+                  <div style={S.card}>
+                    {cardHeader}
+                    {!isWide && cardBody}
+                  </div>
+                  {isWide && exportDataExpanded && contentWrapRef.current && createPortal(
+                    <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
+                    contentWrapRef.current
+                  )}
+                </>
+              );
+            })()}
 
             {/* ── Account & Data Management — merged into one card, keeping
                  Data Management's dark styling throughout (including the
@@ -5641,15 +5748,18 @@ export default function App() {
                  look to match the same dark-theme conventions Wipe All
                  Data's own confirm flow already uses). One shared expand
                  toggle now, not two. ── */}
-            <div style={asModalStyle({background:'#fff',borderRadius:'18px',padding:'19px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid #f1f5f9',marginBottom:'10px',position:'relative',overflow:'hidden'}, dataManagementExpanded)}>
-              <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);} setDataManagementExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:dataManagementExpanded?'13px':0}}>
-                <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
-                  <div style={{background:'#eff6ff',padding:'11px',borderRadius:'13px'}}><Ico n="user" s={21} c="#2563eb"/></div>
-                  <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Account &amp; Data Management</div>
+            {(()=>{
+              const acctBase = {background:'#fff',borderRadius:'18px',padding:'19px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid #f1f5f9',marginBottom:'10px',position:'relative',overflow:'hidden'};
+              const cardHeader = (
+                <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);} setDataManagementExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:(dataManagementExpanded&&!isWide)?'13px':0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
+                    <div style={{background:'#eff6ff',padding:'11px',borderRadius:'13px'}}><Ico n="user" s={21} c="#2563eb"/></div>
+                    <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Account &amp; Data Management</div>
+                  </div>
+                  <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{dataManagementExpanded?'Tap to Close':'Tap to expand'}</span>
                 </div>
-                <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{dataManagementExpanded?'Tap to Close':'Tap to expand'}</span>
-              </div>
-              {dataManagementExpanded&&(
+              );
+              const cardBody = dataManagementExpanded&&(
                 <div style={{background:'#f8fafc',borderRadius:'13px',padding:'13px'}}>
                   {session&&<div style={{fontSize:'12px',color:'#0f172a',fontWeight:700,marginBottom:'11px'}}>Signed in as {session.user?.email}</div>}
                   <div style={{fontSize:'11px',color:'#64748b',marginBottom:'11px',lineHeight:1.5}}>Data is automatically synced and backed up to a secure cloud. To create a hard downloadable backup, select BACKUP. To restore from a previous hard copy, select RESTORE.</div>
@@ -5699,8 +5809,20 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              )}
-            </div>
+              );
+              return (
+                <>
+                  <div style={acctBase}>
+                    {cardHeader}
+                    {!isWide && cardBody}
+                  </div>
+                  {isWide && dataManagementExpanded && contentWrapRef.current && createPortal(
+                    <div style={modalBoxStyle(acctBase)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
+                    contentWrapRef.current
+                  )}
+                </>
+              );
+            })()}
 
             {/* ── Sign Out — its own full box-button, same size/shape as the
                  other cards, matching how Help & Suggestions below is
@@ -5743,9 +5865,12 @@ export default function App() {
                  anywhere outside the open card to close it. Only one card
                  can be open in modal form at a time (each card's onClick
                  closes the other four first), so closing all five here is
-                 equivalent to closing whichever one is actually open. ── */}
-            {isWide && (configExpanded&&!configSetupIncomplete || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded) && (
-              <div onClick={()=>{ setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.55)',zIndex:55}}/>
+                 equivalent to closing whichever one is actually open.
+                 Portalled to contentWrapRef, same reasoning as the popup
+                 cards themselves (see modalBoxStyle above). ── */}
+            {isWide && (configExpanded&&!configSetupIncomplete || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded) && contentWrapRef.current && createPortal(
+              <div onClick={()=>{ setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.55)',zIndex:55}}/>,
+              contentWrapRef.current
             )}
           </div>
         )}
