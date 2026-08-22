@@ -3136,6 +3136,14 @@ export default function App() {
     sel:  {width:'100%',background:'#f8fafc',border:'1px solid #e2e8f0',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'#0f172a',appearance:'none'},
   };
 
+  // ── More.. tab, desktop only: an opened settings card becomes a
+  // centred, scrollable popup instead of expanding inline and pushing
+  // its 2-column grid row-mate taller. Mobile keeps the original inline
+  // accordion untouched — this only takes effect when isOpen && isWide.
+  const asModalStyle = (base, isOpen) => (isWide && isOpen)
+    ? {...base, position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)', width:'min(640px, 90vw)', maxHeight:'80vh', overflowY:'auto', zIndex:61, boxShadow:'0 24px 64px rgba(0,0,0,0.35)', cursor:'default'}
+    : base;
+
   // ── Trends charts — shared between the inline (small) card and the
   // enlarge modal (big), so both stay pixel-for-pixel consistent. Tapping a
   // point shows a value callout; tapping it again (or a different point)
@@ -5268,8 +5276,8 @@ export default function App() {
                  other cards, except it forces itself open for as long as
                  rank/pay point setup is incomplete (see configShown above)
                  — that part was never meant to be hideable. ── */}
-            <div style={S.card}>
-              <div onClick={configSetupIncomplete?undefined:()=>setConfigExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:configSetupIncomplete?'default':'pointer',marginBottom:configShown?'13px':0}}>
+            <div style={asModalStyle(S.card, configExpanded&&!configSetupIncomplete)}>
+              <div onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setConfigExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:configSetupIncomplete?'default':'pointer',marginBottom:configShown?'13px':0}}>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                   <div style={{background:'#eff6ff',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
                   <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Config, Rates &amp; Payscales</div>
@@ -5408,8 +5416,8 @@ export default function App() {
               );
 
               return (
-                <div ref={taxImpactCardRef} style={S.card}>
-                  <div onClick={()=>setTaxImpactExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:taxImpactExpanded?'12px':0,cursor:'pointer'}}>
+                <div ref={taxImpactCardRef} style={asModalStyle(S.card, taxImpactExpanded)}>
+                  <div onClick={()=>{ if(isWide){setConfigExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setTaxImpactExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:taxImpactExpanded?'12px':0,cursor:'pointer'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                       <div style={{background:over?'#fef2f2':'#f0fdf4',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="calc" s={isWide?21:17} c={over?'#dc2626':'#059669'}/></div>
                       <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Tax & 100K+ Calculator</div>
@@ -5560,8 +5568,8 @@ export default function App() {
             })()}
 
             {/* ── Financial Years — generated calendar, every past year with data is browsable ── */}
-            <div style={S.card}>
-              <div onClick={()=>setFinancialYearsExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:financialYearsExpanded?'11px':0,cursor:'pointer'}}>
+            <div style={asModalStyle(S.card, financialYearsExpanded)}>
+              <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setFinancialYearsExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:financialYearsExpanded?'11px':0,cursor:'pointer'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                   <div style={{background:'#eff6ff',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cal" s={isWide?21:17} c="#2563eb"/></div>
                   <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Archived Financial Years</div>
@@ -5595,8 +5603,8 @@ export default function App() {
             </div>
 
             {/* ── Export to spreadsheet — separate from backup ── */}
-            <div style={S.card}>
-              <div onClick={()=>setExportDataExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:exportDataExpanded?'11px':0,cursor:'pointer'}}>
+            <div style={asModalStyle(S.card, exportDataExpanded)}>
+              <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setDataManagementExpanded(false);} setExportDataExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:exportDataExpanded?'11px':0,cursor:'pointer'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                   <div style={{background:'#fffbeb',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="share" s={isWide?21:17} c="#d97706"/></div>
                   <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Financial Reports &amp; Export</div>
@@ -5618,8 +5626,8 @@ export default function App() {
                  look to match the same dark-theme conventions Wipe All
                  Data's own confirm flow already uses). One shared expand
                  toggle now, not two. ── */}
-            <div style={{background:'#fff',borderRadius:'18px',padding:'19px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid #f1f5f9',marginBottom:'10px',position:'relative',overflow:'hidden'}}>
-              <div onClick={()=>setDataManagementExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:dataManagementExpanded?'13px':0}}>
+            <div style={asModalStyle({background:'#fff',borderRadius:'18px',padding:'19px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid #f1f5f9',marginBottom:'10px',position:'relative',overflow:'hidden'}, dataManagementExpanded)}>
+              <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);} setDataManagementExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:dataManagementExpanded?'13px':0}}>
                 <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
                   <div style={{background:'#eff6ff',padding:'11px',borderRadius:'13px'}}><Ico n="user" s={21} c="#2563eb"/></div>
                   <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Account &amp; Data Management</div>
@@ -5715,6 +5723,15 @@ export default function App() {
               <div style={{fontSize:'11.5px',color:'#64748b',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
             </div>
             </div>
+
+            {/* ── Backdrop for the desktop popup cards above — click
+                 anywhere outside the open card to close it. Only one card
+                 can be open in modal form at a time (each card's onClick
+                 closes the other four first), so closing all five here is
+                 equivalent to closing whichever one is actually open. ── */}
+            {isWide && (configExpanded&&!configSetupIncomplete || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded) && (
+              <div onClick={()=>{ setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.55)',zIndex:60}}/>
+            )}
           </div>
         )}
       </main>
