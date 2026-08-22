@@ -4660,6 +4660,53 @@ export default function App() {
               const totG=pb.combinedGross, totN=pb.combinedNet;
               const isExp=expanded===p.month, isCurr=idx===currPeriodIdx;
 
+              // Built once, used by both the desktop two-box layout and the
+              // mobile merged-card layout below, so the actual figures and
+              // breakdown rows never have to be maintained in two places.
+              const otPayInner = (
+                <>
+                  <div style={{fontSize:'11px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
+                  <div style={{fontSize:'14px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: {fmt(gOT)}</div>
+                  <div style={{fontSize:'13px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: {fmt(pb.otResult.net)}</div>
+                  <div style={{borderTop:'1px solid #eff6ff',paddingTop:'6px'}}>
+                    {tierHours.t133>0&&<div style={{marginBottom:'6px'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t133}h @ 1.33x</span><span>{fmt(tierGross.t133)}</span></div>
+                      <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t133,'#64748b')}</div>
+                    </div>}
+                    {tierHours.t150>0&&<div style={{marginBottom:'6px'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t150}h @ 1.5x</span><span>{fmt(tierGross.t150)}</span></div>
+                      <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t150,'#64748b')}</div>
+                    </div>}
+                    {tierHours.t200>0&&<div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t200}h @ 2.0x</span><span>{fmt(tierGross.t200)}</span></div>
+                      <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t200,'#64748b')}</div>
+                    </div>}
+                  </div>
+                </>
+              );
+              const paInner = (
+                <>
+                  <div style={{fontSize:'11px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>PA</div>
+                  <div style={{fontSize:'14px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: {fmt(gPA)}</div>
+                  <div style={{fontSize:'13px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: {fmt(pb.paResult.net)}</div>
+                  <div style={{borderTop:'1px solid #fef3c7',paddingTop:'6px'}}>
+                    {pa1>0&&<div style={{marginBottom:'6px'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA1 × {pa1}</span><span>{fmt(paGross.PA1)}</span></div>
+                      <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA1,'#b45309')}</div>
+                    </div>}
+                    {pa2>0&&<div style={{marginBottom:'6px'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA2 × {pa2}</span><span>{fmt(paGross.PA2)}</span></div>
+                      <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA2,'#b45309')}</div>
+                    </div>}
+                    {pa3>0&&<div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA3 × {pa3}</span><span>{fmt(paGross.PA3)}</span></div>
+                      <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA3,'#b45309')}</div>
+                    </div>}
+                    {pa1===0&&pa2===0&&pa3===0&&<div style={{fontSize:'12px',fontWeight:700,color:'#b45309'}}>None this period</div>}
+                  </div>
+                </>
+              );
+
               return(
                 <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:isCurr?'#eff6ff':'#fff',borderRadius:'17px',border:isCurr?'2px solid #2563eb':'1px solid #f1f5f9',borderLeft:isCurr?'5px solid #2563eb':'1px solid #f1f5f9',boxShadow:isCurr?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 5px rgba(0,0,0,0.04)',marginBottom:'9px',overflow:'hidden',...(isWide&&isExp?{gridColumn:'1 / -1'}:{})}}>
                   <button onClick={()=>setExpanded(isExp?null:p.month)} style={{width:'100%',textAlign:'left',padding:'16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
@@ -4700,53 +4747,36 @@ export default function App() {
 
                   {isExp&&(
                     <div style={{background:'#f8fafc',borderTop:'1px solid #f1f5f9',padding:'13px'}}>
-                      {/* month summary cards — net figures now use cumulative marginal tax, rate shown */}
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px',marginBottom:'9px'}}>
-                        <div style={{background:'#fff',borderRadius:'13px',padding:'13px',border:'1px solid #dbeafe'}}>
-                          <div style={{fontSize:'11px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
-                          <div style={{fontSize:'14px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: {fmt(gOT)}</div>
-                          <div style={{fontSize:'13px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: {fmt(pb.otResult.net)}</div>
-                          <div style={{borderTop:'1px solid #eff6ff',paddingTop:'6px'}}>
-                            {tierHours.t133>0&&<div style={{marginBottom:'6px'}}>
-                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t133}h @ 1.33x</span><span>{fmt(tierGross.t133)}</span></div>
-                              <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t133,'#64748b')}</div>
-                            </div>}
-                            {tierHours.t150>0&&<div style={{marginBottom:'6px'}}>
-                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t150}h @ 1.5x</span><span>{fmt(tierGross.t150)}</span></div>
-                              <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t150,'#64748b')}</div>
-                            </div>}
-                            {tierHours.t200>0&&<div>
-                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t200}h @ 2.0x</span><span>{fmt(tierGross.t200)}</span></div>
-                              <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t200,'#64748b')}</div>
-                            </div>}
+                      {/* month summary — net figures now use cumulative marginal tax, rate shown.
+                          Desktop: OT Pay and PA keep their own bordered boxes side by side (this
+                          card already spans both grid columns once expanded, so there's room).
+                          Mobile: same figures, merged into one card with a divider instead of
+                          three separate boxes. ── */}
+                      {isWide ? (
+                        <>
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px',marginBottom:'9px'}}>
+                            <div style={{background:'#fff',borderRadius:'13px',padding:'13px',border:'1px solid #dbeafe'}}>{otPayInner}</div>
+                            <div style={{background:'#fff',borderRadius:'13px',padding:'13px',border:'1px solid #fde68a'}}>{paInner}</div>
+                          </div>
+                          <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer',marginBottom:'9px'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
+                            <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
+                            <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{background:'#fff',borderRadius:'13px',border:'1px solid #f1f5f9',padding:'13px',marginBottom:'9px'}}>
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'13px'}}>
+                            <div>{otPayInner}</div>
+                            <div style={{borderLeft:'1px solid #f1f5f9',paddingLeft:'13px'}}>{paInner}</div>
+                          </div>
+                          <div onClick={()=>setTab('graph')} style={{borderTop:'1px solid #f1f5f9',marginTop:'13px',paddingTop:'12px',cursor:'pointer'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
+                            <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'2px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
+                            <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
                           </div>
                         </div>
-                        <div style={{background:'#fff',borderRadius:'13px',padding:'13px',border:'1px solid #fde68a'}}>
-                          <div style={{fontSize:'11px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>PA</div>
-                          <div style={{fontSize:'14px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: {fmt(gPA)}</div>
-                          <div style={{fontSize:'13px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: {fmt(pb.paResult.net)}</div>
-                          <div style={{borderTop:'1px solid #fef3c7',paddingTop:'6px'}}>
-                            {pa1>0&&<div style={{marginBottom:'6px'}}>
-                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA1 × {pa1}</span><span>{fmt(paGross.PA1)}</span></div>
-                              <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA1,'#b45309')}</div>
-                            </div>}
-                            {pa2>0&&<div style={{marginBottom:'6px'}}>
-                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA2 × {pa2}</span><span>{fmt(paGross.PA2)}</span></div>
-                              <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA2,'#b45309')}</div>
-                            </div>}
-                            {pa3>0&&<div>
-                              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA3 × {pa3}</span><span>{fmt(paGross.PA3)}</span></div>
-                              <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA3,'#b45309')}</div>
-                            </div>}
-                            {pa1===0&&pa2===0&&pa3===0&&<div style={{fontSize:'12px',fontWeight:700,color:'#b45309'}}>None this period</div>}
-                          </div>
-                        </div>
-                      </div>
-                      <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer',marginBottom:'9px'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
-                        <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
-                        <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
-                      </div>
+                      )}
 
                       <div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',textAlign:'center',marginBottom:'9px'}}>Individual Records</div>
 
