@@ -3225,10 +3225,17 @@ export default function App() {
     </div>
   );
 
-  const renderMonthlyChart = (big, dark=false) => {
+  // `wide` widens the coordinate system itself (not just the rendered
+  // box) for the Home desktop chart — it needs to fill a much wider
+  // card than the small variant was designed for, and stretching a
+  // narrow viewBox to fit via preserveAspectRatio="none" distorted the
+  // line weight and text into an obviously non-uniform squash/stretch.
+  // Widening W instead keeps the X:Y scale factor equal (no distortion)
+  // while still spreading the same content across the full card width.
+  const renderMonthlyChart = (big, dark=false, wide=false) => {
     const data = totals.periodBreakdown.map(pb=>({short:PAY_PERIODS.find(p=>p.month===pb.month).short, gross:pb.combinedGross, net:pb.combinedNet}));
     const max = Math.max(...data.map(d=>d.gross), 200);
-    const W = big?520:330, H = big?300:170, pX = big?46:34, pY = big?20:12;
+    const W = big?520:(wide?700:330), H = big?300:170, pX = big?46:34, pY = big?20:12;
     const eW = W-pX*2, eH = H-pY*2;
     const fsAxis = big?11:8, fsLbl = big?11:8, ptR = big?6:3, lineW = big?3:2;
     const pts = data.map((d,i)=>({x:pX+i*(eW/(data.length-1)), yG:H-pY-(d.gross/max)*eH, yN:H-pY-(d.net/max)*eH, g:d.gross, n:d.net, lbl:d.short}));
@@ -3263,7 +3270,7 @@ export default function App() {
     }
 
     return (
-      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:'100%',overflow:'visible'}} preserveAspectRatio="none">
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',overflow:'visible'}} preserveAspectRatio="none">
         {[0,0.5,1].map(v=>(<g key={v}><line x1={pX} y1={H-pY-v*eH} x2={W-pX} y2={H-pY-v*eH} stroke={gridStroke} strokeWidth="1" strokeDasharray={v===0?'0':'3 4'}/><text x={pX-4} y={H-pY-v*eH} textAnchor="end" dominantBaseline="middle" style={{fontSize:fsAxis,fill:axisFill,fontWeight:700}}>£{Math.round(max*v)}</text></g>))}
         {pts.map((p,i)=><text key={i} x={p.x} y={H-pY+(big?17:11)} textAnchor="middle" style={{fontSize:fsLbl,fill:lblFill,fontWeight:900}}>{p.lbl}</text>)}
         <path d={np} fill="none" stroke="#f87171" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
@@ -3816,15 +3823,16 @@ export default function App() {
                          close enough to read as one continuous block. ── */}
                     <div style={{borderTop:'2px solid #e2e8f0',marginTop:'22px',paddingTop:'20px'}}>
                       <div style={{fontSize:'11px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>Monthly OT Gross/Net</div>
-                      {/* Desktop: fixed explicit height (decoupled from
-                          width via the svg's own height:'100%' + its
-                          preserveAspectRatio="none") so the chart can span
-                          the card's full width on the month axis without
-                          also growing taller — a plain width-driven aspect
-                          ratio was what made it too tall in the first
-                          place once Salary Breakdown went full-width. */}
-                      <div style={{maxWidth:'100%',height:isWide?'200px':'auto',margin:'0 auto'}}>
-                        {renderMonthlyChart(false, false)}
+                      {/* Desktop passes wide=true so renderMonthlyChart
+                          itself uses a wider internal coordinate system
+                          (W=700 vs 330) — the box then just renders that
+                          wider chart at 100% width with its normal (equal
+                          X/Y scale) aspect-ratio sizing, so it spans the
+                          full card width without stretching the line
+                          weight or text the way forcing a mismatched
+                          height did. */}
+                      <div style={{maxWidth:'100%',margin:'0 auto'}}>
+                        {renderMonthlyChart(false, false, isWide)}
                       </div>
                       <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</span></div>
