@@ -3643,9 +3643,9 @@ export default function App() {
                  therefore its layout — is completely unchanged: `order`
                  and `gridColumn` are no-ops outside a grid/flex container. ── */}
             <div style={isWide?{display:'grid',gridTemplateColumns:'1.2fr 0.85fr 0.85fr 1.35fr',gap:'16px',alignItems:'stretch',marginBottom:'16px'}:undefined}>
-            <div style={isWide?{order:1}:undefined}>
+            <div style={isWide?{order:1,display:'flex',flexDirection:'column'}:undefined}>
             {/* ── Total combined earnings card — the main/first card, now with Tax Threshold merged in below a divider ── */}
-            <div style={S.dark}>
+            <div style={isWide?{...S.dark,flex:1,display:'flex',flexDirection:'column',justifyContent:'center'}:S.dark}>
               <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
 
               {/* header */}
@@ -3803,7 +3803,12 @@ export default function App() {
                          close enough to read as one continuous block. ── */}
                     <div style={{borderTop:'2px solid #e2e8f0',marginTop:'22px',paddingTop:'20px'}}>
                       <div style={{fontSize:'11px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>Monthly OT Gross/Net</div>
-                      <div style={{maxWidth:isWide?'75%':'100%',margin:'0 auto'}}>
+                      {/* Capped to a fixed px width on desktop rather than a
+                          percentage of the card — once Salary Breakdown
+                          became a full-width row, a percentage-based cap
+                          scaled the chart (and its fixed aspect ratio) up
+                          into something much taller than intended. */}
+                      <div style={{maxWidth:isWide?'420px':'100%',margin:'0 auto'}}>
                         {renderMonthlyChart(false, false)}
                       </div>
                       <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
@@ -3818,7 +3823,7 @@ export default function App() {
             )}
             </div>
 
-            <div style={isWide?{order:4}:undefined}>
+            <div style={isWide?{order:4,display:'flex',flexDirection:'column'}:undefined}>
             {/* ── CARMS Outstanding — only shown once there's actually
                  something outstanding, tapping through to the full view.
                  Desktop: icon/label sit on their own row and the
@@ -3826,7 +3831,7 @@ export default function App() {
                  so the card reads properly at tile width instead of
                  cramming everything into the mobile version's single row. ── */}
             {carmsOutstanding.totalClaims>0&&(
-              <div onClick={()=>setTab('carms')} style={isWide?{...S.card,cursor:'pointer',display:'flex',flexDirection:'column'}:{...S.card,cursor:'pointer'}}>
+              <div onClick={()=>setTab('carms')} style={isWide?{...S.card,cursor:'pointer',display:'flex',flexDirection:'column',flex:1}:{...S.card,cursor:'pointer'}}>
                 {isWide ? (
                   <>
                     <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
@@ -3877,15 +3882,15 @@ export default function App() {
             )}
             </div>
 
-            <div style={isWide?{order:2}:undefined}>
+            <div style={isWide?{order:2,display:'flex',flexDirection:'column'}:undefined}>
             {/* ── TOIL summary card — stays a genuine warning card in red when
                  overdrawn (a real status worth the saturated colour), but
                  drops to a neutral white card with a coloured icon chip
                  when the balance is fine, rather than being solid purple
                  for no functional reason. ── */}
             <div onClick={()=>setTab('graph')} style={toilLedger.balance<0
-              ? {...S.card,background:'#fef2f2',border:'1px solid #fecaca',cursor:'pointer'}
-              : {...S.card,cursor:'pointer'}
+              ? {...S.card,background:'#fef2f2',border:'1px solid #fecaca',cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column',justifyContent:'center'}:{})}
+              : {...S.card,cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column',justifyContent:'center'}:{})}
             }>
               <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
                 <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="clock" s={19} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
@@ -3898,10 +3903,10 @@ export default function App() {
             </div>
             </div>
 
-            <div style={isWide?{order:3}:undefined}>
+            <div style={isWide?{order:3,display:'flex',flexDirection:'column'}:undefined}>
             {/* ── Current pay period — tap through to Calendar view in Summary ── */}
             {totals.curr&&(
-              <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,cursor:'pointer'}}>
+              <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column',justifyContent:'center'}:{})}}>
                 <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
                   <div style={{background:'#f0fdfa',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={19} c="#0d9488"/></div>
                   <div>
