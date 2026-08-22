@@ -3713,7 +3713,7 @@ export default function App() {
               ) : (
               <div style={{display:'flex',alignItems:'flex-start',gap:'12px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'12px',flex:1,minWidth:0}}>
-                  <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
+                  <div style={{background:'#fffbeb',padding:'8.5px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={24} c="#d97706"/></div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'2px'}}>CARMS &amp; MetHR Awaiting Submission</div>
                     <div style={{fontSize:'17px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
@@ -3739,7 +3739,7 @@ export default function App() {
             <div style={{...S.card,cursor:isWide?'default':'pointer'}} onClick={()=>{ if(!isWide) setSalaryBreakdownExpanded(v=>!v); }}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
-                  <div style={{background:'#eff6ff',padding:isWide?'10px':'11px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:19} c="#2563eb"/></div>
+                  <div style={{background:'#eff6ff',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c="#2563eb"/></div>
                   <div>
                     <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Salary Breakdown &amp; Overtime Forecast</div>
                     <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'1px'}}>Base, allowances, overtime, full-year projection</div>
@@ -4040,7 +4040,7 @@ export default function App() {
                 const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
                 return (
                   <div style={{paddingTop:'14px',display:'flex',alignItems:'flex-start',gap:'12px'}}>
-                    <div style={{background:'#dcfce7',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cash" s={19} c="#15803d"/></div>
+                    <div style={{background:'#dcfce7',padding:'10px',borderRadius:'13px',flexShrink:0}}><Ico n="cash" s={21} c="#15803d"/></div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
                       <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
