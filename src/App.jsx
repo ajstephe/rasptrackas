@@ -3258,7 +3258,7 @@ export default function App() {
     }
 
     return (
-      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',overflow:'visible'}} preserveAspectRatio="none">
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:'100%',overflow:'visible'}} preserveAspectRatio="none">
         {[0,0.5,1].map(v=>(<g key={v}><line x1={pX} y1={H-pY-v*eH} x2={W-pX} y2={H-pY-v*eH} stroke={gridStroke} strokeWidth="1" strokeDasharray={v===0?'0':'3 4'}/><text x={pX-4} y={H-pY-v*eH} textAnchor="end" dominantBaseline="middle" style={{fontSize:fsAxis,fill:axisFill,fontWeight:700}}>£{Math.round(max*v)}</text></g>))}
         {pts.map((p,i)=><text key={i} x={p.x} y={H-pY+(big?17:11)} textAnchor="middle" style={{fontSize:fsLbl,fill:lblFill,fontWeight:900}}>{p.lbl}</text>)}
         <path d={np} fill="none" stroke="#f87171" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
@@ -3811,12 +3811,14 @@ export default function App() {
                          close enough to read as one continuous block. ── */}
                     <div style={{borderTop:'2px solid #e2e8f0',marginTop:'22px',paddingTop:'20px'}}>
                       <div style={{fontSize:'11px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>Monthly OT Gross/Net</div>
-                      {/* Capped to a fixed px width on desktop rather than a
-                          percentage of the card — once Salary Breakdown
-                          became a full-width row, a percentage-based cap
-                          scaled the chart (and its fixed aspect ratio) up
-                          into something much taller than intended. */}
-                      <div style={{maxWidth:isWide?'420px':'100%',margin:'0 auto'}}>
+                      {/* Desktop: fixed explicit height (decoupled from
+                          width via the svg's own height:'100%' + its
+                          preserveAspectRatio="none") so the chart can span
+                          the card's full width on the month axis without
+                          also growing taller — a plain width-driven aspect
+                          ratio was what made it too tall in the first
+                          place once Salary Breakdown went full-width. */}
+                      <div style={{maxWidth:'100%',height:isWide?'200px':'auto',margin:'0 auto'}}>
                         {renderMonthlyChart(false, false)}
                       </div>
                       <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
