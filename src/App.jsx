@@ -5336,18 +5336,19 @@ export default function App() {
           <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
             <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',marginBottom:'14px',letterSpacing:'-0.5px'}}>TOIL</h2>
 
-            {/* Desktop: Balance and Redeem sit side by side — both are
+            {isWide ? (
+            /* Desktop: Balance and Redeem sit side by side — both are
                 naturally compact, so the extra width is better spent
                 putting them next to each other than stacking full-width
-                the way mobile has to. Mobile is untouched. ── */}
-            <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1.3fr',gap:'16px',alignItems:'stretch',marginBottom:'14px'}:undefined}>
-            <div style={{background:toilLedger.balance<0?'#fef2f2':'#f5f3ff',border:toilLedger.balance<0?'1.5px solid #fecaca':'1.5px solid #ddd6fe',borderRadius:'16px',padding:'16px',marginBottom:isWide?0:'14px',...(isWide?{display:'flex',flexDirection:'column',justifyContent:'center'}:{})}}>
+                the way mobile has to. ── */
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1.3fr',gap:'16px',alignItems:'stretch',marginBottom:'14px'}}>
+            <div style={{background:toilLedger.balance<0?'#fef2f2':'#f5f3ff',border:toilLedger.balance<0?'1.5px solid #fecaca':'1.5px solid #ddd6fe',borderRadius:'16px',padding:'16px',display:'flex',flexDirection:'column',justifyContent:'center'}}>
               <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
               <div style={{fontSize:'26px',fontWeight:900,color:toilLedger.balance<0?'#991b1b':'#4c1d95'}}>{fmtHM(toilLedger.balance)} h</div>
               <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
             </div>
 
-            <div style={{...S.card,background:'#fff',border:'1.5px solid #ede9fe',marginBottom:isWide?0:'10px'}}>
+            <div style={{...S.card,background:'#fff',border:'1.5px solid #ede9fe'}}>
               <div style={{...S.lbl,fontSize:'11px',marginBottom:'8px'}}>Redeem TOIL</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 52px 80px',gap:'8px',marginBottom:'8px'}}>
                 <input type="date" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',boxSizing:'border-box'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
@@ -5363,6 +5364,35 @@ export default function App() {
               <button onClick={addToilTaken} style={{width:'100%',background:'#7c3aed',color:'#fff',border:'none',borderRadius:'10px',padding:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Redeem TOIL</button>
             </div>
             </div>
+            ) : (
+            /* Mobile: Balance and Redeem merged into one card instead of
+                two stacked boxes — same figures, same redeem form, just a
+                divider between them instead of a second card's worth of
+                shadow/margin. ── */
+            <div style={{...S.card,background:toilLedger.balance<0?'#fef2f2':'#fff',border:toilLedger.balance<0?'1.5px solid #fecaca':'1px solid #f1f5f9',marginBottom:'14px'}}>
+              <div>
+                <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
+                <div style={{fontSize:'26px',fontWeight:900,color:toilLedger.balance<0?'#991b1b':'#4c1d95'}}>{fmtHM(toilLedger.balance)} h</div>
+                <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
+              </div>
+
+              <div style={{borderTop:'1px solid #f1f5f9',marginTop:'16px',paddingTop:'14px'}}>
+                <div style={{...S.lbl,fontSize:'11px',marginBottom:'8px'}}>Redeem TOIL</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 52px 80px',gap:'8px',marginBottom:'8px'}}>
+                  <input type="date" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',boxSizing:'border-box'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
+                  <input type="number" min="0" step="1" placeholder="Hrs" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>
+                  <select style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px 4px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box',background:'#fff'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
+                    <option value="00">00m</option>
+                    <option value="15">15m</option>
+                    <option value="30">30m</option>
+                    <option value="45">45m</option>
+                  </select>
+                </div>
+                <input type="text" placeholder="Note (optional) — e.g. half day, appointment" style={{width:'100%',boxSizing:'border-box',border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',marginBottom:'8px'}} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
+                <button onClick={addToilTaken} style={{width:'100%',background:'#7c3aed',color:'#fff',border:'none',borderRadius:'10px',padding:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Redeem TOIL</button>
+              </div>
+            </div>
+            )}
 
             <div style={{...S.lbl,fontSize:'11px',margin:'14px 0 8px'}}>Ledger</div>
             <div style={{fontSize:'11.5px',fontWeight:600,color:'#94a3b8',lineHeight:1.5,marginBottom:'10px'}}>Green entries post automatically whenever you log a shift as TOIL or Mix. Red entries result when you redeem TOIL in the box above.</div>
