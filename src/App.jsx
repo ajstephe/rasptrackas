@@ -4376,28 +4376,29 @@ export default function App() {
                     {notesBlock}
                     {otRateBlock}
                     {takeAsBlock}
+                    {/* ── Protection Allowance — merged into this same card on
+                         mobile instead of sitting in its own separate card
+                         right below (still its own two-column card on
+                         desktop, inside showTwoCol above). Same PA1/2/3
+                         picker, same amber styling, just one fewer card to
+                         scroll past. ── */}
+                    <div style={{borderTop:'1px solid #f1f5f9',marginTop:'13px',paddingTop:'13px'}}>
+                      <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'13px',padding:'13px'}}>
+                        <div style={{fontSize:'12px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
+                        <div style={{display:'flex',gap:'6px'}}>
+                          {['None','PA1','PA2','PA3'].map(pa=>(
+                            <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'#fff',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
+                              <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
+                              <span style={{fontSize:'9px',fontWeight:700,opacity:form.paRate===pa?0.85:0.55}}>{PA_LABELS[pa]}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </>
                 );
               })()}
             </div>
-
-            {/* PA allowance renders inside the card above when the desktop
-                two-column layout is active (see showTwoCol) — this
-                standalone card is the mobile fallback only, kept
-                pixel-identical to the original single-column form. */}
-            {!isWide && (
-            <div style={{...S.card,background:'#fffbeb',border:'1px solid #fde68a'}}>
-              <div style={{fontSize:'12px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
-              <div style={{display:'flex',gap:'6px'}}>
-                {['None','PA1','PA2','PA3'].map(pa=>(
-                  <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'#fff',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
-                    <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
-                    <span style={{fontSize:'9px',fontWeight:700,opacity:form.paRate===pa?0.85:0.55}}>{PA_LABELS[pa]}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            )}
 
             {/* CARMS Submission — independent of logging the shift itself.
                 Both default to false via blankForm; editing an existing
@@ -4470,9 +4471,14 @@ export default function App() {
               <div style={{fontSize:'10.5px',color:'#94a3b8',lineHeight:1.5,marginTop:'4px'}}>Toggles default to <b>off</b> when you log a new shift — you're recording that you worked it, not that you've claimed it on the relevant systems.</div>
             </div>
 
-            {/* live preview */}
+            {/* live preview — pinned just above the floating Save button on
+                 mobile (via position:sticky within the scrollable form
+                 area) once you've scrolled far enough to reach it, instead
+                 of only being visible if you happen to have scrolled back
+                 up to where it naturally sits. Desktop is unaffected — its
+                 Save button is already in-flow at the end of the form. ── */}
             {preview.has&&(
-              <div style={{background:'linear-gradient(135deg,#1e3a5f,#1d4ed8)',borderRadius:'15px',padding:'14px 18px',marginBottom:'11px'}}>
+              <div style={{background:'linear-gradient(135deg,#1e3a5f,#1d4ed8)',borderRadius:'15px',padding:'14px 18px',marginBottom:'11px',...(!isWide?{position:'sticky',bottom:'88px',zIndex:24,boxShadow:'0 10px 24px rgba(15,39,68,0.35)'}:{})}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom: preview.toilBanked>0?'10px':0}}>
                   <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1px'}}>This Shift</div>
                   <div style={{display:'flex',gap:'18px',alignItems:'center'}}>
