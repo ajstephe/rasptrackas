@@ -3673,7 +3673,216 @@ export default function App() {
       <main ref={mainRef} className="no-print" style={S.main}>
 
         {/* ══════════════════════════════════════════ DASHBOARD */}
-        {tab==='dashboard'&&(
+        {tab==='dashboard'&&(()=>{
+          // ── Shared building blocks ────────────────────────────────────────
+          // CARMS teaser and the Salary Breakdown card already carry their own
+          // isWide-aware styling/content internally, so they're built once
+          // here and just placed in different spots for desktop (CSS grid
+          // `order`) vs mobile (plain stacked order) below, instead of
+          // duplicating the (fairly large, chart-and-gauges-heavy) markup.
+          const carmsCard = (
+            <div onClick={()=>setTab('carms')} style={isWide?{...S.card,cursor:'pointer',display:'flex',flexDirection:'column',flex:1}:{...S.card,cursor:'pointer'}}>
+              {isWide ? (
+                <>
+                  <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
+                    <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
+                    <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',lineHeight:1.3}}>CARMS &amp; MetHR<br/>Awaiting Submission</div>
+                  </div>
+                  <div style={{display:'flex',alignItems:'stretch',gap:'14px',flex:1}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:'21px',fontWeight:900,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+                      <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'2px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
+                    </div>
+                    <div style={{width:'1px',background:'#fde68a',flexShrink:0}}/>
+                    <div style={{display:'flex',flexDirection:'column',justifyContent:'center',gap:'6px',flexShrink:0}}>
+                      <div>
+                        <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>Overtime</div>
+                        <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>PA</div>
+                        <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+              <div style={{display:'flex',alignItems:'flex-start',gap:'12px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'12px',flex:1,minWidth:0}}>
+                  <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'2px'}}>CARMS &amp; MetHR Awaiting Submission</div>
+                    <div style={{fontSize:'17px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+                    <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} across {carmsOutstanding.periodCount} pay period{carmsOutstanding.periodCount!==1?'s':''}</div>
+                  </div>
+                </div>
+                <div style={{flexShrink:0,display:'flex',flexDirection:'column',gap:'6px',paddingLeft:'12px',borderLeft:'1px solid #f1f5f9',textAlign:'right'}}>
+                  <div>
+                    <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>Overtime</div>
+                    <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>PA</div>
+                    <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
+                  </div>
+                </div>
+              </div>
+              )}
+            </div>
+          );
+
+          const salaryBreakdownCard = (
+            <div style={{...S.card,cursor:isWide?'default':'pointer'}} onClick={()=>{ if(!isWide) setSalaryBreakdownExpanded(v=>!v); }}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
+                  <div style={{background:'#eff6ff',padding:'10px',borderRadius:'12px',flexShrink:0}}><Ico n="bar" s={17} c="#2563eb"/></div>
+                  <div>
+                    <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Salary Breakdown &amp; Overtime Forecast</div>
+                    <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'1px'}}>Base, allowances, overtime, full-year projection</div>
+                  </div>
+                </div>
+                {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{salaryBreakdownExpanded?'Tap to Close':'Tap to expand'}</span>}
+              </div>
+
+              {salaryBreakdownExpanded&&(
+                <div onClick={e=>e.stopPropagation()} style={{cursor:'default'}}>
+                  {/* breakdown rows — London Weighting/Allowance shown as YTD out of full year */}
+                  <div style={{borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'12px',display:'flex',flexDirection:'column',gap:'6px'}}>
+                    {[
+                      ['Base Salary (YTD)', totals.salaryYTD, null],
+                      ['London Weighting', settings.rank&&settings.service ? totals.lwYTD : null, totals.lwAnnualTotal],
+                      ['London Allowance', settings.rank&&settings.service ? totals.laYTD : null, totals.laAnnualTotal],
+                    ].map(([label,val,fullYear])=>(
+                      <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>{label}</span>
+                        <span style={{fontSize:'13px',fontWeight:900,color:val==null?'#94a3b8':'#0f172a'}}>
+                          {val==null
+                            ? 'Set rank & pay point'
+                            : fullYear!=null
+                              ? <>{fmtGBP(val)}<span style={{color:'#94a3b8',fontWeight:700}}> / {fmtGBP(fullYear)}</span></>
+                              : fmtGBP(val)}
+                        </span>
+                      </div>
+                    ))}
+                    {[
+                      ['Overtime', totals.totalOTGross, totals.totalOTNet],
+                      ['PA',       totals.totalPAGross, totals.totalPANet],
+                    ].map(([label,gross,net])=>(
+                      <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>{label}</span>
+                        <span style={{fontSize:'13px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(gross)}<span style={{color:'#059669',fontWeight:700}}> ({fmtGBP(net)})</span></span>
+                      </div>
+                    ))}
+                    <div style={{fontSize:'9.5px',fontWeight:600,color:'#94a3b8',textAlign:'right',marginTop:'2px'}}>Figures in brackets, e.g. <span style={{color:'#059669'}}>(£xx.xx)</span>, are net</div>
+                  </div>
+
+                  {/* ── Gross Salary (Actual) ── */}
+                  {(()=>{
+                    const grossYTD = totals.combinedGrossYTD;
+                    const over100k = grossYTD > 100000;
+                    const paNow = over100k ? Math.max(0, 12570 - Math.floor((grossYTD-100000)/2)) : 12570;
+                    const scaleMax = Math.max(125140, grossYTD*1.05);
+                    const pct = v => Math.max(0, Math.min(100, (v/scaleMax)*100));
+                    const barColor = grossYTD>=100000 ? '#ef4444' : grossYTD>=50270 ? '#f59e0b' : '#059669';
+                    const statusText = grossYTD>=125140 ? '+£125k — No PA' : grossYTD>=100000 ? '+£100k — PA tapering' : grossYTD>=50270 ? 'Higher rate' : 'Basic rate';
+                    const markers = [
+                      { key:'pa',  value: paNow,  label: paNow===0 ? 'PA £0' : over100k ? `PA £${(paNow/1000).toFixed(1)}k` : 'PA £12.6k' },
+                      { key:'hr',  value: 50270,  label: '£50.3k' },
+                      { key:'100', value: 100000, label: '£100k' },
+                      { key:'125', value: 125140, label: '£125.1k' },
+                    ];
+                    return (
+                      <div onClick={e=>{e.stopPropagation();scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} style={{borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'26px'}}>
+                          <div style={{fontSize:'11px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.5px'}}>Gross Salary (Actual)</div>
+                          <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
+                        </div>
+                        <div style={{position:'relative',marginBottom:'16px'}}>
+                          <div style={{background:'#eef1f5',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
+                            <div style={{width:`${pct(grossYTD)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
+                          </div>
+                          {markers.map(m=>(
+                            <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'#cbd5e1',transform:'translateX(-1px)'}}>
+                              <div style={{position:'absolute',top:'17px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',fontWeight:800,color:'#64748b',whiteSpace:'nowrap'}}>{m.label}</div>
+                            </div>
+                          ))}
+                          <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
+                          <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(grossYTD/1000).toFixed(1)}k</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* ── Gross Salary (Forecast) — full-year projection at your current overtime pace ── */}
+                  {(()=>{
+                    const proj = totals.projectedAnnualGross;
+                    const over100k = proj > 100000;
+                    const paNow = over100k ? Math.max(0, 12570 - Math.floor((proj-100000)/2)) : 12570;
+                    const scaleMax = Math.max(125140, proj*1.05);
+                    const pct = v => Math.max(0, Math.min(100, (v/scaleMax)*100));
+                    const barColor = proj>=100000 ? '#ef4444' : proj>=50270 ? '#f59e0b' : '#059669';
+                    const statusText = proj>=125140 ? '+£125k — No PA' : proj>=100000 ? '+£100k — PA tapering' : proj>=50270 ? 'Higher rate' : 'Basic rate';
+                    const markers = [
+                      { key:'pa',  value: paNow,  label: paNow===0 ? 'PA £0' : over100k ? `PA £${(paNow/1000).toFixed(1)}k` : 'PA £12.6k' },
+                      { key:'hr',  value: 50270,  label: '£50.3k' },
+                      { key:'100', value: 100000, label: '£100k' },
+                      { key:'125', value: 125140, label: '£125.1k' },
+                    ];
+                    return (
+                      <div onClick={e=>{e.stopPropagation();scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} style={{borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'3px'}}>
+                          <div style={{fontSize:'11px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.5px'}}>Gross Salary (Forecast)</div>
+                          <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
+                        </div>
+                        <div style={{fontSize:'9.5px',fontWeight:600,color:'#94a3b8',marginBottom:'19px'}}>Forecast based on your overtime submissions</div>
+                        <div style={{position:'relative',marginBottom:'16px'}}>
+                          <div style={{background:'#eef1f5',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
+                            <div style={{width:`${pct(proj)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
+                          </div>
+                          {markers.map(m=>(
+                            <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'#cbd5e1',transform:'translateX(-1px)'}}>
+                              <div style={{position:'absolute',top:'17px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',fontWeight:800,color:'#64748b',whiteSpace:'nowrap'}}>{m.label}</div>
+                            </div>
+                          ))}
+                          <div style={{position:'absolute',left:`${pct(proj)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
+                          <div style={{position:'absolute',left:`${pct(proj)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(proj/1000).toFixed(1)}k</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* ── Monthly Gross vs Net — expands and collapses
+                       together with the rest of the card now, rather than
+                       needing its own separate toggle. A clearly visible
+                       divider (not just the usual faint hairline) marks
+                       where the gauge bars end and the chart begins,
+                       since on a wide desktop card the two sections sat
+                       close enough to read as one continuous block. ── */}
+                  <div style={{borderTop:'2px solid #e2e8f0',marginTop:'22px',paddingTop:'20px'}}>
+                    <div style={{fontSize:'11px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>Monthly OT Gross/Net</div>
+                    {/* Desktop passes wide=true so renderMonthlyChart
+                        itself uses a wider internal coordinate system
+                        (W=700 vs 330) — the box then just renders that
+                        wider chart at 100% width with its normal (equal
+                        X/Y scale) aspect-ratio sizing, so it spans the
+                        full card width without stretching the line
+                        weight or text the way forcing a mismatched
+                        height did. */}
+                    <div style={{maxWidth:'100%',margin:'0 auto'}}>
+                      {renderMonthlyChart(false, false, isWide)}
+                    </div>
+                    <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#ef4444',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Net</span></div>
+                    </div>
+                    <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'#94a3b8'}}>Tap any point for that period's figure</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+
+          return (
           <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
             {!settings.rank&&(
               <div className="setup-pulse-urgent" style={{background:'#fef2f2',border:'1.5px solid #fca5a5',borderRadius:'14px',padding:'13px 14px',marginBottom:'12px',display:'flex',gap:'11px',alignItems:'flex-start'}}>
@@ -3686,19 +3895,18 @@ export default function App() {
               </div>
             )}
 
+            {isWide ? (<>
             {/* ── Stat tile row (desktop only) — Total Gross YTD, TOIL,
-                 Current Pay Period and CARMS Outstanding used to be four
-                 separate stacked cards; on desktop they now sit in one row
-                 so the headline figures read together at a glance. Each
-                 card is wrapped with a CSS `order` (and Salary Breakdown
-                 with `gridColumn:'1 / -1'`) rather than physically
-                 reordered in the JSX below, so mobile's DOM order — and
-                 therefore its layout — is completely unchanged: `order`
-                 and `gridColumn` are no-ops outside a grid/flex container. ── */}
-            <div style={isWide?{display:'grid',gridTemplateColumns:'1.2fr 0.85fr 0.85fr 1.35fr',gap:'16px',alignItems:'stretch',marginBottom:'16px'}:undefined}>
-            <div style={isWide?{order:1,display:'flex',flexDirection:'column'}:undefined}>
+                 Current Pay Period and CARMS Outstanding sit in one row so
+                 the headline figures read together at a glance. Each card
+                 is wrapped with a CSS `order` (and Salary Breakdown with
+                 `gridColumn:'1 / -1'`) so the row can be reflowed without
+                 physically reordering the JSX. Mobile has its own separate
+                 layout below instead of reusing this grid. ── */}
+            <div style={{display:'grid',gridTemplateColumns:'1.2fr 0.85fr 0.85fr 1.35fr',gap:'16px',alignItems:'stretch',marginBottom:'16px'}}>
+            <div style={{order:1,display:'flex',flexDirection:'column'}}>
             {/* ── Total combined earnings card — the main/first card, now with Tax Threshold merged in below a divider ── */}
-            <div style={isWide?{...S.dark,flex:1,display:'flex',flexDirection:'column'}:S.dark}>
+            <div style={{...S.dark,flex:1,display:'flex',flexDirection:'column'}}>
               <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
 
               {/* header */}
@@ -3721,302 +3929,113 @@ export default function App() {
             </div>
             </div>
 
-            <div style={isWide?{order:5,gridColumn:'1 / -1'}:undefined}>
-            {/* ── Salary Breakdown & Forecast — collapsed by default, same
-                 tap-to-expand pattern as Account & Data Management below.
-                 Keeps the top card to just the headline figure, with the
-                 six-line breakdown and both gauge bars tucked away here
-                 rather than all visible at once on first open. ── */}
-            {settings.rank&&settings.service&&(
-              <div style={{...S.card,cursor:isWide?'default':'pointer'}} onClick={()=>{ if(!isWide) setSalaryBreakdownExpanded(v=>!v); }}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
-                    <div style={{background:'#eff6ff',padding:'10px',borderRadius:'12px',flexShrink:0}}><Ico n="bar" s={17} c="#2563eb"/></div>
-                    <div>
-                      <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Salary Breakdown &amp; Overtime Forecast</div>
-                      <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'1px'}}>Base, allowances, overtime, full-year projection</div>
-                    </div>
-                  </div>
-                  {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{salaryBreakdownExpanded?'Tap to Close':'Tap to expand'}</span>}
-                </div>
-
-                {salaryBreakdownExpanded&&(
-                  <div onClick={e=>e.stopPropagation()} style={{cursor:'default'}}>
-                    {/* breakdown rows — London Weighting/Allowance shown as YTD out of full year */}
-                    <div style={{borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'12px',display:'flex',flexDirection:'column',gap:'6px'}}>
-                      {[
-                        ['Base Salary (YTD)', totals.salaryYTD, null],
-                        ['London Weighting', settings.rank&&settings.service ? totals.lwYTD : null, totals.lwAnnualTotal],
-                        ['London Allowance', settings.rank&&settings.service ? totals.laYTD : null, totals.laAnnualTotal],
-                      ].map(([label,val,fullYear])=>(
-                        <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>{label}</span>
-                          <span style={{fontSize:'13px',fontWeight:900,color:val==null?'#94a3b8':'#0f172a'}}>
-                            {val==null
-                              ? 'Set rank & pay point'
-                              : fullYear!=null
-                                ? <>{fmtGBP(val)}<span style={{color:'#94a3b8',fontWeight:700}}> / {fmtGBP(fullYear)}</span></>
-                                : fmtGBP(val)}
-                          </span>
-                        </div>
-                      ))}
-                      {[
-                        ['Overtime', totals.totalOTGross, totals.totalOTNet],
-                        ['PA',       totals.totalPAGross, totals.totalPANet],
-                      ].map(([label,gross,net])=>(
-                        <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>{label}</span>
-                          <span style={{fontSize:'13px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(gross)}<span style={{color:'#059669',fontWeight:700}}> ({fmtGBP(net)})</span></span>
-                        </div>
-                      ))}
-                      <div style={{fontSize:'9.5px',fontWeight:600,color:'#94a3b8',textAlign:'right',marginTop:'2px'}}>Figures in brackets, e.g. <span style={{color:'#059669'}}>(£xx.xx)</span>, are net</div>
-                    </div>
-
-                    {/* ── Gross Salary (Actual) ── */}
-                    {(()=>{
-                      const grossYTD = totals.combinedGrossYTD;
-                      const over100k = grossYTD > 100000;
-                      const paNow = over100k ? Math.max(0, 12570 - Math.floor((grossYTD-100000)/2)) : 12570;
-                      const scaleMax = Math.max(125140, grossYTD*1.05);
-                      const pct = v => Math.max(0, Math.min(100, (v/scaleMax)*100));
-                      const barColor = grossYTD>=100000 ? '#ef4444' : grossYTD>=50270 ? '#f59e0b' : '#059669';
-                      const statusText = grossYTD>=125140 ? '+£125k — No PA' : grossYTD>=100000 ? '+£100k — PA tapering' : grossYTD>=50270 ? 'Higher rate' : 'Basic rate';
-                      const markers = [
-                        { key:'pa',  value: paNow,  label: paNow===0 ? 'PA £0' : over100k ? `PA £${(paNow/1000).toFixed(1)}k` : 'PA £12.6k' },
-                        { key:'hr',  value: 50270,  label: '£50.3k' },
-                        { key:'100', value: 100000, label: '£100k' },
-                        { key:'125', value: 125140, label: '£125.1k' },
-                      ];
-                      return (
-                        <div onClick={e=>{e.stopPropagation();scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} style={{borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'26px'}}>
-                            <div style={{fontSize:'11px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.5px'}}>Gross Salary (Actual)</div>
-                            <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
-                          </div>
-                          <div style={{position:'relative',marginBottom:'16px'}}>
-                            <div style={{background:'#eef1f5',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
-                              <div style={{width:`${pct(grossYTD)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
-                            </div>
-                            {markers.map(m=>(
-                              <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'#cbd5e1',transform:'translateX(-1px)'}}>
-                                <div style={{position:'absolute',top:'17px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',fontWeight:800,color:'#64748b',whiteSpace:'nowrap'}}>{m.label}</div>
-                              </div>
-                            ))}
-                            <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
-                            <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(grossYTD/1000).toFixed(1)}k</div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* ── Gross Salary (Forecast) — full-year projection at your current overtime pace ── */}
-                    {(()=>{
-                      const proj = totals.projectedAnnualGross;
-                      const over100k = proj > 100000;
-                      const paNow = over100k ? Math.max(0, 12570 - Math.floor((proj-100000)/2)) : 12570;
-                      const scaleMax = Math.max(125140, proj*1.05);
-                      const pct = v => Math.max(0, Math.min(100, (v/scaleMax)*100));
-                      const barColor = proj>=100000 ? '#ef4444' : proj>=50270 ? '#f59e0b' : '#059669';
-                      const statusText = proj>=125140 ? '+£125k — No PA' : proj>=100000 ? '+£100k — PA tapering' : proj>=50270 ? 'Higher rate' : 'Basic rate';
-                      const markers = [
-                        { key:'pa',  value: paNow,  label: paNow===0 ? 'PA £0' : over100k ? `PA £${(paNow/1000).toFixed(1)}k` : 'PA £12.6k' },
-                        { key:'hr',  value: 50270,  label: '£50.3k' },
-                        { key:'100', value: 100000, label: '£100k' },
-                        { key:'125', value: 125140, label: '£125.1k' },
-                      ];
-                      return (
-                        <div onClick={e=>{e.stopPropagation();scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} style={{borderTop:'1px solid #f1f5f9',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'3px'}}>
-                            <div style={{fontSize:'11px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.5px'}}>Gross Salary (Forecast)</div>
-                            <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
-                          </div>
-                          <div style={{fontSize:'9.5px',fontWeight:600,color:'#94a3b8',marginBottom:'19px'}}>Forecast based on your overtime submissions</div>
-                          <div style={{position:'relative',marginBottom:'16px'}}>
-                            <div style={{background:'#eef1f5',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
-                              <div style={{width:`${pct(proj)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
-                            </div>
-                            {markers.map(m=>(
-                              <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'#cbd5e1',transform:'translateX(-1px)'}}>
-                                <div style={{position:'absolute',top:'17px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',fontWeight:800,color:'#64748b',whiteSpace:'nowrap'}}>{m.label}</div>
-                              </div>
-                            ))}
-                            <div style={{position:'absolute',left:`${pct(proj)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
-                            <div style={{position:'absolute',left:`${pct(proj)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(proj/1000).toFixed(1)}k</div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* ── Monthly Gross vs Net — expands and collapses
-                         together with the rest of the card now, rather than
-                         needing its own separate toggle. A clearly visible
-                         divider (not just the usual faint hairline) marks
-                         where the gauge bars end and the chart begins,
-                         since on a wide desktop card the two sections sat
-                         close enough to read as one continuous block. ── */}
-                    <div style={{borderTop:'2px solid #e2e8f0',marginTop:'22px',paddingTop:'20px'}}>
-                      <div style={{fontSize:'11px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>Monthly OT Gross/Net</div>
-                      {/* Desktop passes wide=true so renderMonthlyChart
-                          itself uses a wider internal coordinate system
-                          (W=700 vs 330) — the box then just renders that
-                          wider chart at 100% width with its normal (equal
-                          X/Y scale) aspect-ratio sizing, so it spans the
-                          full card width without stretching the line
-                          weight or text the way forcing a mismatched
-                          height did. */}
-                      <div style={{maxWidth:'100%',margin:'0 auto'}}>
-                        {renderMonthlyChart(false, false, isWide)}
-                      </div>
-                      <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#ef4444',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Net</span></div>
-                      </div>
-                      <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'#94a3b8'}}>Tap any point for that period's figure</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            <div style={{order:5,gridColumn:'1 / -1'}}>
+            {settings.rank&&settings.service&&salaryBreakdownCard}
             </div>
 
-            <div style={isWide?{order:4,display:'flex',flexDirection:'column'}:undefined}>
-            {/* ── CARMS Outstanding — only shown once there's actually
-                 something outstanding, tapping through to the full view.
-                 Desktop: icon/label sit on their own row and the
-                 total/hairline/OT-PA split reflow onto a second row below,
-                 so the card reads properly at tile width instead of
-                 cramming everything into the mobile version's single row. ── */}
-            {carmsOutstanding.totalClaims>0&&(
-              <div onClick={()=>setTab('carms')} style={isWide?{...S.card,cursor:'pointer',display:'flex',flexDirection:'column',flex:1}:{...S.card,cursor:'pointer'}}>
-                {isWide ? (
-                  <>
-                    <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
-                      <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
-                      <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',lineHeight:1.3}}>CARMS &amp; MetHR<br/>Awaiting Submission</div>
-                    </div>
-                    <div style={{display:'flex',alignItems:'stretch',gap:'14px',flex:1}}>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:'21px',fontWeight:900,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
-                        <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'2px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
-                      </div>
-                      <div style={{width:'1px',background:'#fde68a',flexShrink:0}}/>
-                      <div style={{display:'flex',flexDirection:'column',justifyContent:'center',gap:'6px',flexShrink:0}}>
-                        <div>
-                          <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>Overtime</div>
-                          <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
-                        </div>
-                        <div>
-                          <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>PA</div>
-                          <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                <div style={{display:'flex',alignItems:'flex-start',gap:'12px'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:'12px',flex:1,minWidth:0}}>
-                    <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'2px'}}>CARMS &amp; MetHR Awaiting Submission</div>
-                      <div style={{fontSize:'17px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
-                      <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} across {carmsOutstanding.periodCount} pay period{carmsOutstanding.periodCount!==1?'s':''}</div>
-                    </div>
-                  </div>
-                  <div style={{flexShrink:0,display:'flex',flexDirection:'column',gap:'6px',paddingLeft:'12px',borderLeft:'1px solid #f1f5f9',textAlign:'right'}}>
-                    <div>
-                      <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>Overtime</div>
-                      <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
-                    </div>
-                    <div>
-                      <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>PA</div>
-                      <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
-                    </div>
-                  </div>
-                </div>
-                )}
-              </div>
-            )}
+            <div style={{order:4,display:'flex',flexDirection:'column'}}>
+            {carmsOutstanding.totalClaims>0&&carmsCard}
             </div>
 
-            <div style={isWide?{order:2,display:'flex',flexDirection:'column'}:undefined}>
+            <div style={{order:2,display:'flex',flexDirection:'column'}}>
             {/* ── TOIL summary card — stays a genuine warning card in red when
                  overdrawn (a real status worth the saturated colour), but
                  drops to a neutral white card with a coloured icon chip
                  when the balance is fine, rather than being solid purple
                  for no functional reason. ── */}
             <div onClick={()=>setTab('graph')} style={toilLedger.balance<0
-              ? {...S.card,background:'#fef2f2',border:'1px solid #fecaca',cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column'}:{})}
-              : {...S.card,cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column'}:{})}
+              ? {...S.card,background:'#fef2f2',border:'1px solid #fecaca',cursor:'pointer',flex:1,display:'flex',flexDirection:'column'}
+              : {...S.card,cursor:'pointer',flex:1,display:'flex',flexDirection:'column'}
             }>
-              {isWide ? (
-                <>
-                  {/* Desktop: icon + label on their own top row, matching
-                      the CARMS tile's layout for a consistent design
-                      language across the stat-tile row. ── */}
-                  <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
-                    <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="clock" s={19} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
-                    <div style={{fontSize:'10.5px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
-                  </div>
-                  <div>
-                    <div style={{fontSize:'21px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#0f172a'}}>{fmtHM(toilLedger.balance)} h</div>
-                    <div style={{fontSize:'10.5px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
-                  </div>
-                </>
-              ) : (
-                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                  <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="clock" s={19} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
-                  <div>
-                    <div style={{fontSize:'10.5px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
-                    <div style={{fontSize:'17px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#0f172a',marginTop:'1px'}}>{fmtHM(toilLedger.balance)} h</div>
-                    <div style={{fontSize:'10.5px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'1px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
-                  </div>
-                </div>
-              )}
+              {/* Icon + label on their own top row, matching the CARMS
+                  tile's layout for a consistent design language across
+                  the stat-tile row. ── */}
+              <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
+                <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="clock" s={19} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
+                <div style={{fontSize:'10.5px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
+              </div>
+              <div>
+                <div style={{fontSize:'21px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#0f172a'}}>{fmtHM(toilLedger.balance)} h</div>
+                <div style={{fontSize:'10.5px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
+              </div>
             </div>
             </div>
 
-            <div style={isWide?{order:3,display:'flex',flexDirection:'column'}:undefined}>
+            <div style={{order:3,display:'flex',flexDirection:'column'}}>
             {/* ── Current pay period — tap through to Calendar view in Summary ── */}
             {totals.curr&&(
-              <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,cursor:'pointer',...(isWide?{flex:1,display:'flex',flexDirection:'column'}:{})}}>
-                {isWide ? (
-                  <>
-                    {/* Desktop: icon + label on their own top row, matching
-                        the CARMS tile's layout for a consistent design
-                        language across the stat-tile row. ── */}
-                    <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
-                      <div style={{background:'#f0fdfa',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={19} c="#0d9488"/></div>
-                      <div style={{fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Current Pay Period</div>
-                    </div>
-                    <div>
-                      <div style={{fontSize:'21px',fontWeight:900,color:'#0f172a'}}>{totals.curr.month}</div>
-                      <div style={{fontSize:'10.5px',fontWeight:600,color:'#94a3b8',marginTop:'2px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                    <div style={{background:'#f0fdfa',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={19} c="#0d9488"/></div>
-                    <div>
-                      <div style={{fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Current Pay Period</div>
-                      <div style={{fontSize:'17px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{totals.curr.month}</div>
-                      <div style={{fontSize:'10.5px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
-                    </div>
-                  </div>
-                )}
+              <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,cursor:'pointer',flex:1,display:'flex',flexDirection:'column'}}>
+                {/* Icon + label on their own top row, matching the CARMS
+                    tile's layout for a consistent design language across
+                    the stat-tile row. ── */}
+                <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
+                  <div style={{background:'#f0fdfa',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={19} c="#0d9488"/></div>
+                  <div style={{fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Current Pay Period</div>
+                </div>
+                <div>
+                  <div style={{fontSize:'21px',fontWeight:900,color:'#0f172a'}}>{totals.curr.month}</div>
+                  <div style={{fontSize:'10.5px',fontWeight:600,color:'#94a3b8',marginTop:'2px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
+                </div>
               </div>
             )}
             </div>
             </div>
+            </>) : (<>
+            {/* ── Mobile-only layout — hero, then TOIL Balance / Current Pay
+                 Period / Gross&Net merged into a single card, then the
+                 CARMS teaser, then the collapsible Salary Breakdown. Same
+                 figures and tap-throughs as the desktop tiles above, just
+                 grouped into fewer stacked cards so there's less to scroll
+                 past to reach them. ── */}
+            <div style={S.dark}>
+              <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
+              <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'3px'}}>
+                Total Gross YTD
+              </div>
+              <div style={{fontSize:'28px',fontWeight:900,color:'#fff',letterSpacing:'-2px',lineHeight:1,marginTop:'4px',marginBottom:'3px'}}>
+                {settings.rank&&settings.service ? fmtGBP(totals.combinedGrossYTD) : '—'}
+              </div>
+              <div style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginBottom:'12px'}}>
+                {settings.rank&&settings.service
+                  ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)} tax year`
+                  : 'Set your rank & pay point in More..'}
+              </div>
+              {carmsOutstanding.totalAmount>0&&(
+                <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',cursor:'pointer'}}>
+                  <Ico n="clock" s={11} c="#fbbf24"/>+{fmtGBP(carmsOutstanding.totalAmount)} not yet submitted to CARMS
+                </div>
+              )}
+            </div>
 
-            {/* ── At a Glance — mobile-only equivalent of the desktop
-                 secondary column's own widget, since phones don't have
-                 that extra space to show it persistently alongside
-                 everything else. Positioned as the last card on Home. ── */}
-            {!isWide&&(()=>{
-              const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
-              return (
-                <div style={S.card}>
-                  <div style={{display:'flex',alignItems:'flex-start',gap:'12px'}}>
+            {/* ── TOIL Balance + Current Pay Period + Gross&Net — merged
+                 into one card instead of three separate ones. Same
+                 figures, same tap-throughs (TOIL tab / Summary calendar),
+                 Gross&Net stays informational like before. ── */}
+            <div style={S.card}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr'}}>
+                <div onClick={()=>setTab('graph')} style={{cursor:'pointer',padding:'0 12px 14px 0',borderRight:'1px solid #f1f5f9',borderBottom:'1px solid #f1f5f9'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'9px',marginBottom:'10px'}}>
+                    <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={16} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
+                    <div style={{fontSize:'9px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
+                  </div>
+                  <div style={{fontSize:'16px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#0f172a'}}>{fmtHM(toilLedger.balance)} h</div>
+                  <div style={{fontSize:'9.5px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
+                </div>
+                <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{cursor:'pointer',padding:'0 0 14px 12px',borderBottom:'1px solid #f1f5f9'}}>
+                  {totals.curr ? (<>
+                    <div style={{display:'flex',alignItems:'center',gap:'9px',marginBottom:'10px'}}>
+                      <div style={{background:'#f0fdfa',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="cal" s={16} c="#0d9488"/></div>
+                      <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Current Period</div>
+                    </div>
+                    <div style={{fontSize:'16px',fontWeight:900,color:'#0f172a'}}>{totals.curr.month}</div>
+                    <div style={{fontSize:'9.5px',fontWeight:600,color:'#94a3b8',marginTop:'2px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
+                  </>) : <div/>}
+                </div>
+              </div>
+              {(()=>{
+                const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
+                return (
+                  <div style={{paddingTop:'14px',display:'flex',alignItems:'flex-start',gap:'12px'}}>
                     <div style={{background:'#dcfce7',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cash" s={19} c="#15803d"/></div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
@@ -4033,13 +4052,19 @@ export default function App() {
                       <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'8px'}}>{pb?pb.month:'—'} · submitted only</div>
                     </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
+            </div>
+
+            {carmsOutstanding.totalClaims>0&&carmsCard}
+
+            {settings.rank&&settings.service&&salaryBreakdownCard}
+            </>)}
 
             <div style={{fontSize:'10.5px',color:'#b91c1c',textAlign:'center',lineHeight:1.5,padding:'8px 12px 0'}}>For guidance only. Always verify amounts against your payslip.</div>
           </div>
-        )}
+          );
+        })()}
 
         {/* ══════════════════════════════════════════ LOG SHIFT */}
         {tab==='add'&&(
