@@ -1226,6 +1226,10 @@ export default function App() {
   // doesn't leave something open from a previous visit that's easy to
   // forget was expanded (mobile), while desktop keeps its always-open default.
   useEffect(()=>{ if (tab!=='dashboard') setSalaryBreakdownExpanded(isWide); },[tab]);
+  // Mobile-only: the Calendar View colour key is collapsed by default,
+  // since it otherwise eats a big chunk of the screen right after the
+  // grid on first load. Desktop still shows it inline unconditionally.
+  const [calLegendExpanded, setCalLegendExpanded] = useState(false);
   const [taxCalcActualDetailOpen, setTaxCalcActualDetailOpen] = useState(false);
   const [taxCalcForecastDetailOpen, setTaxCalcForecastDetailOpen] = useState(false);
   const [configExpanded, setConfigExpanded] = useState(false);
@@ -5090,29 +5094,37 @@ export default function App() {
                         </div>
                       </div>
                     ) : (
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginTop:'12px',paddingTop:'12px',borderTop:'1px solid #f1f5f9'}}>
-                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT — Info Only</span></div>
-                        <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
-                          <div style={{width:'11px',display:'flex',justifyContent:'center',flexShrink:0}}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
-                          </div>
-                          <span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Counted Other Period</span>
-                        </div>
-                      </div>
-                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'8px'}}>
-                        <div style={{display:'flex',gap:'10px'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
-                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
-                        </div>
+                    <div style={{marginTop:'12px',paddingTop:'12px',borderTop:'1px solid #f1f5f9'}}>
+                      <button onClick={()=>setCalLegendExpanded(v=>!v)} style={{width:'100%',background:'none',border:'none',padding:0,display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'#2563eb',cursor:'pointer'}}>
+                        What do the colours mean?
+                        <span style={{display:'flex',transform:calLegendExpanded?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.15s'}}><Ico n="cR" s={11} c="#2563eb" w={2.5}/></span>
+                      </button>
+                      {calLegendExpanded&&(
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginTop:'14px'}}>
                         <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#0f172a'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
-                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#059669'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.5x</span></div>
-                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#dc2626'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>2.0x</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT — Info Only</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
+                            <div style={{width:'11px',display:'flex',justifyContent:'center',flexShrink:0}}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
+                            </div>
+                            <span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Counted Other Period</span>
+                          </div>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'8px'}}>
+                          <div style={{display:'flex',gap:'10px'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>PA</span></div>
+                            <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
+                          </div>
+                          <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#0f172a'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
+                            <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#059669'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>1.5x</span></div>
+                            <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#dc2626'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>2.0x</span></div>
+                          </div>
                         </div>
                       </div>
+                      )}
                     </div>
                     )}
                   </div>
