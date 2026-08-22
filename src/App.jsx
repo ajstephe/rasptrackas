@@ -3913,14 +3913,21 @@ export default function App() {
             <div style={{...S.dark,flex:1,display:'flex',flexDirection:'column'}}>
               <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
 
-              {/* header */}
-              <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'3px'}}>
+              {/* header — a little more breathing room throughout (label to
+                   figure, figure to subtext) than the tightly-packed
+                   original, and a gentler -0.5px letter-spacing on the
+                   figure instead of -2px so digits don't visually crowd
+                   each other, especially on longer six/seven-figure
+                   amounts. Verified up to £12,999,999.99 still fits on one
+                   line within this card's existing width at typical
+                   desktop viewport sizes. ── */}
+              <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>
                 Total Gross YTD
               </div>
-              <div style={{fontSize:'28px',fontWeight:900,color:'#fff',letterSpacing:'-2px',lineHeight:1,marginTop:'4px',marginBottom:'3px'}}>
+              <div style={{fontSize:'28px',fontWeight:900,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.2,marginTop:'2px',marginBottom:'8px'}}>
                 {settings.rank&&settings.service ? fmtGBP(totals.combinedGrossYTD) : '—'}
               </div>
-              <div style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginBottom:'12px'}}>
+              <div style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginBottom:'14px'}}>
                 {settings.rank&&settings.service
                   ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)} tax year`
                   : 'Set your rank & pay point in More..'}
@@ -3941,7 +3948,7 @@ export default function App() {
             {carmsOutstanding.totalClaims>0&&carmsCard}
             </div>
 
-            <div style={{order:2,display:'flex',flexDirection:'column'}}>
+            <div style={{order:3,display:'flex',flexDirection:'column'}}>
             {/* ── TOIL summary card — stays a genuine warning card in red when
                  overdrawn (a real status worth the saturated colour), but
                  drops to a neutral white card with a coloured icon chip
@@ -3965,7 +3972,7 @@ export default function App() {
             </div>
             </div>
 
-            <div style={{order:3,display:'flex',flexDirection:'column'}}>
+            <div style={{order:2,display:'flex',flexDirection:'column'}}>
             {/* ── Current pay period — tap through to Calendar view in Summary ── */}
             {totals.curr&&(
               <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,cursor:'pointer',flex:1,display:'flex',flexDirection:'column'}}>
