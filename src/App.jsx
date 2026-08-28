@@ -1770,16 +1770,19 @@ export default function App() {
     return { label: `${PAY_PERIODS[otIdx]?.short||PAY_PERIODS[otIdx]?.month} / ${PAY_PERIODS[paIdx]?.short||PAY_PERIODS[paIdx]?.month}`, both: true };
   };
 
-  // Renders a tier's date list. A date whose shift was worked in a
-  // different period from the one being viewed here — its money counted
-  // in this period via a late submission — is coloured blue, matching
-  // the calendar's own split-shaded cell for the same situation. A date
-  // whose money isn't counted in this period's total at all (shouldn't
-  // normally occur, since only counted entries are ever pushed, but kept
-  // as a safety fallback) shows in a lighter shade instead. Used by both
-  // the List View and Calendar View period-breakdown boxes.
+  // Renders a tier's date list. Green means the shift was worked AND its
+  // money counted within this same pay period — a normal, on-time
+  // submission. Amber means the shift was actually worked in a different
+  // pay period but its money landed here via a late submission crossing
+  // a period boundary — same situation the calendar's own split-shaded
+  // cell flags. A date whose money isn't counted in this period's total
+  // at all (shouldn't normally occur, since only counted entries are ever
+  // pushed, but kept as a safety fallback) shows in a lighter shade
+  // instead. Used by both the List View and Calendar View period-
+  // breakdown boxes. `normalColor` is unused now that the scheme is a
+  // fixed green/amber, kept only so call sites don't need updating.
   const renderDatePills = (dates, normalColor) => dates.map((x,i)=>(
-    <span key={i} style={{color: !x.counted?'#cbd5e1':x.cross?'#2563eb':normalColor}}>{x.d}{i<dates.length-1?', ':''}</span>
+    <span key={i} style={{color: !x.counted?'#cbd5e1':x.cross?'#d97706':'#059669'}}>{x.d}{i<dates.length-1?', ':''}</span>
   ));
 
   // Shared by the List View entry row and the calendar day popup — same
@@ -5113,7 +5116,7 @@ export default function App() {
                     {isWide ? (
                       <div style={{display:'flex',flexDirection:'column',gap:'10px',marginTop:'16px',paddingTop:'16px',borderTop:'1px solid #f1f5f9'}}>
                         <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'18px'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded NOT Submitted</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>No OT — Info Only</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
@@ -5139,7 +5142,7 @@ export default function App() {
                       {calLegendExpanded&&(
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginTop:'14px'}}>
                         <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded NOT Submitted</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>No OT — Info Only</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
