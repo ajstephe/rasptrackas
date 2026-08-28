@@ -5115,7 +5115,7 @@ export default function App() {
                          layout unchanged. ── */}
                     {isWide ? (
                       <div style={{display:'flex',flexDirection:'column',gap:'10px',marginTop:'16px',paddingTop:'16px',borderTop:'1px solid #f1f5f9'}}>
-                        <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'18px'}}>
+                        <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'center',gap:'18px'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#fef2f2',border:'1px solid #fecaca'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Recorded NOT Submitted</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#f0fdf4',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Submitted</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#e2e8f0',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>No OT — Info Only</span></div>
@@ -5124,13 +5124,16 @@ export default function App() {
                             <span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>OT/PA Counted Other Period</span>
                           </div>
                         </div>
-                        <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'18px'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>PA</span></div>
-                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
-                          <div style={{width:'1px',height:'16px',background:'#cbd5e1',flexShrink:0}}/>
-                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#0f172a'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
-                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#059669'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>1.5x</span></div>
-                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#dc2626'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>2.0x</span></div>
+                        <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:'18px'}}>
+                          <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'18px'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'50%',background:'#f59e0b'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>PA</span></div>
+                            <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>TOIL</span></div>
+                          </div>
+                          <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'18px'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#0f172a'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>1.33x</span></div>
+                            <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#059669'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>1.5x</span></div>
+                            <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#dc2626'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'#64748b'}}>2.0x</span></div>
+                          </div>
                         </div>
                       </div>
                     ) : (
