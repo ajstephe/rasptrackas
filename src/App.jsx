@@ -3383,7 +3383,7 @@ export default function App() {
                               {[['07:00','15:00'],['07:00','19:00'],['08:00','20:00'],['13:00','23:00']].map(([start,end])=>{
                                 const isSelected = form.rosteredStart===start && form.rosteredEnd===end;
                                 return (
-                                  <button key={start+end} onClick={()=>setForm(f=>syncShiftTimesIntoForm(isSelected ? {...f,rosteredStart:'',rosteredEnd:''} : {...f,rosteredStart:start,rosteredEnd:end}))} style={{padding:'7px 2px',borderRadius:'9px',border:isSelected?'1.5px solid #2563eb':'1px solid var(--border-2)',background:isSelected?'var(--tint-blue)':'#fff',color:isSelected?'#2563eb':'var(--muted)',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
+                                  <button key={start+end} onClick={()=>setForm(f=>syncShiftTimesIntoForm(isSelected ? {...f,rosteredStart:'',rosteredEnd:''} : {...f,rosteredStart:start,rosteredEnd:end}))} style={{padding:'7px 2px',borderRadius:'9px',border:isSelected?'1.5px solid #2563eb':'1px solid var(--border-2)',background:isSelected?'var(--tint-blue)':'var(--surface)',color:isSelected?'#2563eb':'var(--muted)',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
                                     {start.replace(':','')}–{end.replace(':','')}
                                   </button>
                                 );
@@ -3468,7 +3468,7 @@ export default function App() {
                     // shifts that genuinely span more than one rate tier
                     return (
                       <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'14px 13px'}}>
-                        <div style={{fontSize:'10px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'4px'}}>Overtime Hours</div>
+                        <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'4px'}}>Overtime Hours</div>
                         <div style={{fontSize:'9px',fontWeight:600,color:'var(--muted)',textAlign:'center',marginBottom:'13px'}}>Record only the hours worked on overtime — not your whole shift</div>
                         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'9px'}}>
                           {['hours133','hours150','hours200'].map((h,i)=>(
@@ -3499,7 +3499,7 @@ export default function App() {
 
                   return (
                     <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'12px 13px'}}>
-                      <div className="hint-pulse" style={{fontSize:'12px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'9px'}}>Select O/T Rate for this Shift</div>
+                      <div className="hint-pulse" style={{fontSize:'12px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'9px'}}>Select O/T Rate for this Shift</div>
                       <div style={{display:'flex',gap:'6px',marginBottom:'9px'}}>
                         {['hours133','hours150','hours200'].map((h,i)=>(
                           <button key={h} onClick={()=>setForm(f=>{
@@ -3535,7 +3535,7 @@ export default function App() {
                     <div style={{background:'#6d28d9',border:'none',borderRadius:'13px',padding:'14px 13px',marginTop:showTwoCol?0:'13px'}}>
                       <div style={{fontSize:'10px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Take Overtime As</div>
                       <div style={{display:'flex',gap:'6px',background:'rgba(0,0,0,0.18)',borderRadius:'11px',padding:'3px'}}>
-                        {[['pay','Pay','#1e40af'],['toil','TOIL','#6d28d9'],['mix','Mix','var(--muted)']].map(([m,lbl,col])=>(
+                        {[['pay','Pay','var(--text-blue-deep)'],['toil','TOIL','#6d28d9'],['mix','Mix','var(--muted)']].map(([m,lbl,col])=>(
                           <button key={m} onClick={()=>setForm(f=>{
                             const t = parseFloat(f[tier])||0;
                             const th = m==='pay' ? 0 : m==='toil' ? t : (parseFloat(f.toilHours)||0);
@@ -3546,7 +3546,7 @@ export default function App() {
                       {form.takeAs==='mix' && (
                         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'12px'}}>
                           <div style={{background:'var(--tint-blue)',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                            <div style={{fontSize:'9px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Pay Hours</div>
+                            <div style={{fontSize:'9px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Pay Hours</div>
                             <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'var(--surface)',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'var(--ink)'}}
                               value={payH.toFixed(2).replace(/\.00$/,'')}
                               onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(total-v)}); }}/>
@@ -3574,7 +3574,7 @@ export default function App() {
                     <div style={{fontSize:'12px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
                     <div style={{display:'flex',gap:'6px'}}>
                       {['None','PA1','PA2','PA3'].map(pa=>(
-                        <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'#fff',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
+                        <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'var(--surface)',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
                           <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
                           <span style={{fontSize:'9px',fontWeight:700,opacity:form.paRate===pa?0.85:0.55}}>{PA_LABELS[pa]}</span>
                         </button>
@@ -3612,7 +3612,7 @@ export default function App() {
                         <div style={{fontSize:'12px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
                         <div style={{display:'flex',gap:'6px'}}>
                           {['None','PA1','PA2','PA3'].map(pa=>(
-                            <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'#fff',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
+                            <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'var(--surface)',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
                               <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
                               <span style={{fontSize:'9px',fontWeight:700,opacity:form.paRate===pa?0.85:0.55}}>{PA_LABELS[pa]}</span>
                             </button>
@@ -3794,7 +3794,7 @@ export default function App() {
                       // flex:1 with minWidth:0 lets all twelve periods share the
                       // row evenly and fit without horizontal scrolling, rather
                       // than each sizing to its own text and overflowing.
-                      <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isActive?'1.5px solid #2563eb':hasOutstanding?'1px solid var(--border-2)':isCurr?'1.5px solid #2563eb':'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isActive?'#2563eb':isCurr?'var(--tint-blue)':'#fff',color:hasOutstanding?'var(--text-red-deep)':isActive?'#fff':isCurr?'#2563eb':'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
+                      <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isActive?'1.5px solid #2563eb':hasOutstanding?'1px solid var(--border-2)':isCurr?'1.5px solid #2563eb':'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isActive?'#2563eb':isCurr?'var(--tint-blue)':'var(--surface)',color:hasOutstanding?'var(--text-red-deep)':isActive?'#fff':isCurr?'#2563eb':'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
                         {p.short}
                       </button>
                     );
@@ -3814,7 +3814,7 @@ export default function App() {
                     const isSel=(calPeriodIdx===null?currPeriodIdx:calPeriodIdx)===idx;
                     const hasOutstanding = carmsOutstanding.groups.some(g=>g.periodIdx===idx);
                     return(
-                      <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isSel?'1.5px solid #2563eb':hasOutstanding?'1px solid var(--border-2)':isCurr?'1.5px solid #2563eb':'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isSel?'#2563eb':isCurr?'var(--tint-blue)':'#fff',color:hasOutstanding?'var(--text-red-deep)':isSel?'#fff':isCurr?'#2563eb':'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
+                      <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isSel?'1.5px solid #2563eb':hasOutstanding?'1px solid var(--border-2)':isCurr?'1.5px solid #2563eb':'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isSel?'#2563eb':isCurr?'var(--tint-blue)':'var(--surface)',color:hasOutstanding?'var(--text-red-deep)':isSel?'#fff':isCurr?'#2563eb':'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
                         {p.short}
                       </button>
                     );
@@ -3886,7 +3886,7 @@ export default function App() {
               // breakdown rows never have to be maintained in two places.
               const otPayInner = (
                 <>
-                  <div style={{fontSize:'11px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
+                  <div style={{fontSize:'11px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
                   <div style={{fontSize:'12px',fontWeight:700,color:'var(--text-navy)',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(gOT)}</span></div>
                   <div style={{fontSize:'11px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: <span style={{fontFamily:MONO}}>{fmt(pb.otResult.net)}</span></div>
                   <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'6px'}}>
@@ -3929,7 +3929,7 @@ export default function App() {
               );
 
               return(
-                <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:isCurr?'var(--tint-blue)':'#fff',borderRadius:'17px',border:isCurr?'2px solid #2563eb':'1px solid var(--border-2)',borderLeft:isCurr?'5px solid #2563eb':'1px solid var(--border-2)',boxShadow:isCurr?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 5px rgba(0,0,0,0.04)',marginBottom:'9px',overflow:'hidden',...(isWide&&isExp?{gridColumn:'1 / -1'}:{})}}>
+                <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:isCurr?'var(--tint-blue)':'var(--surface)',borderRadius:'17px',border:isCurr?'2px solid #2563eb':'1px solid var(--border-2)',borderLeft:isCurr?'5px solid #2563eb':'1px solid var(--border-2)',boxShadow:isCurr?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 5px rgba(0,0,0,0.04)',marginBottom:'9px',overflow:'hidden',...(isWide&&isExp?{gridColumn:'1 / -1'}:{})}}>
                   <button onClick={()=>setExpanded(isExp?null:p.month)} style={{width:'100%',textAlign:'left',padding:'16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'11px'}}>
                       <div>
@@ -3939,7 +3939,7 @@ export default function App() {
                       </div>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'4px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'4px',background:isCurr?'var(--tint-blue-2)':'var(--tint-blue)',border:isCurr?'1px solid #93c5fd':'1px solid var(--border-2)',padding:'5px 9px',borderRadius:'9px'}}>
-                          <div style={{fontSize:'13px',fontWeight:900,color:'#1d4ed8'}}>{(h133+h150+h200).toFixed(1)} hrs</div>
+                          <div style={{fontSize:'13px',fontWeight:900,color:'var(--text-blue-deep)'}}>{(h133+h150+h200).toFixed(1)} hrs</div>
                         </div>
                         <div style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)'}}>{pE.length} record{pE.length!==1?'s':''}</div>
                       </div>
@@ -4011,7 +4011,7 @@ export default function App() {
                           const ePANet    = c.pa>0    ? c.pa*(1-pb.paResult.rate/100)       : 0;
                           const eNet = eOTNet+ePANet;
                           return(
-                            <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'#fff',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:'13px',marginBottom:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
+                            <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:'13px',marginBottom:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
                               {isFut&&<div style={{position:'absolute',top:'-6px',right:'9px',background:'#2563eb',color:'#fff',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',textTransform:'uppercase',letterSpacing:'1px'}}>Planned</div>}
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'7px'}}>
                                 <div>
@@ -4230,7 +4230,7 @@ export default function App() {
                       <span style={{color:'var(--text-navy)',fontWeight:900}}>{cEntries.length}</span> shift{cEntries.length!==1?'s':''} logged &nbsp;·&nbsp; <span style={{color:'var(--text-navy)',fontWeight:900}}>{cTotalHrs}</span> total O/T hours
                     </div>
                   ) : (
-                  <div style={{...S.card,display:'flex',padding:'16px',background:cIdx===currPeriodIdx?'var(--tint-blue)':'#fff',border:cIdx===currPeriodIdx?'2px solid #2563eb':'1px solid var(--border-2)',boxShadow:cIdx===currPeriodIdx?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 6px rgba(0,0,0,0.05)'}}>
+                  <div style={{...S.card,display:'flex',padding:'16px',background:cIdx===currPeriodIdx?'var(--tint-blue)':'var(--surface)',border:cIdx===currPeriodIdx?'2px solid #2563eb':'1px solid var(--border-2)',boxShadow:cIdx===currPeriodIdx?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 6px rgba(0,0,0,0.05)'}}>
                     <div style={{flex:1,textAlign:'center'}}>
                       <div style={{fontSize:'12px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.5px'}}>Shifts Logged</div>
                       <div style={{fontSize:'22px',fontWeight:900,color:'var(--text-navy)'}}>{cEntries.length}</div>
@@ -4386,7 +4386,7 @@ export default function App() {
                   {/* period breakdown boxes — same layout as List View */}
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
                     <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid var(--border-2)'}}>
-                      <div style={{fontSize:'11px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
+                      <div style={{fontSize:'11px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
                       <div style={{fontSize:'12px',fontWeight:700,color:'var(--text-navy)',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(pb.ot)}</span></div>
                       <div style={{fontSize:'11px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: <span style={{fontFamily:MONO}}>{fmt(pb.otResult.net)}</span></div>
                       <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'6px'}}>
@@ -4911,11 +4911,11 @@ export default function App() {
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
                         <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
                           <div style={{fontSize:'9px',fontWeight:700,color:'#2563eb',marginBottom:'3px'}}>Pension ({(pensionA.rate*100).toFixed(2)}%)</div>
-                          <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionA.amount)}</div>
+                          <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionA.amount)}</div>
                         </div>
                         <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
                           <div style={{fontSize:'9px',fontWeight:700,color:'#2563eb',marginBottom:'3px'}}>Pension ({(pensionF.rate*100).toFixed(2)}%)</div>
-                          <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionF.amount)}</div>
+                          <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionF.amount)}</div>
                         </div>
                       </div>
 
@@ -4974,7 +4974,7 @@ export default function App() {
                           </div>
                           <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(ytd)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#1e40af'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionA.amount)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionA.amount)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableYTD)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Personal Allowance <span style={{color:'var(--quiet)',fontWeight:600}}>(0%, pro-rated)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownA.pa)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownA.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.basicTax)}</span></div>
@@ -5005,7 +5005,7 @@ export default function App() {
                           </div>
                           <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (projected annual)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(proj)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#1e40af'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionF.amount)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionF.amount)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable Gross</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableGrossF)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Personal Allowance <span style={{color:'var(--quiet)',fontWeight:600}}>(0%)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownF.pa)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownF.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.basicTax)}</span></div>
@@ -5420,7 +5420,7 @@ export default function App() {
               </div>
 
               <div onClick={()=>setSanitiseNotes(v=>!v)} style={{display:'flex',alignItems:'flex-start',gap:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'12px 14px',marginBottom:'16px',cursor:'pointer'}}>
-                <div style={{width:'20px',height:'20px',borderRadius:'6px',border:`2px solid ${sanitiseNotes?'#dc2626':'#cbd5e1'}`,background:sanitiseNotes?'#dc2626':'#fff',flexShrink:0,marginTop:'1px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <div style={{width:'20px',height:'20px',borderRadius:'6px',border:`2px solid ${sanitiseNotes?'#dc2626':'#cbd5e1'}`,background:sanitiseNotes?'#dc2626':'var(--surface)',flexShrink:0,marginTop:'1px',display:'flex',alignItems:'center',justifyContent:'center'}}>
                   {sanitiseNotes&&<Ico n="check" s={12} c="#fff" w={3}/>}
                 </div>
                 <div>
@@ -5434,7 +5434,7 @@ export default function App() {
                   <div style={{fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'8px'}}>Pay Periods</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'7px',marginBottom:'6px'}}>
                     {periodChoices.map(p=>(
-                      <div key={p.idx} onClick={()=>setPayslipPeriodIdx(p.idx)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:p.idx===payslipPeriodIdx?'1.5px solid #2563eb':'1.5px solid var(--border-2)',background:p.idx===payslipPeriodIdx?'var(--tint-blue)':'#fff',cursor:'pointer'}}>
+                      <div key={p.idx} onClick={()=>setPayslipPeriodIdx(p.idx)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:p.idx===payslipPeriodIdx?'1.5px solid #2563eb':'1.5px solid var(--border-2)',background:p.idx===payslipPeriodIdx?'var(--tint-blue)':'var(--surface)',cursor:'pointer'}}>
                         <div>
                           <div style={{fontWeight:800,fontSize:'12.5px',color:'var(--ink)'}}>{p.month}{p.idx===currPeriodIdx&&<span style={{color:'#2563eb',fontSize:'9px',marginLeft:'6px'}}>· Current</span>}</div>
                           <div style={{fontFamily:MONO,fontSize:'9.5px',color:'var(--quiet)',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
@@ -5469,7 +5469,7 @@ export default function App() {
                       const yPeriods = generateFYPeriods(y);
                       const isCurrent = y===CURRENT_FY_YEAR;
                       return (
-                        <div key={y} onClick={()=>setPayslipFYYear(y)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:y===payslipFYYear?'1.5px solid #2563eb':'1.5px solid var(--border-2)',background:y===payslipFYYear?'var(--tint-blue)':'#fff',cursor:'pointer'}}>
+                        <div key={y} onClick={()=>setPayslipFYYear(y)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:y===payslipFYYear?'1.5px solid #2563eb':'1.5px solid var(--border-2)',background:y===payslipFYYear?'var(--tint-blue)':'var(--surface)',cursor:'pointer'}}>
                           <div>
                             <div style={{fontWeight:800,fontSize:'12.5px',color:'var(--ink)'}}>{y} / {(y+1).toString().slice(-2)}{isCurrent&&<span style={{color:'#2563eb',fontSize:'9px',marginLeft:'6px'}}>· Current</span>}</div>
                             <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>{yPeriods[0].month} – {yPeriods[11].month}{!isCurrent&&exportFormat==='pdf'&&' · gross only, no tax/NI'}</div>
@@ -5484,7 +5484,7 @@ export default function App() {
                 </>
               )}
 
-              <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'11px 14px',margin:'16px 0',fontSize:'12px',color:'#1e40af',fontWeight:700,textAlign:'center'}}>
+              <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'11px 14px',margin:'16px 0',fontSize:'12px',color:'var(--text-blue-deep)',fontWeight:700,textAlign:'center'}}>
                 {payslipMode==='period'
                   ? (payslipPeriodIdx!=null ? `${fmtD(PAY_PERIODS[payslipPeriodIdx].start)} – ${fmtD(PAY_PERIODS[payslipPeriodIdx].end)}` : 'Pick a pay period')
                   : payslipMode==='financialYear'
@@ -5543,7 +5543,7 @@ export default function App() {
               </div>
 
               <div style={{padding:'22px 26px 10px'}}>
-                {d.clippedFrom&&<div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'#1e40af',lineHeight:1.5}}>The tax year restarts on 6 April, so this summary only covers {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)} — the part that falls in the current tax year. That's what keeps the figures accurate.</div>}
+                {d.clippedFrom&&<div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'var(--text-blue-deep)',lineHeight:1.5}}>The tax year restarts on 6 April, so this summary only covers {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)} — the part that falls in the current tax year. That's what keeps the figures accurate.</div>}
                 {d.rangeEntries.length===0 ? (
                   <div style={{textAlign:'center',padding:'30px 10px',color:'var(--quiet)',fontSize:'13px',fontWeight:600}}>No shifts recorded in this range.</div>
                 ) : (
@@ -5590,7 +5590,7 @@ export default function App() {
                       <>
                         <div style={sectionTitle}>Pension Contribution (this period)</div>
                         <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'11px 14px',marginBottom:'8px'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#1e40af'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'var(--text-blue-deep)'}}>
                             <span>{(d.pensionRate*100).toFixed(2)}% of {fmtGBP(d.pensionablePayForRange)} pensionable pay</span>
                             <strong style={{fontFamily:MONO,fontWeight:600}}>−{fmtGBP(d.pensionForRange)}</strong>
                           </div>
@@ -5654,7 +5654,7 @@ export default function App() {
             </div>
 
             <div style={{padding:'14px',paddingBottom:'40px'}}>
-              <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'10px 12px',marginBottom:'12px',fontSize:'10.5px',color:'#1e40af',lineHeight:1.5}}>{fySummaryPrintMode ? 'Grouped by pay period. Gross figures only — no tax or NI estimate, since that math needs the current year\'s context to be accurate.' : 'Tap a period to see individual shifts, this is a record not a working copy. Gross figures only'}</div>
+              <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'10px 12px',marginBottom:'12px',fontSize:'10.5px',color:'var(--text-blue-deep)',lineHeight:1.5}}>{fySummaryPrintMode ? 'Grouped by pay period. Gross figures only — no tax or NI estimate, since that math needs the current year\'s context to be accurate.' : 'Tap a period to see individual shifts, this is a record not a working copy. Gross figures only'}</div>
 
               {y.periods.length===0 ? (
                 <div style={{textAlign:'center',padding:'30px 10px',color:'var(--quiet)',fontSize:'13px',fontWeight:600}}>No entries recorded in this year.</div>
