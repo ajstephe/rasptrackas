@@ -116,11 +116,14 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
                           {mergeOtToil&&(
                             <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'4px 0'}}>
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
-                              {catChip('ot')}
+                              <div style={{display:'flex',alignItems:'center',gap:'4px',flexShrink:0}}>
+                                {catChip('ot')}
+                                {catChip('toil')}
+                              </div>
                               <span style={{fontSize:isWide?'13px':'11.5px',fontWeight:700,color:'var(--ink)'}}>Overtime <span style={{color:'var(--quiet)',fontWeight:600}}>+ TOIL</span></span>
                               <div style={{marginLeft:'auto',textAlign:'right'}}>
                                 <div style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706'}}>{fmtGBP(it.otAmt)}</div>
-                                <div style={{fontSize:isWide?'12px':'10.5px',fontWeight:700,color:'#7c3aed'}}>+ {it.toilHrs.toFixed(1)}h TOIL</div>
+                                <div style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:700,color:'#7c3aed'}}>+ {it.toilHrs.toFixed(1)}h TOIL</div>
                               </div>
                             </div>
                           )}
@@ -145,7 +148,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-toil')}</span>
                               {catChip('toil')}
                               <span style={{fontSize:isWide?'13px':'11.5px',fontWeight:700,color:'var(--ink)'}}>TOIL</span>
-                              <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
+                              <span style={{fontFamily:MONO,fontSize:isWide?'14.5px':'12.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
                             </div>
                           )}
                         </div>
