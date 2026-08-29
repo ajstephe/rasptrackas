@@ -2446,7 +2446,7 @@ export default function App() {
         <g>
           <rect x={tx} y={ty} width={tw} height={th} rx="7" fill="#1e3a5f"/>
           <text x={tx+tw/2} y={ty+padTop} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?10:8,fontWeight:900,fill:'#93c5fd'}}>{tapPt.lbl}</text>
-          <text x={tx+tw/2} y={ty+padTop+lineH} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?13:11,fontWeight:900,fill:'#fff'}}>{fmtGBP(tapPt.val)}</text>
+          <text x={tx+tw/2} y={ty+padTop+lineH} textAnchor="middle" dominantBaseline="middle" style={{fontFamily:MONO,fontSize:big?13:11,fontWeight:600,fill:'#fff'}}>{fmtGBP(tapPt.val)}</text>
         </g>
       );
     }
@@ -2531,8 +2531,8 @@ export default function App() {
         <g>
           <rect x={tx} y={ty} width={tw} height={th} rx="7" fill={tooltipBg}/>
           <text x={tx+tw/2} y={ty+padTop} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?10:8,fontWeight:900,fill:'#93c5fd'}}>{tapPt.lbl}</text>
-          <text x={tx+tw/2} y={ty+padTop+lineH} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?11:9,fontWeight:800,fill:'#6ee7b7'}}>Gross {fmtGBP(tapPt.g)}</text>
-          <text x={tx+tw/2} y={ty+padTop+lineH*2} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?11:9,fontWeight:800,fill:'#fca5a5'}}>Net {fmtGBP(tapPt.n)}</text>
+          <text x={tx+tw/2} y={ty+padTop+lineH} textAnchor="middle" dominantBaseline="middle" style={{fontFamily:MONO,fontSize:big?11:9,fontWeight:600,fill:'#6ee7b7'}}>Gross {fmtGBP(tapPt.g)}</text>
+          <text x={tx+tw/2} y={ty+padTop+lineH*2} textAnchor="middle" dominantBaseline="middle" style={{fontFamily:MONO,fontSize:big?11:9,fontWeight:600,fill:'#fca5a5'}}>Net {fmtGBP(tapPt.n)}</text>
         </g>
       );
     }
@@ -2945,11 +2945,11 @@ export default function App() {
                     ].map(([label,val,fullYear])=>(
                       <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                         <span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>{label}</span>
-                        <span style={{fontSize:'13px',fontWeight:900,color:val==null?'#94a3b8':'#0f172a'}}>
+                        <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:val==null?'#94a3b8':'#0f172a'}}>
                           {val==null
                             ? 'Set rank & pay point'
                             : fullYear!=null
-                              ? <>{fmtGBP(val)}<span style={{color:'#94a3b8',fontWeight:700}}> / {fmtGBP(fullYear)}</span></>
+                              ? <>{fmtGBP(val)}<span style={{color:'#94a3b8'}}> / {fmtGBP(fullYear)}</span></>
                               : fmtGBP(val)}
                         </span>
                       </div>
@@ -2960,7 +2960,7 @@ export default function App() {
                     ].map(([label,gross,net])=>(
                       <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                         <span style={{fontSize:'13px',fontWeight:700,color:'#64748b'}}>{label}</span>
-                        <span style={{fontSize:'13px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(gross)}<span style={{color:'#059669',fontWeight:700}}> ({fmtGBP(net)})</span></span>
+                        <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(gross)}<span style={{color:'#059669'}}> ({fmtGBP(net)})</span></span>
                       </div>
                     ))}
                     <div style={{fontSize:'9.5px',fontWeight:600,color:'#94a3b8',textAlign:'right',marginTop:'2px'}}>Figures in brackets, e.g. <span style={{color:'#059669'}}>(£xx.xx)</span>, are net</div>
@@ -3147,11 +3147,11 @@ export default function App() {
                       </div>
                       <div style={{display:'flex',gap:'20px',textAlign:'right'}}>
                         <div>
-                          <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Gross</div>
+                          <div style={{fontSize:'8.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Gross</div>
                           <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'#0f172a'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
                         </div>
                         <div>
-                          <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Net</div>
+                          <div style={{fontSize:'8.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Net</div>
                           <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'#059669'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
                         </div>
                       </div>
@@ -3237,11 +3237,11 @@ export default function App() {
                       </div>
                       <div style={{display:'flex',gap:'14px',textAlign:'right'}}>
                         <div>
-                          <div style={{fontSize:'8px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase'}}>Gross</div>
+                          <div style={{fontSize:'8px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase'}}>Gross</div>
                           <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#0f172a'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
                         </div>
                         <div>
-                          <div style={{fontSize:'8px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase'}}>Net</div>
+                          <div style={{fontSize:'8px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase'}}>Net</div>
                           <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#059669'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
                         </div>
                       </div>
@@ -3368,7 +3368,7 @@ export default function App() {
                               <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#2563eb'}}/>
                               <div style={{fontWeight:900,fontSize:'14px',color:'#0f172a'}}>Rostered CARM Shift</div>
                             </div>
-                            <div style={{fontSize:'9.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'5px'}}>Quick presets</div>
+                            <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'5px'}}>Quick presets</div>
                             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'5px',marginBottom:'12px'}}>
                               {[['07:00','15:00'],['07:00','19:00'],['08:00','20:00'],['13:00','23:00']].map(([start,end])=>{
                                 const isSelected = form.rosteredStart===start && form.rosteredEnd===end;
@@ -3551,8 +3551,8 @@ export default function App() {
                       )}
                       {toilH>0 && (
                         <div style={{marginTop:'12px',background:'#f5f3ff',borderRadius:'10px',padding:'10px 13px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:'11px',fontWeight:700,color:'#6d28d9'}}>{fmtHM(toilH)}h worked @ {RATE_TIER_MULT[tier]}x</span>
-                          <span style={{fontSize:'14px',fontWeight:900,color:'#4c1d95'}}>{fmtHM(toilH*RATE_TIER_MULT[tier])}h banked</span>
+                          <span style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#6d28d9'}}>{fmtHM(toilH)}h worked @ {RATE_TIER_MULT[tier]}x</span>
+                          <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#4c1d95'}}>{fmtHM(toilH*RATE_TIER_MULT[tier])}h banked</span>
                         </div>
                       )}
                     </div>
@@ -3659,7 +3659,7 @@ export default function App() {
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                   <div>
                     <div style={{fontSize:'13px',fontWeight:700,color:'#0f172a'}}>PA Submitted on MetHR</div>
-                    <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{form.paRate==='None' ? 'No PA rate selected for this shift' : `${form.paRate} — ${fmtGBP(PA_RATES[form.paRate]||0)}`}</div>
+                    <div style={{fontFamily:MONO,fontSize:'10px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{form.paRate==='None' ? 'No PA rate selected for this shift' : `${form.paRate} — ${fmtGBP(PA_RATES[form.paRate]||0)}`}</div>
                   </div>
                   <div onClick={()=>{
                     if (form.paRate==='None') return;
@@ -3707,7 +3707,7 @@ export default function App() {
                 {preview.toilBanked>0&&(
                   <div style={{borderTop:'1px solid rgba(255,255,255,0.1)',paddingTop:'8px',display:'flex',alignItems:'center',gap:'6px'}}>
                     <Ico n="clock" s={11} c="#c4b5fd"/>
-                    <span style={{fontSize:'15px',fontWeight:700,color:'#c4b5fd'}}>+ {fmtHM(preview.toilBanked)}h TOIL banked (not included in Gross/Net above)</span>
+                    <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'#c4b5fd'}}>+ {fmtHM(preview.toilBanked)}h TOIL banked (not included in Gross/Net above)</span>
                   </div>
                 )}
               </div>
@@ -3736,7 +3736,7 @@ export default function App() {
           <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
             {/* Sticky header — heading, toggle and month pills all float together */}
             <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'#f8fafc',paddingTop:'6px',paddingBottom:'8px',marginTop:'-14px',marginBottom:'6px'}}>
-              <h2 style={{fontSize:'21px',fontWeight:900,color:'#0f172a',margin:'0 0 10px',letterSpacing:'-0.5px'}}>Summary</h2>
+              <h2 style={{fontSize:'19px',fontWeight:900,color:'#0f172a',margin:'0 0 10px',letterSpacing:'-0.5px'}}>Summary</h2>
               <div style={{display:'flex',background:'#eef2f7',borderRadius:'14px',padding:'4px',boxShadow:'0 4px 14px rgba(15,23,42,0.08)'}}>
                 {/* Each half is a div rather than a button so the star can be its own
                     tap target inside it — nesting buttons isn't valid HTML. */}
@@ -3925,7 +3925,7 @@ export default function App() {
                       <div>
                         {isCurr&&<div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'#fff',fontSize:'10px',fontWeight:900,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'5px',boxShadow:'0 2px 6px rgba(37,99,235,0.35)'}}><span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Active Month</div>}
                         <div style={{fontWeight:900,fontSize:'19px',color:'#0f172a',letterSpacing:'-0.3px'}}>{p.month}</div>
-                        <div style={{fontSize:'13px',fontWeight:700,color:'#3b82f6',marginTop:'2px'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
+                        <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:'#3b82f6',marginTop:'2px'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
                       </div>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'4px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'4px',background:isCurr?'#dbeafe':'#eff6ff',border:isCurr?'1px solid #93c5fd':'1px solid #bfdbfe',padding:'5px 9px',borderRadius:'9px'}}>
@@ -3947,7 +3947,7 @@ export default function App() {
                             <Ico n="clock" s={16} c="#d97706"/>
                             <span style={{fontSize:'17.5px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR Awaiting Submission</span>
                           </div>
-                          <div style={{fontSize:'17.5px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</div>
+                          <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</div>
                         </div>
                       );
                     })()}
@@ -3971,7 +3971,7 @@ export default function App() {
                           </div>
                           <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer',marginBottom:'9px'}}>
                             <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
-                            <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
+                            <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
                             <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
                           </div>
                         </>
@@ -3983,7 +3983,7 @@ export default function App() {
                           </div>
                           <div onClick={()=>setTab('graph')} style={{borderTop:'1px solid #f1f5f9',marginTop:'13px',paddingTop:'12px',cursor:'pointer'}}>
                             <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
-                            <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'2px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
+                            <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#4c1d95',marginBottom:'2px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
                             <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
                           </div>
                         </div>
@@ -4068,8 +4068,8 @@ export default function App() {
                                   )}
                                   {c.toilH>0&&(
                                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                      <span style={{fontSize:'13px',fontWeight:700,color:'#6d28d9'}}>{fmtHM(c.toilH)}h @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
-                                      <span style={{fontSize:'14px',fontWeight:900,color:'#4c1d95'}}>{fmtHM(c.toilBanked)}h banked</span>
+                                      <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#6d28d9'}}>{fmtHM(c.toilH)}h @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
+                                      <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#4c1d95'}}>{fmtHM(c.toilBanked)}h banked</span>
                                     </div>
                                   )}
                                   {e.paRate!=='None'&&(
@@ -4206,7 +4206,7 @@ export default function App() {
                         </div>
                       )}
                       <div style={{fontWeight:900,fontSize:'22px',color:cIdx===currPeriodIdx?'#1d4ed8':'#0f172a'}}>{cPeriod.month}</div>
-                      <div style={{fontSize:'14px',fontWeight:700,color:'#3b82f6'}}>{fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
+                      <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#3b82f6'}}>{fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
                     </div>
                     <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c="#2563eb"/></button>
                   </div>
@@ -4417,7 +4417,7 @@ export default function App() {
                   </div>
                   <div onClick={()=>setTab('graph')} style={{background:'#f5f3ff',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer',marginTop:'9px'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
-                    <div style={{fontSize:'14px',fontWeight:700,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(pToilWorked)}h worked → {fmtHM(pToilBanked)}h banked</div>
+                    <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(pToilWorked)}h worked → {fmtHM(pToilBanked)}h banked</div>
                     <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
                   </div>
 
@@ -4430,7 +4430,7 @@ export default function App() {
                           <Ico n="clock" s={14} c="#d97706"/>
                           <span style={{fontSize:'12.5px',fontWeight:800,color:'#0f172a'}}>CARMS &amp; MetHR Awaiting Submission</span>
                         </div>
-                        <span style={{fontSize:'21.5px',fontWeight:900,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</span>
+                        <span style={{fontFamily:MONO,fontSize:'19px',fontWeight:600,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</span>
                       </div>
                     );
                   })()}
@@ -4536,7 +4536,7 @@ export default function App() {
                                     <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
                                     <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#f5f3ff',color:'#7c3aed'}}>TOIL</span>
                                     <div style={{marginLeft:'auto',textAlign:'right'}}>
-                                      <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706'}}>{fmtGBP(it.otAmt)}</div>
+                                      <div style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706'}}>{fmtGBP(it.otAmt)}</div>
                                       <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:700,color:'#7c3aed'}}>+ {it.toilHrs.toFixed(1)}h TOIL</div>
                                     </div>
                                   </div>
@@ -4545,14 +4545,14 @@ export default function App() {
                                   <div style={{display:'flex',alignItems:'center',gap:'5px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
                                     <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#eff6ff',color:'#2563eb'}}>Overtime</span>
-                                    <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
+                                    <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
                                   </div>
                                 )}
                                 {showPa&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'5px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'#64748b',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-pa')}</span>
                                     <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'#fffbeb',color:'#f59e0b'}}>PA</span>
-                                    <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
+                                    <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
                                   </div>
                                 )}
                                 {showToil&&!mergeOtToil&&(
@@ -4897,11 +4897,11 @@ export default function App() {
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
                         <div style={{background:overA?'#fef2f2':'#f0fdf4',border:`1px solid ${overA?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
                           <div style={{fontSize:'9px',fontWeight:900,color:overA?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'3px'}}>Extra Tax</div>
-                          <div style={{fontSize:'17px',fontWeight:900,color:overA?'#991b1b':'#166534'}}>{fmtGBP(extraTaxA)}</div>
+                          <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:overA?'#991b1b':'#166534'}}>{fmtGBP(extraTaxA)}</div>
                         </div>
                         <div style={{background:overF?'#fef2f2':'#f0fdf4',border:`1px solid ${overF?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
                           <div style={{fontSize:'9px',fontWeight:900,color:overF?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'3px'}}>Extra Tax</div>
-                          <div style={{fontSize:'17px',fontWeight:900,color:overF?'#991b1b':'#166534'}}>{fmtGBP(extraTaxF)}</div>
+                          <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:overF?'#991b1b':'#166534'}}>{fmtGBP(extraTaxF)}</div>
                         </div>
                       </div>
 
@@ -4943,25 +4943,25 @@ export default function App() {
                             <span onClick={()=>setTaxCalcActualDetailOpen(false)} style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',cursor:'pointer'}}>Show less</span>
                           </div>
                           <div style={{background:'#f8fafc',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Gross (YTD)</span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(ytd)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #bfdbfe',background:'#eff6ff',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#1e40af'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#1e40af'}}>−{fmtGBP(pensionA.amount)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>= Taxable Gross (YTD)</span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(taxableYTD)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Personal Allowance <span style={{color:'#94a3b8',fontWeight:600}}>(0%, pro-rated)</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#059669'}}>{fmtGBP(breakdownA.pa)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Basic Rate <span style={{color:'#94a3b8',fontWeight:600}}>(20% on {fmtGBP(breakdownA.basicAmt)})</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(breakdownA.basicTax)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Higher Rate <span style={{color:'#94a3b8',fontWeight:600}}>(40% on {fmtGBP(breakdownA.higherAmt)})</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(breakdownA.higherTax)}</span></div>
-                            {breakdownA.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Additional Rate <span style={{color:'#94a3b8',fontWeight:600}}>(45% on {fmtGBP(breakdownA.additionalAmt)})</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(breakdownA.additionalTax)}</span></div>}
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(ytd)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #bfdbfe',background:'#eff6ff',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#1e40af'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionA.amount)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>= Taxable Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(taxableYTD)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Personal Allowance <span style={{color:'#94a3b8',fontWeight:600}}>(0%, pro-rated)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownA.pa)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Basic Rate <span style={{color:'#94a3b8',fontWeight:600}}>(20% on {fmtGBP(breakdownA.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(breakdownA.basicTax)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Higher Rate <span style={{color:'#94a3b8',fontWeight:600}}>(40% on {fmtGBP(breakdownA.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(breakdownA.higherTax)}</span></div>
+                            {breakdownA.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Additional Rate <span style={{color:'#94a3b8',fontWeight:600}}>(45% on {fmtGBP(breakdownA.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(breakdownA.additionalTax)}</span></div>}
                           </div>
                           <div style={{display:'flex',justifyContent:'space-between',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'11px',padding:'11px 14px',marginBottom:'8px'}}>
                             <span style={{fontSize:'11.5px',fontWeight:800,color:'#991b1b'}}>Total Income Tax (YTD)</span>
-                            <span style={{fontSize:'13px',fontWeight:900,color:'#991b1b'}}>{fmtGBP(breakdownA.totalTax)}</span>
+                            <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#991b1b'}}>{fmtGBP(breakdownA.totalTax)}</span>
                           </div>
                           <div style={{display:'flex',justifyContent:'space-between',background:'#f8fafc',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
                             <span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>National Insurance (YTD) <span style={{color:'#94a3b8',fontWeight:600}}>(on full gross)</span></span>
-                            <span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(niA)}</span>
+                            <span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(niA)}</span>
                           </div>
                           <div style={{display:'flex',justifyContent:'space-between',background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'11px',padding:'11px 14px'}}>
                             <span style={{fontSize:'11.5px',fontWeight:800,color:'#166534'}}>Estimated Net (YTD)</span>
-                            <span style={{fontSize:'14px',fontWeight:900,color:'#166534'}}>{fmtGBP(netA)}</span>
+                            <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#166534'}}>{fmtGBP(netA)}</span>
                           </div>
                           <div style={{fontSize:'9px',color:'#94a3b8',lineHeight:1.5,marginTop:'8px'}}>What's owed on money genuinely banked so far — not a projection. Pension tier is estimated from your current pay rate, not last scheme year's actual earnings, which is what the real rule technically uses.</div>
                         </div>
@@ -4974,25 +4974,25 @@ export default function App() {
                             <span onClick={()=>setTaxCalcForecastDetailOpen(false)} style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',cursor:'pointer'}}>Show less</span>
                           </div>
                           <div style={{background:'#f8fafc',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Gross (projected annual)</span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(proj)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #bfdbfe',background:'#eff6ff',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#1e40af'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#1e40af'}}>−{fmtGBP(pensionF.amount)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>= Taxable Gross</span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(taxableGrossF)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Personal Allowance <span style={{color:'#94a3b8',fontWeight:600}}>(0%)</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#059669'}}>{fmtGBP(breakdownF.pa)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Basic Rate <span style={{color:'#94a3b8',fontWeight:600}}>(20% on {fmtGBP(breakdownF.basicAmt)})</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(breakdownF.basicTax)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:breakdownF.additionalAmt>0?'1px solid #f1f5f9':'none'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Higher Rate <span style={{color:'#94a3b8',fontWeight:600}}>(40% on {fmtGBP(breakdownF.higherAmt)})</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(breakdownF.higherTax)}</span></div>
-                            {breakdownF.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Additional Rate <span style={{color:'#94a3b8',fontWeight:600}}>(45% on {fmtGBP(breakdownF.additionalAmt)})</span></span><span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(breakdownF.additionalTax)}</span></div>}
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Gross (projected annual)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(proj)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #bfdbfe',background:'#eff6ff',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#1e40af'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionF.amount)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>= Taxable Gross</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(taxableGrossF)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Personal Allowance <span style={{color:'#94a3b8',fontWeight:600}}>(0%)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownF.pa)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #f1f5f9'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Basic Rate <span style={{color:'#94a3b8',fontWeight:600}}>(20% on {fmtGBP(breakdownF.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(breakdownF.basicTax)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:breakdownF.additionalAmt>0?'1px solid #f1f5f9':'none'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Higher Rate <span style={{color:'#94a3b8',fontWeight:600}}>(40% on {fmtGBP(breakdownF.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(breakdownF.higherTax)}</span></div>
+                            {breakdownF.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>Additional Rate <span style={{color:'#94a3b8',fontWeight:600}}>(45% on {fmtGBP(breakdownF.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(breakdownF.additionalTax)}</span></div>}
                           </div>
                           <div style={{display:'flex',justifyContent:'space-between',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:'11px',padding:'11px 14px',marginBottom:'8px'}}>
                             <span style={{fontSize:'11.5px',fontWeight:800,color:'#991b1b'}}>Total Income Tax</span>
-                            <span style={{fontSize:'13px',fontWeight:900,color:'#991b1b'}}>{fmtGBP(breakdownF.totalTax)}</span>
+                            <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#991b1b'}}>{fmtGBP(breakdownF.totalTax)}</span>
                           </div>
                           <div style={{display:'flex',justifyContent:'space-between',background:'#f8fafc',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
                             <span style={{fontSize:'11.5px',fontWeight:700,color:'#64748b'}}>National Insurance <span style={{color:'#94a3b8',fontWeight:600}}>(est., on full gross)</span></span>
-                            <span style={{fontSize:'12.5px',fontWeight:900,color:'#0f172a'}}>{fmtGBP(niF)}</span>
+                            <span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#0f172a'}}>{fmtGBP(niF)}</span>
                           </div>
                           <div style={{display:'flex',justifyContent:'space-between',background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'11px',padding:'11px 14px'}}>
                             <span style={{fontSize:'11.5px',fontWeight:800,color:'#166534'}}>Estimated Net Pay</span>
-                            <span style={{fontSize:'14px',fontWeight:900,color:'#166534'}}>{fmtGBP(netF)}</span>
+                            <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#166534'}}>{fmtGBP(netF)}</span>
                           </div>
                           <div style={{fontSize:'9px',color:'#94a3b8',lineHeight:1.5,marginTop:'8px'}}>The full income tax and NI computation for the whole year, not just the extra caused by crossing £100k. Pension tier is estimated from your current pay rate, not last scheme year's actual earnings, which is what the real rule technically uses.</div>
                         </div>
@@ -5263,7 +5263,7 @@ export default function App() {
            figure on two screens. ── */}
       {isWide && (
         <aside className="no-print" style={{width:'320px',flexShrink:0,padding:'24px 24px 24px 0',overflowY:'auto'}}>
-          <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px',padding:'0 2px'}}>At a Glance</div>
+          <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px',padding:'0 2px'}}>At a Glance</div>
 
           <div style={{background:'#fff',borderRadius:'16px',border:'1px solid #f1f5f9',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',padding:'4px 16px',overflow:'hidden'}}>
           {(()=>{
@@ -5273,11 +5273,11 @@ export default function App() {
                 <div style={{fontWeight:700,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
                 <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
                   <div>
-                    <div style={{fontSize:'9px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Gross</div>
+                    <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Gross</div>
                     <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'#0f172a',marginTop:'2px'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
                   </div>
                   <div style={{textAlign:'right'}}>
-                    <div style={{fontSize:'9px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Net</div>
+                    <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Net</div>
                     <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'#059669',marginTop:'2px'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
                   </div>
                 </div>
@@ -5407,7 +5407,7 @@ export default function App() {
                       <div key={p.idx} onClick={()=>setPayslipPeriodIdx(p.idx)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:p.idx===payslipPeriodIdx?'1.5px solid #2563eb':'1.5px solid #f1f5f9',background:p.idx===payslipPeriodIdx?'#eff6ff':'#fff',cursor:'pointer'}}>
                         <div>
                           <div style={{fontWeight:800,fontSize:'12.5px',color:'#0f172a'}}>{p.month}{p.idx===currPeriodIdx&&<span style={{color:'#2563eb',fontSize:'9px',marginLeft:'6px'}}>· Current</span>}</div>
-                          <div style={{fontSize:'10px',color:'#94a3b8',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
+                          <div style={{fontFamily:MONO,fontSize:'9.5px',color:'#94a3b8',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
                         </div>
                         <div style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${p.idx===payslipPeriodIdx?'#2563eb':'#cbd5e1'}`,flexShrink:0,position:'relative'}}>
                           {p.idx===payslipPeriodIdx&&<div style={{position:'absolute',inset:'3px',background:'#2563eb',borderRadius:'50%'}}/>}
@@ -5480,7 +5480,7 @@ export default function App() {
         const hasOT = d.rateHrs.hours133>0 || d.rateHrs.hours150>0 || d.rateHrs.hours200>0;
         const hasPA = d.paCounts.PA1>0 || d.paCounts.PA2>0 || d.paCounts.PA3>0;
         const rowStyle = {padding:'7px 0',borderBottom:'1px solid #f8fafc'};
-        const thStyle = {textAlign:'left',fontSize:'9px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.6px',padding:'4px 0',borderBottom:'1px solid #f1f5f9'};
+        const thStyle = {textAlign:'left',fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.6px',padding:'4px 0',borderBottom:'1px solid #f1f5f9'};
         const sectionTitle = {fontSize:'10.5px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.2px',margin:'20px 0 8px',paddingTop:'14px',borderTop:'1px solid #f1f5f9'};
         return (
           <div className="payslip-print-area" style={{position:'absolute',inset:0,background:'#e2e8f0',zIndex:70,overflowY:'auto',padding:'16px'}}>
@@ -5507,7 +5507,7 @@ export default function App() {
                   </div>
                   <div>
                     <div style={{fontSize:'9px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'3px'}}>Period</div>
-                    <div style={{fontWeight:800,fontSize:'13px'}}>{payslipPreview.rangeLabel || `${fmtD(payslipPreview.start)} – ${fmtD(payslipPreview.end)}`}</div>
+                    <div style={{fontFamily:MONO,fontWeight:600,fontSize:'12.5px'}}>{payslipPreview.rangeLabel || `${fmtD(payslipPreview.start)} – ${fmtD(payslipPreview.end)}`}</div>
                   </div>
                 </div>
               </div>
@@ -5524,9 +5524,9 @@ export default function App() {
                         <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12.5px'}}>
                           <thead><tr><th style={thStyle}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Hours</th><th style={{...thStyle,textAlign:'right'}}>Rate/hr</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
                           <tbody>
-                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>Standard (1.33x)</td><td style={{...rowStyle,textAlign:'right'}}>{d.rateHrs.hours133.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.rates.r133)}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.rateHrs.hours133*d.rates.r133)}</td></tr>}
-                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>Elevated (1.5x)</td><td style={{...rowStyle,textAlign:'right'}}>{d.rateHrs.hours150.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.rates.r150)}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.rateHrs.hours150*d.rates.r150)}</td></tr>}
-                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>Rest Day (2.0x)</td><td style={{...rowStyle,textAlign:'right'}}>{d.rateHrs.hours200.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.rates.r200)}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(d.rateHrs.hours200*d.rates.r200)}</td></tr>}
+                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>Standard (1.33x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours133.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours133*d.rates.r133)}</td></tr>}
+                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>Elevated (1.5x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours150.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours150*d.rates.r150)}</td></tr>}
+                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>Rest Day (2.0x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours200.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours200*d.rates.r200)}</td></tr>}
                           </tbody>
                         </table>
                       </>
@@ -5539,7 +5539,7 @@ export default function App() {
                           <thead><tr><th style={thStyle}>Type</th><th style={{...thStyle,textAlign:'right'}}>Count</th><th style={{...thStyle,textAlign:'right'}}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
                           <tbody>
                             {['PA1','PA2','PA3'].filter(k=>d.paCounts[k]>0).map(k=>(
-                              <tr key={k}><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>{k}</td><td style={{...rowStyle,textAlign:'right'}}>{d.paCounts[k]}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(PA_RATES[k])}</td><td style={{...rowStyle,textAlign:'right'}}>{fmtGBP(PA_RATES[k]*d.paCounts[k])}</td></tr>
+                              <tr key={k}><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>{k}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.paCounts[k]}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(PA_RATES[k])}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(PA_RATES[k]*d.paCounts[k])}</td></tr>
                             ))}
                           </tbody>
                         </table>
@@ -5551,7 +5551,7 @@ export default function App() {
                         <div style={sectionTitle}>TOIL Banked This Period</div>
                         <div style={{background:'#f5f3ff',border:'1px solid #ddd6fe',borderRadius:'10px',padding:'11px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#6d28d9'}}>
                           <span>Not included in the totals below</span>
-                          <strong>+{fmtHM(d.toilBanked)}h</strong>
+                          <strong style={{fontFamily:MONO,fontWeight:600}}>+{fmtHM(d.toilBanked)}h</strong>
                         </div>
                       </>
                     )}
@@ -5562,7 +5562,7 @@ export default function App() {
                         <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'10px',padding:'11px 14px',marginBottom:'8px'}}>
                           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#1e40af'}}>
                             <span>{(d.pensionRate*100).toFixed(2)}% of {fmtGBP(d.pensionablePayForRange)} pensionable pay</span>
-                            <strong>−{fmtGBP(d.pensionForRange)}</strong>
+                            <strong style={{fontFamily:MONO,fontWeight:600}}>−{fmtGBP(d.pensionForRange)}</strong>
                           </div>
                           <div style={{fontSize:'9.5px',color:'#3b82f6',marginTop:'4px',lineHeight:1.5}}>Deducted from salary before tax — already reflected in the rate below. Not shown in the overtime total, since pension is never taken from overtime pay itself.</div>
                         </div>
@@ -5570,10 +5570,10 @@ export default function App() {
                     )}
 
                     <div style={{background:'#f8fafc',borderRadius:'12px',padding:'16px 18px',margin:'22px 0'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',fontWeight:800,color:'#0f172a'}}><span>Gross Overtime &amp; PA</span><span>{fmtGBP(d.gross)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. Income Tax{d.bandName?` (${d.bandName})`:''}</span><span>−{fmtGBP(d.tax)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. National Insurance</span><span>−{fmtGBP(d.ni)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0 0',marginTop:'6px',borderTop:'1px solid #e2e8f0',fontSize:'17px',fontWeight:900,color:'#059669'}}><span>Estimated Net</span><span>{fmtGBP(d.net)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',fontWeight:800,color:'#0f172a'}}><span>Gross Overtime &amp; PA</span><span style={{fontFamily:MONO,fontWeight:600}}>{fmtGBP(d.gross)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. Income Tax{d.bandName?` (${d.bandName})`:''}</span><span style={{fontFamily:MONO}}>−{fmtGBP(d.tax)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. National Insurance</span><span style={{fontFamily:MONO}}>−{fmtGBP(d.ni)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0 0',marginTop:'6px',borderTop:'1px solid #e2e8f0',fontSize:'16px',fontWeight:600,color:'#059669'}}><span>Estimated Net</span><span style={{fontFamily:MONO}}>{fmtGBP(d.net)}</span></div>
                     </div>
                   </>
                 )}
@@ -5609,7 +5609,7 @@ export default function App() {
               <button className="no-print" onClick={()=>{ if(fySummaryPrintMode){ setFySummaryPrintMode(false); } else { setFySummaryYear(null); } }} style={{background:'rgba(255,255,255,0.12)',border:'none',borderRadius:'9px',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',cursor:'pointer',marginBottom:'12px'}}><Ico n="back" s={16} c="#fff"/></button>
               <div style={{fontSize:'10px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.2px'}}>Financial Year</div>
               <div style={{fontSize:'19px',fontWeight:900}}>{label}</div>
-              <div style={{fontSize:'10px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
+              <div style={{fontFamily:MONO,fontSize:'9.5px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
               <div style={{background:'#1e3a5f',borderRadius:'14px',padding:'14px',display:'flex',marginTop:'12px'}}>
                 <div style={{flex:1,textAlign:'center'}}>
                   <div style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase'}}>Shifts Logged</div>
@@ -5618,7 +5618,7 @@ export default function App() {
                 <div style={{width:'1px',background:'rgba(255,255,255,0.15)'}}/>
                 <div style={{flex:1,textAlign:'center'}}>
                   <div style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase'}}>Gross</div>
-                  <div style={{fontSize:'20px',fontWeight:900}}>{fmtGBP(y.totalGross)}</div>
+                  <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600}}>{fmtGBP(y.totalGross)}</div>
                 </div>
               </div>
             </div>
@@ -5635,10 +5635,10 @@ export default function App() {
                     <div onClick={()=>{ if(!fySummaryPrintMode) setArchiveExpandedPeriod(expanded?null:p.short+fySummaryYear); }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',cursor:fySummaryPrintMode?'default':'pointer'}}>
                       <div>
                         <div style={{fontWeight:900,fontSize:'13px',color:'#0f172a'}}>{p.month}</div>
-                        <div style={{fontSize:'10px',color:'#94a3b8',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)} · {p.entries.length} shift{p.entries.length===1?'':'s'}</div>
+                        <div style={{fontFamily:MONO,fontSize:'9.5px',color:'#94a3b8',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)} · {p.entries.length} shift{p.entries.length===1?'':'s'}</div>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                        <div style={{fontWeight:900,fontSize:'13px',color:'#1e3a5f'}}>{fmtGBP(p.gross)}</div>
+                        <div style={{fontFamily:MONO,fontWeight:600,fontSize:'12.5px',color:'#1e3a5f'}}>{fmtGBP(p.gross)}</div>
                         {!fySummaryPrintMode&&<Ico n={expanded?'cU':'cD'} s={14} c="#94a3b8"/>}
                       </div>
                     </div>
@@ -5650,7 +5650,7 @@ export default function App() {
                               <div style={{fontWeight:800,fontSize:'11.5px',color:'#0f172a'}}>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB')}</div>
                               <div style={{fontSize:'9.5px',color:'#94a3b8',marginTop:'1px',textTransform:'uppercase'}}>{e.reason||'—'}</div>
                             </div>
-                            <div style={{fontWeight:800,fontSize:'11.5px',color:'#1e3a5f'}}>{fmtGBP(e.gross)}</div>
+                            <div style={{fontFamily:MONO,fontWeight:600,fontSize:'11px',color:'#1e3a5f'}}>{fmtGBP(e.gross)}</div>
                           </div>
                         ))}
                       </div>
@@ -5783,8 +5783,8 @@ export default function App() {
                       )}
                       {c.toilH>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#6d28d9'}}>{fmtHM(c.toilH)}h @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
-                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#4c1d95'}}>{fmtHM(c.toilBanked)}h banked</span>
+                          <span style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:600,color:'#6d28d9'}}>{fmtHM(c.toilH)}h @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
+                          <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11px',fontWeight:600,color:'#4c1d95'}}>{fmtHM(c.toilBanked)}h banked</span>
                         </div>
                       )}
                       {e.paRate!=='None'&&(
