@@ -5539,6 +5539,7 @@ export default function App() {
                   <div>
                     <div style={{fontSize:'10px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.4px'}}>Overtime &amp; Shift Tracker</div>
                     <div style={{fontSize:'19px',fontWeight:900,marginTop:'3px',letterSpacing:'-0.3px'}}>Overtime Summary</div>
+                    <div style={{fontSize:'10px',color:'#7c93b3',marginTop:'2px'}}>Personal record — not an official payslip</div>
                   </div>
                   <div style={{fontSize:'9.5px',color:'#93c5fd',textAlign:'right',lineHeight:1.5,flexShrink:0}}>
                     Generated {new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}<br/>at {new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
