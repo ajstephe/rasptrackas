@@ -2404,7 +2404,7 @@ export default function App() {
     hdr:  {background:'var(--surface)',padding:'13px 18px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,zIndex:10},
     main: {flex:1,overflowY:'auto',overflowX:'hidden',minWidth:0,scrollbarWidth:'none',msOverflowStyle:'none'},
     nav:  {background:'rgba(255,255,255,0.96)',backdropFilter:'blur(14px)',borderTop:'1px solid var(--border-2)',position:'absolute',bottom:0,width:'100%',padding:'7px 4px 12px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
-    nBtn: (a,add)=>({flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',padding:add?'9px 4px':'6px 4px',background:'transparent',color:add?'#10b981':a?'#2563eb':'var(--quiet)',borderRadius:add?'13px':'8px',border:'none',cursor:'pointer',transition:'all 0.18s',fontFamily:'inherit',boxShadow:'none'}),
+    nBtn: (a,add)=>({flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',padding:add?'9px 4px':'6px 4px',background:'transparent',color:add?'#10b981':a?BRASS:'var(--quiet)',borderRadius:add?'13px':'8px',border:'none',cursor:'pointer',transition:'all 0.18s',fontFamily:'inherit',boxShadow:'none'}),
     nLbl: {fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.5px',whiteSpace:'nowrap'},
     card: {background:'var(--surface)',borderRadius:'18px',padding:'18px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid var(--border-2)',marginBottom:'10px'},
     dark: {background:'var(--navy)',borderRadius:'18px',padding:'19px',boxShadow:'0 8px 28px rgba(15,39,68,0.28)',marginBottom:'10px',position:'relative',overflow:'hidden'},
@@ -2955,7 +2955,7 @@ export default function App() {
         {/* ══════════════════════════════════════════ BREAKDOWN */}
         {tab==='months'&&(
           <TabSummary
-            isWide={isWide} S={S} MONO={MONO}
+            isWide={isWide} S={S} MONO={MONO} BRASS={BRASS}
             stickyRef={stickyRef} mainRef={mainRef} monthRefs={monthRefs} entryRefs={entryRefs} calSwipeStartX={calSwipeStartX}
             breakdownView={breakdownView} setBreakdownView={setBreakdownView} defaultBreakdownView={defaultBreakdownView} setDefaultBreakdownView={setDefaultBreakdownView}
             currPeriodIdx={currPeriodIdx} calPeriodIdx={calPeriodIdx} setCalPeriodIdx={setCalPeriodIdx} expanded={expanded} setExpanded={setExpanded}
@@ -3593,7 +3593,7 @@ export default function App() {
             {t.id==='add' ? (
               <span className="nav-add-pulse nav-ico-add" style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
             ) : (
-              <span className="nav-ico" style={{display:'flex'}}><Ico n={t.n} s={18} c={tab===t.id?'#2563eb':'var(--quiet)'} w={tab===t.id?2.5:2}/></span>
+              <span className="nav-ico" style={{display:'flex'}}><Ico n={t.n} s={18} c={tab===t.id?BRASS:'var(--quiet)'} w={tab===t.id?2.5:2}/></span>
             )}
             <span style={S.nLbl} className={`nav-lbl${t.id==='add'?' nav-add-pulse':''}`}>{t.lbl}</span>
           </button>

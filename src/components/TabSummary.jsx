@@ -12,7 +12,7 @@ import { Ico } from './Icons.jsx';
 // takes the most props of any extraction so far - all explicit, nothing
 // bundled into an opaque object.
 export function TabSummary({
-  isWide, S, MONO,
+  isWide, S, MONO, BRASS,
   stickyRef, mainRef, monthRefs, entryRefs, calSwipeStartX,
   breakdownView, setBreakdownView, defaultBreakdownView, setDefaultBreakdownView,
   currPeriodIdx, calPeriodIdx, setCalPeriodIdx, expanded, setExpanded,
@@ -210,40 +210,46 @@ export function TabSummary({
         );
 
         return(
-          <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:isCurr?'var(--tint-blue)':'var(--surface)',borderRadius:'17px',border:isCurr?'2px solid #2563eb':'1px solid var(--border-2)',borderLeft:isCurr?'5px solid #2563eb':'1px solid var(--border-2)',boxShadow:isCurr?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 5px rgba(0,0,0,0.04)',marginBottom:'9px',overflow:'hidden',...(isWide&&isExp?{gridColumn:'1 / -1'}:{})}}>
+          <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:'var(--surface)',borderRadius:'16px',border:'1px solid var(--border-2)',borderLeft:isCurr?`3px solid ${BRASS}`:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',marginBottom:'9px',overflow:'hidden',...(isWide&&isExp?{gridColumn:'1 / -1'}:{})}}>
             <button onClick={()=>setExpanded(isExp?null:p.month)} style={{width:'100%',textAlign:'left',padding:'16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'11px'}}>
-                <div>
-                  {isCurr&&<div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'#fff',fontSize:'10px',fontWeight:900,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'5px',boxShadow:'0 2px 6px rgba(37,99,235,0.35)'}}><span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Active Month</div>}
-                  <div style={{fontWeight:900,fontSize:'19px',color:'var(--ink)',letterSpacing:'-0.3px'}}>{p.month}</div>
-                  <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:'#3b82f6',marginTop:'2px'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
-                </div>
-                <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'4px'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:'4px',background:isCurr?'var(--tint-blue-2)':'var(--tint-blue)',border:isCurr?'1px solid #93c5fd':'1px solid var(--border-2)',padding:'5px 9px',borderRadius:'9px'}}>
-                    <div style={{fontSize:'13px',fontWeight:900,color:'var(--text-blue-deep)'}}>{(h133+h150+h200).toFixed(1)} hrs</div>
-                  </div>
-                  <div style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)'}}>{pE.length} record{pE.length!==1?'s':''}</div>
-                </div>
+              {isCurr&&<div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:BRASS,color:'#fff',fontSize:'9.5px',fontWeight:800,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'8px'}}><span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Active Month</div>}
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'2px'}}>
+                <div style={{fontWeight:900,fontSize:'18px',color:'var(--ink)',letterSpacing:'-0.3px'}}>{p.month}</div>
+                <div style={{fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                <div><div style={{fontSize:'11px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'19px',color:'var(--text-navy)'}}>{fmt(totG)}</div></div>
-                <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'19px',color:'#059669'}}>{fmt(totN)}</div></div>
+
+              <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0',borderBottom:'1px solid var(--border-2)'}}>
+                <div style={{width:'30px',height:'30px',borderRadius:'10px',background:'var(--tint-teal)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="clock" s={15} c="#0d9488"/></div>
+                <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Hours worked</div>
+                <div style={{fontFamily:MONO,fontSize:'13.5px',fontWeight:600,color:'var(--ink)'}}>{(h133+h150+h200).toFixed(1)}h <span style={{color:'var(--quiet)',fontWeight:400}}>· {pE.length} rec.</span></div>
               </div>
+              <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0',borderBottom:'1px solid var(--border-2)'}}>
+                <div style={{width:'30px',height:'30px',borderRadius:'10px',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="cash" s={15} c="var(--text-navy)"/></div>
+                <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Gross</div>
+                <div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'var(--text-navy)'}}>{fmt(totG)}</div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0'}}>
+                <div style={{width:'30px',height:'30px',borderRadius:'10px',background:'var(--tint-green)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="cash" s={15} c="#059669"/></div>
+                <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Net</div>
+                <div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'#059669'}}>{fmt(totN)}</div>
+              </div>
+
               {(() => {
                 const g = carmsOutstanding.groups.find(g=>g.periodIdx===idx);
                 if (!g) return null;
                 return (
-                  <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px 14px',marginTop:'9px',cursor:'pointer'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:'7px',marginBottom:'4px'}}>
-                      <Ico n="clock" s={16} c="#d97706"/>
-                      <span style={{fontSize:'17.5px',fontWeight:800,color:'var(--ink)'}}>CARMS &amp; MetHR Awaiting Submission</span>
+                  <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{display:'flex',alignItems:'center',gap:'11px',background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginTop:'11px',cursor:'pointer'}}>
+                    <div style={{width:'30px',height:'30px',borderRadius:'10px',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="checklist" s={15} c={BRASS}/></div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Awaiting submission</div>
+                      <div style={{fontSize:'10px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>CARMS &amp; MetHR</div>
                     </div>
-                    <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</div>
+                    <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(g.periodTotal)}</div>
                   </div>
                 );
               })()}
               {!isExp&&(
-                <div style={{fontSize:'12px',fontWeight:700,color:isCurr?'var(--muted)':'var(--quiet)',textAlign:'center',marginTop:'11px',paddingTop:'9px',borderTop:isCurr?'1px solid var(--border-2)':'1px solid var(--border-2)'}}>Tap to see more</div>
+                <div style={{fontSize:'11.5px',fontWeight:700,color:BRASS,textAlign:'right',marginTop:'11px'}}>Tap to see more →</div>
               )}
             </button>
 
