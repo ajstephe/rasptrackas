@@ -3325,23 +3325,23 @@ export default function App() {
               {isWide ? (
                 <div style={{display:'flex',gap:'12px',marginBottom:'13px'}}>
                   <div style={{flex:'0 0 calc(50% - 6px)',minWidth:0}}>
-                    <label style={S.lbl}>Date</label>
+                    <label style={{...S.lbl,color:'#0f172a'}}>Date</label>
                     <button onClick={()=>{ setDatePickerMonth((form.date||todayStr).slice(0,7)); setDatePickerFor('shift'); }} style={{...S.inp,display:'block',boxSizing:'border-box',width:'100%',height:'46px',textAlign:'left',cursor:'pointer',fontFamily:'inherit'}}>
                       {new Date((form.date||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
                     </button>
                   </div>
                   <div style={{flex:1,minWidth:0}}>
-                    <label style={S.lbl}>Duty / Reason</label>
+                    <label style={{...S.lbl,color:'#0f172a'}}>Duty / Reason</label>
                     <input type="text" placeholder="e.g. MPL7XX, PXX" style={{...S.inp,width:'100%',boxSizing:'border-box'}} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/>
                   </div>
                 </div>
               ) : (
                 <>
                   <div style={{marginBottom:'13px'}}>
-                    <label style={S.lbl}>Date</label>
+                    <label style={{...S.lbl,color:'#0f172a'}}>Date</label>
                     <input type="date" style={{...S.inp,display:'block',boxSizing:'border-box',height:'46px'}} value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
                   </div>
-                  <div style={{marginBottom:'13px'}}><label style={S.lbl}>Duty / Reason</label><input type="text" placeholder="e.g. MPL7XX, PXX" style={S.inp} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/></div>
+                  <div style={{marginBottom:'13px'}}><label style={{...S.lbl,color:'#0f172a'}}>Duty / Reason</label><input type="text" placeholder="e.g. MPL7XX, PXX" style={S.inp} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/></div>
                 </>
               )}
 
@@ -3454,7 +3454,7 @@ export default function App() {
                 );
 
                 const notesBlock = (
-                  <div style={{marginBottom:'13px'}}><label style={S.lbl}>Notes</label><textarea ref={notesRef} rows="4" placeholder="Shift notes or incident details..." style={{...S.ta,lineHeight:1.5}} value={form.comments} onChange={e=>setForm({...form,comments:e.target.value})}
+                  <div style={{marginBottom:'13px'}}><label style={{...S.lbl,color:'#0f172a'}}>Notes</label><textarea ref={notesRef} rows="4" placeholder="Shift notes or incident details..." style={{...S.ta,lineHeight:1.5}} value={form.comments} onChange={e=>setForm({...form,comments:e.target.value})}
                     onFocus={e=>{
                       // Cursor lands on the blank line left after the auto-generated
                       // shift-times summary — but only on the person's own tap into
