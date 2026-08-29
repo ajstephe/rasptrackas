@@ -22,7 +22,83 @@
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
-    <style>*{margin:0;padding:0;box-sizing:border-box}html,body,#root{height:100%;width:100%;background:#e2e8f0}</style>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      html,body,#root{height:100%;width:100%}
+
+      /* ── Theme tokens ──────────────────────────────────────────────────
+         The app renders almost entirely via inline style objects, so these
+         custom properties are read directly as style values (e.g.
+         background:'var(--surface)') rather than through CSS classes.
+         Light values live on :root; dark overrides apply either when the
+         OS prefers dark and the user hasn't overridden it (data-theme
+         unset), or when the user has explicitly chosen dark. This mirrors
+         the artifact-design light/dark pattern used for the app's own
+         mockups. */
+      :root{
+        --page-bg:#e2e8f0;
+        --surface:#ffffff;
+        --surface-2:#f8fafc;
+        --chip-bg:#f1f5f9;
+        --border:#e2e8f0;
+        --border-2:#f1f5f9;
+        --ink:#0f172a;
+        --muted:#64748b;
+        --quiet:#94a3b8;
+        --navy:#0f2744;
+        --tint-blue:#eff6ff;
+        --tint-red:#fef2f2;
+        --tint-green:#f0fdf4;
+        --tint-green-2:#dcfce7;
+        --tint-purple:#f5f3ff;
+        --tint-amber:#fffbeb;
+        --tint-amber-2:#fef3c7;
+        --tint-teal:#f0fdfa;
+      }
+      @media (prefers-color-scheme: dark){
+        :root:not([data-theme="light"]){
+          --page-bg:#0b1220;
+          --surface:#111c2e;
+          --surface-2:#0e1726;
+          --chip-bg:#182740;
+          --border:#20304a;
+          --border-2:#1c2c44;
+          --ink:#eef2f7;
+          --muted:#93a4bb;
+          --quiet:#64789a;
+          --navy:#16314f;
+          --tint-blue:#132840;
+          --tint-red:#2c1416;
+          --tint-green:#0f2a1e;
+          --tint-green-2:#123322;
+          --tint-purple:#221a3d;
+          --tint-amber:#2b2110;
+          --tint-amber-2:#332714;
+          --tint-teal:#0e2b2a;
+        }
+      }
+      :root[data-theme="dark"]{
+        --page-bg:#0b1220;
+        --surface:#111c2e;
+        --surface-2:#0e1726;
+        --chip-bg:#182740;
+        --border:#20304a;
+        --border-2:#1c2c44;
+        --ink:#eef2f7;
+        --muted:#93a4bb;
+        --quiet:#64789a;
+        --navy:#16314f;
+        --tint-blue:#132840;
+        --tint-red:#2c1416;
+        --tint-green:#0f2a1e;
+        --tint-green-2:#123322;
+        --tint-purple:#221a3d;
+        --tint-amber:#2b2110;
+        --tint-amber-2:#332714;
+        --tint-teal:#0e2b2a;
+      }
+      html,body,#root{background:var(--page-bg)}
+    </style>
   </head>
   <body>
     <div id="root"></div>
