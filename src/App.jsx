@@ -35,6 +35,19 @@ import { Ico, ClockCashIcon, FireExitIcon } from './components/Icons.jsx';
 import { TimeSelect } from './components/TimeSelect.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
 
+// ─── ledger redesign tokens ────────────────────────────────────────────────
+// The "one statement, not six boxes" visual direction: a single brass accent
+// standing in for what used to be blue/purple/amber used purely for
+// wayfinding (nav highlights, rate-tier selectors, hero underlines), and a
+// tabular monospace face for every money/hours figure so columns of numbers
+// actually line up like a real payslip. True semantic colour (green =
+// settled, red = overdrawn/danger) is untouched — this only replaces
+// decoration, never state. Kept as plain constants (not swapped into every
+// existing blue literal app-wide) so this stays a scoped, reversible pass —
+// see the ledger-redesign branch notes for what's in vs. out of scope.
+const MONO  = "'IBM Plex Mono',monospace";
+const BRASS = '#b8823f';
+
 // Shared by both the mobile bottom nav and the wide-screen sidebar — one
 // list, so the two can never disagree about what the tabs are.
 const NAV_TABS = [
@@ -2902,67 +2915,17 @@ export default function App() {
         {/* ══════════════════════════════════════════ DASHBOARD */}
         {tab==='dashboard'&&(()=>{
           // ── Shared building blocks ────────────────────────────────────────
-          // CARMS teaser and the Salary Breakdown card already carry their own
-          // isWide-aware styling/content internally, so they're built once
-          // here and just placed in different spots for desktop (CSS grid
-          // `order`) vs mobile (plain stacked order) below, instead of
-          // duplicating the (fairly large, chart-and-gauges-heavy) markup.
-          const carmsCard = (
-            <div onClick={()=>setTab('carms')} style={isWide?{...S.card,cursor:'pointer',display:'flex',flexDirection:'column',flex:1}:{...S.card,cursor:'pointer'}}>
-              {isWide ? (
-                <>
-                  <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
-                    <div style={{background:'#fffbeb',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={19} c="#d97706"/></div>
-                    <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',lineHeight:1.3}}>CARMS &amp; MetHR<br/>Awaiting Submission</div>
-                  </div>
-                  <div style={{display:'flex',alignItems:'stretch',gap:'14px',flex:1}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:'21px',fontWeight:900,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
-                      <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'2px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
-                    </div>
-                    <div style={{width:'1px',background:'#fde68a',flexShrink:0}}/>
-                    <div style={{display:'flex',flexDirection:'column',justifyContent:'center',gap:'6px',flexShrink:0}}>
-                      <div>
-                        <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>Overtime</div>
-                        <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>PA</div>
-                        <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-              <div style={{display:'flex',alignItems:'flex-start',gap:'12px'}}>
-                <div style={{display:'flex',alignItems:'center',gap:'12px',flex:1,minWidth:0}}>
-                  <div style={{background:'#fffbeb',padding:'8.5px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={24} c="#d97706"/></div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'2px'}}>CARMS &amp; MetHR Awaiting Submission</div>
-                    <div style={{fontSize:'17px',fontWeight:900,color:'#d97706',marginTop:'6px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
-                    <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} across {carmsOutstanding.periodCount} pay period{carmsOutstanding.periodCount!==1?'s':''}</div>
-                  </div>
-                </div>
-                <div style={{flexShrink:0,display:'flex',flexDirection:'column',gap:'6px',paddingLeft:'12px',borderLeft:'1px solid #f1f5f9',textAlign:'right'}}>
-                  <div>
-                    <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>Overtime</div>
-                    <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
-                  </div>
-                  <div>
-                    <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.4px'}}>PA</div>
-                    <div style={{fontSize:'12px',fontWeight:900,color:'#d97706',marginTop:'1px'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
-                  </div>
-                </div>
-              </div>
-              )}
-            </div>
-          );
+          // Salary Breakdown carries its own isWide-aware styling/content
+          // internally, so it's built once here and placed below the
+          // statement sheet for both desktop and mobile. (The separate CARMS
+          // teaser card that used to live here was folded into the
+          // statement's own ledger rows instead — see below.)
 
           const salaryBreakdownCard = (
             <div style={{...S.card,cursor:isWide?'default':'pointer'}} onClick={()=>{ if(!isWide) setSalaryBreakdownExpanded(v=>!v); }}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
-                  <div style={{background:'#eff6ff',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c="#2563eb"/></div>
+                  <div style={{background:'#faf3e8',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c={BRASS}/></div>
                   <div>
                     <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Salary Breakdown &amp; Overtime Forecast</div>
                     <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'1px'}}>Base, allowances, overtime, full-year projection</div>
@@ -3123,174 +3086,192 @@ export default function App() {
             )}
 
             {isWide ? (<>
-            {/* ── Stat tile row (desktop only) — Total Gross YTD, TOIL,
-                 Current Pay Period and CARMS Outstanding sit in one row so
-                 the headline figures read together at a glance. Each card
-                 is wrapped with a CSS `order` (and Salary Breakdown with
-                 `gridColumn:'1 / -1'`) so the row can be reflowed without
-                 physically reordering the JSX. Mobile has its own separate
-                 layout below instead of reusing this grid. ── */}
-            <div style={{display:'grid',gridTemplateColumns:'1.2fr 0.85fr 0.85fr 1.35fr',gap:'16px',alignItems:'stretch',marginBottom:'16px'}}>
-            <div style={{order:1,display:'flex',flexDirection:'column'}}>
-            {/* ── Total combined earnings card — the main/first card, now with Tax Threshold merged in below a divider ── */}
-            <div style={{...S.dark,flex:1,display:'flex',flexDirection:'column'}}>
-              <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
-
-              {/* header — a little more breathing room throughout (label to
-                   figure, figure to subtext) than the tightly-packed
-                   original, and a gentler -0.5px letter-spacing on the
-                   figure instead of -2px so digits don't visually crowd
-                   each other, especially on longer six/seven-figure
-                   amounts. Verified up to £12,999,999.99 still fits on one
-                   line within this card's existing width at typical
-                   desktop viewport sizes. ── */}
-              <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'6px'}}>
-                Total Gross YTD
-              </div>
-              <div style={{fontSize:'28px',fontWeight:900,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.2,marginTop:'2px',marginBottom:'8px'}}>
-                {settings.rank&&settings.service ? fmtGBP(totals.combinedGrossYTD) : '—'}
-              </div>
-              <div style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginBottom:'14px'}}>
-                {settings.rank&&settings.service
-                  ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)} tax year`
-                  : 'Set your rank & pay point in More..'}
-              </div>
-              {carmsOutstanding.totalAmount>0&&(
-                <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',cursor:'pointer'}}>
-                  <Ico n="clock" s={11} c="#fbbf24"/>+{fmtGBP(carmsOutstanding.totalAmount)} not yet submitted to CARMS
+            {/* ── "One statement" layout (ledger redesign) — the hero,
+                 Current Period, Gross & Net, TOIL Balance and CARMS teaser
+                 that used to each be their own bordered/shadowed card are
+                 now hairline-divided rows inside a single sheet, so the
+                 page reads as one document rather than a pile of widgets.
+                 Money/hours figures use IBM Plex Mono (tabular) instead of
+                 the body face, and the one wayfinding accent throughout is
+                 brass (BRASS) — colour stays reserved for real state
+                 (green/red) elsewhere. Salary Breakdown keeps its own card
+                 below (it has real internal complexity — an expand toggle,
+                 a gauge — not worth the risk of restructuring here) but its
+                 icon chip is recoloured to match. See the "Ledger Redesign"
+                 mockup this implements; git branch ledger-redesign is the
+                 undo path if this doesn't land well. ── */}
+            <div style={{background:'#fff',borderRadius:'18px',border:'1px solid #f1f5f9',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',overflow:'hidden',marginBottom:'16px'}}>
+              <div style={{background:'#0f2744',padding:'22px 26px',position:'relative',overflow:'hidden'}}>
+                <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'14px'}}>
+                  <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
+                  {totals.curr&&<div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month} · {fmtD(totals.curr.start)}–{fmtD(totals.curr.end)}</div>}
                 </div>
-              )}
-            </div>
-            </div>
-
-            <div style={{order:5,gridColumn:'1 / -1'}}>
-            {settings.rank&&settings.service&&salaryBreakdownCard}
-            </div>
-
-            <div style={{order:4,display:'flex',flexDirection:'column'}}>
-            {carmsOutstanding.totalClaims>0&&carmsCard}
-            </div>
-
-            <div style={{order:3,display:'flex',flexDirection:'column'}}>
-            {/* ── TOIL summary card — stays a genuine warning card in red when
-                 overdrawn (a real status worth the saturated colour), but
-                 drops to a neutral white card with a coloured icon chip
-                 when the balance is fine, rather than being solid purple
-                 for no functional reason. ── */}
-            <div onClick={()=>setTab('graph')} style={toilLedger.balance<0
-              ? {...S.card,background:'#fef2f2',border:'1px solid #fecaca',cursor:'pointer',flex:1,display:'flex',flexDirection:'column'}
-              : {...S.card,cursor:'pointer',flex:1,display:'flex',flexDirection:'column'}
-            }>
-              {/* Icon + label on their own top row, matching the CARMS
-                  tile's layout for a consistent design language across
-                  the stat-tile row. ── */}
-              <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
-                <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="clock" s={19} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
-                <div style={{fontSize:'10.5px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
-              </div>
-              <div>
-                <div style={{fontSize:'21px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#0f172a'}}>{fmtHM(toilLedger.balance)} h</div>
-                <div style={{fontSize:'10.5px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
-              </div>
-            </div>
-            </div>
-
-            <div style={{order:2,display:'flex',flexDirection:'column'}}>
-            {/* ── Current pay period — tap through to Calendar view in Summary ── */}
-            {totals.curr&&(
-              <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{...S.card,cursor:'pointer',flex:1,display:'flex',flexDirection:'column'}}>
-                {/* Icon + label on their own top row, matching the CARMS
-                    tile's layout for a consistent design language across
-                    the stat-tile row. ── */}
-                <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
-                  <div style={{background:'#f0fdfa',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={19} c="#0d9488"/></div>
-                  <div style={{fontSize:'10.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>Current Pay Period</div>
+                <div style={{fontSize:'12px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Total Gross YTD</div>
+                <div style={{fontFamily:MONO,fontSize:'32px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'9px'}}>
+                  {settings.rank&&settings.service ? fmtGBP(totals.combinedGrossYTD) : '—'}
                 </div>
-                <div>
-                  <div style={{fontSize:'21px',fontWeight:900,color:'#0f172a'}}>{totals.curr.month}</div>
-                  <div style={{fontSize:'10.5px',fontWeight:600,color:'#94a3b8',marginTop:'2px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
+                <div style={{width:'44px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'9px'}}/>
+                <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#7c93b3',marginBottom:carmsOutstanding.totalAmount>0?'12px':0}}>
+                  {settings.rank&&settings.service
+                    ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)} tax year`
+                    : 'Set your rank & pay point in More..'}
                 </div>
-              </div>
-            )}
-            </div>
-            </div>
-            </>) : (<>
-            {/* ── Mobile-only layout — hero, then TOIL Balance / Current Pay
-                 Period / Gross&Net merged into a single card, then the
-                 CARMS teaser, then the collapsible Salary Breakdown. Same
-                 figures and tap-throughs as the desktop tiles above, just
-                 grouped into fewer stacked cards so there's less to scroll
-                 past to reach them. ── */}
-            <div style={S.dark}>
-              <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
-              <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'3px'}}>
-                Total Gross YTD
-              </div>
-              <div style={{fontSize:'28px',fontWeight:900,color:'#fff',letterSpacing:'-2px',lineHeight:1,marginTop:'4px',marginBottom:'3px'}}>
-                {settings.rank&&settings.service ? fmtGBP(totals.combinedGrossYTD) : '—'}
-              </div>
-              <div style={{fontSize:'11px',fontWeight:700,color:'#94a3b8',marginBottom:'12px'}}>
-                {settings.rank&&settings.service
-                  ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)} tax year`
-                  : 'Set your rank & pay point in More..'}
-              </div>
-              {carmsOutstanding.totalAmount>0&&(
-                <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',cursor:'pointer'}}>
-                  <Ico n="clock" s={11} c="#fbbf24"/>+{fmtGBP(carmsOutstanding.totalAmount)} not yet submitted to CARMS
-                </div>
-              )}
-            </div>
-
-            {/* ── TOIL Balance + Current Pay Period + Gross&Net — merged
-                 into one card instead of three separate ones. Same
-                 figures, same tap-throughs (TOIL tab / Summary calendar),
-                 Gross&Net stays informational like before. ── */}
-            <div style={S.card}>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr'}}>
-                <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{cursor:'pointer',padding:'0 12px 14px 0',borderRight:'1px solid #f1f5f9',borderBottom:'1px solid #f1f5f9'}}>
-                  {totals.curr ? (<>
-                    <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'11px'}}>
-                      <div style={{background:'#f0fdfa',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={19} c="#0d9488"/></div>
-                      <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Current Period</div>
-                    </div>
-                    <div style={{fontSize:'16px',fontWeight:900,color:'#0f172a'}}>{totals.curr.month}</div>
-                    <div style={{fontSize:'9.5px',fontWeight:600,color:'#94a3b8',marginTop:'2px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
-                  </>) : <div/>}
-                </div>
-                <div onClick={()=>setTab('graph')} style={{cursor:'pointer',padding:'0 0 14px 12px',borderBottom:'1px solid #f1f5f9'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'11px'}}>
-                    <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'11px',borderRadius:'13px',flexShrink:0}}><Ico n="clock" s={19} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
-                    <div style={{fontSize:'9px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
+                {carmsOutstanding.totalAmount>0&&(
+                  <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',cursor:'pointer'}}>
+                    <Ico n="clock" s={11} c="#fbbf24"/>+{fmtGBP(carmsOutstanding.totalAmount)} not yet submitted to CARMS
                   </div>
-                  <div style={{fontSize:'16px',fontWeight:900,color:toilLedger.balance<0?'#b91c1c':'#0f172a'}}>{fmtHM(toilLedger.balance)} h</div>
-                  <div style={{fontSize:'9.5px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
-                </div>
+                )}
               </div>
-              {(()=>{
-                const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
-                return (
-                  <div style={{paddingTop:'14px',display:'flex',alignItems:'flex-start',gap:'12px'}}>
-                    <div style={{background:'#dcfce7',padding:'10px',borderRadius:'13px',flexShrink:0}}><Ico n="cash" s={21} c="#15803d"/></div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
-                      <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
+
+              <div style={{padding:'4px 26px'}}>
+                {totals.curr&&(
+                  <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:'1px solid #f1f5f9',cursor:'pointer'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                      <div style={{background:'#f0fdfa',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
+                      <div style={{fontSize:'13px',fontWeight:700,color:'#33404f'}}>Current pay period</div>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontSize:'14px',fontWeight:900,color:'#0f172a'}}>{totals.curr.month}</div>
+                      <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:600,color:'#94a3b8',marginTop:'1px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
+                    </div>
+                  </div>
+                )}
+                {(()=>{
+                  const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
+                  return (
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:'1px solid #f1f5f9'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                        <div style={{background:'#dcfce7',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="cash" s={17} c="#15803d"/></div>
+                        <div style={{fontSize:'13px',fontWeight:700,color:'#33404f'}}>Gross &amp; Net — this period</div>
+                      </div>
+                      <div style={{display:'flex',gap:'20px',textAlign:'right'}}>
                         <div>
-                          <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div>
-                          <div style={{fontSize:'17px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
+                          <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Gross</div>
+                          <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'#0f172a'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
                         </div>
-                        <div style={{textAlign:'right'}}>
-                          <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div>
-                          <div style={{fontSize:'17px',fontWeight:900,color:'#059669',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
+                        <div>
+                          <div style={{fontSize:'8.5px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Net</div>
+                          <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'#059669'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
                         </div>
                       </div>
-                      <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'8px'}}>{pb?pb.month:'—'} · submitted only</div>
                     </div>
+                  );
+                })()}
+                <div onClick={()=>setTab('graph')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:carmsOutstanding.totalClaims>0?'1px solid #f1f5f9':'none',cursor:'pointer'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                    <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
+                    <div style={{fontSize:'13px',fontWeight:700,color:toilLedger.balance<0?'#b91c1c':'#33404f'}}>TOIL balance{toilLedger.balance<0?' — overdrawn':''}</div>
                   </div>
-                );
-              })()}
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:toilLedger.balance<0?'#b91c1c':'#0f172a'}}>{fmtHM(toilLedger.balance)} h</div>
+                    <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'1px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
+                  </div>
+                </div>
+                {carmsOutstanding.totalClaims>0&&(
+                  <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',cursor:'pointer'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                      <div style={{background:'#fffbeb',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
+                      <div>
+                        <div style={{fontSize:'13px',fontWeight:700,color:'#33404f'}}>CARMS &amp; MetHR outstanding</div>
+                        <div style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
+                      </div>
+                    </div>
+                    <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {carmsOutstanding.totalClaims>0&&carmsCard}
+            {settings.rank&&settings.service&&salaryBreakdownCard}
+            </>) : (<>
+            {/* ── Mobile "one statement" layout — same idea as desktop: a
+                 full-bleed navy masthead the ledger rows grow directly out
+                 of, instead of a separate floating hero card sitting above
+                 disconnected stat tiles. Salary Breakdown keeps its own
+                 card below, same reasoning as desktop. ── */}
+            <div style={{background:'#fff',borderRadius:'18px',border:'1px solid #f1f5f9',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',overflow:'hidden',marginBottom:'10px'}}>
+              <div style={{background:'#0f2744',padding:'20px 18px',position:'relative',overflow:'hidden'}}>
+                <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'12px'}}>
+                  <div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:700,letterSpacing:'1.2px',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
+                  {totals.curr&&<div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month}</div>}
+                </div>
+                <div style={{fontSize:'11px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'7px'}}>Total Gross YTD</div>
+                <div style={{fontFamily:MONO,fontSize:'27px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'8px'}}>
+                  {settings.rank&&settings.service ? fmtGBP(totals.combinedGrossYTD) : '—'}
+                </div>
+                <div style={{width:'38px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'8px'}}/>
+                <div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:600,color:'#7c93b3',marginBottom:carmsOutstanding.totalAmount>0?'10px':0}}>
+                  {settings.rank&&settings.service
+                    ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)} tax year`
+                    : 'Set your rank & pay point in More..'}
+                </div>
+                {carmsOutstanding.totalAmount>0&&(
+                  <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',cursor:'pointer'}}>
+                    <Ico n="clock" s={11} c="#fbbf24"/>+{fmtGBP(carmsOutstanding.totalAmount)} not yet submitted to CARMS
+                  </div>
+                )}
+              </div>
+
+              <div style={{padding:'2px 18px'}}>
+                {totals.curr&&(
+                  <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:'1px solid #f1f5f9',cursor:'pointer'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                      <div style={{background:'#f0fdfa',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="cal" s={16} c="#0d9488"/></div>
+                      <div style={{fontSize:'12px',fontWeight:700,color:'#33404f'}}>Current period</div>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontSize:'13px',fontWeight:900,color:'#0f172a'}}>{totals.curr.month}</div>
+                      <div style={{fontFamily:MONO,fontSize:'9px',fontWeight:600,color:'#94a3b8',marginTop:'1px'}}>{fmtD(totals.curr.start)}–{fmtD(totals.curr.end)}</div>
+                    </div>
+                  </div>
+                )}
+                {(()=>{
+                  const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
+                  return (
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:'1px solid #f1f5f9'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                        <div style={{background:'#dcfce7',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="cash" s={16} c="#15803d"/></div>
+                        <div style={{fontSize:'12px',fontWeight:700,color:'#33404f'}}>Gross &amp; Net — this period</div>
+                      </div>
+                      <div style={{display:'flex',gap:'14px',textAlign:'right'}}>
+                        <div>
+                          <div style={{fontSize:'8px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase'}}>Gross</div>
+                          <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#0f172a'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize:'8px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase'}}>Net</div>
+                          <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#059669'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+                <div onClick={()=>setTab('graph')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:carmsOutstanding.totalClaims>0?'1px solid #f1f5f9':'none',cursor:'pointer'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                    <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="clock" s={16} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
+                    <div style={{fontSize:'12px',fontWeight:700,color:toilLedger.balance<0?'#b91c1c':'#33404f'}}>TOIL balance{toilLedger.balance<0?' — overdrawn':''}</div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:toilLedger.balance<0?'#b91c1c':'#0f172a'}}>{fmtHM(toilLedger.balance)} h</div>
+                    <div style={{fontFamily:MONO,fontSize:'9px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'1px'}}>≈ {(toilLedger.balance/8).toFixed(1)}d at 8h/day</div>
+                  </div>
+                </div>
+                {carmsOutstanding.totalClaims>0&&(
+                  <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',cursor:'pointer'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                      <div style={{background:'#fffbeb',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
+                      <div>
+                        <div style={{fontSize:'12px',fontWeight:700,color:'#33404f'}}>CARMS &amp; MetHR outstanding</div>
+                        <div style={{fontSize:'9.5px',color:'#94a3b8',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
+                      </div>
+                    </div>
+                    <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {settings.rank&&settings.service&&salaryBreakdownCard}
             </>)}
@@ -3515,12 +3496,12 @@ export default function App() {
                             if (f.otRateTier===h) return f;
                             const val = f.otRateTier ? f[f.otRateTier] : '';
                             return {...f, otRateTier:h, hours133:'', hours150:'', hours200:'', [h]:val};
-                          })} style={{flex:1,padding:'8px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:tier===h?'#2563eb':'#fff',color:tier===h?'#fff':'#3b82f6',boxShadow:tier===h?'0 4px 11px rgba(37,99,235,0.35)':'none'}}>{[1.33,1.5,2.0][i]}x</button>
+                          })} style={{flex:1,padding:'8px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:tier===h?'#0f2744':'#fff',color:tier===h?'#fff':BRASS,boxShadow:tier===h?'0 4px 11px rgba(15,39,68,0.35)':'none'}}>{[1.33,1.5,2.0][i]}x</button>
                         ))}
                       </div>
                       <div style={{background:'#fff',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
                         <label style={{...S.lbl,marginBottom:'4px',display:'block'}}>Overtime Hours</label>
-                        <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'transparent',fontFamily:'inherit',color:'#0f172a'}}
+                        <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:600,fontSize:'17px',border:'none',background:'transparent',fontFamily:MONO,color:'#0f172a'}}
                           value={form[tier]}
                           onChange={e=>setForm({...form, otAuto:false, [tier]:e.target.value})}/>
                         {form.otAuto
@@ -3896,19 +3877,19 @@ export default function App() {
               const otPayInner = (
                 <>
                   <div style={{fontSize:'11px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
-                  <div style={{fontSize:'14px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: {fmt(gOT)}</div>
-                  <div style={{fontSize:'13px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: {fmt(pb.otResult.net)}</div>
+                  <div style={{fontSize:'12px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(gOT)}</span></div>
+                  <div style={{fontSize:'11px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: <span style={{fontFamily:MONO}}>{fmt(pb.otResult.net)}</span></div>
                   <div style={{borderTop:'1px solid #eff6ff',paddingTop:'6px'}}>
                     {tierHours.t133>0&&<div style={{marginBottom:'6px'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t133}h @ 1.33x</span><span>{fmt(tierGross.t133)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t133}h @ 1.33x</span><span style={{fontFamily:MONO}}>{fmt(tierGross.t133)}</span></div>
                       <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t133,'#64748b')}</div>
                     </div>}
                     {tierHours.t150>0&&<div style={{marginBottom:'6px'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t150}h @ 1.5x</span><span>{fmt(tierGross.t150)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t150}h @ 1.5x</span><span style={{fontFamily:MONO}}>{fmt(tierGross.t150)}</span></div>
                       <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t150,'#64748b')}</div>
                     </div>}
                     {tierHours.t200>0&&<div>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t200}h @ 2.0x</span><span>{fmt(tierGross.t200)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{tierHours.t200}h @ 2.0x</span><span style={{fontFamily:MONO}}>{fmt(tierGross.t200)}</span></div>
                       <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(tierDates.t200,'#64748b')}</div>
                     </div>}
                   </div>
@@ -3917,19 +3898,19 @@ export default function App() {
               const paInner = (
                 <>
                   <div style={{fontSize:'11px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>PA</div>
-                  <div style={{fontSize:'14px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: {fmt(gPA)}</div>
-                  <div style={{fontSize:'13px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: {fmt(pb.paResult.net)}</div>
+                  <div style={{fontSize:'12px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(gPA)}</span></div>
+                  <div style={{fontSize:'11px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: <span style={{fontFamily:MONO}}>{fmt(pb.paResult.net)}</span></div>
                   <div style={{borderTop:'1px solid #fef3c7',paddingTop:'6px'}}>
                     {pa1>0&&<div style={{marginBottom:'6px'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA1 × {pa1}</span><span>{fmt(paGross.PA1)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA1 × {pa1}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA1)}</span></div>
                       <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA1,'#b45309')}</div>
                     </div>}
                     {pa2>0&&<div style={{marginBottom:'6px'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA2 × {pa2}</span><span>{fmt(paGross.PA2)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA2 × {pa2}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA2)}</span></div>
                       <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA2,'#b45309')}</div>
                     </div>}
                     {pa3>0&&<div>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA3 × {pa3}</span><span>{fmt(paGross.PA3)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA3 × {pa3}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA3)}</span></div>
                       <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA3,'#b45309')}</div>
                     </div>}
                     {pa1===0&&pa2===0&&pa3===0&&<div style={{fontSize:'12px',fontWeight:700,color:'#b45309'}}>None this period</div>}
@@ -4396,38 +4377,38 @@ export default function App() {
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
                     <div style={{background:'#fff',borderRadius:'13px',padding:'13px',border:'1px solid #dbeafe'}}>
                       <div style={{fontSize:'11px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
-                      <div style={{fontSize:'14px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: {fmt(pb.ot)}</div>
-                      <div style={{fontSize:'13px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: {fmt(pb.otResult.net)}</div>
+                      <div style={{fontSize:'12px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(pb.ot)}</span></div>
+                      <div style={{fontSize:'11px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: <span style={{fontFamily:MONO}}>{fmt(pb.otResult.net)}</span></div>
                       <div style={{borderTop:'1px solid #eff6ff',paddingTop:'6px'}}>
                         {pTierHours.t133>0&&<div style={{marginBottom:'6px'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{pTierHours.t133}h @ 1.33x</span><span>{fmt(pTierGross.t133)}</span></div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{pTierHours.t133}h @ 1.33x</span><span style={{fontFamily:MONO}}>{fmt(pTierGross.t133)}</span></div>
                           <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(pTierDates.t133,'#64748b')}</div>
                         </div>}
                         {pTierHours.t150>0&&<div style={{marginBottom:'6px'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{pTierHours.t150}h @ 1.5x</span><span>{fmt(pTierGross.t150)}</span></div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{pTierHours.t150}h @ 1.5x</span><span style={{fontFamily:MONO}}>{fmt(pTierGross.t150)}</span></div>
                           <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(pTierDates.t150,'#64748b')}</div>
                         </div>}
                         {pTierHours.t200>0&&<div>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{pTierHours.t200}h @ 2.0x</span><span>{fmt(pTierGross.t200)}</span></div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#0f172a'}}><span>{pTierHours.t200}h @ 2.0x</span><span style={{fontFamily:MONO}}>{fmt(pTierGross.t200)}</span></div>
                           <div style={{fontSize:'10px',fontWeight:700,color:'#94a3b8',marginTop:'1px'}}>{renderDatePills(pTierDates.t200,'#64748b')}</div>
                         </div>}
                       </div>
                     </div>
                     <div style={{background:'#fff',borderRadius:'13px',padding:'13px',border:'1px solid #fde68a'}}>
                       <div style={{fontSize:'11px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>PA</div>
-                      <div style={{fontSize:'14px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: {fmt(pb.pa)}</div>
-                      <div style={{fontSize:'13px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: {fmt(pb.paResult.net)}</div>
+                      <div style={{fontSize:'12px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(pb.pa)}</span></div>
+                      <div style={{fontSize:'11px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: <span style={{fontFamily:MONO}}>{fmt(pb.paResult.net)}</span></div>
                       <div style={{borderTop:'1px solid #fef3c7',paddingTop:'6px'}}>
                         {ppa1>0&&<div style={{marginBottom:'6px'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA1 × {ppa1}</span><span>{fmt(pPaGross.PA1)}</span></div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA1 × {ppa1}</span><span style={{fontFamily:MONO}}>{fmt(pPaGross.PA1)}</span></div>
                           <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(pPaDates.PA1,'#b45309')}</div>
                         </div>}
                         {ppa2>0&&<div style={{marginBottom:'6px'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA2 × {ppa2}</span><span>{fmt(pPaGross.PA2)}</span></div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA2 × {ppa2}</span><span style={{fontFamily:MONO}}>{fmt(pPaGross.PA2)}</span></div>
                           <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(pPaDates.PA2,'#b45309')}</div>
                         </div>}
                         {ppa3>0&&<div>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA3 × {ppa3}</span><span>{fmt(pPaGross.PA3)}</span></div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA3 × {ppa3}</span><span style={{fontFamily:MONO}}>{fmt(pPaGross.PA3)}</span></div>
                           <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(pPaDates.PA3,'#b45309')}</div>
                         </div>}
                         {ppa1===0&&ppa2===0&&ppa3===0&&<div style={{fontSize:'12px',fontWeight:700,color:'#b45309'}}>None this period</div>}
@@ -4478,15 +4459,15 @@ export default function App() {
               <div style={{fontSize:'11px',color:'#93c5fd',fontWeight:600,lineHeight:1.5,marginBottom:'14px'}}>Spacing out your overtime for a steadier payday, or quietly dodging the taxman as £100k creeps closer — either way, good thinking. This is everything still sitting unclaimed in CARMS and PA, so nothing gets left behind.</div>
               <div style={{display:'flex',gap:'10px',marginBottom:carmsOutstanding.groups.length?'14px':0}}>
                 <div style={{flex:1,background:'rgba(255,255,255,0.08)',borderRadius:'12px',padding:'12px'}}>
-                  <div style={{fontSize:'19px',fontWeight:900,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
+                  <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
                   <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.8px',marginTop:'2px'}}>OT Outstanding</div>
                 </div>
                 <div style={{flex:1,background:'rgba(255,255,255,0.08)',borderRadius:'12px',padding:'12px'}}>
-                  <div style={{fontSize:'19px',fontWeight:900,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
+                  <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
                   <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.8px',marginTop:'2px'}}>PA Outstanding</div>
                 </div>
                 <div style={{flex:1,background:'rgba(255,255,255,0.08)',borderRadius:'12px',padding:'12px'}}>
-                  <div style={{fontSize:'19px',fontWeight:900,color:'#fff'}}>{carmsOutstanding.totalClaims}</div>
+                  <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#fff'}}>{carmsOutstanding.totalClaims}</div>
                   <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:800,textTransform:'uppercase',letterSpacing:'0.8px',marginTop:'2px'}}>Claims</div>
                 </div>
               </div>
@@ -4501,7 +4482,7 @@ export default function App() {
 
                   <div style={{display:'flex',gap:'6px',marginBottom:'14px'}}>
                     {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'},{id:'toil',lbl:'TOIL'}].map(f=>(
-                      <div key={f.id} onClick={()=>setCarmsFilter(f.id)} style={{flex:1,textAlign:'center',padding:'8px 4px',borderRadius:'10px',fontSize:'11px',fontWeight:800,cursor:'pointer',background:carmsFilter===f.id?'#2563eb':'rgba(255,255,255,0.08)',color:carmsFilter===f.id?'#fff':'#93c5fd'}}>{f.lbl}</div>
+                      <div key={f.id} onClick={()=>setCarmsFilter(f.id)} style={{flex:1,textAlign:'center',padding:'8px 4px',borderRadius:'10px',fontSize:'11px',fontWeight:800,cursor:'pointer',background:carmsFilter===f.id?BRASS:'rgba(255,255,255,0.08)',color:carmsFilter===f.id?'#fff':'#93c5fd'}}>{f.lbl}</div>
                     ))}
                   </div>
 
@@ -4607,7 +4588,7 @@ export default function App() {
             <div style={{display:'grid',gridTemplateColumns:'1fr 1.3fr',gap:'16px',alignItems:'stretch',marginBottom:'14px'}}>
             <div style={{background:toilLedger.balance<0?'#fef2f2':'#f5f3ff',border:toilLedger.balance<0?'1.5px solid #fecaca':'1.5px solid #ddd6fe',borderRadius:'16px',padding:'16px',display:'flex',flexDirection:'column',justifyContent:'center'}}>
               <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
-              <div style={{fontSize:'26px',fontWeight:900,color:toilLedger.balance<0?'#991b1b':'#4c1d95'}}>{fmtHM(toilLedger.balance)} h</div>
+              <div style={{fontFamily:MONO,fontSize:'25px',fontWeight:600,color:toilLedger.balance<0?'#991b1b':'#4c1d95'}}>{fmtHM(toilLedger.balance)} h</div>
               <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
             </div>
 
@@ -4635,7 +4616,7 @@ export default function App() {
             <div style={{...S.card,background:toilLedger.balance<0?'#fef2f2':'#fff',border:toilLedger.balance<0?'1.5px solid #fecaca':'1px solid #f1f5f9',marginBottom:'14px'}}>
               <div>
                 <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
-                <div style={{fontSize:'26px',fontWeight:900,color:toilLedger.balance<0?'#991b1b':'#4c1d95'}}>{fmtHM(toilLedger.balance)} h</div>
+                <div style={{fontFamily:MONO,fontSize:'25px',fontWeight:600,color:toilLedger.balance<0?'#991b1b':'#4c1d95'}}>{fmtHM(toilLedger.balance)} h</div>
                 <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
               </div>
 
@@ -4677,8 +4658,8 @@ export default function App() {
                   </div>
                 </div>
                 <div style={{textAlign:'right',flexShrink:0}}>
-                  <div style={{fontSize:'15px',fontWeight:900,color:l.type==='earned'?'#059669':'#dc2626'}}>{l.hours>=0?'+':''}{fmtHM(l.hours)}h</div>
-                  <div style={{fontSize:'11px',color:'#94a3b8'}}>bal: {fmtHM(l.balanceAfter)} h</div>
+                  <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:l.type==='earned'?'#059669':'#dc2626'}}>{l.hours>=0?'+':''}{fmtHM(l.hours)}h</div>
+                  <div style={{fontFamily:MONO,fontSize:'10.5px',color:'#94a3b8'}}>bal: {fmtHM(l.balanceAfter)} h</div>
                 </div>
               </div>
             ))}
@@ -4868,7 +4849,7 @@ export default function App() {
               const col = (label, value) => (
                 <div style={{background:'#f8fafc',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
                   <div style={{fontSize:'9px',fontWeight:700,color:'#94a3b8',marginBottom:'3px'}}>{label}</div>
-                  <div style={{fontSize:'14px',fontWeight:900,color:'#0f172a'}}>{value}</div>
+                  <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#0f172a'}}>{value}</div>
                 </div>
               );
 
@@ -4900,11 +4881,11 @@ export default function App() {
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
                         <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
                           <div style={{fontSize:'9px',fontWeight:700,color:'#2563eb',marginBottom:'3px'}}>Pension ({(pensionA.rate*100).toFixed(2)}%)</div>
-                          <div style={{fontSize:'13px',fontWeight:900,color:'#1e40af'}}>−{fmtGBP(pensionA.amount)}</div>
+                          <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionA.amount)}</div>
                         </div>
                         <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
                           <div style={{fontSize:'9px',fontWeight:700,color:'#2563eb',marginBottom:'3px'}}>Pension ({(pensionF.rate*100).toFixed(2)}%)</div>
-                          <div style={{fontSize:'13px',fontWeight:900,color:'#1e40af'}}>−{fmtGBP(pensionF.amount)}</div>
+                          <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionF.amount)}</div>
                         </div>
                       </div>
 
@@ -5282,35 +5263,36 @@ export default function App() {
            figure on two screens. ── */}
       {isWide && (
         <aside className="no-print" style={{width:'320px',flexShrink:0,padding:'24px 24px 24px 0',overflowY:'auto'}}>
-          <div style={{fontSize:'11px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px',padding:'0 2px'}}>At a Glance</div>
+          <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px',padding:'0 2px'}}>At a Glance</div>
 
+          <div style={{background:'#fff',borderRadius:'16px',border:'1px solid #f1f5f9',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',padding:'4px 16px',overflow:'hidden'}}>
           {(()=>{
             const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
             return (
-              <div style={{background:'#fff',borderRadius:'16px',padding:'16px',border:'1px solid #f1f5f9',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',marginBottom:'12px'}}>
-                <div style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
+              <div style={{padding:'14px 0',borderBottom:'1px solid #f1f5f9'}}>
+                <div style={{fontWeight:700,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
                 <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
                   <div>
-                    <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div>
-                    <div style={{fontSize:'18px',fontWeight:900,color:'#0f172a',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
+                    <div style={{fontSize:'9px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Gross</div>
+                    <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'#0f172a',marginTop:'2px'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
                   </div>
                   <div style={{textAlign:'right'}}>
-                    <div style={{fontSize:'9.5px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div>
-                    <div style={{fontSize:'18px',fontWeight:900,color:'#059669',marginTop:'1px'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
+                    <div style={{fontSize:'9px',fontWeight:800,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px'}}>Net</div>
+                    <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'#059669',marginTop:'2px'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
                   </div>
                 </div>
-                <div style={{fontSize:'10.5px',color:'#94a3b8',marginTop:'8px'}}>{pb?pb.month:'—'} · submitted only</div>
+                <div style={{fontSize:'10px',color:'#94a3b8',marginTop:'8px'}}>{pb?pb.month:'—'} · submitted only</div>
               </div>
             );
           })()}
 
-          <div style={{background:'#fff',borderRadius:'16px',padding:'16px',border:'1px solid #f1f5f9',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',marginBottom:'12px'}}>
+          <div style={{padding:'14px 0 4px'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}}>
-              <span style={{fontWeight:900,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>CARMS &amp; PA Outstanding</span>
-              {carmsOutstanding.totalClaims>0&&<span onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:800,color:'#2563eb',cursor:'pointer'}}>View all →</span>}
+              <span style={{fontWeight:700,fontSize:'10.5px',color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.5px'}}>CARMS &amp; PA Outstanding</span>
+              {carmsOutstanding.totalClaims>0&&<span onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:700,color:BRASS,cursor:'pointer'}}>View all →</span>}
             </div>
             {carmsOutstanding.totalClaims===0
-              ? <div style={{fontSize:'11px',color:'#94a3b8',fontWeight:600,padding:'6px 0'}}>Nothing outstanding right now.</div>
+              ? <div style={{fontSize:'11px',color:'#94a3b8',fontWeight:600,padding:'6px 0 14px'}}>Nothing outstanding right now.</div>
               : (()=>{
                   // One row per CLAIM, not per entry: an entry with both
                   // overtime and PA outstanding is two separate submissions
@@ -5334,30 +5316,31 @@ export default function App() {
                             <div style={{fontSize:'11.5px',fontWeight:700,color:'#0f172a',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cl.entry.reason||'Shift'}</div>
                             <div style={{fontSize:'9.5px',color:'#94a3b8'}}>{cl.kind} · {new Date(cl.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
                           </div>
-                          <div style={{fontSize:'12.5px',fontWeight:900,color:'#d97706',flexShrink:0}}>{fmtGBP(cl.amount)}</div>
+                          <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:BRASS,flexShrink:0}}>{fmtGBP(cl.amount)}</div>
                         </div>
                       ))}
                       {hidden>0&&(
-                        <div onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:800,color:'#2563eb',padding:'8px 0 0',cursor:'pointer',borderTop:'1px solid #f1f5f9',marginTop:'2px'}}>
+                        <div onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:700,color:BRASS,padding:'8px 0 0',cursor:'pointer',borderTop:'1px solid #f1f5f9',marginTop:'2px'}}>
                           +{hidden} more claim{hidden!==1?'s':''} →
                         </div>
                       )}
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#fffbeb',borderRadius:'10px',padding:'9px 11px',marginTop:'8px'}}>
-                        <span style={{fontSize:'10px',fontWeight:800,color:'#92400e'}}>{carmsOutstanding.totalClaims} CLAIM{carmsOutstanding.totalClaims!==1?'S':''} TO SUBMIT</span>
-                        <span style={{fontSize:'14px',fontWeight:900,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalAmount)}</span>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#faf3e8',borderRadius:'10px',padding:'9px 11px',marginTop:'8px'}}>
+                        <span style={{fontSize:'10px',fontWeight:700,color:'#7a5323'}}>{carmsOutstanding.totalClaims} CLAIM{carmsOutstanding.totalClaims!==1?'S':''} TO SUBMIT</span>
+                        <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</span>
                       </div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'8px 11px 0'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'10px 11px 0'}}>
                         <span style={{fontSize:'9.5px',fontWeight:700,color:'#94a3b8'}}>Overtime unclaimed</span>
-                        <span style={{fontSize:'10.5px',fontWeight:800,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span>
+                        <span style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span>
                       </div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'3px 11px 0'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'4px 11px 14px'}}>
                         <span style={{fontSize:'9.5px',fontWeight:700,color:'#94a3b8'}}>PA unclaimed</span>
-                        <span style={{fontSize:'10.5px',fontWeight:800,color:'#d97706'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span>
+                        <span style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span>
                       </div>
                     </>
                   );
                 })()
             }
+          </div>
           </div>
         </aside>
       )}
@@ -5895,11 +5878,11 @@ export default function App() {
             const isAdd = t.id==='add';
             const isActive = tab===t.id;
             return (
-              <button key={t.id} onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:isActive&&!isAdd?'rgba(255,255,255,0.1)':'transparent',color:isAdd?'#10b981':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
+              <button key={t.id} onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:isActive&&!isAdd?'rgba(184,130,63,0.18)':'transparent',color:isAdd?'#10b981':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
                 {isAdd ? (
                   <span className="nav-add-pulse" style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
                 ) : (
-                  <Ico n={t.n} s={20} c={isActive?'#fff':'#93c5fd'} w={isActive?2.5:2}/>
+                  <Ico n={t.n} s={20} c={isActive?'#e3bd85':'#93c5fd'} w={isActive?2.5:2}/>
                 )}
                 <span className={isAdd?'nav-add-pulse':''}>{t.lbl}</span>
                 {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
