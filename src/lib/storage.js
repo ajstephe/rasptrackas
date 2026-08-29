@@ -4,6 +4,7 @@ export const KEYS = {
   backupCount:'ajs_ot_backupCount', backedUpAt:'ajs_ot_backedUpAt',
   lastBackupReminder:'ajs_ot_lastBackupReminder',
   defaultBreakdownView:'ajs_ot_defaultBreakdownView',
+  themeMode:'ajs_ot_themeMode',
   toilTaken:'ajs_ot_toilTaken',
   lastSeenFYYear:'ajs_ot_lastSeenFYYear',
   lastSyncedEntries:'ajs_ot_lastSyncedEntries',

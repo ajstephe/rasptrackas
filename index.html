@@ -22,7 +22,126 @@
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
-    <style>*{margin:0;padding:0;box-sizing:border-box}html,body,#root{height:100%;width:100%;background:#e2e8f0}</style>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      html,body,#root{height:100%;width:100%}
+
+      /* ── Theme tokens ──────────────────────────────────────────────────
+         The app renders almost entirely via inline style objects, so these
+         custom properties are read directly as style values (e.g.
+         background:'var(--surface)') rather than through CSS classes.
+         Light values live on :root; dark overrides apply either when the
+         OS prefers dark and the user hasn't overridden it (data-theme
+         unset), or when the user has explicitly chosen dark. This mirrors
+         the artifact-design light/dark pattern used for the app's own
+         mockups. */
+      :root{
+        --page-bg:#e2e8f0;
+        --surface:#ffffff;
+        --surface-2:#f8fafc;
+        --chip-bg:#f1f5f9;
+        --border:#e2e8f0;
+        --border-2:#f1f5f9;
+        --ink:#0f172a;
+        --muted:#64748b;
+        --quiet:#94a3b8;
+        --navy:#0f2744;
+        --tint-blue:#eff6ff;
+        --tint-red:#fef2f2;
+        --tint-green:#f0fdf4;
+        --tint-green-2:#dcfce7;
+        --tint-purple:#f5f3ff;
+        --tint-amber:#fffbeb;
+        --tint-amber-2:#fef3c7;
+        --tint-teal:#f0fdfa;
+        --text-navy:#1e3a5f;
+        --text-red-deep:#991b1b;
+        --text-green-deep:#166534;
+        --text-purple-deep:#4c1d95;
+        --text-amber-deep:#92400e;
+        --tint-blue-2:#dbeafe;
+        --tint-brass:#faf3e8;
+        --tint-indigo:#e0e7ff;
+        --text-indigo-deep:#4338ca;
+        --surface-red-mid:#fca5a5;
+        --text-blue-deep:#1e40af;
+      }
+      @media (prefers-color-scheme: dark){
+        :root:not([data-theme="light"]){
+          --page-bg:#0b1220;
+          --surface:#111c2e;
+          --surface-2:#0e1726;
+          --chip-bg:#182740;
+          --border:#20304a;
+          --border-2:#1c2c44;
+          --ink:#eef2f7;
+          --muted:#93a4bb;
+          --quiet:#64789a;
+          --navy:#16314f;
+          --tint-blue:#132840;
+          --tint-red:#2c1416;
+          --tint-green:#0f2a1e;
+          --tint-green-2:#123322;
+          --tint-purple:#221a3d;
+          --tint-amber:#2b2110;
+          --tint-amber-2:#332714;
+          --tint-teal:#0e2b2a;
+          --text-navy:#9fc0e6;
+          --text-red-deep:#f3a9a9;
+          --text-green-deep:#86e0ae;
+          --text-purple-deep:#cbb8f7;
+          --text-amber-deep:#f3c58c;
+          --tint-blue-2:#16314f;
+          --tint-brass:#2e2415;
+          --tint-indigo:#1c1f3d;
+          --text-indigo-deep:#a9b3f5;
+          --surface-red-mid:#5c2020;
+          --text-blue-deep:#a8c5f0;
+        }
+      }
+      :root[data-theme="dark"]{
+        --page-bg:#0b1220;
+        --surface:#111c2e;
+        --surface-2:#0e1726;
+        --chip-bg:#182740;
+        --border:#20304a;
+        --border-2:#1c2c44;
+        --ink:#eef2f7;
+        --muted:#93a4bb;
+        --quiet:#64789a;
+        --navy:#16314f;
+        --tint-blue:#132840;
+        --tint-red:#2c1416;
+        --tint-green:#0f2a1e;
+        --tint-green-2:#123322;
+        --tint-purple:#221a3d;
+        --tint-amber:#2b2110;
+        --tint-amber-2:#332714;
+        --tint-teal:#0e2b2a;
+        --text-navy:#9fc0e6;
+        --text-red-deep:#f3a9a9;
+        --text-green-deep:#86e0ae;
+        --text-purple-deep:#cbb8f7;
+        --text-amber-deep:#f3c58c;
+        --tint-blue-2:#16314f;
+        --tint-brass:#2e2415;
+        --tint-indigo:#1c1f3d;
+        --text-indigo-deep:#a9b3f5;
+        --surface-red-mid:#5c2020;
+        --text-blue-deep:#a8c5f0;
+      }
+      html,body,#root{background:var(--page-bg)}
+
+      /* Native form elements (input/select/textarea) don't inherit
+         anything from the page by default - the browser paints them
+         white regardless of theme unless told otherwise. Most of them
+         in the app get an explicit background inline already, which
+         (being an inline style) always wins over this rule; this is
+         just the safety net for ones that only set a border colour
+         and never touch background/color, so they'd otherwise stay a
+         bright native-white box in dark mode. */
+      input, select, textarea{background:var(--surface);color:var(--ink)}
+    </style>
   </head>
   <body>
     <div id="root"></div>
