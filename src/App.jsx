@@ -2931,6 +2931,60 @@ export default function App() {
           // teaser card that used to live here was folded into the
           // statement's own ledger rows instead — see below.)
 
+          // ── Net-pay hero row ──────────────────────────────────────────────
+          // Replaces the old cramped "Gross & Net" mini-columns with the one
+          // figure people actually open the app to check — net pay this
+          // period — given real size, a delta vs last period, and a trend
+          // line. Gross doesn't disappear, just demotes to a small caption.
+          // Deliberately NOT touching the masthead's own headline (Total
+          // Gross YTD stays there — that's the tax-band-awareness number,
+          // a different job). All of it comes from totals.periodBreakdown,
+          // which already carries every period's combinedNet in order —
+          // no new calculation, just reading neighbouring entries.
+          const netHeroRow = (compact) => {
+            const pb     = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx]   : null;
+            const prevPb = currPeriodIdx>0  ? totals.periodBreakdown[currPeriodIdx-1] : null;
+            const delta  = (pb&&prevPb) ? (pb.combinedNet - prevPb.combinedNet) : null;
+            const sparkFrom = Math.max(0, currPeriodIdx - 5);
+            const sparkVals = currPeriodIdx>=0 ? totals.periodBreakdown.slice(sparkFrom, currPeriodIdx+1).map(p=>p.combinedNet) : [];
+            const sparkMin = sparkVals.length ? Math.min(...sparkVals) : 0;
+            const sparkMax = sparkVals.length ? Math.max(...sparkVals) : 1;
+            const sparkRange = sparkMax - sparkMin || 1;
+            const W = compact ? 120 : 140, H = 26, PAD = 3;
+            const pts = sparkVals.map((v,i)=>{
+              const x = sparkVals.length>1 ? (i/(sparkVals.length-1))*W : W;
+              const y = PAD + (1 - (v-sparkMin)/sparkRange) * (H - PAD*2);
+              return `${x.toFixed(1)},${y.toFixed(1)}`;
+            });
+            return (
+              <div style={{padding:compact?'14px 0':'16px 0',borderBottom:'1px solid var(--border-2)'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:'2px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:compact?'10px':'12px'}}>
+                    <div style={{background:'var(--tint-green-2)',padding:compact?'8px':'9px',borderRadius:compact?'10px':'11px',flexShrink:0}}><Ico n="cash" s={compact?16:17} c="#15803d"/></div>
+                    <span style={{fontFamily:MONO,fontSize:'9px',fontWeight:600,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--quiet)'}}>Net pay · this period</span>
+                  </div>
+                  <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}</span>
+                </div>
+                <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'12px',paddingLeft:compact?'42px':'46px'}}>
+                  <div>
+                    <div style={{fontFamily:MONO,fontSize:compact?'22px':'25px',fontWeight:700,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.1}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
+                    {delta!=null&&(
+                      <span style={{display:'inline-flex',alignItems:'center',gap:'3px',fontFamily:MONO,fontSize:'10px',fontWeight:600,color:delta>=0?'#059669':'var(--text-red-deep)',background:delta>=0?'var(--tint-green)':'var(--tint-red)',padding:'2px 8px',borderRadius:'20px',marginTop:'4px'}}>
+                        {delta>=0?'▲':'▼'} {fmtGBP(Math.abs(delta))} vs last period
+                      </span>
+                    )}
+                  </div>
+                  {pts.length>1&&(
+                    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{flexShrink:0,marginBottom:'2px'}}>
+                      <polyline points={pts.join(' ')} fill="none" stroke={BRASS} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx={pts[pts.length-1].split(',')[0]} cy={pts[pts.length-1].split(',')[1]} r="3" fill={BRASS}/>
+                    </svg>
+                  )}
+                </div>
+              </div>
+            );
+          };
+
           const salaryBreakdownCard = (
             <div style={{...S.card,cursor:isWide?'default':'pointer'}} onClick={()=>{ if(!isWide) setSalaryBreakdownExpanded(v=>!v); }}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
@@ -3147,27 +3201,7 @@ export default function App() {
                     </div>
                   </div>
                 )}
-                {(()=>{
-                  const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
-                  return (
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:'1px solid var(--border-2)'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                        <div style={{background:'var(--tint-green-2)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="cash" s={17} c="#15803d"/></div>
-                        <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Gross &amp; Net — this period</div>
-                      </div>
-                      <div style={{display:'flex',gap:'20px',textAlign:'right'}}>
-                        <div>
-                          <div style={{fontSize:'8.5px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px'}}>Gross</div>
-                          <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--ink)'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
-                        </div>
-                        <div>
-                          <div style={{fontSize:'8.5px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px'}}>Net</div>
-                          <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'#059669'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
+                {netHeroRow(false)}
                 <div onClick={()=>setTab('graph')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:carmsOutstanding.totalClaims>0?'1px solid var(--border-2)':'none',cursor:'pointer'}}>
                   <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
                     <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
@@ -3237,27 +3271,7 @@ export default function App() {
                     </div>
                   </div>
                 )}
-                {(()=>{
-                  const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
-                  return (
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:'1px solid var(--border-2)'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-                        <div style={{background:'var(--tint-green-2)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="cash" s={16} c="#15803d"/></div>
-                        <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>Gross &amp; Net — this period</div>
-                      </div>
-                      <div style={{display:'flex',gap:'14px',textAlign:'right'}}>
-                        <div>
-                          <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase'}}>Gross</div>
-                          <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--ink)'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
-                        </div>
-                        <div>
-                          <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase'}}>Net</div>
-                          <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#059669'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
+                {netHeroRow(true)}
                 <div onClick={()=>setTab('graph')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:carmsOutstanding.totalClaims>0?'1px solid var(--border-2)':'none',cursor:'pointer'}}>
                   <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
                     <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="clock" s={16} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
