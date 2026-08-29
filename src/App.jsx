@@ -401,7 +401,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
 
             <label style={AS.label}>Your recovery word</label>
             <input style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
-            <div style={{fontSize:'12px',color:recoveryWord.length>=RECOVERY_MIN_LENGTH?'#16a34a':'#94a3b8',margin:'-10px 0 6px',fontWeight:700}}>{recoveryWord.length} / {RECOVERY_MIN_LENGTH} characters minimum</div>
+            <div style={{fontSize:'12px',color:recoveryWord.length>=RECOVERY_MIN_LENGTH?'#16a34a':'var(--quiet)',margin:'-10px 0 6px',fontWeight:700}}>{recoveryWord.length} / {RECOVERY_MIN_LENGTH} characters minimum</div>
             {recoveryTooCommon && recoveryWord.length>0 && <div style={AS.err}>Too common — choose something less predictable</div>}
             {error && <div style={{...AS.err,marginTop:recoveryTooCommon?0:'-4px'}}>{error}</div>}
 
@@ -1052,7 +1052,7 @@ export default function App() {
       return <div style={{...style,background:'var(--tint-green)',color:'#059669'}}>✓ Submitted</div>;
     }
     const goToEntry = (ev) => { ev.stopPropagation(); setSelectedCalDay(null); setConfirmDel(null); startEdit(e); setFocusCarmsToggle(true); };
-    const clickable = {...style,border:'1px solid #fecaca',background:'var(--tint-red)',color:'#b91c1c',cursor:'pointer'};
+    const clickable = {...style,border:'1px solid var(--border-2)',background:'var(--tint-red)',color:'var(--text-red-deep)',cursor:'pointer'};
     if (otOK && !paOK) return <div onClick={goToEntry} style={clickable}>✗ PA not submitted</div>;
     if (!otOK && paOK) return <div onClick={goToEntry} style={clickable}>✗ Overtime not submitted</div>;
     return <div onClick={goToEntry} style={clickable}>✗ Overtime &amp; PA not submitted</div>;
@@ -1094,7 +1094,7 @@ export default function App() {
             const isSelected = dateStr===currentValue;
             const isToday = dateStr===todayStr;
             return (
-              <button key={i} onClick={()=>{ onSelect(dateStr); setDatePickerFor(null); }} style={{aspectRatio:'1',border:isToday&&!isSelected?'1.5px solid #2563eb':'none',borderRadius:'10px',background:isSelected?'#2563eb':'transparent',color:isSelected?'#fff':'#0f172a',fontWeight:isSelected?900:700,fontSize:'14.5px',cursor:'pointer',fontFamily:'inherit'}}>{d}</button>
+              <button key={i} onClick={()=>{ onSelect(dateStr); setDatePickerFor(null); }} style={{aspectRatio:'1',border:isToday&&!isSelected?'1.5px solid #2563eb':'none',borderRadius:'10px',background:isSelected?'#2563eb':'transparent',color:isSelected?'#fff':'var(--ink)',fontWeight:isSelected?900:700,fontSize:'14.5px',cursor:'pointer',fontFamily:'inherit'}}>{d}</button>
             );
           })}
         </div>
@@ -2394,11 +2394,11 @@ export default function App() {
 
   // ── styles ─────────────────────────────────────────────────────────────────
   const S={
-    wrap: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'#eceef1',fontFamily:"'DM Sans',system-ui,sans-serif",color:'var(--ink)',position:'relative',boxShadow:'0 0 60px rgba(0,0,0,0.14)',overflow:'hidden'},
+    wrap: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'var(--page-bg)',fontFamily:"'DM Sans',system-ui,sans-serif",color:'var(--ink)',position:'relative',boxShadow:'0 0 60px rgba(0,0,0,0.14)',overflow:'hidden'},
     hdr:  {background:'var(--surface)',padding:'13px 18px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,zIndex:10},
     main: {flex:1,overflowY:'auto',overflowX:'hidden',minWidth:0,scrollbarWidth:'none',msOverflowStyle:'none'},
-    nav:  {background:'rgba(255,255,255,0.96)',backdropFilter:'blur(14px)',borderTop:'1px solid #e2e8f0',position:'absolute',bottom:0,width:'100%',padding:'7px 4px 12px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
-    nBtn: (a,add)=>({flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',padding:add?'9px 4px':'6px 4px',background:'transparent',color:add?'#10b981':a?'#2563eb':'#94a3b8',borderRadius:add?'13px':'8px',border:'none',cursor:'pointer',transition:'all 0.18s',fontFamily:'inherit',boxShadow:'none'}),
+    nav:  {background:'rgba(255,255,255,0.96)',backdropFilter:'blur(14px)',borderTop:'1px solid var(--border-2)',position:'absolute',bottom:0,width:'100%',padding:'7px 4px 12px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
+    nBtn: (a,add)=>({flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',padding:add?'9px 4px':'6px 4px',background:'transparent',color:add?'#10b981':a?'#2563eb':'var(--quiet)',borderRadius:add?'13px':'8px',border:'none',cursor:'pointer',transition:'all 0.18s',fontFamily:'inherit',boxShadow:'none'}),
     nLbl: {fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.5px',whiteSpace:'nowrap'},
     card: {background:'var(--surface)',borderRadius:'18px',padding:'18px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid var(--border-2)',marginBottom:'10px'},
     dark: {background:'var(--navy)',borderRadius:'18px',padding:'19px',boxShadow:'0 8px 28px rgba(15,39,68,0.28)',marginBottom:'10px',position:'relative',overflow:'hidden'},
@@ -2492,7 +2492,7 @@ export default function App() {
           <div style={{fontSize:'18px',fontWeight:900,color:'#fff'}}>{fmt(totals.totalGross)}</div>
         </div>
         <div>
-          <div style={{fontSize:'11px',fontWeight:900,color:'#bbf7d0',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'3px'}}>Net OT</div>
+          <div style={{fontSize:'11px',fontWeight:900,color:'var(--border-2)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'3px'}}>Net OT</div>
           <div style={{fontSize:'18px',fontWeight:900,color:'#dcfce7'}}>{fmt(totals.totalNet)}</div>
         </div>
         <div>
@@ -2838,7 +2838,7 @@ export default function App() {
         </div>
         <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
           {session&&(
-            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:'var(--tint-blue)',border:'1px solid #bfdbfe',borderRadius:'9px',color:'#2563eb',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap'}}>
+            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',color:'#2563eb',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap'}}>
               <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={13} c="#2563eb"/></span> Sync
             </button>
           )}
@@ -2875,7 +2875,7 @@ export default function App() {
             <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>Do you want to create a backup before proceeding?</div>
             <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
               <button onClick={async ()=>{ setRestoreConfirmOpen(false); await handleExport(); fileRef.current.click(); }} style={{padding:'12px',background:'#2563eb',border:'none',borderRadius:'11px',color:'#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Back Up, Then Restore</button>
-              <button onClick={()=>{ setRestoreConfirmOpen(false); fileRef.current.click(); }} style={{padding:'12px',background:'var(--tint-red)',border:'1px solid #fecaca',borderRadius:'11px',color:'#b91c1c',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Restore Without Backup</button>
+              <button onClick={()=>{ setRestoreConfirmOpen(false); fileRef.current.click(); }} style={{padding:'12px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Restore Without Backup</button>
               <button onClick={()=>setRestoreConfirmOpen(false)} style={{padding:'12px',background:'var(--chip-bg)',border:'none',borderRadius:'11px',color:'var(--muted)',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
             </div>
           </div>
@@ -2884,10 +2884,10 @@ export default function App() {
 
       {/* ── monthly backup reminder — optional, dismissible, never blocks the app ── */}
       {showBackupReminder&&(
-        <div className="fi no-print" style={{background:'var(--tint-blue)',borderBottom:'1px solid #bfdbfe',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15}}>
-          <div style={{background:'#dbeafe',borderRadius:'10px',padding:'7px',flexShrink:0}}><Ico n="shield" s={15} c="#2563eb"/></div>
+        <div className="fi no-print" style={{background:'var(--tint-blue)',borderBottom:'1px solid var(--border-2)',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15}}>
+          <div style={{background:'var(--tint-blue-2)',borderRadius:'10px',padding:'7px',flexShrink:0}}><Ico n="shield" s={15} c="#2563eb"/></div>
           <div style={{flex:1}}>
-            <div style={{fontWeight:900,fontSize:'12px',color:'#1e3a5f',marginBottom:'2px'}}>Time for a backup</div>
+            <div style={{fontWeight:900,fontSize:'12px',color:'var(--text-navy)',marginBottom:'2px'}}>Time for a backup</div>
             <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>It's been a couple of weeks — worth downloading a fresh backup of your records.</div>
             <div style={{display:'flex',gap:'7px'}}>
               <button onClick={goBackupNow} style={{background:'#2563eb',border:'none',borderRadius:'8px',padding:'6px 13px',fontWeight:900,fontSize:'10px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Back Up Now</button>
@@ -2900,10 +2900,10 @@ export default function App() {
 
       {/* ── financial year rollover — one-time, dismissible, never blocks the app ── */}
       {showFYRollover&&(
-        <div className="fi no-print" style={{background:'var(--tint-blue)',borderBottom:'1px solid #bfdbfe',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15}}>
-          <div style={{background:'#dbeafe',borderRadius:'10px',padding:'7px',flexShrink:0}}><Ico n="star" s={15} c="#2563eb"/></div>
+        <div className="fi no-print" style={{background:'var(--tint-blue)',borderBottom:'1px solid var(--border-2)',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15}}>
+          <div style={{background:'var(--tint-blue-2)',borderRadius:'10px',padding:'7px',flexShrink:0}}><Ico n="star" s={15} c="#2563eb"/></div>
           <div style={{flex:1}}>
-            <div style={{fontWeight:900,fontSize:'12px',color:'#1e3a5f',marginBottom:'2px'}}>Welcome to FY {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
+            <div style={{fontWeight:900,fontSize:'12px',color:'var(--text-navy)',marginBottom:'2px'}}>Welcome to FY {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
             <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>Your {CURRENT_FY_YEAR-1}/{CURRENT_FY_YEAR.toString().slice(-2)} year is complete — find it any time under Financial Years in Options.</div>
             <div style={{display:'flex',gap:'7px'}}>
               <button onClick={()=>{dismissFYRollover();setTab('settings');}} style={{background:'#2563eb',border:'none',borderRadius:'8px',padding:'6px 13px',fontWeight:900,fontSize:'10px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>View Last Year</button>
@@ -2935,7 +2935,7 @@ export default function App() {
             <div style={{...S.card,cursor:isWide?'default':'pointer'}} onClick={()=>{ if(!isWide) setSalaryBreakdownExpanded(v=>!v); }}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
-                  <div style={{background:'#faf3e8',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c={BRASS}/></div>
+                  <div style={{background:'var(--tint-brass)',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c={BRASS}/></div>
                   <div>
                     <div style={{fontWeight:900,fontSize:'10.5px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1.5px'}}>Salary Breakdown &amp; Overtime Forecast</div>
                     <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'1px'}}>Base, allowances, overtime, full-year projection</div>
@@ -2955,7 +2955,7 @@ export default function App() {
                     ].map(([label,val,fullYear])=>(
                       <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                         <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{label}</span>
-                        <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:val==null?'#94a3b8':'#0f172a'}}>
+                        <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:val==null?'var(--quiet)':'var(--ink)'}}>
                           {val==null
                             ? 'Set rank & pay point'
                             : fullYear!=null
@@ -2998,11 +2998,11 @@ export default function App() {
                           <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
                         </div>
                         <div style={{position:'relative',marginBottom:'16px'}}>
-                          <div style={{background:'#eef1f5',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
+                          <div style={{background:'var(--border)',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
                             <div style={{width:`${pct(grossYTD)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
                           </div>
                           {markers.map(m=>(
-                            <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'#cbd5e1',transform:'translateX(-1px)'}}>
+                            <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'var(--border)',transform:'translateX(-1px)'}}>
                               <div style={{position:'absolute',top:'17px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',fontWeight:800,color:'var(--muted)',whiteSpace:'nowrap'}}>{m.label}</div>
                             </div>
                           ))}
@@ -3036,11 +3036,11 @@ export default function App() {
                         </div>
                         <div style={{fontSize:'9.5px',fontWeight:600,color:'var(--quiet)',marginBottom:'19px'}}>Forecast based on your overtime submissions</div>
                         <div style={{position:'relative',marginBottom:'16px'}}>
-                          <div style={{background:'#eef1f5',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
+                          <div style={{background:'var(--border)',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
                             <div style={{width:`${pct(proj)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
                           </div>
                           {markers.map(m=>(
-                            <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'#cbd5e1',transform:'translateX(-1px)'}}>
+                            <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'var(--border)',transform:'translateX(-1px)'}}>
                               <div style={{position:'absolute',top:'17px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',fontWeight:800,color:'var(--muted)',whiteSpace:'nowrap'}}>{m.label}</div>
                             </div>
                           ))}
@@ -3085,12 +3085,12 @@ export default function App() {
           return (
           <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
             {!settings.rank&&(
-              <div className="setup-pulse-urgent" style={{background:'var(--tint-red)',border:'1.5px solid #fca5a5',borderRadius:'14px',padding:'13px 14px',marginBottom:'12px',display:'flex',gap:'11px',alignItems:'flex-start'}}>
+              <div className="setup-pulse-urgent" style={{background:'var(--tint-red)',border:'1.5px solid var(--border-2)',borderRadius:'14px',padding:'13px 14px',marginBottom:'12px',display:'flex',gap:'11px',alignItems:'flex-start'}}>
                 <Ico n="uPlus" s={19} c="#dc2626"/>
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:900,color:'#991b1b',fontSize:'13px',marginBottom:'3px'}}>Setup Required</div>
-                  <div style={{color:'#b91c1c',fontSize:'12px',marginBottom:'8px'}}>Configure your rank and pay in More..</div>
-                  <button onClick={()=>setTab('settings')} style={{background:'#fca5a5',border:'none',borderRadius:'8px',padding:'5px 11px',fontWeight:900,fontSize:'11px',color:'#7f1d1d',cursor:'pointer',fontFamily:'inherit'}}>Go to More.. →</button>
+                  <div style={{fontWeight:900,color:'var(--text-red-deep)',fontSize:'13px',marginBottom:'3px'}}>Setup Required</div>
+                  <div style={{color:'var(--text-red-deep)',fontSize:'12px',marginBottom:'8px'}}>Configure your rank and pay in More..</div>
+                  <button onClick={()=>setTab('settings')} style={{background:'var(--surface-red-mid)',border:'none',borderRadius:'8px',padding:'5px 11px',fontWeight:900,fontSize:'11px',color:'var(--text-red-deep)',cursor:'pointer',fontFamily:'inherit'}}>Go to More.. →</button>
                 </div>
               </div>
             )}
@@ -3139,7 +3139,7 @@ export default function App() {
                   <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
                       <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
-                      <div style={{fontSize:'13px',fontWeight:700,color:'#33404f'}}>Current pay period</div>
+                      <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Current pay period</div>
                     </div>
                     <div style={{textAlign:'right'}}>
                       <div style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{totals.curr.month}</div>
@@ -3153,7 +3153,7 @@ export default function App() {
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:'1px solid var(--border-2)'}}>
                       <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
                         <div style={{background:'var(--tint-green-2)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="cash" s={17} c="#15803d"/></div>
-                        <div style={{fontSize:'13px',fontWeight:700,color:'#33404f'}}>Gross &amp; Net — this period</div>
+                        <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Gross &amp; Net — this period</div>
                       </div>
                       <div style={{display:'flex',gap:'20px',textAlign:'right'}}>
                         <div>
@@ -3168,14 +3168,14 @@ export default function App() {
                     </div>
                   );
                 })()}
-                <div onClick={()=>setTab('graph')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:carmsOutstanding.totalClaims>0?'1px solid #f1f5f9':'none',cursor:'pointer'}}>
+                <div onClick={()=>setTab('graph')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:carmsOutstanding.totalClaims>0?'1px solid var(--border-2)':'none',cursor:'pointer'}}>
                   <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                    <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
-                    <div style={{fontSize:'13px',fontWeight:700,color:toilLedger.balance<0?'#b91c1c':'#33404f'}}>TOIL balance{toilLedger.balance<0?' — overdrawn':''}</div>
+                    <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
+                    <div style={{fontSize:'13px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL balance{toilLedger.balance<0?' — overdrawn':''}</div>
                   </div>
                   <div style={{textAlign:'right'}}>
-                    <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:toilLedger.balance<0?'#b91c1c':'#0f172a'}}>{fmtHM(toilLedger.balance)} h</div>
-                    <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'1px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
+                    <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>{fmtHM(toilLedger.balance)} h</div>
+                    <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'var(--quiet)',marginTop:'1px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
                   </div>
                 </div>
                 {carmsOutstanding.totalClaims>0&&(
@@ -3183,7 +3183,7 @@ export default function App() {
                     <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
                       <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
                       <div>
-                        <div style={{fontSize:'13px',fontWeight:700,color:'#33404f'}}>CARMS &amp; MetHR outstanding</div>
+                        <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR outstanding</div>
                         <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
                       </div>
                     </div>
@@ -3229,7 +3229,7 @@ export default function App() {
                   <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
                       <div style={{background:'var(--tint-teal)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="cal" s={16} c="#0d9488"/></div>
-                      <div style={{fontSize:'12px',fontWeight:700,color:'#33404f'}}>Current period</div>
+                      <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>Current period</div>
                     </div>
                     <div style={{textAlign:'right'}}>
                       <div style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>{totals.curr.month}</div>
@@ -3243,7 +3243,7 @@ export default function App() {
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:'1px solid var(--border-2)'}}>
                       <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
                         <div style={{background:'var(--tint-green-2)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="cash" s={16} c="#15803d"/></div>
-                        <div style={{fontSize:'12px',fontWeight:700,color:'#33404f'}}>Gross &amp; Net — this period</div>
+                        <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>Gross &amp; Net — this period</div>
                       </div>
                       <div style={{display:'flex',gap:'14px',textAlign:'right'}}>
                         <div>
@@ -3258,14 +3258,14 @@ export default function App() {
                     </div>
                   );
                 })()}
-                <div onClick={()=>setTab('graph')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:carmsOutstanding.totalClaims>0?'1px solid #f1f5f9':'none',cursor:'pointer'}}>
+                <div onClick={()=>setTab('graph')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:carmsOutstanding.totalClaims>0?'1px solid var(--border-2)':'none',cursor:'pointer'}}>
                   <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-                    <div style={{background:toilLedger.balance<0?'#fee2e2':'#f5f3ff',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="clock" s={16} c={toilLedger.balance<0?'#b91c1c':'#7c3aed'}/></div>
-                    <div style={{fontSize:'12px',fontWeight:700,color:toilLedger.balance<0?'#b91c1c':'#33404f'}}>TOIL balance{toilLedger.balance<0?' — overdrawn':''}</div>
+                    <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="clock" s={16} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
+                    <div style={{fontSize:'12px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL balance{toilLedger.balance<0?' — overdrawn':''}</div>
                   </div>
                   <div style={{textAlign:'right'}}>
-                    <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:toilLedger.balance<0?'#b91c1c':'#0f172a'}}>{fmtHM(toilLedger.balance)} h</div>
-                    <div style={{fontFamily:MONO,fontSize:'9px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'#94a3b8',marginTop:'1px'}}>≈ {(toilLedger.balance/8).toFixed(1)}d at 8h/day</div>
+                    <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>{fmtHM(toilLedger.balance)} h</div>
+                    <div style={{fontFamily:MONO,fontSize:'9px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'var(--quiet)',marginTop:'1px'}}>≈ {(toilLedger.balance/8).toFixed(1)}d at 8h/day</div>
                   </div>
                 </div>
                 {carmsOutstanding.totalClaims>0&&(
@@ -3273,7 +3273,7 @@ export default function App() {
                     <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
                       <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
                       <div>
-                        <div style={{fontSize:'12px',fontWeight:700,color:'#33404f'}}>CARMS &amp; MetHR outstanding</div>
+                        <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR outstanding</div>
                         <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
                       </div>
                     </div>
@@ -3286,7 +3286,7 @@ export default function App() {
             {settings.rank&&settings.service&&salaryBreakdownCard}
             </>)}
 
-            <div style={{fontSize:'10.5px',color:'#b91c1c',textAlign:'center',lineHeight:1.5,padding:'8px 12px 0'}}>For guidance only. Always verify amounts against your payslip.</div>
+            <div style={{fontSize:'10.5px',color:'var(--text-red-deep)',textAlign:'center',lineHeight:1.5,padding:'8px 12px 0'}}>For guidance only. Always verify amounts against your payslip.</div>
           </div>
           );
         })()}
@@ -3301,12 +3301,12 @@ export default function App() {
 
             {!settings.rank||!settings.service ? (
               /* ── blocked until rank & pay point are configured — no figures can be entered until then ── */
-              <div style={{background:'var(--tint-red)',border:'1.5px solid #fca5a5',borderRadius:'18px',padding:'26px 20px',textAlign:'center'}}>
+              <div style={{background:'var(--tint-red)',border:'1.5px solid var(--border-2)',borderRadius:'18px',padding:'26px 20px',textAlign:'center'}}>
                 <div style={{width:'52px',height:'52px',borderRadius:'50%',background:'var(--tint-red)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px'}}>
                   <Ico n="uPlus" s={24} c="#dc2626"/>
                 </div>
-                <div style={{fontWeight:900,fontSize:'15px',color:'#991b1b',marginBottom:'6px'}}>Setup Required</div>
-                <div style={{fontSize:'12px',color:'#b91c1c',lineHeight:1.6,marginBottom:'16px'}}>You need to select your rank and pay point in More.. before you can log overtime. This ensures your pay is calculated correctly from the start.</div>
+                <div style={{fontWeight:900,fontSize:'15px',color:'var(--text-red-deep)',marginBottom:'6px'}}>Setup Required</div>
+                <div style={{fontSize:'12px',color:'var(--text-red-deep)',lineHeight:1.6,marginBottom:'16px'}}>You need to select your rank and pay point in More.. before you can log overtime. This ensures your pay is calculated correctly from the start.</div>
                 <button onClick={()=>setTab('settings')} style={{background:'#dc2626',border:'none',borderRadius:'11px',padding:'12px 22px',fontWeight:900,fontSize:'12px',color:'#fff',cursor:'pointer',fontFamily:'inherit',boxShadow:'0 4px 14px rgba(220,38,38,0.3)'}}>Go to More.. →</button>
               </div>
             ) : (
@@ -3348,26 +3348,26 @@ export default function App() {
                 // free-entry hours grid instead.
                 const rosteredActualBlock = (
                   <div style={{marginBottom:showTwoCol?0:'13px',display:'flex',flexDirection:'column',flex:showTwoCol?1:'none'}}>
-                    <div style={{display:'flex',flexDirection:showTwoCol?'column':'row',alignItems:showTwoCol?'flex-start':'center',justifyContent:showTwoCol?'flex-start':'space-between',gap:showTwoCol?'8px':0,background:'var(--tint-blue)',border:'1.5px solid #bfdbfe',borderRadius:'13px',padding:'12px 13px'}}>
-                      <div style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>Rostered CARM Shift / Actual Shift</div>
+                    <div style={{display:'flex',flexDirection:showTwoCol?'column':'row',alignItems:showTwoCol?'flex-start':'center',justifyContent:showTwoCol?'flex-start':'space-between',gap:showTwoCol?'8px':0,background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'12px 13px'}}>
+                      <div style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>Rostered CARM Shift / Actual Shift</div>
                       <div onClick={()=>{
                           const switchingToManual = form.recordShiftTimes; // currently auto → about to go manual
                           setForm(f=>syncShiftTimesIntoForm({...f, recordShiftTimes:!switchingToManual, otRateTier: !switchingToManual && !f.otRateTier ? 'hours133' : f.otRateTier}));
                         }} style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',flexShrink:0}}>
                         <span style={{fontSize:'9px',fontWeight:600,color:'var(--muted)'}}>Input Hours Manually</span>
-                        <div style={{width:'32px',height:'18px',borderRadius:'10px',position:'relative',flexShrink:0,transition:'background 0.2s',background:!form.recordShiftTimes?'#2563eb':'#e2e8f0'}}>
+                        <div style={{width:'32px',height:'18px',borderRadius:'10px',position:'relative',flexShrink:0,transition:'background 0.2s',background:!form.recordShiftTimes?'#2563eb':'var(--border)'}}>
                           <div style={{width:'14px',height:'14px',borderRadius:'50%',background:'#fff',position:'absolute',top:'2px',transition:'left 0.2s',left:!form.recordShiftTimes?'16px':'2px',boxShadow:'0 1px 2px rgba(0,0,0,0.3)'}}/>
                         </div>
                       </div>
                     </div>
 
                     {form.recordShiftTimes&&(
-                      <div style={{background:'var(--tint-blue)',border:'1.5px solid #bfdbfe',borderTop:'none',borderRadius:'0 0 13px 13px',marginTop:'-13px',padding:'15px 13px 13px',flex:showTwoCol?1:'none',display:'flex',flexDirection:'column',justifyContent:form.dutyType==='rdw'?'center':'flex-start'}}>
+                      <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderTop:'none',borderRadius:'0 0 13px 13px',marginTop:'-13px',padding:'15px 13px 13px',flex:showTwoCol?1:'none',display:'flex',flexDirection:'column',justifyContent:form.dutyType==='rdw'?'center':'flex-start'}}>
                         <div style={{height:'2px'}}/>
 
                         {/* Normal Duty vs Rest Day Working (RDW) — on RDW there's no
                             roster to compare against, so the whole shift is overtime */}
-                        <div style={{display:'flex',gap:'6px',background:'#dbeafe',borderRadius:'11px',padding:'3px',marginBottom:'13px'}}>
+                        <div style={{display:'flex',gap:'6px',background:'var(--tint-blue-2)',borderRadius:'11px',padding:'3px',marginBottom:'13px'}}>
                           <button onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'normal'}))} style={{flex:1,border:'none',background:form.dutyType!=='rdw'?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer',boxShadow:form.dutyType!=='rdw'?'0 2px 6px rgba(37,99,235,0.25)':'none'}}>Normal Duty</button>
                           <button onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'rdw',rosteredStart:'',rosteredEnd:''}))} style={{flex:1,border:'none',background:form.dutyType==='rdw'?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer',boxShadow:form.dutyType==='rdw'?'0 2px 6px rgba(37,99,235,0.25)':'none'}}>Rest Day Working (RDW)</button>
                         </div>
@@ -3383,7 +3383,7 @@ export default function App() {
                               {[['07:00','15:00'],['07:00','19:00'],['08:00','20:00'],['13:00','23:00']].map(([start,end])=>{
                                 const isSelected = form.rosteredStart===start && form.rosteredEnd===end;
                                 return (
-                                  <button key={start+end} onClick={()=>setForm(f=>syncShiftTimesIntoForm(isSelected ? {...f,rosteredStart:'',rosteredEnd:''} : {...f,rosteredStart:start,rosteredEnd:end}))} style={{padding:'7px 2px',borderRadius:'9px',border:isSelected?'1.5px solid #2563eb':'1px solid #e2e8f0',background:isSelected?'#eff6ff':'#fff',color:isSelected?'#2563eb':'#64748b',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
+                                  <button key={start+end} onClick={()=>setForm(f=>syncShiftTimesIntoForm(isSelected ? {...f,rosteredStart:'',rosteredEnd:''} : {...f,rosteredStart:start,rosteredEnd:end}))} style={{padding:'7px 2px',borderRadius:'9px',border:isSelected?'1.5px solid #2563eb':'1px solid var(--border-2)',background:isSelected?'var(--tint-blue)':'#fff',color:isSelected?'#2563eb':'var(--muted)',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
                                     {start.replace(':','')}–{end.replace(':','')}
                                   </button>
                                 );
@@ -3435,9 +3435,9 @@ export default function App() {
                         odd gap next to it, so it shows a short explainer
                         instead, centred to fill the stretched height. */}
                     {!form.recordShiftTimes && showTwoCol && (
-                      <div style={{background:'var(--tint-blue)',border:'1.5px solid #bfdbfe',borderTop:'none',borderRadius:'0 0 13px 13px',marginTop:'-13px',padding:'15px 13px 13px',flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
-                        <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'#dbeafe',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'12px'}}><Ico n="edit" s={20} c="#2563eb"/></div>
-                        <div style={{fontWeight:900,fontSize:'13.5px',color:'#1e3a5f',marginBottom:'6px'}}>Manual Entry</div>
+                      <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderTop:'none',borderRadius:'0 0 13px 13px',marginTop:'-13px',padding:'15px 13px 13px',flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
+                        <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'var(--tint-blue-2)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'12px'}}><Ico n="edit" s={20} c="#2563eb"/></div>
+                        <div style={{fontWeight:900,fontSize:'13.5px',color:'var(--text-navy)',marginBottom:'6px'}}>Manual Entry</div>
                         <div style={{fontSize:'10.5px',color:'#3b82f6',fontWeight:600,lineHeight:1.6,maxWidth:'260px'}}>Recording overtime hours directly against each rate tier instead of comparing rostered vs actual shift times. Switch back if this shift fits a single tier.</div>
                       </div>
                     )}
@@ -3467,7 +3467,7 @@ export default function App() {
                     // classic manual entry — unchanged, still the fallback for
                     // shifts that genuinely span more than one rate tier
                     return (
-                      <div style={{background:'var(--tint-blue)',border:'1.5px solid #dbeafe',borderRadius:'13px',padding:'14px 13px'}}>
+                      <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'14px 13px'}}>
                         <div style={{fontSize:'10px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'4px'}}>Overtime Hours</div>
                         <div style={{fontSize:'9px',fontWeight:600,color:'var(--muted)',textAlign:'center',marginBottom:'13px'}}>Record only the hours worked on overtime — not your whole shift</div>
                         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'9px'}}>
@@ -3498,7 +3498,7 @@ export default function App() {
                   }
 
                   return (
-                    <div style={{background:'var(--tint-blue)',border:'1.5px solid #dbeafe',borderRadius:'13px',padding:'12px 13px'}}>
+                    <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'12px 13px'}}>
                       <div className="hint-pulse" style={{fontSize:'12px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'9px'}}>Select O/T Rate for this Shift</div>
                       <div style={{display:'flex',gap:'6px',marginBottom:'9px'}}>
                         {['hours133','hours150','hours200'].map((h,i)=>(
@@ -3506,7 +3506,7 @@ export default function App() {
                             if (f.otRateTier===h) return f;
                             const val = f.otRateTier ? f[f.otRateTier] : '';
                             return {...f, otRateTier:h, hours133:'', hours150:'', hours200:'', [h]:val};
-                          })} style={{flex:1,padding:'8px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:tier===h?'#0f2744':'#fff',color:tier===h?'#fff':BRASS,boxShadow:tier===h?'0 4px 11px rgba(15,39,68,0.35)':'none'}}>{[1.33,1.5,2.0][i]}x</button>
+                          })} style={{flex:1,padding:'8px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:tier===h?'var(--navy)':'var(--surface)',color:tier===h?'#fff':BRASS,boxShadow:tier===h?'0 4px 11px rgba(15,39,68,0.35)':'none'}}>{[1.33,1.5,2.0][i]}x</button>
                         ))}
                       </div>
                       <div style={{background:'var(--surface)',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
@@ -3515,8 +3515,8 @@ export default function App() {
                           value={form[tier]}
                           onChange={e=>setForm({...form, otAuto:false, [tier]:e.target.value})}/>
                         {form.otAuto
-                          ? <span style={{display:'inline-block',fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'4px',background:'var(--tint-green-2)',color:'#166534'}}>auto-calculated</span>
-                          : <span onClick={()=>setForm({...form, otAuto:true})} style={{display:'inline-block',fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'4px',background:'var(--tint-amber-2)',color:'#92400e',cursor:'pointer'}}>edited — tap to reset</span>}
+                          ? <span style={{display:'inline-block',fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'4px',background:'var(--tint-green-2)',color:'var(--text-green-deep)'}}>auto-calculated</span>
+                          : <span onClick={()=>setForm({...form, otAuto:true})} style={{display:'inline-block',fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'4px',background:'var(--tint-amber-2)',color:'var(--text-amber-deep)',cursor:'pointer'}}>edited — tap to reset</span>}
                       </div>
                       <div style={{fontSize:'9px',color:'var(--muted)',textAlign:'center',marginTop:'6px',lineHeight:1.4}}>{basisText}</div>
                     </div>
@@ -3535,7 +3535,7 @@ export default function App() {
                     <div style={{background:'#6d28d9',border:'none',borderRadius:'13px',padding:'14px 13px',marginTop:showTwoCol?0:'13px'}}>
                       <div style={{fontSize:'10px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Take Overtime As</div>
                       <div style={{display:'flex',gap:'6px',background:'rgba(0,0,0,0.18)',borderRadius:'11px',padding:'3px'}}>
-                        {[['pay','Pay','#1e40af'],['toil','TOIL','#6d28d9'],['mix','Mix','#334155']].map(([m,lbl,col])=>(
+                        {[['pay','Pay','#1e40af'],['toil','TOIL','#6d28d9'],['mix','Mix','var(--muted)']].map(([m,lbl,col])=>(
                           <button key={m} onClick={()=>setForm(f=>{
                             const t = parseFloat(f[tier])||0;
                             const th = m==='pay' ? 0 : m==='toil' ? t : (parseFloat(f.toilHours)||0);
@@ -3562,7 +3562,7 @@ export default function App() {
                       {toilH>0 && (
                         <div style={{marginTop:'12px',background:'var(--tint-purple)',borderRadius:'10px',padding:'10px 13px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                           <span style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#6d28d9'}}>{fmtHM(toilH)}h worked @ {RATE_TIER_MULT[tier]}x</span>
-                          <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#4c1d95'}}>{fmtHM(toilH*RATE_TIER_MULT[tier])}h banked</span>
+                          <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHM(toilH*RATE_TIER_MULT[tier])}h banked</span>
                         </div>
                       )}
                     </div>
@@ -3570,8 +3570,8 @@ export default function App() {
                 })();
 
                 const paBlock = (
-                  <div style={{...S.card,background:'var(--tint-amber)',border:'1px solid #fde68a',marginBottom:showTwoCol?0:'10px',flex:showTwoCol?1:'none',display:'flex',flexDirection:'column',justifyContent:'center'}}>
-                    <div style={{fontSize:'12px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
+                  <div style={{...S.card,background:'var(--tint-amber)',border:'1px solid var(--border-2)',marginBottom:showTwoCol?0:'10px',flex:showTwoCol?1:'none',display:'flex',flexDirection:'column',justifyContent:'center'}}>
+                    <div style={{fontSize:'12px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
                     <div style={{display:'flex',gap:'6px'}}>
                       {['None','PA1','PA2','PA3'].map(pa=>(
                         <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'#fff',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
@@ -3608,8 +3608,8 @@ export default function App() {
                          picker, same amber styling, just one fewer card to
                          scroll past. ── */}
                     <div style={{borderTop:'1px solid var(--border-2)',marginTop:'13px',paddingTop:'13px'}}>
-                      <div style={{background:'var(--tint-amber)',border:'1px solid #fde68a',borderRadius:'13px',padding:'13px'}}>
-                        <div style={{fontSize:'12px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
+                      <div style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'13px'}}>
+                        <div style={{fontSize:'12px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
                         <div style={{display:'flex',gap:'6px'}}>
                           {['None','PA1','PA2','PA3'].map(pa=>(
                             <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'#fff',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
@@ -3630,7 +3630,7 @@ export default function App() {
                 entry reflects whatever it's already set to. PA toggle only
                 shown when there's actually a PA rate selected, since
                 otherwise there's nothing to track for that part. */}
-            <div ref={carmsToggleRef} className={focusCarmsToggle?'carms-pulse':''} style={{...S.card,marginBottom:'11px',border:focusCarmsToggle?'2px solid #2563eb':'1px solid #f1f5f9'}}>
+            <div ref={carmsToggleRef} className={focusCarmsToggle?'carms-pulse':''} style={{...S.card,marginBottom:'11px',border:focusCarmsToggle?'2px solid #2563eb':'1px solid var(--border-2)'}}>
               <div style={{fontWeight:900,fontSize:'15px',color:'var(--ink)',marginBottom:'2px'}}>CARMS Submission</div>
               <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginBottom:'4px'}}>Toggle when Overtime and/or PA claims have been submitted on the relevant system.</div>
               {(()=>{
@@ -3646,19 +3646,19 @@ export default function App() {
                         if (form.otSubmitted) { setForm({...form,otSubmitted:false}); return; }
                         setDatePickerMonth(todayStr.slice(0,7));
                         setDatePickerFor('ot');
-                      }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:hasOTHours?'pointer':'default',flexShrink:0,background:(hasOTHours&&form.otSubmitted)?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
+                      }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:hasOTHours?'pointer':'default',flexShrink:0,background:(hasOTHours&&form.otSubmitted)?'#059669':'var(--border)',transition:'background 0.15s'}}>
                         <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(hasOTHours&&form.otSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
                       </div>
                 </div>
                 {form.otSubmitted&&(
-                  <div style={{background:'var(--tint-blue)',border:'1px solid #bfdbfe',borderRadius:'12px',padding:'10px',marginTop:'9px'}}>
+                  <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'10px',marginTop:'9px'}}>
                     <div style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'5px'}}>Date submitted</div>
                     {isWide ? (
-                      <button onClick={()=>{ setDatePickerMonth((form.otSubmittedDate||todayStr).slice(0,7)); setDatePickerFor('ot'); }} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid #bfdbfe',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer'}}>
+                      <button onClick={()=>{ setDatePickerMonth((form.otSubmittedDate||todayStr).slice(0,7)); setDatePickerFor('ot'); }} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer'}}>
                         {new Date((form.otSubmittedDate||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
                       </button>
                     ) : (
-                      <input type="date" value={form.otSubmittedDate||todayStr} onChange={e=>setForm({...form,otSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid #bfdbfe',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)'}}/>
+                      <input type="date" value={form.otSubmittedDate||todayStr} onChange={e=>setForm({...form,otSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)'}}/>
                     )}
                   </div>
                 )}
@@ -3676,19 +3676,19 @@ export default function App() {
                     if (form.paSubmitted) { setForm({...form,paSubmitted:false}); return; }
                     setDatePickerMonth(todayStr.slice(0,7));
                     setDatePickerFor('pa');
-                  }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:form.paRate==='None'?'default':'pointer',flexShrink:0,background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'#e2e8f0',transition:'background 0.15s'}}>
+                  }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:form.paRate==='None'?'default':'pointer',flexShrink:0,background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'var(--border)',transition:'background 0.15s'}}>
                     <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(form.paRate!=='None'&&form.paSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
                   </div>
                 </div>
                 {form.paRate!=='None'&&form.paSubmitted&&(
-                  <div style={{background:'var(--tint-blue)',border:'1px solid #bfdbfe',borderRadius:'12px',padding:'10px',marginTop:'9px'}}>
+                  <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'10px',marginTop:'9px'}}>
                     <div style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'5px'}}>Date submitted</div>
                     {isWide ? (
-                      <button onClick={()=>{ setDatePickerMonth((form.paSubmittedDate||todayStr).slice(0,7)); setDatePickerFor('pa'); }} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid #bfdbfe',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer'}}>
+                      <button onClick={()=>{ setDatePickerMonth((form.paSubmittedDate||todayStr).slice(0,7)); setDatePickerFor('pa'); }} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer'}}>
                         {new Date((form.paSubmittedDate||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
                       </button>
                     ) : (
-                      <input type="date" value={form.paSubmittedDate||todayStr} onChange={e=>setForm({...form,paSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid #bfdbfe',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)'}}/>
+                      <input type="date" value={form.paSubmittedDate||todayStr} onChange={e=>setForm({...form,paSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)'}}/>
                     )}
                   </div>
                 )}
@@ -3747,12 +3747,12 @@ export default function App() {
             {/* Sticky header — heading, toggle and month pills all float together */}
             <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'var(--surface-2)',paddingTop:'6px',paddingBottom:'8px',marginTop:'-14px',marginBottom:'6px'}}>
               <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 10px',letterSpacing:'-0.5px'}}>Summary</h2>
-              <div style={{display:'flex',background:'#eef2f7',borderRadius:'14px',padding:'4px',boxShadow:'0 4px 14px rgba(15,23,42,0.08)'}}>
+              <div style={{display:'flex',background:'var(--chip-bg)',borderRadius:'14px',padding:'4px',boxShadow:'0 4px 14px rgba(15,23,42,0.08)'}}>
                 {/* Each half is a div rather than a button so the star can be its own
                     tap target inside it — nesting buttons isn't valid HTML. */}
-                <div onClick={()=>{ setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }} style={{flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:breakdownView==='calendar'?'#2563eb':'transparent',color:breakdownView==='calendar'?'#fff':'#64748b',boxShadow:breakdownView==='calendar'?'0 2px 8px rgba(37,99,235,0.3)':'none',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
+                <div onClick={()=>{ setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }} style={{flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:breakdownView==='calendar'?'#2563eb':'transparent',color:breakdownView==='calendar'?'#fff':'var(--muted)',boxShadow:breakdownView==='calendar'?'0 2px 8px rgba(37,99,235,0.3)':'none',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
                   <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
-                    <Ico n="cal" s={13} c={breakdownView==='calendar'?'#fff':'#64748b'} w={2.5}/>Calendar View
+                    <Ico n="cal" s={13} c={breakdownView==='calendar'?'#fff':'var(--muted)'} w={2.5}/>Calendar View
                   </span>
                   <span onClick={e=>{ e.stopPropagation(); setDefaultBreakdownView('calendar'); dualWrite(KEYS.defaultBreakdownView,'calendar'); }} className="star-tap" style={{flexShrink:0,display:'flex',alignItems:'center',padding:'4px 5px',cursor:'pointer'}}>
                     <Ico n="star" s={17} w={1.8}
@@ -3760,9 +3760,9 @@ export default function App() {
                       f={defaultBreakdownView==='calendar'?'#fbbf24':'none'}/>
                   </span>
                 </div>
-                <div onClick={()=>{ setBreakdownView('list'); snapToActiveMonth(); }} style={{flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:breakdownView==='list'?'#2563eb':'transparent',color:breakdownView==='list'?'#fff':'#64748b',boxShadow:breakdownView==='list'?'0 2px 8px rgba(37,99,235,0.3)':'none',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
+                <div onClick={()=>{ setBreakdownView('list'); snapToActiveMonth(); }} style={{flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:breakdownView==='list'?'#2563eb':'transparent',color:breakdownView==='list'?'#fff':'var(--muted)',boxShadow:breakdownView==='list'?'0 2px 8px rgba(37,99,235,0.3)':'none',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
                   <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
-                    <Ico n="list" s={13} c={breakdownView==='list'?'#fff':'#64748b'} w={2.5}/>List View
+                    <Ico n="list" s={13} c={breakdownView==='list'?'#fff':'var(--muted)'} w={2.5}/>List View
                   </span>
                   <span onClick={e=>{ e.stopPropagation(); setDefaultBreakdownView('list'); dualWrite(KEYS.defaultBreakdownView,'list'); }} className="star-tap" style={{flexShrink:0,display:'flex',alignItems:'center',padding:'4px 5px',cursor:'pointer'}}>
                     <Ico n="star" s={17} w={1.8}
@@ -3794,7 +3794,7 @@ export default function App() {
                       // flex:1 with minWidth:0 lets all twelve periods share the
                       // row evenly and fit without horizontal scrolling, rather
                       // than each sizing to its own text and overflowing.
-                      <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isActive?'1.5px solid #2563eb':hasOutstanding?'1px solid #fecaca':isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:hasOutstanding?'#fef2f2':isActive?'#2563eb':isCurr?'#eff6ff':'#fff',color:hasOutstanding?'#b91c1c':isActive?'#fff':isCurr?'#2563eb':'#64748b',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
+                      <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isActive?'1.5px solid #2563eb':hasOutstanding?'1px solid var(--border-2)':isCurr?'1.5px solid #2563eb':'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isActive?'#2563eb':isCurr?'var(--tint-blue)':'#fff',color:hasOutstanding?'var(--text-red-deep)':isActive?'#fff':isCurr?'#2563eb':'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
                         {p.short}
                       </button>
                     );
@@ -3814,7 +3814,7 @@ export default function App() {
                     const isSel=(calPeriodIdx===null?currPeriodIdx:calPeriodIdx)===idx;
                     const hasOutstanding = carmsOutstanding.groups.some(g=>g.periodIdx===idx);
                     return(
-                      <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isSel?'1.5px solid #2563eb':hasOutstanding?'1px solid #fecaca':isCurr?'1.5px solid #2563eb':'1px solid #e2e8f0',background:hasOutstanding?'#fef2f2':isSel?'#2563eb':isCurr?'#eff6ff':'#fff',color:hasOutstanding?'#b91c1c':isSel?'#fff':isCurr?'#2563eb':'#64748b',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
+                      <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isSel?'1.5px solid #2563eb':hasOutstanding?'1px solid var(--border-2)':isCurr?'1.5px solid #2563eb':'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isSel?'#2563eb':isCurr?'var(--tint-blue)':'#fff',color:hasOutstanding?'var(--text-red-deep)':isSel?'#fff':isCurr?'#2563eb':'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
                         {p.short}
                       </button>
                     );
@@ -3887,40 +3887,40 @@ export default function App() {
               const otPayInner = (
                 <>
                   <div style={{fontSize:'11px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
-                  <div style={{fontSize:'12px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(gOT)}</span></div>
+                  <div style={{fontSize:'12px',fontWeight:700,color:'var(--text-navy)',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(gOT)}</span></div>
                   <div style={{fontSize:'11px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: <span style={{fontFamily:MONO}}>{fmt(pb.otResult.net)}</span></div>
-                  <div style={{borderTop:'1px solid #eff6ff',paddingTop:'6px'}}>
+                  <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'6px'}}>
                     {tierHours.t133>0&&<div style={{marginBottom:'6px'}}>
                       <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--ink)'}}><span>{tierHours.t133}h @ 1.33x</span><span style={{fontFamily:MONO}}>{fmt(tierGross.t133)}</span></div>
-                      <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(tierDates.t133,'#64748b')}</div>
+                      <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(tierDates.t133,'var(--muted)')}</div>
                     </div>}
                     {tierHours.t150>0&&<div style={{marginBottom:'6px'}}>
                       <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--ink)'}}><span>{tierHours.t150}h @ 1.5x</span><span style={{fontFamily:MONO}}>{fmt(tierGross.t150)}</span></div>
-                      <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(tierDates.t150,'#64748b')}</div>
+                      <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(tierDates.t150,'var(--muted)')}</div>
                     </div>}
                     {tierHours.t200>0&&<div>
                       <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--ink)'}}><span>{tierHours.t200}h @ 2.0x</span><span style={{fontFamily:MONO}}>{fmt(tierGross.t200)}</span></div>
-                      <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(tierDates.t200,'#64748b')}</div>
+                      <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(tierDates.t200,'var(--muted)')}</div>
                     </div>}
                   </div>
                 </>
               );
               const paInner = (
                 <>
-                  <div style={{fontSize:'11px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>PA</div>
-                  <div style={{fontSize:'12px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(gPA)}</span></div>
+                  <div style={{fontSize:'11px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>PA</div>
+                  <div style={{fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(gPA)}</span></div>
                   <div style={{fontSize:'11px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: <span style={{fontFamily:MONO}}>{fmt(pb.paResult.net)}</span></div>
-                  <div style={{borderTop:'1px solid #fef3c7',paddingTop:'6px'}}>
+                  <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'6px'}}>
                     {pa1>0&&<div style={{marginBottom:'6px'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA1 × {pa1}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA1)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)'}}><span>PA1 × {pa1}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA1)}</span></div>
                       <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA1,'#b45309')}</div>
                     </div>}
                     {pa2>0&&<div style={{marginBottom:'6px'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA2 × {pa2}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA2)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)'}}><span>PA2 × {pa2}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA2)}</span></div>
                       <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA2,'#b45309')}</div>
                     </div>}
                     {pa3>0&&<div>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA3 × {pa3}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA3)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)'}}><span>PA3 × {pa3}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA3)}</span></div>
                       <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA3,'#b45309')}</div>
                     </div>}
                     {pa1===0&&pa2===0&&pa3===0&&<div style={{fontSize:'12px',fontWeight:700,color:'#b45309'}}>None this period</div>}
@@ -3929,7 +3929,7 @@ export default function App() {
               );
 
               return(
-                <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:isCurr?'#eff6ff':'#fff',borderRadius:'17px',border:isCurr?'2px solid #2563eb':'1px solid #f1f5f9',borderLeft:isCurr?'5px solid #2563eb':'1px solid #f1f5f9',boxShadow:isCurr?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 5px rgba(0,0,0,0.04)',marginBottom:'9px',overflow:'hidden',...(isWide&&isExp?{gridColumn:'1 / -1'}:{})}}>
+                <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:isCurr?'var(--tint-blue)':'#fff',borderRadius:'17px',border:isCurr?'2px solid #2563eb':'1px solid var(--border-2)',borderLeft:isCurr?'5px solid #2563eb':'1px solid var(--border-2)',boxShadow:isCurr?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 5px rgba(0,0,0,0.04)',marginBottom:'9px',overflow:'hidden',...(isWide&&isExp?{gridColumn:'1 / -1'}:{})}}>
                   <button onClick={()=>setExpanded(isExp?null:p.month)} style={{width:'100%',textAlign:'left',padding:'16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'11px'}}>
                       <div>
@@ -3938,21 +3938,21 @@ export default function App() {
                         <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:'#3b82f6',marginTop:'2px'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
                       </div>
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'4px'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:'4px',background:isCurr?'#dbeafe':'#eff6ff',border:isCurr?'1px solid #93c5fd':'1px solid #bfdbfe',padding:'5px 9px',borderRadius:'9px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'4px',background:isCurr?'var(--tint-blue-2)':'var(--tint-blue)',border:isCurr?'1px solid #93c5fd':'1px solid var(--border-2)',padding:'5px 9px',borderRadius:'9px'}}>
                           <div style={{fontSize:'13px',fontWeight:900,color:'#1d4ed8'}}>{(h133+h150+h200).toFixed(1)} hrs</div>
                         </div>
                         <div style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)'}}>{pE.length} record{pE.length!==1?'s':''}</div>
                       </div>
                     </div>
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                      <div><div style={{fontSize:'11px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'19px',color:'#1e3a5f'}}>{fmt(totG)}</div></div>
+                      <div><div style={{fontSize:'11px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'19px',color:'var(--text-navy)'}}>{fmt(totG)}</div></div>
                       <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'19px',color:'#059669'}}>{fmt(totN)}</div></div>
                     </div>
                     {(() => {
                       const g = carmsOutstanding.groups.find(g=>g.periodIdx===idx);
                       if (!g) return null;
                       return (
-                        <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{background:'var(--tint-amber)',border:'1px solid #fde68a',borderRadius:'13px',padding:'12px 14px',marginTop:'9px',cursor:'pointer'}}>
+                        <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px 14px',marginTop:'9px',cursor:'pointer'}}>
                           <div style={{display:'flex',alignItems:'center',gap:'7px',marginBottom:'4px'}}>
                             <Ico n="clock" s={16} c="#d97706"/>
                             <span style={{fontSize:'17.5px',fontWeight:800,color:'var(--ink)'}}>CARMS &amp; MetHR Awaiting Submission</span>
@@ -3962,7 +3962,7 @@ export default function App() {
                       );
                     })()}
                     {!isExp&&(
-                      <div style={{fontSize:'12px',fontWeight:700,color:isCurr?'#64748b':'#94a3b8',textAlign:'center',marginTop:'11px',paddingTop:'9px',borderTop:isCurr?'1px solid #bfdbfe':'1px solid #f1f5f9'}}>Tap to see more</div>
+                      <div style={{fontSize:'12px',fontWeight:700,color:isCurr?'var(--muted)':'var(--quiet)',textAlign:'center',marginTop:'11px',paddingTop:'9px',borderTop:isCurr?'1px solid var(--border-2)':'1px solid var(--border-2)'}}>Tap to see more</div>
                     )}
                   </button>
 
@@ -3976,12 +3976,12 @@ export default function App() {
                       {isWide ? (
                         <>
                           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px',marginBottom:'9px'}}>
-                            <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid #dbeafe'}}>{otPayInner}</div>
-                            <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid #fde68a'}}>{paInner}</div>
+                            <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid var(--border-2)'}}>{otPayInner}</div>
+                            <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid var(--border-2)'}}>{paInner}</div>
                           </div>
-                          <div onClick={()=>setTab('graph')} style={{background:'var(--tint-purple)',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer',marginBottom:'9px'}}>
+                          <div onClick={()=>setTab('graph')} style={{background:'var(--tint-purple)',borderRadius:'13px',padding:'11px',border:'1px solid var(--border-2)',cursor:'pointer',marginBottom:'9px'}}>
                             <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
-                            <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
+                            <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)',marginBottom:'6px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
                             <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
                           </div>
                         </>
@@ -3993,7 +3993,7 @@ export default function App() {
                           </div>
                           <div onClick={()=>setTab('graph')} style={{borderTop:'1px solid var(--border-2)',marginTop:'13px',paddingTop:'12px',cursor:'pointer'}}>
                             <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
-                            <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#4c1d95',marginBottom:'2px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
+                            <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)',marginBottom:'2px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
                             <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
                           </div>
                         </div>
@@ -4011,7 +4011,7 @@ export default function App() {
                           const ePANet    = c.pa>0    ? c.pa*(1-pb.paResult.rate/100)       : 0;
                           const eNet = eOTNet+ePANet;
                           return(
-                            <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'#eff6ff':'#fff',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid #bfdbfe':'1px solid #94a3b8',padding:'13px',marginBottom:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
+                            <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'#fff',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:'13px',marginBottom:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
                               {isFut&&<div style={{position:'absolute',top:'-6px',right:'9px',background:'#2563eb',color:'#fff',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',textTransform:'uppercase',letterSpacing:'1px'}}>Planned</div>}
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'7px'}}>
                                 <div>
@@ -4025,22 +4025,22 @@ export default function App() {
                                       nothing to submit, so it gets its own label rather than
                                       no badge at all or a misleading submitted/outstanding one. */}
                                   {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
-                                    <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#cbd5e1',color:'#334155',textTransform:'uppercase',letterSpacing:'0.5px'}}>ⓘ Shift Record — No OT Claim</div>
+                                    <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--border)',color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.5px'}}>ⓘ Shift Record — No OT Claim</div>
                                   )}
                                   {(()=>{ const xp = crossPeriodInfo(e); return xp && (
-                                    <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#e0e7ff',color:'#4338ca',textTransform:'uppercase',letterSpacing:'0.5px'}}>↷ {xp.both?'OT & PA':xp.ot?'OT':'PA'} Counted in {xp.label}</div>
+                                    <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-indigo)',color:'var(--text-indigo-deep)',textTransform:'uppercase',letterSpacing:'0.5px'}}>↷ {xp.both?'OT & PA':xp.ot?'OT':'PA'} Counted in {xp.label}</div>
                                   ); })()}
                                 </div>
                                 <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
                                   <button onClick={()=>{setConfirmDel(null);startEdit(e);}} style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
-                                  <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} style={{background:confirmDel===e.id?'#fee2e2':'#fef2f2',border:confirmDel===e.id?'1.5px solid #fca5a5':'1.5px solid transparent',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={14} c="#ef4444"/></button>
+                                  <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} style={{background:confirmDel===e.id?'var(--tint-red)':'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={14} c="#ef4444"/></button>
                                 </div>
                               </div>
 
                               {/* delete confirmation */}
                               {confirmDel===e.id&&(
-                                <div style={{background:'var(--tint-red)',border:'1px solid #fecaca',borderRadius:'10px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
-                                  <span style={{fontSize:'14px',fontWeight:700,color:'#991b1b'}}>Delete this record?</span>
+                                <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
+                                  <span style={{fontSize:'14px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this record?</span>
                                   <div style={{display:'flex',gap:'7px',flexShrink:0}}>
                                     <button onClick={()=>setConfirmDel(null)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:'5px 12px',fontSize:'13px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
                                     <button onClick={()=>delEntry(e.id)} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'13px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
@@ -4050,9 +4050,9 @@ export default function App() {
 
                               {/* notes — sits under Duty/Reason with separators, matching the Calendar View popover */}
                               {e.comments&&(
-                                <div style={{borderTop:'1px solid #e2e8f0',paddingTop:'10px',marginBottom:'10px'}}>
+                                <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'10px',marginBottom:'10px'}}>
                                   <div style={{fontSize:'11px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>Notes</div>
-                                  <div style={{fontSize:'13px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid #bfdbfe',paddingLeft:'8px',whiteSpace:'pre-wrap',overflowWrap:'anywhere',lineHeight:1.5}}>{e.comments}</div>
+                                  <div style={{fontSize:'13px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid var(--border-2)',paddingLeft:'8px',whiteSpace:'pre-wrap',overflowWrap:'anywhere',lineHeight:1.5}}>{e.comments}</div>
                                 </div>
                               )}
 
@@ -4060,37 +4060,37 @@ export default function App() {
                                 <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
                                   {c.payH1>0&&(
                                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                      <span style={{fontSize:'13px',fontWeight:700,color:'#475569'}}>{c.payH1}h @ 1.33x {c.toilH>0&&c.otRateTier==='hours133'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r133.toFixed(2)}/hr)</span></span>
-                                      <span style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot1.toFixed(2)}</span>
+                                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{c.payH1}h @ 1.33x {c.toilH>0&&c.otRateTier==='hours133'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r133.toFixed(2)}/hr)</span></span>
+                                      <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot1.toFixed(2)}</span>
                                     </div>
                                   )}
                                   {c.payH2>0&&(
                                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                      <span style={{fontSize:'13px',fontWeight:700,color:'#475569'}}>{c.payH2}h @ 1.5x {c.toilH>0&&c.otRateTier==='hours150'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r150.toFixed(2)}/hr)</span></span>
-                                      <span style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot2.toFixed(2)}</span>
+                                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{c.payH2}h @ 1.5x {c.toilH>0&&c.otRateTier==='hours150'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r150.toFixed(2)}/hr)</span></span>
+                                      <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot2.toFixed(2)}</span>
                                     </div>
                                   )}
                                   {c.payH3>0&&(
                                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                      <span style={{fontSize:'13px',fontWeight:700,color:'#475569'}}>{c.payH3}h @ 2.0x {c.toilH>0&&c.otRateTier==='hours200'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r200.toFixed(2)}/hr)</span></span>
-                                      <span style={{fontSize:'14px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot3.toFixed(2)}</span>
+                                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{c.payH3}h @ 2.0x {c.toilH>0&&c.otRateTier==='hours200'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r200.toFixed(2)}/hr)</span></span>
+                                      <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot3.toFixed(2)}</span>
                                     </div>
                                   )}
                                   {c.toilH>0&&(
                                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                                       <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#6d28d9'}}>{fmtHM(c.toilH)}h @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
-                                      <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#4c1d95'}}>{fmtHM(c.toilBanked)}h banked</span>
+                                      <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHM(c.toilBanked)}h banked</span>
                                     </div>
                                   )}
                                   {e.paRate!=='None'&&(
                                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                                       <span style={{fontSize:'13px',fontWeight:700,color:'#b45309'}}>{e.paRate} allowance</span>
-                                      <span style={{fontSize:'14px',fontWeight:900,color:'#92400e'}}>£{c.pa.toFixed(2)}</span>
+                                      <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-amber-deep)'}}>£{c.pa.toFixed(2)}</span>
                                     </div>
                                   )}
                                 </div>
-                                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'5px',borderTop:'1px solid #e2e8f0',paddingTop:'8px',marginTop:'8px'}}>
-                                  <div><div style={{fontSize:'11px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div><div style={{fontWeight:900,fontSize:'15px',color:'#1e3a5f'}}>{fmt(c.gross)}</div></div>
+                                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'5px',borderTop:'1px solid var(--border-2)',paddingTop:'8px',marginTop:'8px'}}>
+                                  <div><div style={{fontSize:'11px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div><div style={{fontWeight:900,fontSize:'15px',color:'var(--text-navy)'}}>{fmt(c.gross)}</div></div>
                                   <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div><div style={{fontWeight:900,fontSize:'15px',color:'#059669'}}>{fmt(eNet)}</div></div>
                                 </div>
                               </div>
@@ -4169,7 +4169,7 @@ export default function App() {
                 // which reflects CARMS submission status instead. Mixed-rate
                 // days (more than one tier worked) fall back to the default.
                 const ratesUsed = [h1>0, h2>0, h3>0].filter(Boolean).length;
-                const rateColor = ratesUsed===1 ? (h1>0?'#0f172a':h2>0?'#059669':'#dc2626') : '#0f172a';
+                const rateColor = ratesUsed===1 ? (h1>0?'var(--ink)':h2>0?'#059669':'#dc2626') : 'var(--ink)';
                 // A day only reads as "fully submitted" once every entry on
                 // it has both parts settled — overtime, and PA if there is
                 // any. One outstanding piece keeps the whole day flagged,
@@ -4215,7 +4215,7 @@ export default function App() {
                           <span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Active Month
                         </div>
                       )}
-                      <div style={{fontWeight:900,fontSize:'22px',color:cIdx===currPeriodIdx?'#1d4ed8':'#0f172a'}}>{cPeriod.month}</div>
+                      <div style={{fontWeight:900,fontSize:'22px',color:cIdx===currPeriodIdx?'#1d4ed8':'var(--ink)'}}>{cPeriod.month}</div>
                       <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#3b82f6'}}>{fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
                     </div>
                     <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c="#2563eb"/></button>
@@ -4227,19 +4227,19 @@ export default function App() {
                        below. Mobile keeps the original boxed strip. ── */}
                   {isWide ? (
                     <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--quiet)',textAlign:'center',marginBottom:'16px'}}>
-                      <span style={{color:'#1e3a5f',fontWeight:900}}>{cEntries.length}</span> shift{cEntries.length!==1?'s':''} logged &nbsp;·&nbsp; <span style={{color:'#1e3a5f',fontWeight:900}}>{cTotalHrs}</span> total O/T hours
+                      <span style={{color:'var(--text-navy)',fontWeight:900}}>{cEntries.length}</span> shift{cEntries.length!==1?'s':''} logged &nbsp;·&nbsp; <span style={{color:'var(--text-navy)',fontWeight:900}}>{cTotalHrs}</span> total O/T hours
                     </div>
                   ) : (
-                  <div style={{...S.card,display:'flex',padding:'16px',background:cIdx===currPeriodIdx?'#eff6ff':'#fff',border:cIdx===currPeriodIdx?'2px solid #2563eb':'1px solid #f1f5f9',boxShadow:cIdx===currPeriodIdx?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 6px rgba(0,0,0,0.05)'}}>
+                  <div style={{...S.card,display:'flex',padding:'16px',background:cIdx===currPeriodIdx?'var(--tint-blue)':'#fff',border:cIdx===currPeriodIdx?'2px solid #2563eb':'1px solid var(--border-2)',boxShadow:cIdx===currPeriodIdx?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 6px rgba(0,0,0,0.05)'}}>
                     <div style={{flex:1,textAlign:'center'}}>
                       <div style={{fontSize:'12px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.5px'}}>Shifts Logged</div>
-                      <div style={{fontSize:'22px',fontWeight:900,color:'#1e3a5f'}}>{cEntries.length}</div>
+                      <div style={{fontSize:'22px',fontWeight:900,color:'var(--text-navy)'}}>{cEntries.length}</div>
                     </div>
                     {/* separator needs a darker tone on the active month, since #f1f5f9 is invisible against the blue tint */}
-                    <div style={{width:'1px',background:cIdx===currPeriodIdx?'#bfdbfe':'#f1f5f9'}}/>
+                    <div style={{width:'1px',background:cIdx===currPeriodIdx?'#bfdbfe':'var(--border-2)'}}/>
                     <div style={{flex:1,textAlign:'center'}}>
                       <div style={{fontSize:'12px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.5px'}}>Total O/T Hours</div>
-                      <div style={{fontSize:'22px',fontWeight:900,color:'#1e3a5f'}}>{cTotalHrs}</div>
+                      <div style={{fontSize:'22px',fontWeight:900,color:'var(--text-navy)'}}>{cTotalHrs}</div>
                     </div>
                   </div>
                   )}
@@ -4280,8 +4280,8 @@ export default function App() {
                                 style={{
                                   ...(isWide ? {height:'76px'} : {aspectRatio:'1', minHeight:'46px'}),
                                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.isRecordOnly?'1px solid #cbd5e1':info.hasOT?(info.isFullySubmitted?'1px solid #bbf7d0':'1px solid #fecaca'):'1px solid #eef2f6',
-                                  background: info.isRecordOnly?'#e2e8f0':info.hasOT ? (info.isFullySubmitted?'#f0fdf4':'#fef2f2') : 'transparent',
+                                  borderRadius:'10px', border: isToday?'2px solid #2563eb':info.isRecordOnly?'1px solid var(--border-2)':info.hasOT?(info.isFullySubmitted?'1px solid var(--border-2)':'1px solid var(--border-2)'):'1px solid var(--border-2)',
+                                  background: info.isRecordOnly?'var(--border)':info.hasOT ? (info.isFullySubmitted?'var(--tint-green)':'var(--tint-red)') : 'transparent',
                                   cursor:'pointer', padding:'2px 1px', fontFamily:'inherit', position:'relative',
                                   minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
                                 }}>
@@ -4302,7 +4302,7 @@ export default function App() {
                                     </g>
                                   </svg>
                                 )}
-                                <span style={{fontSize:isWide?'16px':'13px',fontWeight:info.hasOT?900:600,color:info.isRecordOnly?'#475569':info.hasOT?(info.isFullySubmitted?'#15803d':'#b91c1c'):'#94a3b8',lineHeight:1}}>{date.getDate()}</span>
+                                <span style={{fontSize:isWide?'16px':'13px',fontWeight:info.hasOT?900:600,color:info.isRecordOnly?'var(--muted)':info.hasOT?(info.isFullySubmitted?'#15803d':'var(--text-red-deep)'):'var(--quiet)',lineHeight:1}}>{date.getDate()}</span>
                                 {info.totalHrs>0&&(
                                   <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{info.totalHrs}h</span>
                                 )}
@@ -4327,9 +4327,9 @@ export default function App() {
                     {isWide ? (
                       <div style={{display:'flex',flexDirection:'column',gap:'10px',marginTop:'16px',paddingTop:'16px',borderTop:'1px solid var(--border-2)'}}>
                         <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'center',gap:'18px'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-red)',border:'1px solid #fecaca'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>OT/PA Recorded NOT Submitted</span></div>
-                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-green)',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>OT/PA Submitted</span></div>
-                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--border)',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>No OT — Info Only</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-red)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>OT/PA Recorded NOT Submitted</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-green)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>OT/PA Submitted</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--border)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>No OT — Info Only</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
                             <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>OT/PA Counted Other Period</span>
@@ -4341,7 +4341,7 @@ export default function App() {
                             <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>TOIL</span></div>
                           </div>
                           <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'18px'}}>
-                            <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#0f172a'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>1.33x</span></div>
+                            <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--ink)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>1.33x</span></div>
                             <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#059669'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>1.5x</span></div>
                             <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#dc2626'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>2.0x</span></div>
                           </div>
@@ -4356,9 +4356,9 @@ export default function App() {
                       {calLegendExpanded&&(
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginTop:'14px'}}>
                         <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-red)',border:'1px solid #fecaca'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>OT/PA Recorded NOT Submitted</span></div>
-                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-green)',border:'1px solid #bbf7d0'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>OT/PA Submitted</span></div>
-                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--border)',border:'1px solid #cbd5e1'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>No OT — Info Only</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-red)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>OT/PA Recorded NOT Submitted</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-green)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>OT/PA Submitted</span></div>
+                          <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--border)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>No OT — Info Only</span></div>
                           <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
                             <div style={{width:'11px',display:'flex',justifyContent:'center',flexShrink:0}}>
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
@@ -4372,7 +4372,7 @@ export default function App() {
                             <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>TOIL</span></div>
                           </div>
                           <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
-                            <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#0f172a'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>1.33x</span></div>
+                            <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--ink)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>1.33x</span></div>
                             <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#059669'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>1.5x</span></div>
                             <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#dc2626'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>2.0x</span></div>
                           </div>
@@ -4385,49 +4385,49 @@ export default function App() {
 
                   {/* period breakdown boxes — same layout as List View */}
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                    <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid #dbeafe'}}>
+                    <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid var(--border-2)'}}>
                       <div style={{fontSize:'11px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>OT Pay</div>
-                      <div style={{fontSize:'12px',fontWeight:700,color:'#1e3a5f',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(pb.ot)}</span></div>
+                      <div style={{fontSize:'12px',fontWeight:700,color:'var(--text-navy)',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(pb.ot)}</span></div>
                       <div style={{fontSize:'11px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: <span style={{fontFamily:MONO}}>{fmt(pb.otResult.net)}</span></div>
-                      <div style={{borderTop:'1px solid #eff6ff',paddingTop:'6px'}}>
+                      <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'6px'}}>
                         {pTierHours.t133>0&&<div style={{marginBottom:'6px'}}>
                           <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--ink)'}}><span>{pTierHours.t133}h @ 1.33x</span><span style={{fontFamily:MONO}}>{fmt(pTierGross.t133)}</span></div>
-                          <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(pTierDates.t133,'#64748b')}</div>
+                          <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(pTierDates.t133,'var(--muted)')}</div>
                         </div>}
                         {pTierHours.t150>0&&<div style={{marginBottom:'6px'}}>
                           <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--ink)'}}><span>{pTierHours.t150}h @ 1.5x</span><span style={{fontFamily:MONO}}>{fmt(pTierGross.t150)}</span></div>
-                          <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(pTierDates.t150,'#64748b')}</div>
+                          <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(pTierDates.t150,'var(--muted)')}</div>
                         </div>}
                         {pTierHours.t200>0&&<div>
                           <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--ink)'}}><span>{pTierHours.t200}h @ 2.0x</span><span style={{fontFamily:MONO}}>{fmt(pTierGross.t200)}</span></div>
-                          <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(pTierDates.t200,'#64748b')}</div>
+                          <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(pTierDates.t200,'var(--muted)')}</div>
                         </div>}
                       </div>
                     </div>
-                    <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid #fde68a'}}>
-                      <div style={{fontSize:'11px',fontWeight:900,color:'#92400e',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>PA</div>
-                      <div style={{fontSize:'12px',fontWeight:700,color:'#92400e',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(pb.pa)}</span></div>
+                    <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid var(--border-2)'}}>
+                      <div style={{fontSize:'11px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>PA</div>
+                      <div style={{fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(pb.pa)}</span></div>
                       <div style={{fontSize:'11px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: <span style={{fontFamily:MONO}}>{fmt(pb.paResult.net)}</span></div>
-                      <div style={{borderTop:'1px solid #fef3c7',paddingTop:'6px'}}>
+                      <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'6px'}}>
                         {ppa1>0&&<div style={{marginBottom:'6px'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA1 × {ppa1}</span><span style={{fontFamily:MONO}}>{fmt(pPaGross.PA1)}</span></div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)'}}><span>PA1 × {ppa1}</span><span style={{fontFamily:MONO}}>{fmt(pPaGross.PA1)}</span></div>
                           <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(pPaDates.PA1,'#b45309')}</div>
                         </div>}
                         {ppa2>0&&<div style={{marginBottom:'6px'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA2 × {ppa2}</span><span style={{fontFamily:MONO}}>{fmt(pPaGross.PA2)}</span></div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)'}}><span>PA2 × {ppa2}</span><span style={{fontFamily:MONO}}>{fmt(pPaGross.PA2)}</span></div>
                           <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(pPaDates.PA2,'#b45309')}</div>
                         </div>}
                         {ppa3>0&&<div>
-                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'#78350f'}}><span>PA3 × {ppa3}</span><span style={{fontFamily:MONO}}>{fmt(pPaGross.PA3)}</span></div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)'}}><span>PA3 × {ppa3}</span><span style={{fontFamily:MONO}}>{fmt(pPaGross.PA3)}</span></div>
                           <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(pPaDates.PA3,'#b45309')}</div>
                         </div>}
                         {ppa1===0&&ppa2===0&&ppa3===0&&<div style={{fontSize:'12px',fontWeight:700,color:'#b45309'}}>None this period</div>}
                       </div>
                     </div>
                   </div>
-                  <div onClick={()=>setTab('graph')} style={{background:'var(--tint-purple)',borderRadius:'13px',padding:'11px',border:'1px solid #ddd6fe',cursor:'pointer',marginTop:'9px'}}>
+                  <div onClick={()=>setTab('graph')} style={{background:'var(--tint-purple)',borderRadius:'13px',padding:'11px',border:'1px solid var(--border-2)',cursor:'pointer',marginTop:'9px'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'11px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div></div>
-                    <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#4c1d95',marginBottom:'6px'}}>{fmtHM(pToilWorked)}h worked → {fmtHM(pToilBanked)}h banked</div>
+                    <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)',marginBottom:'6px'}}>{fmtHM(pToilWorked)}h worked → {fmtHM(pToilBanked)}h banked</div>
                     <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
                   </div>
 
@@ -4435,7 +4435,7 @@ export default function App() {
                     const g = carmsOutstanding.groups.find(g=>g.periodIdx===cIdx);
                     if (!g) return null;
                     return (
-                      <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} className="nav-add-pulse" style={{background:'var(--tint-amber)',border:'1px solid #fde68a',borderRadius:'13px',padding:'18px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
+                      <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} className="nav-add-pulse" style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'18px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
                         <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                           <Ico n="clock" s={14} c="#d97706"/>
                           <span style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>CARMS &amp; MetHR Awaiting Submission</span>
@@ -4447,7 +4447,7 @@ export default function App() {
 
                   <div style={{...S.card,marginTop:'9px'}}>
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                      <div><div style={{fontSize:'14px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'23px',color:'#1e3a5f'}}>{fmt(pb.combinedGross)}</div></div>
+                      <div><div style={{fontSize:'14px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'23px',color:'var(--text-navy)'}}>{fmt(pb.combinedGross)}</div></div>
                       <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'23px',color:'#059669'}}>{fmt(pb.combinedNet)}</div></div>
                     </div>
                   </div>
@@ -4543,8 +4543,8 @@ export default function App() {
                                 {mergeOtToil&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'5px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
-                                    <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'var(--tint-blue)',color:'#2563eb'}}>Overtime</span>
-                                    <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'var(--tint-purple)',color:'#7c3aed'}}>TOIL</span>
+                                    <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid var(--ink)',textTransform:'uppercase',background:'var(--tint-blue)',color:'#2563eb'}}>Overtime</span>
+                                    <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid var(--ink)',textTransform:'uppercase',background:'var(--tint-purple)',color:'#7c3aed'}}>TOIL</span>
                                     <div style={{marginLeft:'auto',textAlign:'right'}}>
                                       <div style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706'}}>{fmtGBP(it.otAmt)}</div>
                                       <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:700,color:'#7c3aed'}}>+ {it.toilHrs.toFixed(1)}h TOIL</div>
@@ -4554,21 +4554,21 @@ export default function App() {
                                 {showOt&&!mergeOtToil&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'5px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
-                                    <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'var(--tint-blue)',color:'#2563eb'}}>Overtime</span>
+                                    <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid var(--ink)',textTransform:'uppercase',background:'var(--tint-blue)',color:'#2563eb'}}>Overtime</span>
                                     <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
                                   </div>
                                 )}
                                 {showPa&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'5px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-pa')}</span>
-                                    <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'var(--tint-amber)',color:'#f59e0b'}}>PA</span>
+                                    <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid var(--ink)',textTransform:'uppercase',background:'var(--tint-amber)',color:'#f59e0b'}}>PA</span>
                                     <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
                                   </div>
                                 )}
                                 {showToil&&!mergeOtToil&&(
                                   <div style={{display:'flex',alignItems:'center',gap:'5px',padding:'4px 0'}}>
                                     <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-toil')}</span>
-                                    <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid #0f172a',textTransform:'uppercase',background:'var(--tint-purple)',color:'#7c3aed'}}>TOIL</span>
+                                    <span style={{fontSize:isWide?'12.5px':'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',border:'1px solid var(--ink)',textTransform:'uppercase',background:'var(--tint-purple)',color:'#7c3aed'}}>TOIL</span>
                                     <span style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'#d97706',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
                                   </div>
                                 )}
@@ -4596,25 +4596,25 @@ export default function App() {
                 putting them next to each other than stacking full-width
                 the way mobile has to. ── */
             <div style={{display:'grid',gridTemplateColumns:'1fr 1.3fr',gap:'16px',alignItems:'stretch',marginBottom:'14px'}}>
-            <div style={{background:toilLedger.balance<0?'#fef2f2':'#f5f3ff',border:toilLedger.balance<0?'1.5px solid #fecaca':'1.5px solid #ddd6fe',borderRadius:'16px',padding:'16px',display:'flex',flexDirection:'column',justifyContent:'center'}}>
+            <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',border:toilLedger.balance<0?'1.5px solid var(--border-2)':'1.5px solid var(--border-2)',borderRadius:'16px',padding:'16px',display:'flex',flexDirection:'column',justifyContent:'center'}}>
               <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
-              <div style={{fontFamily:MONO,fontSize:'25px',fontWeight:600,color:toilLedger.balance<0?'#991b1b':'#4c1d95'}}>{fmtHM(toilLedger.balance)} h</div>
+              <div style={{fontFamily:MONO,fontSize:'25px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--text-purple-deep)'}}>{fmtHM(toilLedger.balance)} h</div>
               <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
             </div>
 
-            <div style={{...S.card,background:'var(--surface)',border:'1.5px solid #ede9fe'}}>
+            <div style={{...S.card,background:'var(--surface)',border:'1.5px solid var(--border-2)'}}>
               <div style={{...S.lbl,fontSize:'11px',marginBottom:'8px'}}>Redeem TOIL</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 52px 80px',gap:'8px',marginBottom:'8px'}}>
-                <input type="date" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',boxSizing:'border-box'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
-                <input type="number" min="0" step="1" placeholder="Hrs" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>
-                <select style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px 4px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box',background:'var(--surface)'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
+                <input type="date" style={{border:'1px solid var(--border-2)',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',boxSizing:'border-box'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
+                <input type="number" min="0" step="1" placeholder="Hrs" style={{border:'1px solid var(--border-2)',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>
+                <select style={{border:'1px solid var(--border-2)',borderRadius:'9px',padding:'8px 4px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box',background:'var(--surface)'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
                   <option value="00">00m</option>
                   <option value="15">15m</option>
                   <option value="30">30m</option>
                   <option value="45">45m</option>
                 </select>
               </div>
-              <input type="text" placeholder="Note (optional) — e.g. half day, appointment" style={{width:'100%',boxSizing:'border-box',border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',marginBottom:'8px'}} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
+              <input type="text" placeholder="Note (optional) — e.g. half day, appointment" style={{width:'100%',boxSizing:'border-box',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',marginBottom:'8px'}} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
               <button onClick={addToilTaken} style={{width:'100%',background:'#7c3aed',color:'#fff',border:'none',borderRadius:'10px',padding:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Redeem TOIL</button>
             </div>
             </div>
@@ -4623,26 +4623,26 @@ export default function App() {
                 two stacked boxes — same figures, same redeem form, just a
                 divider between them instead of a second card's worth of
                 shadow/margin. ── */
-            <div style={{...S.card,background:toilLedger.balance<0?'#fef2f2':'#fff',border:toilLedger.balance<0?'1.5px solid #fecaca':'1px solid #f1f5f9',marginBottom:'14px'}}>
+            <div style={{...S.card,background:toilLedger.balance<0?'var(--tint-red)':'var(--surface)',border:toilLedger.balance<0?'1.5px solid var(--border-2)':'1px solid var(--border-2)',marginBottom:'14px'}}>
               <div>
                 <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
-                <div style={{fontFamily:MONO,fontSize:'25px',fontWeight:600,color:toilLedger.balance<0?'#991b1b':'#4c1d95'}}>{fmtHM(toilLedger.balance)} h</div>
+                <div style={{fontFamily:MONO,fontSize:'25px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--text-purple-deep)'}}>{fmtHM(toilLedger.balance)} h</div>
                 <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
               </div>
 
               <div style={{borderTop:'1px solid var(--border-2)',marginTop:'16px',paddingTop:'14px'}}>
                 <div style={{...S.lbl,fontSize:'11px',marginBottom:'8px'}}>Redeem TOIL</div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 52px 80px',gap:'8px',marginBottom:'8px'}}>
-                  <input type="date" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',boxSizing:'border-box'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
-                  <input type="number" min="0" step="1" placeholder="Hrs" style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>
-                  <select style={{border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px 4px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box',background:'var(--surface)'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
+                  <input type="date" style={{border:'1px solid var(--border-2)',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',boxSizing:'border-box'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
+                  <input type="number" min="0" step="1" placeholder="Hrs" style={{border:'1px solid var(--border-2)',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>
+                  <select style={{border:'1px solid var(--border-2)',borderRadius:'9px',padding:'8px 4px',fontFamily:'inherit',fontSize:'16px',textAlign:'center',boxSizing:'border-box',background:'var(--surface)'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
                     <option value="00">00m</option>
                     <option value="15">15m</option>
                     <option value="30">30m</option>
                     <option value="45">45m</option>
                   </select>
                 </div>
-                <input type="text" placeholder="Note (optional) — e.g. half day, appointment" style={{width:'100%',boxSizing:'border-box',border:'1px solid #ddd6fe',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',marginBottom:'8px'}} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
+                <input type="text" placeholder="Note (optional) — e.g. half day, appointment" style={{width:'100%',boxSizing:'border-box',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'8px',fontFamily:'inherit',fontSize:'16px',marginBottom:'8px'}} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
                 <button onClick={addToilTaken} style={{width:'100%',background:'#7c3aed',color:'#fff',border:'none',borderRadius:'10px',padding:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Redeem TOIL</button>
               </div>
             </div>
@@ -4655,13 +4655,13 @@ export default function App() {
             ) : (
             <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}:undefined}>
             {toilLedger.rows.map(l=>(
-              <div key={l.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'11px 12px',marginBottom:isWide?0:'8px',borderRadius:'11px',gap:'10px',background:l.type==='earned'?'#f0fdf4':'#fef2f2',border:l.type==='earned'?'1px solid #bbf7d0':'1px solid #fecaca'}}>
+              <div key={l.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'11px 12px',marginBottom:isWide?0:'8px',borderRadius:'11px',gap:'10px',background:l.type==='earned'?'var(--tint-green)':'var(--tint-red)',border:l.type==='earned'?'1px solid var(--border-2)':'1px solid var(--border-2)'}}>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:'13.5px',fontWeight:700,color:'#334155'}}>{l.note}</div>
+                  <div style={{fontSize:'13.5px',fontWeight:700,color:'var(--muted)'}}>{l.note}</div>
                   <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'4px'}}>
                     <span style={{fontSize:'11.5px',color:'var(--quiet)'}}>{new Date(l.date+'T12:00:00').toLocaleDateString('en-GB')}</span>
                     {l.type==='taken'&&(
-                      <button onClick={()=>deleteToilTaken(l.rawId)} style={{flexShrink:0,display:'flex',alignItems:'center',gap:'3px',background:'var(--surface)',border:'1.5px solid #fecaca',borderRadius:'7px',padding:'3px 7px',color:'#dc2626',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>
+                      <button onClick={()=>deleteToilTaken(l.rawId)} style={{flexShrink:0,display:'flex',alignItems:'center',gap:'3px',background:'var(--surface)',border:'1.5px solid var(--border-2)',borderRadius:'7px',padding:'3px 7px',color:'#dc2626',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>
                         <Ico n="trash" s={10} c="#dc2626"/> Remove
                       </button>
                     )}
@@ -4683,7 +4683,7 @@ export default function App() {
           <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
               <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>Options, Settings, Export and Backup</h2>
-              {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'var(--tint-green)',border:'1px solid #bbf7d0',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'#065f46'}}>Saved</span></div>}
+              {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'var(--text-green-deep)'}}>Saved</span></div>}
             </div>
 
             {/* ── Desktop: the six settings sections below reflow into a
@@ -4706,7 +4706,7 @@ export default function App() {
               </div>
               <div style={{display:'flex',gap:'6px'}}>
                 {[['system','Auto'],['light','Light'],['dark','Dark']].map(([v,lbl])=>(
-                  <button key={v} onClick={()=>setTheme(v)} style={{flex:1,padding:'9px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:themeMode===v?'#0f2744':'var(--surface-2)',color:themeMode===v?'#fff':BRASS,boxShadow:themeMode===v?'0 4px 11px rgba(15,39,68,0.35)':'none'}}>{lbl}</button>
+                  <button key={v} onClick={()=>setTheme(v)} style={{flex:1,padding:'9px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:themeMode===v?'var(--navy)':'var(--surface-2)',color:themeMode===v?'#fff':BRASS,boxShadow:themeMode===v?'0 4px 11px rgba(15,39,68,0.35)':'none'}}>{lbl}</button>
                 ))}
               </div>
             </div>
@@ -4742,7 +4742,7 @@ export default function App() {
                   {!settings.rank&&<span style={{fontSize:'9px',fontWeight:900,color:'#dc2626',background:'var(--tint-red)',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'1px'}}>Start here</span>}
                 </div>
                 <div className={!settings.rank?'setup-pulse-urgent':''} style={{borderRadius:'13px'}}>
-                  <select style={{...S.sel,border: !settings.rank ? '2px solid #dc2626' : '1px solid #e2e8f0',fontWeight: !settings.rank ? 900 : 700}} value={settings.rank} onChange={e=>{
+                  <select style={{...S.sel,border: !settings.rank ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.rank ? 900 : 700}} value={settings.rank} onChange={e=>{
                     const r=e.target.value;
                     if(!r) return saveSett({...settings,rank:'',service:''});
                     saveSett({...settings,rank:r,service:''});
@@ -4759,7 +4759,7 @@ export default function App() {
                     {!settings.service&&<span style={{fontSize:'9px',fontWeight:900,color:'#dc2626',background:'var(--tint-red)',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'1px'}}>Now this</span>}
                   </div>
                   <div className={!settings.service?'setup-pulse-urgent':''} style={{borderRadius:'13px'}}>
-                    <select style={{...S.sel,border: !settings.service ? '2px solid #dc2626' : '1px solid #e2e8f0',fontWeight: !settings.service ? 900 : 700}} value={settings.service} onChange={e=>saveSett({...settings,service:e.target.value})}>
+                    <select style={{...S.sel,border: !settings.service ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.service ? 900 : 700}} value={settings.service} onChange={e=>saveSett({...settings,service:e.target.value})}>
                       <option value="">Select pay point...</option>
                       {Object.keys(PAY_RATES[settings.rank]).map(p=><option key={p} value={p}>{p}</option>)}
                     </select>
@@ -4776,33 +4776,33 @@ export default function App() {
                 return (
                   <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'14px'}}>
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
-                      {[['Pre 1 Sep 2026','pre','#64748b','#f8fafc'],['From 1 Sep 2026','post','#2563eb','#fff']].map(([label,key,col,bg])=>(
-                        <div key={key} style={{background:bg,borderRadius:'12px',padding:'12px',border:key==='post'?'1.5px solid #bfdbfe':'1px solid #f1f5f9'}}>
+                      {[['Pre 1 Sep 2026','pre','var(--muted)','var(--surface-2)'],['From 1 Sep 2026','post','#2563eb','var(--surface)']].map(([label,key,col,bg])=>(
+                        <div key={key} style={{background:bg,borderRadius:'12px',padding:'12px',border:key==='post'?'1.5px solid var(--border-2)':'1px solid var(--border-2)'}}>
                           <div style={{fontSize:'9px',fontWeight:900,color:col,textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'8px'}}>{label}</div>
                           {['Base','1.33x','1.5x','2.0x'].map((lbl,i)=>(
                             <div key={lbl} style={{display:'flex',justifyContent:'space-between',marginBottom:'4px'}}>
                               <span style={{fontSize:'10px',fontWeight:700,color:'var(--muted)'}}>{lbl}</span>
-                              <span style={{fontSize:'10px',fontWeight:900,color:key==='post'?'#1e3a5f':'#475569'}}>£{(svcData[key][['base','r133','r150','r200'][i]]||0).toFixed(2)}</span>
+                              <span style={{fontSize:'10px',fontWeight:900,color:key==='post'?'var(--text-navy)':'var(--muted)'}}>£{(svcData[key][['base','r133','r150','r200'][i]]||0).toFixed(2)}</span>
                             </div>
                           ))}
                         </div>
                       ))}
                     </div>
 
-                    <div style={{borderTop:'1px solid #dbeafe',marginTop:'16px',paddingTop:'14px'}}>
+                    <div style={{borderTop:'1px solid var(--border-2)',marginTop:'16px',paddingTop:'14px'}}>
                       <div style={{fontSize:'9px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'10px'}}>Published Pay Scales</div>
                       {['Constable','Sergeant'].map(rank=>(
                         <div key={rank} style={{marginBottom: rank==='Constable' ? '16px' : 0}}>
-                          <div style={{fontSize:'10px',fontWeight:900,color:'#1e3a5f',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>{rank}</div>
+                          <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-navy)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>{rank}</div>
                           <div style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',gap:'2px 8px',alignItems:'center'}}>
-                            <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',paddingBottom:'5px',borderBottom:'1px solid #dbeafe'}}>Pay Point</div>
-                            <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid #dbeafe'}}>Pre-Sept</div>
-                            <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid #dbeafe'}}>Post-Sept</div>
+                            <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Pay Point</div>
+                            <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Pre-Sept</div>
+                            <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Post-Sept</div>
                             {Object.entries(PAY_RATES[rank]).map(([point,data])=>(
                               <div key={point} style={{display:'contents'}}>
                                 <div style={{fontSize:'11px',fontWeight:700,color:'var(--ink)',padding:'5px 0'}}>{point}</div>
                                 <div style={{fontSize:'11px',fontWeight:700,color:'var(--muted)',textAlign:'right',padding:'5px 0'}}>£{data.salary.pre.toLocaleString('en-GB')}</div>
-                                <div style={{fontSize:'11px',fontWeight:900,color:'#1e3a5f',textAlign:'right',padding:'5px 0'}}>£{data.salary.post.toLocaleString('en-GB')}</div>
+                                <div style={{fontSize:'11px',fontWeight:900,color:'var(--text-navy)',textAlign:'right',padding:'5px 0'}}>£{data.salary.post.toLocaleString('en-GB')}</div>
                               </div>
                             ))}
                           </div>
@@ -4886,7 +4886,7 @@ export default function App() {
               const cardHeader = (
                 <div onClick={()=>{ if(isWide){setConfigExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setTaxImpactExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(taxImpactExpanded&&!isWide)?'12px':0,cursor:'pointer'}}>
                   <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                    <div style={{background:over?'#fef2f2':'#f0fdf4',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="calc" s={isWide?21:17} c={over?'#dc2626':'#059669'}/></div>
+                    <div style={{background:over?'var(--tint-red)':'var(--tint-green)',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="calc" s={isWide?21:17} c={over?'#dc2626':'#059669'}/></div>
                     <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Tax & 100K+ Calculator</div>
                   </div>
                   <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{taxImpactExpanded?'Tap to Close':'Tap to expand'}</span>
@@ -4899,8 +4899,8 @@ export default function App() {
                         <span style={{fontSize:'11px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>Tax is calculated automatically using real UK income tax bands, applied cumulatively across your salary, allowances and overtime — no manual rate needed.</span>
                       </div>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
-                        <div style={{fontSize:'9px',fontWeight:900,color:overA?'#dc2626':'#059669',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',background:overA?'#fef2f2':'#f0fdf4',borderRadius:'8px',padding:'5px 0'}}>Actual (YTD)</div>
-                        <div style={{fontSize:'9px',fontWeight:900,color:overF?'#dc2626':'#059669',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',background:overF?'#fef2f2':'#f0fdf4',borderRadius:'8px',padding:'5px 0'}}>Forecast</div>
+                        <div style={{fontSize:'9px',fontWeight:900,color:overA?'#dc2626':'#059669',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',background:overA?'var(--tint-red)':'var(--tint-green)',borderRadius:'8px',padding:'5px 0'}}>Actual (YTD)</div>
+                        <div style={{fontSize:'9px',fontWeight:900,color:overF?'#dc2626':'#059669',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',background:overF?'var(--tint-red)':'var(--tint-green)',borderRadius:'8px',padding:'5px 0'}}>Forecast</div>
                       </div>
 
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
@@ -4909,11 +4909,11 @@ export default function App() {
                       </div>
 
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
-                        <div style={{background:'var(--tint-blue)',border:'1px solid #bfdbfe',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
+                        <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
                           <div style={{fontSize:'9px',fontWeight:700,color:'#2563eb',marginBottom:'3px'}}>Pension ({(pensionA.rate*100).toFixed(2)}%)</div>
                           <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionA.amount)}</div>
                         </div>
-                        <div style={{background:'var(--tint-blue)',border:'1px solid #bfdbfe',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
+                        <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
                           <div style={{fontSize:'9px',fontWeight:700,color:'#2563eb',marginBottom:'3px'}}>Pension ({(pensionF.rate*100).toFixed(2)}%)</div>
                           <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionF.amount)}</div>
                         </div>
@@ -4925,104 +4925,104 @@ export default function App() {
                       </div>
 
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
-                        <div style={{background:overA?'#fef2f2':'#f0fdf4',border:`1px solid ${overA?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
-                          <div style={{fontSize:'9px',fontWeight:900,color:overA?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'3px'}}>Extra Tax</div>
-                          <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:overA?'#991b1b':'#166534'}}>{fmtGBP(extraTaxA)}</div>
+                        <div style={{background:overA?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overA?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
+                          <div style={{fontSize:'9px',fontWeight:900,color:overA?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'3px'}}>Extra Tax</div>
+                          <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:overA?'var(--text-red-deep)':'var(--text-green-deep)'}}>{fmtGBP(extraTaxA)}</div>
                         </div>
-                        <div style={{background:overF?'#fef2f2':'#f0fdf4',border:`1px solid ${overF?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
-                          <div style={{fontSize:'9px',fontWeight:900,color:overF?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'3px'}}>Extra Tax</div>
-                          <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:overF?'#991b1b':'#166534'}}>{fmtGBP(extraTaxF)}</div>
+                        <div style={{background:overF?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overF?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
+                          <div style={{fontSize:'9px',fontWeight:900,color:overF?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'3px'}}>Extra Tax</div>
+                          <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:overF?'var(--text-red-deep)':'var(--text-green-deep)'}}>{fmtGBP(extraTaxF)}</div>
                         </div>
                       </div>
 
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
-                        <div onClick={()=>{ setTaxCalcActualDetailOpen(v=>!v); setTaxCalcForecastDetailOpen(false); }} style={{background:overA?'#fef2f2':'#f0fdf4',border:`1px solid ${overA?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'10px',cursor:'pointer'}}>
-                          <div style={{fontSize:'9px',fontWeight:900,color:overA?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Calculations</div>
+                        <div onClick={()=>{ setTaxCalcActualDetailOpen(v=>!v); setTaxCalcForecastDetailOpen(false); }} style={{background:overA?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overA?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'10px',cursor:'pointer'}}>
+                          <div style={{fontSize:'9px',fontWeight:900,color:overA?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Calculations</div>
                           {overA ? (
-                            <div style={{fontSize:'9.5px',color:'#991b1b',lineHeight:1.7}}>
+                            <div style={{fontSize:'9.5px',color:'var(--text-red-deep)',lineHeight:1.7}}>
                               Run-rate: {fmtGBP(annualisedFromYTD)}/yr<br/>
                               {fmtGBP(annualisedFromYTD-100000)} over £100k<br/>
                               → {fmtGBP(paLostProRatedA)} allowance used so far<br/>
                               → at {((extraTaxA/paLostProRatedA)*100).toFixed(1)}% = {fmtGBP(extraTaxA)}
                             </div>
                           ) : (
-                            <div style={{fontSize:'9.5px',color:'#166534',lineHeight:1.7}}>Under £100k so far this year (after pension) — no allowance used yet.</div>
+                            <div style={{fontSize:'9.5px',color:'var(--text-green-deep)',lineHeight:1.7}}>Under £100k so far this year (after pension) — no allowance used yet.</div>
                           )}
                           <div style={{fontSize:'8.5px',fontWeight:800,color:overA?'#dc2626':'#059669',textDecoration:'underline',marginTop:'8px',textAlign:'center'}}>{taxCalcActualDetailOpen?'Showing full breakdown below':'Tap to see full breakdown'}</div>
                         </div>
-                        <div onClick={()=>{ setTaxCalcForecastDetailOpen(v=>!v); setTaxCalcActualDetailOpen(false); }} style={{background:overF?'#fef2f2':'#f0fdf4',border:`1px solid ${overF?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'10px',cursor:'pointer'}}>
-                          <div style={{fontSize:'9px',fontWeight:900,color:overF?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Calculations</div>
+                        <div onClick={()=>{ setTaxCalcForecastDetailOpen(v=>!v); setTaxCalcActualDetailOpen(false); }} style={{background:overF?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overF?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'10px',cursor:'pointer'}}>
+                          <div style={{fontSize:'9px',fontWeight:900,color:overF?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Calculations</div>
                           {overF ? (
-                            <div style={{fontSize:'9.5px',color:'#991b1b',lineHeight:1.7}}>
+                            <div style={{fontSize:'9.5px',color:'var(--text-red-deep)',lineHeight:1.7}}>
                               {fmtGBP(taxableGrossF)} taxable (after pension)<br/>
                               {fmtGBP(taxableGrossF-100000)} over £100k<br/>
                               → {fmtGBP(paLostF)} allowance lost<br/>
                               → at {((extraTaxF/paLostF)*100).toFixed(1)}% = {fmtGBP(extraTaxF)}
                             </div>
                           ) : (
-                            <div style={{fontSize:'9.5px',color:'#166534',lineHeight:1.7}}>Projected to stay under £100k (after pension) — {fmtGBP(100000-taxableGrossF)} of headroom at this pace.</div>
+                            <div style={{fontSize:'9.5px',color:'var(--text-green-deep)',lineHeight:1.7}}>Projected to stay under £100k (after pension) — {fmtGBP(100000-taxableGrossF)} of headroom at this pace.</div>
                           )}
                           <div style={{fontSize:'8.5px',fontWeight:800,color:overF?'#dc2626':'#059669',textDecoration:'underline',marginTop:'8px',textAlign:'center'}}>{taxCalcForecastDetailOpen?'Showing full breakdown below':'Tap to see full breakdown'}</div>
                         </div>
                       </div>
 
                       {taxCalcActualDetailOpen&&(
-                        <div style={{borderTop:'2px solid #fecaca',marginTop:'12px',paddingTop:'12px'}}>
+                        <div style={{borderTop:'2px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
                           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
                             <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full Calculation — Actual (YTD)</div>
                             <span onClick={()=>setTaxCalcActualDetailOpen(false)} style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',cursor:'pointer'}}>Show less</span>
                           </div>
                           <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(ytd)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #bfdbfe',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#1e40af'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionA.amount)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#1e40af'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionA.amount)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableYTD)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Personal Allowance <span style={{color:'var(--quiet)',fontWeight:600}}>(0%, pro-rated)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownA.pa)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownA.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.basicTax)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownA.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.higherTax)}</span></div>
                             {breakdownA.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownA.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.additionalTax)}</span></div>}
                           </div>
-                          <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-red)',border:'1px solid #fecaca',borderRadius:'11px',padding:'11px 14px',marginBottom:'8px'}}>
-                            <span style={{fontSize:'11.5px',fontWeight:800,color:'#991b1b'}}>Total Income Tax (YTD)</span>
-                            <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#991b1b'}}>{fmtGBP(breakdownA.totalTax)}</span>
+                          <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'11px 14px',marginBottom:'8px'}}>
+                            <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)'}}>Total Income Tax (YTD)</span>
+                            <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(breakdownA.totalTax)}</span>
                           </div>
                           <div style={{display:'flex',justifyContent:'space-between',background:'var(--surface-2)',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
                             <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>National Insurance (YTD) <span style={{color:'var(--quiet)',fontWeight:600}}>(on full gross)</span></span>
                             <span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(niA)}</span>
                           </div>
-                          <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-green)',border:'1px solid #bbf7d0',borderRadius:'11px',padding:'11px 14px'}}>
-                            <span style={{fontSize:'11.5px',fontWeight:800,color:'#166534'}}>Estimated Net (YTD)</span>
-                            <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#166534'}}>{fmtGBP(netA)}</span>
+                          <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'11px 14px'}}>
+                            <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-green-deep)'}}>Estimated Net (YTD)</span>
+                            <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-green-deep)'}}>{fmtGBP(netA)}</span>
                           </div>
                           <div style={{fontSize:'9px',color:'var(--quiet)',lineHeight:1.5,marginTop:'8px'}}>What's owed on money genuinely banked so far — not a projection. Pension tier is estimated from your current pay rate, not last scheme year's actual earnings, which is what the real rule technically uses.</div>
                         </div>
                       )}
 
                       {taxCalcForecastDetailOpen&&(
-                        <div style={{borderTop:'2px solid #fecaca',marginTop:'12px',paddingTop:'12px'}}>
+                        <div style={{borderTop:'2px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
                           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
                             <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full Calculation — Forecast</div>
                             <span onClick={()=>setTaxCalcForecastDetailOpen(false)} style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',cursor:'pointer'}}>Show less</span>
                           </div>
                           <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (projected annual)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(proj)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #bfdbfe',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#1e40af'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionF.amount)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'#1e40af'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#1e40af'}}>−{fmtGBP(pensionF.amount)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable Gross</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableGrossF)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Personal Allowance <span style={{color:'var(--quiet)',fontWeight:600}}>(0%)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownF.pa)}</span></div>
                             <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownF.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.basicTax)}</span></div>
-                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:breakdownF.additionalAmt>0?'1px solid #f1f5f9':'none'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownF.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.higherTax)}</span></div>
+                            <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:breakdownF.additionalAmt>0?'1px solid var(--border-2)':'none'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownF.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.higherTax)}</span></div>
                             {breakdownF.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownF.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.additionalTax)}</span></div>}
                           </div>
-                          <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-red)',border:'1px solid #fecaca',borderRadius:'11px',padding:'11px 14px',marginBottom:'8px'}}>
-                            <span style={{fontSize:'11.5px',fontWeight:800,color:'#991b1b'}}>Total Income Tax</span>
-                            <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#991b1b'}}>{fmtGBP(breakdownF.totalTax)}</span>
+                          <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'11px 14px',marginBottom:'8px'}}>
+                            <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)'}}>Total Income Tax</span>
+                            <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(breakdownF.totalTax)}</span>
                           </div>
                           <div style={{display:'flex',justifyContent:'space-between',background:'var(--surface-2)',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
                             <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>National Insurance <span style={{color:'var(--quiet)',fontWeight:600}}>(est., on full gross)</span></span>
                             <span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(niF)}</span>
                           </div>
-                          <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-green)',border:'1px solid #bbf7d0',borderRadius:'11px',padding:'11px 14px'}}>
-                            <span style={{fontSize:'11.5px',fontWeight:800,color:'#166534'}}>Estimated Net Pay</span>
-                            <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#166534'}}>{fmtGBP(netF)}</span>
+                          <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'11px 14px'}}>
+                            <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-green-deep)'}}>Estimated Net Pay</span>
+                            <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-green-deep)'}}>{fmtGBP(netF)}</span>
                           </div>
                           <div style={{fontSize:'9px',color:'var(--quiet)',lineHeight:1.5,marginTop:'8px'}}>The full income tax and NI computation for the whole year, not just the extra caused by crossing £100k. Pension tier is estimated from your current pay rate, not last scheme year's actual earnings, which is what the real rule technically uses.</div>
                         </div>
@@ -5066,7 +5066,7 @@ export default function App() {
                       const isCurrent = y===CURRENT_FY_YEAR;
                       const label = `${y} / ${(y+1).toString().slice(-2)}`;
                       return (
-                        <div key={y} onClick={()=>{ if(!isCurrent){ setArchiveExpandedPeriod(null); setFySummaryPrintMode(false); setFySummaryYear(y); } }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',background:isCurrent?'#eff6ff':'#f8fafc',border:isCurrent?'2px solid #2563eb':'1px solid #f1f5f9',cursor:isCurrent?'default':'pointer'}}>
+                        <div key={y} onClick={()=>{ if(!isCurrent){ setArchiveExpandedPeriod(null); setFySummaryPrintMode(false); setFySummaryYear(y); } }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',background:isCurrent?'var(--tint-blue)':'var(--surface-2)',border:isCurrent?'2px solid #2563eb':'1px solid var(--border-2)',cursor:isCurrent?'default':'pointer'}}>
                           <div>
                             <div style={{fontWeight:800,fontSize:'13px',color:'var(--ink)'}}>{label}</div>
                             <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>{yPeriods[0].month} – {yPeriods[11].month}</div>
@@ -5109,7 +5109,7 @@ export default function App() {
               );
               const cardBody = exportDataExpanded&&(
                 <>
-                  <button onClick={()=>{setExportFormat(null);setPayslipMode('period');setPayslipPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);setPayslipFYYear(CURRENT_FY_YEAR);setPayslipModalOpen(true);}} disabled={entries.length===0} style={{width:'100%',padding:'12px',background: entries.length===0 ? '#f1f5f9' : '#2563eb',border:'none',borderRadius:'11px',color: entries.length===0 ? '#94a3b8' : '#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor: entries.length===0 ? 'default' : 'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',textTransform:'uppercase',letterSpacing:'1px',boxShadow: entries.length===0 ? 'none' : '0 4px 14px rgba(37,99,235,0.3)'}}><Ico n="share" s={13} c={entries.length===0?'#94a3b8':'#fff'}/> Export to PDF or Spreadsheet</button>
+                  <button onClick={()=>{setExportFormat(null);setPayslipMode('period');setPayslipPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);setPayslipFYYear(CURRENT_FY_YEAR);setPayslipModalOpen(true);}} disabled={entries.length===0} style={{width:'100%',padding:'12px',background: entries.length===0 ? 'var(--chip-bg)' : '#2563eb',border:'none',borderRadius:'11px',color: entries.length===0 ? 'var(--quiet)' : '#fff',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor: entries.length===0 ? 'default' : 'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',textTransform:'uppercase',letterSpacing:'1px',boxShadow: entries.length===0 ? 'none' : '0 4px 14px rgba(37,99,235,0.3)'}}><Ico n="share" s={13} c={entries.length===0?'var(--quiet)':'#fff'}/> Export to PDF or Spreadsheet</button>
                   {entries.length===0&&<div style={{fontSize:'10px',color:'var(--quiet)',textAlign:'center',marginTop:'8px',fontWeight:600}}>Log a shift first to enable export</div>}
                   <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'8px',lineHeight:1.5}}>Archived data is only retained for 4 years.</div>
                 </>
@@ -5151,30 +5151,30 @@ export default function App() {
                   <div style={{fontSize:'11px',color:'var(--muted)',marginBottom:'11px',lineHeight:1.5}}>Data is automatically synced and backed up to a secure cloud. To create a hard downloadable backup, select BACKUP. To restore from a previous hard copy, select RESTORE.</div>
                   <div style={{display:'flex',gap:'6px',marginBottom:'11px'}}>
                     <button onClick={handleExport} className={pulseBackupBtn?'backup-pulse':''} style={{flex:1,padding:'10px',background:'#2563eb',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="dl" s={12} c="#fff"/> Backup</button>
-                    <button onClick={()=>setRestoreConfirmOpen(true)} style={{flex:1,padding:'10px',background:'var(--chip-bg)',border:'1px solid var(--border)',borderRadius:'10px',color:'#475569',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="ul" s={12} c="#475569"/> Restore</button>
+                    <button onClick={()=>setRestoreConfirmOpen(true)} style={{flex:1,padding:'10px',background:'var(--chip-bg)',border:'1px solid var(--border)',borderRadius:'10px',color:'var(--muted)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="ul" s={12} c="#475569"/> Restore</button>
                     <input type="file" ref={fileRef} style={{display:'none'}} accept=".json" onChange={handleImport}/>
                   </div>
 
-                  <div style={{borderTop:'1px solid #e2e8f0',paddingTop:'11px'}}>
+                  <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'11px'}}>
                     {!wipeConf
-                      ?<button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'var(--tint-red)',border:'1px solid #fecaca',borderRadius:'10px',color:'#b91c1c',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#b91c1c"/> Wipe All Data</button>
-                      :<div style={{background:'var(--tint-red)',border:'1px solid #fecaca',borderRadius:'12px',padding:'12px'}}>
-                          <div style={{textAlign:'center',color:'#b91c1c',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'#dc2626'}}>{session ? 'Deletes every logged shift and all TOIL data — on this device and in the cloud. ' : 'Deletes every logged shift and all TOIL data on this device. '}This cannot be undone unless you have downloaded a backup file to your device.</span></div>
+                      ?<button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'10px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#b91c1c"/> Wipe All Data</button>
+                      :<div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'12px'}}>
+                          <div style={{textAlign:'center',color:'var(--text-red-deep)',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'#dc2626'}}>{session ? 'Deletes every logged shift and all TOIL data — on this device and in the cloud. ' : 'Deletes every logged shift and all TOIL data on this device. '}This cannot be undone unless you have downloaded a backup file to your device.</span></div>
                           <div style={{display:'flex',gap:'6px'}}>
                             <button onClick={handleWipe} disabled={wipingData} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:wipingData?'not-allowed':'pointer',textTransform:'uppercase',letterSpacing:'1px',opacity:wipingData?0.7:1}}>{wipingData?'Wiping…':'Yes, Delete'}</button>
-                            <button onClick={()=>setWipeConf(false)} disabled={wipingData} style={{flex:1,padding:'9px',background:'var(--chip-bg)',border:'1px solid var(--border)',borderRadius:'8px',color:'#475569',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
+                            <button onClick={()=>setWipeConf(false)} disabled={wipingData} style={{flex:1,padding:'9px',background:'var(--chip-bg)',border:'1px solid var(--border)',borderRadius:'8px',color:'var(--muted)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
                           </div>
                         </div>
                     }
                   </div>
 
                   {session&&(
-                    <div style={{borderTop:'1px solid #e2e8f0',marginTop:'11px',paddingTop:'11px'}}>
+                    <div style={{borderTop:'1px solid var(--border-2)',marginTop:'11px',paddingTop:'11px'}}>
                       {!deleteAcctConf ? (
-                        <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'var(--tint-red)',border:'1px solid #fecaca',borderRadius:'10px',color:'#b91c1c',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#b91c1c"/> Delete Account</button>
+                        <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'10px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#b91c1c"/> Delete Account</button>
                       ) : (
-                        <div style={{background:'var(--tint-red)',border:'1px solid #fecaca',borderRadius:'12px',padding:'12px'}}>
-                          <div style={{fontSize:'11.5px',color:'#b91c1c',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>
+                        <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'12px'}}>
+                          <div style={{fontSize:'11.5px',color:'var(--text-red-deep)',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>
                           <div style={{fontSize:'10.5px',color:'#dc2626',fontWeight:700,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Type your email to confirm: {session.user?.email}</div>
                           <input
                             value={deleteAcctTyped}
@@ -5188,7 +5188,7 @@ export default function App() {
                               disabled={deleteAcctTyped !== session.user?.email || deletingAcct}
                               style={{flex:1,padding:'9px',background:(deleteAcctTyped===session.user?.email)?'#dc2626':'#fca5a5',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:(deleteAcctTyped===session.user?.email)?'pointer':'not-allowed',textTransform:'uppercase',letterSpacing:'1px'}}
                             >{deletingAcct?'Deleting…':'Delete Permanently'}</button>
-                            <button onClick={()=>{ setDeleteAcctConf(false); setDeleteAcctTyped(''); }} style={{flex:1,padding:'9px',background:'var(--chip-bg)',border:'1px solid var(--border)',borderRadius:'8px',color:'#475569',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
+                            <button onClick={()=>{ setDeleteAcctConf(false); setDeleteAcctTyped(''); }} style={{flex:1,padding:'9px',background:'var(--chip-bg)',border:'1px solid var(--border)',borderRadius:'8px',color:'var(--muted)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Cancel</button>
                           </div>
                         </div>
                       )}
@@ -5341,7 +5341,7 @@ export default function App() {
                   return (
                     <>
                       {shown.map((cl,i)=>(
-                        <div key={cl.key} onClick={()=>setTab('carms')} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',padding:'9px 0',borderTop:i===0?'none':'1px solid #f1f5f9',cursor:'pointer'}}>
+                        <div key={cl.key} onClick={()=>setTab('carms')} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',padding:'9px 0',borderTop:i===0?'none':'1px solid var(--border-2)',cursor:'pointer'}}>
                           <div style={{minWidth:0}}>
                             <div style={{fontSize:'11.5px',fontWeight:700,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cl.entry.reason||'Shift'}</div>
                             <div style={{fontSize:'9.5px',color:'var(--quiet)'}}>{cl.kind} · {new Date(cl.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
@@ -5354,8 +5354,8 @@ export default function App() {
                           +{hidden} more claim{hidden!==1?'s':''} →
                         </div>
                       )}
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#faf3e8',borderRadius:'10px',padding:'9px 11px',marginTop:'8px'}}>
-                        <span style={{fontSize:'10px',fontWeight:700,color:'#7a5323'}}>{carmsOutstanding.totalClaims} CLAIM{carmsOutstanding.totalClaims!==1?'S':''} TO SUBMIT</span>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'var(--tint-brass)',borderRadius:'10px',padding:'9px 11px',marginTop:'8px'}}>
+                        <span style={{fontSize:'10px',fontWeight:700,color:'var(--text-amber-deep)'}}>{carmsOutstanding.totalClaims} CLAIM{carmsOutstanding.totalClaims!==1?'S':''} TO SUBMIT</span>
                         <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</span>
                       </div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'10px 11px 0'}}>
@@ -5391,15 +5391,15 @@ export default function App() {
                   <div style={{fontSize:'15px',fontWeight:900,marginBottom:'4px'}}>Financial Reports &amp; Export</div>
                   <div style={{fontSize:'11px',color:'var(--quiet)',marginBottom:'18px'}}>Choose a format to continue</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
-                    <button onClick={()=>setExportFormat('pdf')} style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px',borderRadius:'14px',border:'1.5px solid #dbeafe',background:'var(--tint-blue)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-                      <div style={{background:'#dbeafe',padding:'10px',borderRadius:'11px',flexShrink:0}}><Ico n="doc" s={18} c="#2563eb"/></div>
+                    <button onClick={()=>setExportFormat('pdf')} style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px',borderRadius:'14px',border:'1.5px solid var(--border-2)',background:'var(--tint-blue)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                      <div style={{background:'var(--tint-blue-2)',padding:'10px',borderRadius:'11px',flexShrink:0}}><Ico n="doc" s={18} c="#2563eb"/></div>
                       <div>
                         <div style={{fontWeight:900,fontSize:'13.5px',color:'var(--ink)'}}>PDF</div>
                         <div style={{fontSize:'10.5px',color:'var(--muted)',marginTop:'1px'}}>A formatted, printable summary</div>
                       </div>
                     </button>
-                    <button onClick={()=>setExportFormat('csv')} style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px',borderRadius:'14px',border:'1.5px solid #d1fae5',background:'var(--tint-green)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-                      <div style={{background:'#d1fae5',padding:'10px',borderRadius:'11px',flexShrink:0}}><Ico n="table" s={18} c="#059669"/></div>
+                    <button onClick={()=>setExportFormat('csv')} style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px',borderRadius:'14px',border:'1.5px solid var(--border-2)',background:'var(--tint-green)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                      <div style={{background:'var(--tint-green-2)',padding:'10px',borderRadius:'11px',flexShrink:0}}><Ico n="table" s={18} c="#059669"/></div>
                       <div>
                         <div style={{fontWeight:900,fontSize:'13.5px',color:'var(--ink)'}}>Spreadsheet</div>
                         <div style={{fontSize:'10.5px',color:'var(--muted)',marginTop:'1px'}}>An XLSX file for Excel, Sheets or Numbers</div>
@@ -5414,18 +5414,18 @@ export default function App() {
               <div style={{fontSize:'11px',color:'var(--quiet)',marginBottom:'16px'}}>Choose a period, or set your own date range</div>
 
               <div style={{display:'flex',gap:'6px',background:'var(--chip-bg)',borderRadius:'12px',padding:'3px',marginBottom:'16px'}}>
-                <button onClick={()=>setPayslipMode('period')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='period'?'#fff':'transparent',color:payslipMode==='period'?'#2563eb':'#64748b',boxShadow:payslipMode==='period'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Pay Period</button>
-                <button onClick={()=>setPayslipMode('custom')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='custom'?'#fff':'transparent',color:payslipMode==='custom'?'#2563eb':'#64748b',boxShadow:payslipMode==='custom'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Custom Range</button>
-                <button onClick={()=>setPayslipMode('financialYear')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='financialYear'?'#fff':'transparent',color:payslipMode==='financialYear'?'#2563eb':'#64748b',boxShadow:payslipMode==='financialYear'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Financial Year</button>
+                <button onClick={()=>setPayslipMode('period')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='period'?'#fff':'transparent',color:payslipMode==='period'?'#2563eb':'var(--muted)',boxShadow:payslipMode==='period'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Pay Period</button>
+                <button onClick={()=>setPayslipMode('custom')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='custom'?'#fff':'transparent',color:payslipMode==='custom'?'#2563eb':'var(--muted)',boxShadow:payslipMode==='custom'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Custom Range</button>
+                <button onClick={()=>setPayslipMode('financialYear')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='financialYear'?'#fff':'transparent',color:payslipMode==='financialYear'?'#2563eb':'var(--muted)',boxShadow:payslipMode==='financialYear'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Financial Year</button>
               </div>
 
-              <div onClick={()=>setSanitiseNotes(v=>!v)} style={{display:'flex',alignItems:'flex-start',gap:'10px',background:'var(--tint-red)',border:'1px solid #fecaca',borderRadius:'12px',padding:'12px 14px',marginBottom:'16px',cursor:'pointer'}}>
+              <div onClick={()=>setSanitiseNotes(v=>!v)} style={{display:'flex',alignItems:'flex-start',gap:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'12px 14px',marginBottom:'16px',cursor:'pointer'}}>
                 <div style={{width:'20px',height:'20px',borderRadius:'6px',border:`2px solid ${sanitiseNotes?'#dc2626':'#cbd5e1'}`,background:sanitiseNotes?'#dc2626':'#fff',flexShrink:0,marginTop:'1px',display:'flex',alignItems:'center',justifyContent:'center'}}>
                   {sanitiseNotes&&<Ico n="check" s={12} c="#fff" w={3}/>}
                 </div>
                 <div>
-                  <div style={{fontSize:'12px',fontWeight:800,color:'#991b1b'}}>Sanitise Notes Field</div>
-                  <div style={{fontSize:'10.5px',color:'#991b1b',marginTop:'2px',lineHeight:1.5}}>Recommended — shift notes may hold operationally sensitive detail.</div>
+                  <div style={{fontSize:'12px',fontWeight:800,color:'var(--text-red-deep)'}}>Sanitise Notes Field</div>
+                  <div style={{fontSize:'10.5px',color:'var(--text-red-deep)',marginTop:'2px',lineHeight:1.5}}>Recommended — shift notes may hold operationally sensitive detail.</div>
                 </div>
               </div>
 
@@ -5434,7 +5434,7 @@ export default function App() {
                   <div style={{fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'8px'}}>Pay Periods</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'7px',marginBottom:'6px'}}>
                     {periodChoices.map(p=>(
-                      <div key={p.idx} onClick={()=>setPayslipPeriodIdx(p.idx)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:p.idx===payslipPeriodIdx?'1.5px solid #2563eb':'1.5px solid #f1f5f9',background:p.idx===payslipPeriodIdx?'#eff6ff':'#fff',cursor:'pointer'}}>
+                      <div key={p.idx} onClick={()=>setPayslipPeriodIdx(p.idx)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:p.idx===payslipPeriodIdx?'1.5px solid #2563eb':'1.5px solid var(--border-2)',background:p.idx===payslipPeriodIdx?'var(--tint-blue)':'#fff',cursor:'pointer'}}>
                         <div>
                           <div style={{fontWeight:800,fontSize:'12.5px',color:'var(--ink)'}}>{p.month}{p.idx===currPeriodIdx&&<span style={{color:'#2563eb',fontSize:'9px',marginLeft:'6px'}}>· Current</span>}</div>
                           <div style={{fontFamily:MONO,fontSize:'9.5px',color:'var(--quiet)',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
@@ -5469,7 +5469,7 @@ export default function App() {
                       const yPeriods = generateFYPeriods(y);
                       const isCurrent = y===CURRENT_FY_YEAR;
                       return (
-                        <div key={y} onClick={()=>setPayslipFYYear(y)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:y===payslipFYYear?'1.5px solid #2563eb':'1.5px solid #f1f5f9',background:y===payslipFYYear?'#eff6ff':'#fff',cursor:'pointer'}}>
+                        <div key={y} onClick={()=>setPayslipFYYear(y)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:y===payslipFYYear?'1.5px solid #2563eb':'1.5px solid var(--border-2)',background:y===payslipFYYear?'var(--tint-blue)':'#fff',cursor:'pointer'}}>
                           <div>
                             <div style={{fontWeight:800,fontSize:'12.5px',color:'var(--ink)'}}>{y} / {(y+1).toString().slice(-2)}{isCurrent&&<span style={{color:'#2563eb',fontSize:'9px',marginLeft:'6px'}}>· Current</span>}</div>
                             <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>{yPeriods[0].month} – {yPeriods[11].month}{!isCurrent&&exportFormat==='pdf'&&' · gross only, no tax/NI'}</div>
@@ -5484,7 +5484,7 @@ export default function App() {
                 </>
               )}
 
-              <div style={{background:'var(--tint-blue)',border:'1px solid #bfdbfe',borderRadius:'12px',padding:'11px 14px',margin:'16px 0',fontSize:'12px',color:'#1e40af',fontWeight:700,textAlign:'center'}}>
+              <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'11px 14px',margin:'16px 0',fontSize:'12px',color:'#1e40af',fontWeight:700,textAlign:'center'}}>
                 {payslipMode==='period'
                   ? (payslipPeriodIdx!=null ? `${fmtD(PAY_PERIODS[payslipPeriodIdx].start)} – ${fmtD(PAY_PERIODS[payslipPeriodIdx].end)}` : 'Pick a pay period')
                   : payslipMode==='financialYear'
@@ -5509,14 +5509,14 @@ export default function App() {
         const d = payslipPreview.data;
         const hasOT = d.rateHrs.hours133>0 || d.rateHrs.hours150>0 || d.rateHrs.hours200>0;
         const hasPA = d.paCounts.PA1>0 || d.paCounts.PA2>0 || d.paCounts.PA3>0;
-        const rowStyle = {padding:'7px 0',borderBottom:'1px solid #f8fafc'};
+        const rowStyle = {padding:'7px 0',borderBottom:'1px solid var(--border-2)'};
         const thStyle = {textAlign:'left',fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px',padding:'4px 0',borderBottom:'1px solid var(--border-2)'};
         const sectionTitle = {fontSize:'10.5px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'1.2px',margin:'20px 0 8px',paddingTop:'14px',borderTop:'1px solid var(--border-2)'};
         return (
           <div className="payslip-print-area" style={{position:'absolute',inset:0,background:'var(--page-bg)',zIndex:70,overflowY:'auto',padding:'16px'}}>
             <div className="no-print" style={{display:'flex',gap:'8px',marginBottom:'14px',maxWidth:'560px',margin:'0 auto 14px'}}>
               <button onClick={()=>window.print()} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
-              <button onClick={()=>setPayslipPreview(null)} style={{background:'var(--surface)',color:'#475569',border:'1px solid var(--border)',borderRadius:'11px',padding:'12px 18px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit'}}>Close</button>
+              <button onClick={()=>setPayslipPreview(null)} style={{background:'var(--surface)',color:'var(--muted)',border:'1px solid var(--border)',borderRadius:'11px',padding:'12px 18px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit'}}>Close</button>
             </div>
 
             <div className="payslip-print-doc" style={{maxWidth:'560px',margin:'0 auto',background:'var(--surface)',borderRadius:'6px',boxShadow:'0 4px 24px rgba(0,0,0,0.12)',overflow:'hidden'}}>
@@ -5543,7 +5543,7 @@ export default function App() {
               </div>
 
               <div style={{padding:'22px 26px 10px'}}>
-                {d.clippedFrom&&<div style={{background:'var(--tint-blue)',border:'1px solid #bfdbfe',borderRadius:'10px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'#1e40af',lineHeight:1.5}}>The tax year restarts on 6 April, so this summary only covers {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)} — the part that falls in the current tax year. That's what keeps the figures accurate.</div>}
+                {d.clippedFrom&&<div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'#1e40af',lineHeight:1.5}}>The tax year restarts on 6 April, so this summary only covers {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)} — the part that falls in the current tax year. That's what keeps the figures accurate.</div>}
                 {d.rangeEntries.length===0 ? (
                   <div style={{textAlign:'center',padding:'30px 10px',color:'var(--quiet)',fontSize:'13px',fontWeight:600}}>No shifts recorded in this range.</div>
                 ) : (
@@ -5554,9 +5554,9 @@ export default function App() {
                         <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12.5px'}}>
                           <thead><tr><th style={thStyle}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Hours</th><th style={{...thStyle,textAlign:'right'}}>Rate/hr</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
                           <tbody>
-                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>Standard (1.33x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours133.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours133*d.rates.r133)}</td></tr>}
-                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>Elevated (1.5x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours150.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours150*d.rates.r150)}</td></tr>}
-                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>Rest Day (2.0x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours200.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours200*d.rates.r200)}</td></tr>}
+                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'var(--muted)'}}>Standard (1.33x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours133.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours133*d.rates.r133)}</td></tr>}
+                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'var(--muted)'}}>Elevated (1.5x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours150.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours150*d.rates.r150)}</td></tr>}
+                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'var(--muted)'}}>Rest Day (2.0x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours200.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours200*d.rates.r200)}</td></tr>}
                           </tbody>
                         </table>
                       </>
@@ -5569,7 +5569,7 @@ export default function App() {
                           <thead><tr><th style={thStyle}>Type</th><th style={{...thStyle,textAlign:'right'}}>Count</th><th style={{...thStyle,textAlign:'right'}}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
                           <tbody>
                             {['PA1','PA2','PA3'].filter(k=>d.paCounts[k]>0).map(k=>(
-                              <tr key={k}><td style={{...rowStyle,fontWeight:700,color:'#334155'}}>{k}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.paCounts[k]}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(PA_RATES[k])}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(PA_RATES[k]*d.paCounts[k])}</td></tr>
+                              <tr key={k}><td style={{...rowStyle,fontWeight:700,color:'var(--muted)'}}>{k}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.paCounts[k]}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(PA_RATES[k])}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(PA_RATES[k]*d.paCounts[k])}</td></tr>
                             ))}
                           </tbody>
                         </table>
@@ -5579,7 +5579,7 @@ export default function App() {
                     {d.toilBanked>0&&(
                       <>
                         <div style={sectionTitle}>TOIL Banked This Period</div>
-                        <div style={{background:'var(--tint-purple)',border:'1px solid #ddd6fe',borderRadius:'10px',padding:'11px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#6d28d9'}}>
+                        <div style={{background:'var(--tint-purple)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'11px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#6d28d9'}}>
                           <span>Not included in the totals below</span>
                           <strong style={{fontFamily:MONO,fontWeight:600}}>+{fmtHM(d.toilBanked)}h</strong>
                         </div>
@@ -5589,7 +5589,7 @@ export default function App() {
                     {d.pensionForRange>0&&(
                       <>
                         <div style={sectionTitle}>Pension Contribution (this period)</div>
-                        <div style={{background:'var(--tint-blue)',border:'1px solid #bfdbfe',borderRadius:'10px',padding:'11px 14px',marginBottom:'8px'}}>
+                        <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'11px 14px',marginBottom:'8px'}}>
                           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#1e40af'}}>
                             <span>{(d.pensionRate*100).toFixed(2)}% of {fmtGBP(d.pensionablePayForRange)} pensionable pay</span>
                             <strong style={{fontFamily:MONO,fontWeight:600}}>−{fmtGBP(d.pensionForRange)}</strong>
@@ -5603,7 +5603,7 @@ export default function App() {
                       <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}><span>Gross Overtime &amp; PA</span><span style={{fontFamily:MONO,fontWeight:600}}>{fmtGBP(d.gross)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. Income Tax{d.bandName?` (${d.bandName})`:''}</span><span style={{fontFamily:MONO}}>−{fmtGBP(d.tax)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. National Insurance</span><span style={{fontFamily:MONO}}>−{fmtGBP(d.ni)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0 0',marginTop:'6px',borderTop:'1px solid #e2e8f0',fontSize:'16px',fontWeight:600,color:'#059669'}}><span>Estimated Net</span><span style={{fontFamily:MONO}}>{fmtGBP(d.net)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0 0',marginTop:'6px',borderTop:'1px solid var(--border-2)',fontSize:'16px',fontWeight:600,color:'#059669'}}><span>Estimated Net</span><span style={{fontFamily:MONO}}>{fmtGBP(d.net)}</span></div>
                     </div>
                   </>
                 )}
@@ -5623,11 +5623,11 @@ export default function App() {
         const label = `${fySummaryYear} / ${(fySummaryYear+1).toString().slice(-2)}`;
         return (
           <div className={fySummaryPrintMode?'payslip-print-area':''} style={{position:'absolute',inset:0,background:'var(--surface-2)',zIndex:65,overflowY:'auto'}}>
-            <div className="no-print" style={{background:'var(--tint-amber-2)',padding:'8px',fontSize:'10px',fontWeight:800,color:'#92400e',textAlign:'center'}}>📁 Archived — {label} is read-only</div>
+            <div className="no-print" style={{background:'var(--tint-amber-2)',padding:'8px',fontSize:'10px',fontWeight:800,color:'var(--text-amber-deep)',textAlign:'center'}}>📁 Archived — {label} is read-only</div>
             {!fySummaryPrintMode&&(
               <div className="no-print" style={{display:'flex',gap:'8px',padding:'12px 12px 0'}}>
                 <button onClick={()=>setFySummaryPrintMode(true)} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="doc" s={13} c="#fff"/> PDF</button>
-                <button onClick={()=>handleExportSpreadsheet(y.start, y.end, sanitiseNotes)} style={{flex:1,background:'var(--tint-green)',color:'#059669',border:'1.5px solid #d1fae5',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="table" s={13} c="#059669"/> Spreadsheet</button>
+                <button onClick={()=>handleExportSpreadsheet(y.start, y.end, sanitiseNotes)} style={{flex:1,background:'var(--tint-green)',color:'#059669',border:'1.5px solid var(--border-2)',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="table" s={13} c="#059669"/> Spreadsheet</button>
               </div>
             )}
             {fySummaryPrintMode&&(
@@ -5640,7 +5640,7 @@ export default function App() {
               <div style={{fontSize:'10px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.2px'}}>Financial Year</div>
               <div style={{fontSize:'19px',fontWeight:900}}>{label}</div>
               <div style={{fontFamily:MONO,fontSize:'9.5px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
-              <div style={{background:'#1e3a5f',borderRadius:'14px',padding:'14px',display:'flex',marginTop:'12px'}}>
+              <div style={{background:'var(--text-navy)',borderRadius:'14px',padding:'14px',display:'flex',marginTop:'12px'}}>
                 <div style={{flex:1,textAlign:'center'}}>
                   <div style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.8px'}}>Shifts Logged</div>
                   <div style={{fontSize:'20px',fontWeight:900}}>{y.totalShifts}</div>
@@ -5654,7 +5654,7 @@ export default function App() {
             </div>
 
             <div style={{padding:'14px',paddingBottom:'40px'}}>
-              <div style={{background:'var(--tint-blue)',border:'1px solid #bfdbfe',borderRadius:'10px',padding:'10px 12px',marginBottom:'12px',fontSize:'10.5px',color:'#1e40af',lineHeight:1.5}}>{fySummaryPrintMode ? 'Grouped by pay period. Gross figures only — no tax or NI estimate, since that math needs the current year\'s context to be accurate.' : 'Tap a period to see individual shifts, this is a record not a working copy. Gross figures only'}</div>
+              <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'10px 12px',marginBottom:'12px',fontSize:'10.5px',color:'#1e40af',lineHeight:1.5}}>{fySummaryPrintMode ? 'Grouped by pay period. Gross figures only — no tax or NI estimate, since that math needs the current year\'s context to be accurate.' : 'Tap a period to see individual shifts, this is a record not a working copy. Gross figures only'}</div>
 
               {y.periods.length===0 ? (
                 <div style={{textAlign:'center',padding:'30px 10px',color:'var(--quiet)',fontSize:'13px',fontWeight:600}}>No entries recorded in this year.</div>
@@ -5668,19 +5668,19 @@ export default function App() {
                         <div style={{fontFamily:MONO,fontSize:'9.5px',color:'var(--quiet)',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)} · {p.entries.length} shift{p.entries.length===1?'':'s'}</div>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                        <div style={{fontFamily:MONO,fontWeight:600,fontSize:'12.5px',color:'#1e3a5f'}}>{fmtGBP(p.gross)}</div>
+                        <div style={{fontFamily:MONO,fontWeight:600,fontSize:'12.5px',color:'var(--text-navy)'}}>{fmtGBP(p.gross)}</div>
                         {!fySummaryPrintMode&&<Ico n={expanded?'cU':'cD'} s={14} c="#94a3b8"/>}
                       </div>
                     </div>
                     {expanded&&(
                       <div>
                         {p.entries.map(e=>(
-                          <div key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderTop:'1px solid #f8fafc',marginTop:'9px'}}>
+                          <div key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderTop:'1px solid var(--border-2)',marginTop:'9px'}}>
                             <div>
                               <div style={{fontWeight:800,fontSize:'11.5px',color:'var(--ink)'}}>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB')}</div>
                               <div style={{fontSize:'9.5px',color:'var(--quiet)',marginTop:'1px',textTransform:'uppercase'}}>{e.reason||'—'}</div>
                             </div>
-                            <div style={{fontFamily:MONO,fontWeight:600,fontSize:'11px',color:'#1e3a5f'}}>{fmtGBP(e.gross)}</div>
+                            <div style={{fontFamily:MONO,fontWeight:600,fontSize:'11px',color:'var(--text-navy)'}}>{fmtGBP(e.gross)}</div>
                           </div>
                         ))}
                       </div>
@@ -5697,11 +5697,11 @@ export default function App() {
       {chartModal&&(
         <div onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50,padding:'16px'}}>
           <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'var(--surface)',borderRadius:'20px',padding:'20px 16px',width:'100%',maxWidth:'480px',maxHeight:'85vh',overflow:'auto',position:'relative'}}>
-            <button onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',top:'14px',right:'14px',background:'var(--chip-bg)',border:'none',borderRadius:'50%',width:'30px',height:'30px',fontSize:'15px',fontWeight:900,color:'#475569',cursor:'pointer'}}>✕</button>
+            <button onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',top:'14px',right:'14px',background:'var(--chip-bg)',border:'none',borderRadius:'50%',width:'30px',height:'30px',fontSize:'15px',fontWeight:900,color:'var(--muted)',cursor:'pointer'}}>✕</button>
             <div style={{fontSize:'13px',fontWeight:900,color:'var(--ink)',marginBottom:'16px',paddingRight:'36px'}}>{chartModal==='cum'?'Cumulative Gross Earnings':'Monthly OT Gross/Net'}</div>
             {chartModal==='cum' ? renderCumulativeChart(true) : renderMonthlyChart(true)}
             {chartModal==='cum' && (
-              <div style={{textAlign:'center',marginTop:'10px',fontSize:'12px',fontWeight:700,color:'var(--muted)'}}>Running total: <strong style={{color:'#1e3a5f'}}>£{totals.totalGross.toFixed(2)}</strong></div>
+              <div style={{textAlign:'center',marginTop:'10px',fontSize:'12px',fontWeight:700,color:'var(--muted)'}}>Running total: <strong style={{color:'var(--text-navy)'}}>£{totals.totalGross.toFixed(2)}</strong></div>
             )}
             {chartModal==='mon' && (
               <div style={{display:'flex',justifyContent:'center',gap:'20px',marginTop:'14px'}}>
@@ -5758,22 +5758,22 @@ export default function App() {
                           than being folded into the submission-tracking system
                           at all. */}
                       {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
-                        <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#cbd5e1',color:'#334155',textTransform:'uppercase',letterSpacing:'0.5px'}}>ⓘ Shift Record — No OT Claim</div>
+                        <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--border)',color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.5px'}}>ⓘ Shift Record — No OT Claim</div>
                       )}
                       {(()=>{ const xp = crossPeriodInfo(e); return xp && (
-                        <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'#e0e7ff',color:'#4338ca',textTransform:'uppercase',letterSpacing:'0.5px'}}>↷ {xp.both?'OT & PA':xp.ot?'OT':'PA'} Counted in {xp.label}</div>
+                        <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-indigo)',color:'var(--text-indigo-deep)',textTransform:'uppercase',letterSpacing:'0.5px'}}>↷ {xp.both?'OT & PA':xp.ot?'OT':'PA'} Counted in {xp.label}</div>
                       ); })()}
                     </div>
                     <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
                       <button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button>
-                      <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} style={{background:confirmDel===e.id?'#fee2e2':'#fef2f2',border:confirmDel===e.id?'1.5px solid #fca5a5':'1.5px solid transparent',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button>
+                      <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} style={{background:confirmDel===e.id?'var(--tint-red)':'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button>
                     </div>
                   </div>
 
                   {/* delete confirmation */}
                   {confirmDel===e.id&&(
-                    <div style={{background:'var(--tint-red)',border:'1px solid #fecaca',borderRadius:'10px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
-                      <span style={{fontSize:isWide?'14px':'12px',fontWeight:700,color:'#991b1b'}}>Delete this record?</span>
+                    <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
+                      <span style={{fontSize:isWide?'14px':'12px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this record?</span>
                       <div style={{display:'flex',gap:'7px',flexShrink:0}}>
                         <button onClick={()=>setConfirmDel(null)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:isWide?'7px 15px':'5px 12px',fontSize:isWide?'13px':'11px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
                         <button onClick={()=>{ delEntry(e.id); if(selectedCalDay.dEntries.length<=1) setSelectedCalDay(null); }} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:isWide?'7px 15px':'5px 12px',fontSize:isWide?'13px':'11px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
@@ -5784,48 +5784,48 @@ export default function App() {
                   {/* notes — sits directly under Duty/Reason, separated from the pay breakdown below.
                       Skipped entirely when there are no notes, so no empty labelled block appears. */}
                   {e.comments&&(
-                    <div style={{borderTop:'1px solid #e2e8f0',paddingTop:'10px',marginBottom:'10px'}}>
+                    <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'10px',marginBottom:'10px'}}>
                       <div style={{fontSize:isWide?'11px':'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>Notes</div>
-                      <div style={{fontSize:isWide?'13px':'11px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid #bfdbfe',paddingLeft:'8px',whiteSpace:'pre-wrap',overflowWrap:'anywhere',lineHeight:1.5}}>{e.comments}</div>
+                      <div style={{fontSize:isWide?'13px':'11px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid var(--border-2)',paddingLeft:'8px',whiteSpace:'pre-wrap',overflowWrap:'anywhere',lineHeight:1.5}}>{e.comments}</div>
                     </div>
                   )}
 
                   {/* pay breakdown — each line shows its own value, matching List View */}
-                  <div style={{borderTop:'1px solid #e2e8f0',paddingTop:'10px'}}>
+                  <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'10px'}}>
                     <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
                       {c.payH1>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#475569'}}>{c.payH1}h @ 1.33x {c.toilH>0&&c.otRateTier==='hours133'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r133.toFixed(2)}/hr)</span></span>
-                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot1.toFixed(2)}</span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{c.payH1}h @ 1.33x {c.toilH>0&&c.otRateTier==='hours133'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r133.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot1.toFixed(2)}</span>
                         </div>
                       )}
                       {c.payH2>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#475569'}}>{c.payH2}h @ 1.5x {c.toilH>0&&c.otRateTier==='hours150'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r150.toFixed(2)}/hr)</span></span>
-                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot2.toFixed(2)}</span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{c.payH2}h @ 1.5x {c.toilH>0&&c.otRateTier==='hours150'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r150.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot2.toFixed(2)}</span>
                         </div>
                       )}
                       {c.payH3>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#475569'}}>{c.payH3}h @ 2.0x {c.toilH>0&&c.otRateTier==='hours200'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r200.toFixed(2)}/hr)</span></span>
-                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#1e3a5f'}}>£{c.ot3.toFixed(2)}</span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{c.payH3}h @ 2.0x {c.toilH>0&&c.otRateTier==='hours200'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r200.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot3.toFixed(2)}</span>
                         </div>
                       )}
                       {c.toilH>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                           <span style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:600,color:'#6d28d9'}}>{fmtHM(c.toilH)}h @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
-                          <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11px',fontWeight:600,color:'#4c1d95'}}>{fmtHM(c.toilBanked)}h banked</span>
+                          <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHM(c.toilBanked)}h banked</span>
                         </div>
                       )}
                       {e.paRate!=='None'&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                           <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#b45309'}}>{e.paRate} allowance</span>
-                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'#92400e'}}>£{c.pa.toFixed(2)}</span>
+                          <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'var(--text-amber-deep)'}}>£{c.pa.toFixed(2)}</span>
                         </div>
                       )}
                     </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px',borderTop:'1px solid #e2e8f0',paddingTop:'8px',marginTop:'8px'}}>
-                      <div><div style={{fontSize:isWide?'11px':'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div><div style={{fontWeight:900,fontSize:isWide?'16px':'13px',color:'#1e3a5f'}}>{fmt(c.gross)}</div></div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px',borderTop:'1px solid var(--border-2)',paddingTop:'8px',marginTop:'8px'}}>
+                      <div><div style={{fontSize:isWide?'11px':'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div><div style={{fontWeight:900,fontSize:isWide?'16px':'13px',color:'var(--text-navy)'}}>{fmt(c.gross)}</div></div>
                       <div style={{textAlign:'right'}}><div style={{fontSize:isWide?'11px':'9px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div><div style={{fontWeight:900,fontSize:isWide?'16px':'13px',color:'#059669'}}>{fmt(eNet)}</div></div>
                     </div>
                   </div>
@@ -5873,7 +5873,7 @@ export default function App() {
             {t.id==='add' ? (
               <span className="nav-add-pulse nav-ico-add" style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
             ) : (
-              <span className="nav-ico" style={{display:'flex'}}><Ico n={t.n} s={18} c={tab===t.id?'#2563eb':'#94a3b8'} w={tab===t.id?2.5:2}/></span>
+              <span className="nav-ico" style={{display:'flex'}}><Ico n={t.n} s={18} c={tab===t.id?'#2563eb':'var(--quiet)'} w={tab===t.id?2.5:2}/></span>
             )}
             <span style={S.nLbl} className={`nav-lbl${t.id==='add'?' nav-add-pulse':''}`}>{t.lbl}</span>
           </button>

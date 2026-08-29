@@ -54,6 +54,16 @@
         --tint-amber:#fffbeb;
         --tint-amber-2:#fef3c7;
         --tint-teal:#f0fdfa;
+        --text-navy:#1e3a5f;
+        --text-red-deep:#991b1b;
+        --text-green-deep:#166534;
+        --text-purple-deep:#4c1d95;
+        --text-amber-deep:#92400e;
+        --tint-blue-2:#dbeafe;
+        --tint-brass:#faf3e8;
+        --tint-indigo:#e0e7ff;
+        --text-indigo-deep:#4338ca;
+        --surface-red-mid:#fca5a5;
       }
       @media (prefers-color-scheme: dark){
         :root:not([data-theme="light"]){
@@ -75,6 +85,16 @@
           --tint-amber:#2b2110;
           --tint-amber-2:#332714;
           --tint-teal:#0e2b2a;
+          --text-navy:#9fc0e6;
+          --text-red-deep:#f3a9a9;
+          --text-green-deep:#86e0ae;
+          --text-purple-deep:#cbb8f7;
+          --text-amber-deep:#f3c58c;
+          --tint-blue-2:#16314f;
+          --tint-brass:#2e2415;
+          --tint-indigo:#1c1f3d;
+          --text-indigo-deep:#a9b3f5;
+          --surface-red-mid:#5c2020;
         }
       }
       :root[data-theme="dark"]{
@@ -96,8 +116,28 @@
         --tint-amber:#2b2110;
         --tint-amber-2:#332714;
         --tint-teal:#0e2b2a;
+        --text-navy:#9fc0e6;
+        --text-red-deep:#f3a9a9;
+        --text-green-deep:#86e0ae;
+        --text-purple-deep:#cbb8f7;
+        --text-amber-deep:#f3c58c;
+        --tint-blue-2:#16314f;
+        --tint-brass:#2e2415;
+        --tint-indigo:#1c1f3d;
+        --text-indigo-deep:#a9b3f5;
+        --surface-red-mid:#5c2020;
       }
       html,body,#root{background:var(--page-bg)}
+
+      /* Native form elements (input/select/textarea) don't inherit
+         anything from the page by default - the browser paints them
+         white regardless of theme unless told otherwise. Most of them
+         in the app get an explicit background inline already, which
+         (being an inline style) always wins over this rule; this is
+         just the safety net for ones that only set a border colour
+         and never touch background/color, so they'd otherwise stay a
+         bright native-white box in dark mode. */
+      input, select, textarea{background:var(--surface);color:var(--ink)}
     </style>
   </head>
   <body>
