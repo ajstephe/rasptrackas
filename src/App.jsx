@@ -3062,8 +3062,8 @@ export default function App() {
                       {renderMonthlyChart(false, false, isWide)}
                     </div>
                     <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</span></div>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#ef4444',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1px'}}>Net</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.8px'}}>Gross</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#ef4444',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.8px'}}>Net</span></div>
                     </div>
                     <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'#94a3b8'}}>Tap any point for that period's figure</div>
                   </div>
@@ -3536,13 +3536,13 @@ export default function App() {
                       {form.takeAs==='mix' && (
                         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'12px'}}>
                           <div style={{background:'#eff6ff',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                            <div style={{fontSize:'9px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:'6px'}}>Pay Hours</div>
+                            <div style={{fontSize:'9px',fontWeight:900,color:'#1e40af',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Pay Hours</div>
                             <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'#fff',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'#0f172a'}}
                               value={payH.toFixed(2).replace(/\.00$/,'')}
                               onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(total-v)}); }}/>
                           </div>
                           <div style={{background:'#f5f3ff',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                            <div style={{fontSize:'9px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:'6px'}}>TOIL Hours</div>
+                            <div style={{fontSize:'9px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>TOIL Hours</div>
                             <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'#fff',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'#0f172a'}}
                               value={toilH.toFixed(2).replace(/\.00$/,'')}
                               onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(v)}); }}/>
@@ -4709,7 +4709,7 @@ export default function App() {
               <div style={{marginBottom:'13px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'7px'}}>
                   <label style={{...S.lbl,marginBottom:0}}>Rank</label>
-                  {!settings.rank&&<span style={{fontSize:'9px',fontWeight:900,color:'#dc2626',background:'#fee2e2',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Start here</span>}
+                  {!settings.rank&&<span style={{fontSize:'9px',fontWeight:900,color:'#dc2626',background:'#fee2e2',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'1px'}}>Start here</span>}
                 </div>
                 <div className={!settings.rank?'setup-pulse-urgent':''} style={{borderRadius:'13px'}}>
                   <select style={{...S.sel,border: !settings.rank ? '2px solid #dc2626' : '1px solid #e2e8f0',fontWeight: !settings.rank ? 900 : 700}} value={settings.rank} onChange={e=>{
@@ -4726,7 +4726,7 @@ export default function App() {
                 <div>
                   <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'7px'}}>
                     <label style={{...S.lbl,marginBottom:0}}>Pay Point</label>
-                    {!settings.service&&<span style={{fontSize:'9px',fontWeight:900,color:'#dc2626',background:'#fee2e2',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Now this</span>}
+                    {!settings.service&&<span style={{fontSize:'9px',fontWeight:900,color:'#dc2626',background:'#fee2e2',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'1px'}}>Now this</span>}
                   </div>
                   <div className={!settings.service?'setup-pulse-urgent':''} style={{borderRadius:'13px'}}>
                     <select style={{...S.sel,border: !settings.service ? '2px solid #dc2626' : '1px solid #e2e8f0',fontWeight: !settings.service ? 900 : 700}} value={settings.service} onChange={e=>saveSett({...settings,service:e.target.value})}>
@@ -4748,7 +4748,7 @@ export default function App() {
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
                       {[['Pre 1 Sep 2026','pre','#64748b','#f8fafc'],['From 1 Sep 2026','post','#2563eb','#fff']].map(([label,key,col,bg])=>(
                         <div key={key} style={{background:bg,borderRadius:'12px',padding:'12px',border:key==='post'?'1.5px solid #bfdbfe':'1px solid #f1f5f9'}}>
-                          <div style={{fontSize:'9px',fontWeight:900,color:col,textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'8px'}}>{label}</div>
+                          <div style={{fontSize:'9px',fontWeight:900,color:col,textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'8px'}}>{label}</div>
                           {['Base','1.33x','1.5x','2.0x'].map((lbl,i)=>(
                             <div key={lbl} style={{display:'flex',justifyContent:'space-between',marginBottom:'4px'}}>
                               <span style={{fontSize:'10px',fontWeight:700,color:'#64748b'}}>{lbl}</span>
@@ -4760,7 +4760,7 @@ export default function App() {
                     </div>
 
                     <div style={{borderTop:'1px solid #dbeafe',marginTop:'16px',paddingTop:'14px'}}>
-                      <div style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.2px',marginBottom:'10px'}}>Published Pay Scales</div>
+                      <div style={{fontSize:'9px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'10px'}}>Published Pay Scales</div>
                       {['Constable','Sergeant'].map(rank=>(
                         <div key={rank} style={{marginBottom: rank==='Constable' ? '16px' : 0}}>
                           <div style={{fontSize:'10px',fontWeight:900,color:'#1e3a5f',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'7px'}}>{rank}</div>
@@ -4896,18 +4896,18 @@ export default function App() {
 
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
                         <div style={{background:overA?'#fef2f2':'#f0fdf4',border:`1px solid ${overA?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
-                          <div style={{fontSize:'9px',fontWeight:900,color:overA?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'3px'}}>Extra Tax</div>
+                          <div style={{fontSize:'9px',fontWeight:900,color:overA?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'3px'}}>Extra Tax</div>
                           <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:overA?'#991b1b':'#166534'}}>{fmtGBP(extraTaxA)}</div>
                         </div>
                         <div style={{background:overF?'#fef2f2':'#f0fdf4',border:`1px solid ${overF?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
-                          <div style={{fontSize:'9px',fontWeight:900,color:overF?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'3px'}}>Extra Tax</div>
+                          <div style={{fontSize:'9px',fontWeight:900,color:overF?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'3px'}}>Extra Tax</div>
                           <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:overF?'#991b1b':'#166534'}}>{fmtGBP(extraTaxF)}</div>
                         </div>
                       </div>
 
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
                         <div onClick={()=>{ setTaxCalcActualDetailOpen(v=>!v); setTaxCalcForecastDetailOpen(false); }} style={{background:overA?'#fef2f2':'#f0fdf4',border:`1px solid ${overA?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'10px',cursor:'pointer'}}>
-                          <div style={{fontSize:'9px',fontWeight:900,color:overA?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'6px'}}>Calculations</div>
+                          <div style={{fontSize:'9px',fontWeight:900,color:overA?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Calculations</div>
                           {overA ? (
                             <div style={{fontSize:'9.5px',color:'#991b1b',lineHeight:1.7}}>
                               Run-rate: {fmtGBP(annualisedFromYTD)}/yr<br/>
@@ -4921,7 +4921,7 @@ export default function App() {
                           <div style={{fontSize:'8.5px',fontWeight:800,color:overA?'#dc2626':'#059669',textDecoration:'underline',marginTop:'8px',textAlign:'center'}}>{taxCalcActualDetailOpen?'Showing full breakdown below':'Tap to see full breakdown'}</div>
                         </div>
                         <div onClick={()=>{ setTaxCalcForecastDetailOpen(v=>!v); setTaxCalcActualDetailOpen(false); }} style={{background:overF?'#fef2f2':'#f0fdf4',border:`1px solid ${overF?'#fecaca':'#bbf7d0'}`,borderRadius:'11px',padding:'10px',cursor:'pointer'}}>
-                          <div style={{fontSize:'9px',fontWeight:900,color:overF?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'6px'}}>Calculations</div>
+                          <div style={{fontSize:'9px',fontWeight:900,color:overF?'#991b1b':'#166534',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Calculations</div>
                           {overF ? (
                             <div style={{fontSize:'9.5px',color:'#991b1b',lineHeight:1.7}}>
                               {fmtGBP(taxableGrossF)} taxable (after pension)<br/>
@@ -5042,7 +5042,7 @@ export default function App() {
                             <div style={{fontSize:'10px',color:'#94a3b8',marginTop:'1px'}}>{yPeriods[0].month} – {yPeriods[11].month}</div>
                           </div>
                           {isCurrent
-                            ? <span style={{fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.5px',padding:'2px 7px',borderRadius:'20px',background:'#2563eb',color:'#fff'}}>Current</span>
+                            ? <span style={{fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1px',padding:'2px 7px',borderRadius:'20px',background:'#2563eb',color:'#fff'}}>Current</span>
                             : <Ico n="cR" s={14} c="#94a3b8"/>}
                         </div>
                       );
@@ -5401,7 +5401,7 @@ export default function App() {
 
               {payslipMode==='period' ? (
                 <>
-                  <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.2px',marginBottom:'8px'}}>Pay Periods</div>
+                  <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'8px'}}>Pay Periods</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'7px',marginBottom:'6px'}}>
                     {periodChoices.map(p=>(
                       <div key={p.idx} onClick={()=>setPayslipPeriodIdx(p.idx)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:p.idx===payslipPeriodIdx?'1.5px solid #2563eb':'1.5px solid #f1f5f9',background:p.idx===payslipPeriodIdx?'#eff6ff':'#fff',cursor:'pointer'}}>
@@ -5418,7 +5418,7 @@ export default function App() {
                 </>
               ) : payslipMode==='custom' ? (
                 <>
-                  <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.2px',marginBottom:'8px'}}>Custom Range</div>
+                  <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'8px'}}>Custom Range</div>
                   <div style={{display:'flex',gap:'10px',marginBottom:'6px'}}>
                     <div style={{flex:1}}>
                       <label style={{display:'block',fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Start</label>
@@ -5433,7 +5433,7 @@ export default function App() {
                 </>
               ) : (
                 <>
-                  <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'1.2px',marginBottom:'8px'}}>Financial Year</div>
+                  <div style={{fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'8px'}}>Financial Year</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'7px',marginBottom:'6px'}}>
                     {[CURRENT_FY_YEAR, ...yearsWithData].map(y=>{
                       const yPeriods = generateFYPeriods(y);
@@ -5480,7 +5480,7 @@ export default function App() {
         const hasOT = d.rateHrs.hours133>0 || d.rateHrs.hours150>0 || d.rateHrs.hours200>0;
         const hasPA = d.paCounts.PA1>0 || d.paCounts.PA2>0 || d.paCounts.PA3>0;
         const rowStyle = {padding:'7px 0',borderBottom:'1px solid #f8fafc'};
-        const thStyle = {textAlign:'left',fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.6px',padding:'4px 0',borderBottom:'1px solid #f1f5f9'};
+        const thStyle = {textAlign:'left',fontSize:'9px',fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.8px',padding:'4px 0',borderBottom:'1px solid #f1f5f9'};
         const sectionTitle = {fontSize:'10.5px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.2px',margin:'20px 0 8px',paddingTop:'14px',borderTop:'1px solid #f1f5f9'};
         return (
           <div className="payslip-print-area" style={{position:'absolute',inset:0,background:'#e2e8f0',zIndex:70,overflowY:'auto',padding:'16px'}}>
@@ -5612,12 +5612,12 @@ export default function App() {
               <div style={{fontFamily:MONO,fontSize:'9.5px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
               <div style={{background:'#1e3a5f',borderRadius:'14px',padding:'14px',display:'flex',marginTop:'12px'}}>
                 <div style={{flex:1,textAlign:'center'}}>
-                  <div style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase'}}>Shifts Logged</div>
+                  <div style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.8px'}}>Shifts Logged</div>
                   <div style={{fontSize:'20px',fontWeight:900}}>{y.totalShifts}</div>
                 </div>
                 <div style={{width:'1px',background:'rgba(255,255,255,0.15)'}}/>
                 <div style={{flex:1,textAlign:'center'}}>
-                  <div style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase'}}>Gross</div>
+                  <div style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.8px'}}>Gross</div>
                   <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600}}>{fmtGBP(y.totalGross)}</div>
                 </div>
               </div>
