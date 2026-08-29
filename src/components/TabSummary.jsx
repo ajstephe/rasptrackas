@@ -248,13 +248,14 @@ export function TabSummary({
                   </div>
                 );
               })()}
-              {!isExp&&(
-                <div style={{fontSize:'11.5px',fontWeight:700,color:BRASS,textAlign:'right',marginTop:'11px'}}>Tap to see more →</div>
-              )}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'4px',fontSize:'11.5px',fontWeight:700,color:BRASS,marginTop:'11px'}}>
+                {isExp?'Tap to collapse':'Tap to see more'}
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={BRASS} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:isExp?'rotate(180deg)':'rotate(0deg)',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
             </button>
 
             {isExp&&(
-              <div style={{background:'var(--surface-2)',borderTop:'1px solid var(--border-2)',padding:'13px'}}>
+              <div className="fi" style={{background:'var(--surface-2)',borderTop:'1px solid var(--border-2)',padding:'13px'}}>
                 {/* month summary — net figures now use cumulative marginal tax, rate shown.
                     Desktop: OT Pay and PA keep their own bordered boxes side by side (this
                     card already spans both grid columns once expanded, so there's room).
