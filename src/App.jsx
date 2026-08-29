@@ -2495,15 +2495,15 @@ export default function App() {
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'10px'}}>
         <div>
           <div style={{fontSize:'11px',fontWeight:900,color:'#bfdbfe',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'3px'}}>Gross OT</div>
-          <div style={{fontSize:'18px',fontWeight:900,color:'#fff'}}>{fmt(totals.totalGross)}</div>
+          <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#fff'}}>{fmt(totals.totalGross)}</div>
         </div>
         <div>
           <div style={{fontSize:'11px',fontWeight:900,color:'var(--border-2)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'3px'}}>Net OT</div>
-          <div style={{fontSize:'18px',fontWeight:900,color:'#dcfce7'}}>{fmt(totals.totalNet)}</div>
+          <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#dcfce7'}}>{fmt(totals.totalNet)}</div>
         </div>
         <div>
           <div style={{fontSize:'11px',fontWeight:900,color:'#bfdbfe',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'3px'}}>Hours</div>
-          <div style={{fontSize:'18px',fontWeight:900,color:'#fff',display:'flex',alignItems:'center',gap:'5px'}}><Ico n="clock" s={13} c="rgba(255,255,255,0.6)"/>{totals.totalHrs.toFixed(1)}</div>
+          <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#fff',display:'flex',alignItems:'center',gap:'5px'}}><Ico n="clock" s={13} c="rgba(255,255,255,0.6)"/>{totals.totalHrs.toFixed(1)}</div>
         </div>
       </div>
     </div>
