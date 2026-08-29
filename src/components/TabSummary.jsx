@@ -226,8 +226,8 @@ export function TabSummary({
                 </div>
               </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                <div><div style={{fontSize:'11px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'19px',color:'var(--text-navy)'}}>{fmt(totG)}</div></div>
-                <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'19px',color:'#059669'}}>{fmt(totN)}</div></div>
+                <div><div style={{fontSize:'11px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'19px',color:'var(--text-navy)'}}>{fmt(totG)}</div></div>
+                <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'19px',color:'#059669'}}>{fmt(totN)}</div></div>
               </div>
               {(() => {
                 const g = carmsOutstanding.groups.find(g=>g.periodIdx===idx);
@@ -371,8 +371,8 @@ export function TabSummary({
                             )}
                           </div>
                           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'5px',borderTop:'1px solid var(--border-2)',paddingTop:'8px',marginTop:'8px'}}>
-                            <div><div style={{fontSize:'11px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div><div style={{fontWeight:900,fontSize:'15px',color:'var(--text-navy)'}}>{fmt(c.gross)}</div></div>
-                            <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div><div style={{fontWeight:900,fontSize:'15px',color:'#059669'}}>{fmt(eNet)}</div></div>
+                            <div><div style={{fontSize:'11px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'15px',color:'var(--text-navy)'}}>{fmt(c.gross)}</div></div>
+                            <div style={{textAlign:'right'}}><div style={{fontSize:'11px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'15px',color:'#059669'}}>{fmt(eNet)}</div></div>
                           </div>
                         </div>
                       </div>
@@ -728,8 +728,8 @@ export function TabSummary({
 
             <div style={{...S.card,marginTop:'9px'}}>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                <div><div style={{fontSize:'14px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontWeight:900,fontSize:'23px',color:'var(--text-navy)'}}>{fmt(pb.combinedGross)}</div></div>
-                <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontWeight:900,fontSize:'23px',color:'#059669'}}>{fmt(pb.combinedNet)}</div></div>
+                <div><div style={{fontSize:'14px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'23px',color:'var(--text-navy)'}}>{fmt(pb.combinedGross)}</div></div>
+                <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'23px',color:'#059669'}}>{fmt(pb.combinedNet)}</div></div>
               </div>
             </div>
             {renderFYTotalsCard()}
