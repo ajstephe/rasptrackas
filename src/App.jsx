@@ -35,6 +35,7 @@ import { Ico, ClockCashIcon, FireExitIcon } from './components/Icons.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
 import { SegSlider } from './components/SegSlider.jsx';
 import { MonthlyChart } from './components/MonthlyChart.jsx';
+import { useEscapeToClose } from './lib/useEscapeToClose.js';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
 // Only one of these six is ever on screen at a time (via `tab` state below),
 // so there's no reason all six ship in the initial JS payload. Each becomes
@@ -659,6 +660,25 @@ export default function App() {
   // shown, independent of the selected value so browsing doesn't move it.
   const [datePickerFor, setDatePickerFor] = useState(null);
   const [datePickerMonth, setDatePickerMonth] = useState(todayStr.slice(0,7));
+
+  // ── Escape closes whatever's open ───────────────────────────────────────
+  // Every dismissible overlay in the app could so far only be closed by
+  // clicking its backdrop or an explicit button — a standard desktop
+  // affordance (and this app genuinely has a desktop layout, not just
+  // mobile) that had only ever been built for the time wheel picker.
+  // Mirrors each overlay's own backdrop-click behaviour exactly, including
+  // the Settings popovers closing all five expand flags at once.
+  useEscapeToClose(signOutConfirmOpen, () => setSignOutConfirmOpen(false));
+  useEscapeToClose(restoreConfirmOpen, () => setRestoreConfirmOpen(false));
+  useEscapeToClose(payslipModalOpen, () => setPayslipModalOpen(false));
+  useEscapeToClose(chartModal, () => { setChartModal(null); setChartTap(null); });
+  useEscapeToClose(confirmCreateDay, () => setConfirmCreateDay(null));
+  useEscapeToClose(selectedCalDay, () => { setSelectedCalDay(null); setConfirmDel(null); });
+  useEscapeToClose(datePickerFor, () => setDatePickerFor(null));
+  useEscapeToClose(
+    configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded,
+    () => { setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }
+  );
   const notesRef = useRef(null);
   // What's already been pushed to Supabase, keyed by row id — compared
   // against on every local change so only genuinely new/edited/removed
@@ -2979,6 +2999,14 @@ export default function App() {
         input,select,textarea{font-size:16px}
         button:active{opacity:0.8;transform:scale(0.96)}
         input[type=date]{-webkit-appearance:none;appearance:none;color-scheme:light;line-height:1.2}
+        /* Same theme-detection pattern as every custom property in
+           index.html — without this, the OS's native date-picker icon and
+           popup stay light-themed even in dark mode, exactly the bug the
+           old TimeSelect had before it was rebuilt. */
+        @media (prefers-color-scheme: dark){
+          :root:not([data-theme="light"]) input[type=date]{color-scheme:dark}
+        }
+        :root[data-theme="dark"] input[type=date]{color-scheme:dark}
         input[type=date]::-webkit-date-and-time-value{text-align:left}
         input[type=date]::-webkit-datetime-edit{padding:0}
         input[type=date]::-webkit-calendar-picker-indicator{background:transparent;cursor:pointer;opacity:0.55;padding:0;margin:0}
