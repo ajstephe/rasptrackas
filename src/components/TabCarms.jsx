@@ -35,7 +35,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
 
         {/* ── navy statement header ── */}
         <div style={{background:'var(--navy)',padding:'22px 20px',position:'relative',overflow:'hidden'}}>
-          <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'#c9a35f',marginBottom:'10px'}}>Outstanding</div>
+          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f',marginBottom:'10px'}}>Outstanding</div>
           <div style={{fontFamily:MONO,fontSize:'28px',fontWeight:600,color:'#fff',letterSpacing:'-0.02em',marginBottom:'9px'}}>{fmtGBP(animatedTotal)}</div>
           <div style={{width:'38px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'12px'}}/>
           <div style={{fontSize:'11px',color:'#93c5fd',fontWeight:600,lineHeight:1.5}}>Spacing out your overtime for a steadier payday, or quietly dodging the taxman as £100k creeps closer — either way, good thinking. This is everything still sitting unclaimed in CARMS and PA, so nothing gets left behind.</div>
@@ -55,7 +55,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
             <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'13px 0'}}>
-            <div style={{width:'32px',height:'32px',borderRadius:'10px',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
+            <div style={{width:'32px',height:'32px',borderRadius:'13px',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
             <div style={{flex:1,fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Claims</div>
             <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--ink)'}}>{carmsOutstanding.totalClaims}</div>
           </div>
@@ -71,7 +71,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
           </div>
         ) : (
           <div style={{padding:'0 20px 18px'}}>
-            <div style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'10px 12px',fontSize:'11px',color:'var(--text-amber-deep)',lineHeight:1.5,margin:'10px 0 14px'}}>
+            <div style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'10px 12px',fontSize:'11px',color:'var(--text-amber-deep)',lineHeight:1.5,margin:'10px 0 14px'}}>
               This {fmtGBP(carmsOutstanding.totalAmount)} isn't in your Total Gross YTD yet — it only counts once it's been marked as submitted on the Log Overtime screen.
             </div>
 
