@@ -386,8 +386,9 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
   // mounts — the same moment the .fi entrance animation below is still
   // moving the card into place — which can race a password manager's
   // suggestion popover right as it's trying to anchor itself to the field.
-  const pwField = (value, onChange, placeholder, autoComplete, onAnimationStart) => (
+  const pwField = (value, onChange, placeholder, autoComplete, fieldId, onAnimationStart) => (
     <input
+      id={fieldId} name={fieldId}
       style={AS.input}
       type="password" placeholder={placeholder} value={value} onChange={onChange}
       autoComplete={autoComplete} onAnimationStart={onAnimationStart}
@@ -427,11 +428,19 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
 
         {screen === 'signin' && (
           <div className="fi">
+            {/* autoComplete="username" here, not "email" — Safari treats
+                autocomplete=email as a Contacts-card field (its separate
+                Contact Info autofill system), not a login identifier, so it
+                was offering to fill your name/address instead of pairing
+                this field with the password field below for a Keychain
+                credential match. "username" is what both Safari's and
+                Chrome's own guidance recommend for a login form's identifier
+                field, even when it's styled/typed as an email address. */}
             <form onSubmit={e=>{e.preventDefault(); handleSignIn();}}>
               <label style={AS.label}>Email</label>
-              <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" onAnimationStart={handleAutofill(setEmail)}/>
+              <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)}/>
               <label style={AS.label}>Password</label>
-              {pwField(password, e=>setPassword(e.target.value), '••••••••', 'current-password', handleAutofill(setPassword))}
+              {pwField(password, e=>setPassword(e.target.value), '••••••••', 'current-password', 'current-password', handleAutofill(setPassword))}
               {error && <div style={AS.err}>{error}</div>}
               <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Signing in…':'Sign in'}</button>
             </form>
@@ -445,11 +454,11 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
           <div className="fi">
             <form onSubmit={e=>{e.preventDefault(); handleSignUp();}}>
               <label style={AS.label}>Email</label>
-              <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" onAnimationStart={handleAutofill(setEmail)}/>
+              <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)}/>
               <label style={AS.label}>Password</label>
-              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', handleAutofill(setPassword))}
+              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', 'new-password', handleAutofill(setPassword))}
               <label style={AS.label}>Confirm password</label>
-              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', handleAutofill(setPassword2))}
+              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', 'new-password-confirm', handleAutofill(setPassword2))}
               <div style={AS.note}>
                 <span>↻</span>
                 <span><b>You'll set up a recovery secret next.</b> That protects your data if you ever forget your password.</span>
@@ -484,7 +493,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>We'll email you a secure link to set a new password.</div>
             <form onSubmit={e=>{e.preventDefault(); handleForgotRequest();}}>
               <label style={AS.label}>Email</label>
-              <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" onAnimationStart={handleAutofill(setEmail)}/>
+              <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)}/>
               {error && <div style={AS.err}>{error}</div>}
               <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Sending…':'Send reset link'}</button>
             </form>
@@ -506,9 +515,9 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Choose a new password for your account.</div>
             <form onSubmit={e=>{e.preventDefault(); handleSetNewPassword();}}>
               <label style={AS.label}>New password</label>
-              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', handleAutofill(setPassword))}
+              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', 'new-password', handleAutofill(setPassword))}
               <label style={AS.label}>Confirm new password</label>
-              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', handleAutofill(setPassword2))}
+              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', 'new-password-confirm', handleAutofill(setPassword2))}
               {error && <div style={AS.err}>{error}</div>}
               <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Saving…':'Set new password'}</button>
             </form>
