@@ -193,6 +193,11 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
   const [error, setError]           = useState('');
   const [forgotSent, setForgotSent] = useState(false);
   const [noRecoveryWarning, setNoRecoveryWarning] = useState(false);
+  // Show/hide toggles for the two password fields — shared across screens
+  // (only one screen is ever mounted at a time, so there's no cross-talk
+  // between e.g. signup's password and set-new-password's).
+  const [showPw, setShowPw] = useState(false);
+  const [showPw2, setShowPw2] = useState(false);
 
   const AS = {
     // Dark blue page — deliberately different from the rest of the app's
@@ -364,8 +369,29 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
     }
   };
 
+  // Password field with a show/hide toggle \u2014 every plain type="password"
+  // input on this screen went through this, rather than duplicating the
+  // wrapper+button markup five times over. autoFocus is opt-in per call
+  // since only one field per screen should ever carry it.
+  const pwField = (value, onChange, placeholder, autoComplete, show, setShow, autoFocus=false) => (
+    <div style={{position:'relative',marginBottom:'14px'}}>
+      <input style={{...AS.input,marginBottom:0,paddingRight:'44px'}} type={show?'text':'password'} placeholder={placeholder} value={value} onChange={onChange} autoComplete={autoComplete} autoFocus={autoFocus}/>
+      <button type="button" onClick={()=>setShow(v=>!v)} aria-label={show?'Hide password':'Show password'} style={{position:'absolute',right:'4px',top:0,bottom:0,background:'none',border:'none',padding:'0 10px',cursor:'pointer',display:'flex',alignItems:'center',color:'var(--quiet)'}}>
+        <Ico n={show?'eyeOff':'eye'} s={16} c="var(--quiet)"/>
+      </button>
+    </div>
+  );
+
   return (
     <div style={AS.page}>
+      {/* This screen is an early return, before the main app's own <style>
+          block (which defines .fi) ever mounts — without its own copy here,
+          the className="fi" on each screen below would silently do nothing. */}
+      <style>{`
+        @keyframes authFi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        .fi{animation:authFi 0.22s ease}
+        @media (prefers-reduced-motion: reduce){.fi{animation-duration:0.001ms}}
+      `}</style>
       <div style={AS.cardWrap}>
       <div style={AS.card}>
         {/* Title lives inside the card itself on this screen, rather than
@@ -380,101 +406,113 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
         </div>
 
         {screen === 'signin' && (
-          <>
-            <label style={AS.label}>Email</label>
-            <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
-            <label style={AS.label}>Password</label>
-            <input style={AS.input} type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password"/>
-            {error && <div style={AS.err}>{error}</div>}
-            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignIn}>{busy?'Signing in…':'Sign in'}</button>
+          <div className="fi">
+            <form onSubmit={e=>{e.preventDefault(); handleSignIn();}}>
+              <label style={AS.label}>Email</label>
+              <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" autoFocus={isWide}/>
+              <label style={AS.label}>Password</label>
+              {pwField(password, e=>setPassword(e.target.value), '••••••••', 'current-password', showPw, setShowPw)}
+              {error && <div style={AS.err}>{error}</div>}
+              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Signing in…':'Sign in'}</button>
+            </form>
             <div style={AS.divider}>or</div>
-            <button style={AS.btnGhost} onClick={()=>{ setScreen('signup'); setError(''); }}>Create account</button>
+            <button type="button" style={AS.btnGhost} onClick={()=>{ setScreen('signup'); setError(''); }}>Create account</button>
             <div style={AS.linkRow}><span style={AS.link} onClick={()=>{ setScreen('forgot'); setError(''); setForgotSent(false); }}>Forgot password?</span></div>
-          </>
+          </div>
         )}
 
         {screen === 'signup' && (
-          <>
-            <label style={AS.label}>Email</label>
-            <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
-            <label style={AS.label}>Password</label>
-            <input style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
-            <label style={AS.label}>Confirm password</label>
-            <input style={AS.input} type="password" placeholder="••••••••" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
-            <div style={AS.note}>
-              <span>↻</span>
-              <span><b>You'll set up a recovery secret next.</b> That protects your data if you ever forget your password.</span>
-            </div>
-            {error && <div style={AS.err}>{error}</div>}
-            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignUp}>{busy?'Creating…':'Create account'}</button>
+          <div className="fi">
+            <form onSubmit={e=>{e.preventDefault(); handleSignUp();}}>
+              <label style={AS.label}>Email</label>
+              <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" autoFocus={isWide}/>
+              <label style={AS.label}>Password</label>
+              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', showPw, setShowPw)}
+              <label style={AS.label}>Confirm password</label>
+              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', showPw2, setShowPw2)}
+              <div style={AS.note}>
+                <span>↻</span>
+                <span><b>You'll set up a recovery secret next.</b> That protects your data if you ever forget your password.</span>
+              </div>
+              {error && <div style={AS.err}>{error}</div>}
+              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Creating…':'Create account'}</button>
+            </form>
             <div style={AS.linkRow}>Already have an account? <span style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Sign in</span></div>
-          </>
+          </div>
         )}
 
         {screen === 'recovery-setup' && (
-          <>
+          <div className="fi">
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Save your recovery secret</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>If you ever forget your password, this word is the only other way back into your data. Nobody else has a copy of it — not even us.</div>
 
-            <label style={AS.label}>Your recovery word</label>
-            <input style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
-            <div style={{fontSize:'12px',color:recoveryWord.length>=RECOVERY_MIN_LENGTH?'#16a34a':'var(--quiet)',margin:'-10px 0 6px',fontWeight:700}}>{recoveryWord.length} / {RECOVERY_MIN_LENGTH} characters minimum</div>
-            {recoveryTooCommon && recoveryWord.length>0 && <div style={AS.err}>Too common — choose something less predictable</div>}
-            {error && <div style={{...AS.err,marginTop:recoveryTooCommon?0:'-4px'}}>{error}</div>}
+            <form onSubmit={e=>{e.preventDefault(); handleRecoverySetup();}}>
+              <label style={AS.label}>Your recovery word</label>
+              <input style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)} autoFocus={isWide}/>
+              <div style={{fontSize:'12px',color:recoveryWord.length>=RECOVERY_MIN_LENGTH?'#16a34a':'var(--quiet)',margin:'-10px 0 6px',fontWeight:700}}>{recoveryWord.length} / {RECOVERY_MIN_LENGTH} characters minimum</div>
+              {recoveryTooCommon && recoveryWord.length>0 && <div style={AS.err}>Too common — choose something less predictable</div>}
+              {error && <div style={{...AS.err,marginTop:recoveryTooCommon?0:'-4px'}}>{error}</div>}
 
-            <button style={{...AS.btn,opacity:busy?0.7:1,marginTop:'8px'}} disabled={busy} onClick={handleRecoverySetup}>{busy?'Saving…':'Save and continue'}</button>
-          </>
+              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1,marginTop:'8px'}} disabled={busy}>{busy?'Saving…':'Save and continue'}</button>
+            </form>
+          </div>
         )}
 
         {screen === 'forgot' && !forgotSent && (
-          <>
+          <div className="fi">
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Reset your password</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>We'll email you a secure link to set a new password.</div>
-            <label style={AS.label}>Email</label>
-            <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
-            {error && <div style={AS.err}>{error}</div>}
-            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleForgotRequest}>{busy?'Sending…':'Send reset link'}</button>
+            <form onSubmit={e=>{e.preventDefault(); handleForgotRequest();}}>
+              <label style={AS.label}>Email</label>
+              <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" autoFocus={isWide}/>
+              {error && <div style={AS.err}>{error}</div>}
+              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Sending…':'Send reset link'}</button>
+            </form>
             <div style={AS.linkRow}><span style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Back to sign in</span></div>
-          </>
+          </div>
         )}
 
         {screen === 'forgot' && forgotSent && (
-          <>
+          <div className="fi">
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Check your email</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>A reset link's on its way to {email}. Follow it to set a new password.</div>
             <button style={AS.btnGhost} onClick={()=>{ setScreen('signin'); setError(''); setForgotSent(false); }}>Back to sign in</button>
-          </>
+          </div>
         )}
 
         {screen === 'set-new-password' && (
-          <>
+          <div className="fi">
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Set a new password</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Choose a new password for your account.</div>
-            <label style={AS.label}>New password</label>
-            <input style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
-            <label style={AS.label}>Confirm new password</label>
-            <input style={AS.input} type="password" placeholder="••••••••" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
-            {error && <div style={AS.err}>{error}</div>}
-            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSetNewPassword}>{busy?'Saving…':'Set new password'}</button>
-          </>
+            <form onSubmit={e=>{e.preventDefault(); handleSetNewPassword();}}>
+              <label style={AS.label}>New password</label>
+              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', showPw, setShowPw, isWide)}
+              <label style={AS.label}>Confirm new password</label>
+              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', showPw2, setShowPw2)}
+              {error && <div style={AS.err}>{error}</div>}
+              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Saving…':'Set new password'}</button>
+            </form>
+          </div>
         )}
 
         {screen === 'recovery-unlock' && (
-          <>
+          <div className="fi">
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Unlock your existing data</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Your password's been reset. Enter your recovery word to restore access to your previous shifts and TOIL.</div>
-            <label style={AS.label}>Recovery word</label>
-            <input style={AS.input} type="text" placeholder="Enter your recovery word" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
-            {error && <div style={AS.err}>{error}</div>}
-            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleRecoveryUnlock}>{busy?'Unlocking…':'Unlock my data'}</button>
+            <form onSubmit={e=>{e.preventDefault(); handleRecoveryUnlock();}}>
+              <label style={AS.label}>Recovery word</label>
+              <input style={AS.input} type="text" placeholder="Enter your recovery word" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)} autoFocus={isWide}/>
+              {error && <div style={AS.err}>{error}</div>}
+              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Unlocking…':'Unlock my data'}</button>
+            </form>
             <div style={AS.linkRow}><span style={AS.link} onClick={()=>setNoRecoveryWarning(true)}>I don't have my recovery word</span></div>
             {noRecoveryWarning && (
-              <div style={{marginTop:'12px'}}>
+              <div style={{marginTop:'12px'}} className="fi">
                 <div style={{fontSize:'11.5px',color:'#dc2626',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>Without it, your existing shifts and TOIL can't be recovered by anyone. You can continue and set up a fresh recovery word, but everything logged before this reset will be gone for good.</div>
-                <button style={AS.btnGhost} onClick={()=>{ setError(''); setRecoveryWord(''); setNoRecoveryWarning(false); setScreen('recovery-setup'); }}>Continue without my old data</button>
+                <button type="button" style={AS.btnGhost} onClick={()=>{ setError(''); setRecoveryWord(''); setNoRecoveryWarning(false); setScreen('recovery-setup'); }}>Continue without my old data</button>
               </div>
             )}
-          </>
+          </div>
         )}
 
       </div>
