@@ -342,14 +342,19 @@ export function TabLogOvertime({
               <div style={{borderTop:'1px solid var(--border-2)',marginTop:'13px',paddingTop:'13px'}}>
                 <div style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'13px'}}>
                   <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
-                  <div style={{display:'flex',gap:'6px'}}>
+                  {/* Same SegSlider every other segmented control in the app
+                      uses (Duty Type, O/T Rate, Take As, desktop's own PA
+                      picker) — this mobile-merged card used to be the one
+                      exception, hand-rolling an instant background swap
+                      instead of the sliding brass pill. */}
+                  <SegSlider activeKey={form.paRate} trackStyle={{display:'flex',gap:'6px'}} indicatorStyle={{background:BRASS,borderRadius:'11px',boxShadow:'0 4px 11px rgba(184,130,63,0.35)'}}>
                     {['None','PA1','PA2','PA3'].map(pa=>(
-                      <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?BRASS:'var(--surface)',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(184,130,63,0.35)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
+                      <button key={pa} data-seg-key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{position:'relative',zIndex:1,flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'color 0.14s',background:'transparent',color:form.paRate===pa?'#fff':'#b45309',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
                         <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
                         <span style={{fontSize:'9px',fontWeight:700,opacity:form.paRate===pa?0.85:0.55}}>{PA_LABELS[pa]}</span>
                       </button>
                     ))}
-                  </div>
+                  </SegSlider>
                 </div>
               </div>
             </>
