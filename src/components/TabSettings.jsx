@@ -186,10 +186,10 @@ export function TabSettings({
           <>
             <div style={S.card}>
               {cardHeader}
-              {showInline && <div className="fi">{cardBody}</div>}
+              {showInline && cardBody}
             </div>
             {showModal && contentWrapRef.current && createPortal(
-              <div className="fi" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
+              <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -398,10 +398,10 @@ export function TabSettings({
           <>
             <div ref={taxImpactCardRef} style={S.card}>
               {cardHeader}
-              {!isWide && <div className="fi">{cardBody}</div>}
+              {!isWide && cardBody}
             </div>
             {isWide && taxImpactExpanded && contentWrapRef.current && createPortal(
-              <div className="fi" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'12px'}}>{cardBody}</div></div>,
+              <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'12px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -452,10 +452,10 @@ export function TabSettings({
           <>
             <div style={S.card}>
               {cardHeader}
-              {!isWide && <div className="fi">{cardBody}</div>}
+              {!isWide && cardBody}
             </div>
             {isWide && financialYearsExpanded && contentWrapRef.current && createPortal(
-              <div className="fi" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
+              <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -487,10 +487,10 @@ export function TabSettings({
           <>
             <div style={S.card}>
               {cardHeader}
-              {!isWide && <div className="fi">{cardBody}</div>}
+              {!isWide && cardBody}
             </div>
             {isWide && exportDataExpanded && contentWrapRef.current && createPortal(
-              <div className="fi" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
+              <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -572,10 +572,10 @@ export function TabSettings({
           <>
             <div style={acctBase}>
               {cardHeader}
-              {!isWide && <div className="fi">{cardBody}</div>}
+              {!isWide && cardBody}
             </div>
             {isWide && dataManagementExpanded && contentWrapRef.current && createPortal(
-              <div className="fi" style={modalBoxStyle(acctBase)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
+              <div style={modalBoxStyle(acctBase)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
