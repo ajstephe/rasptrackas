@@ -397,13 +397,13 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
 
   return (
     <div style={AS.page}>
-      {/* This screen is an early return, before the main app's own <style>
-          block (which defines .fi) ever mounts — without its own copy here,
-          the className="fi" on each screen below would silently do nothing. */}
+      {/* No entrance fade/slide animation on this screen's fields (deliberately
+          removed, along with autoFocus earlier) — one more candidate for why
+          Safari stopped silently autofilling a saved password the instant the
+          page loads: if the field is still visibly animating into place at
+          the moment Safari would decide to fill it, that's a plausible reason
+          it defers to the tap-to-select suggestion instead. */}
       <style>{`
-        @keyframes authFi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-        .fi{animation:authFi 0.22s ease}
-        @media (prefers-reduced-motion: reduce){.fi{animation-duration:0.001ms}}
         /* No-op animations, purely so we get an animationstart event to hook
            when a browser autofills a field — see handleAutofill above. */
         @keyframes onAutoFillStart{from{opacity:1}to{opacity:1}}
@@ -427,7 +427,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         </div>
 
         {screen === 'signin' && (
-          <div className="fi">
+          <div>
             {/* autoComplete="username" here, not "email" — Safari treats
                 autocomplete=email as a Contacts-card field (its separate
                 Contact Info autofill system), not a login identifier, so it
@@ -451,7 +451,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         )}
 
         {screen === 'signup' && (
-          <div className="fi">
+          <div>
             <form onSubmit={e=>{e.preventDefault(); handleSignUp();}}>
               <label style={AS.label}>Email</label>
               <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)}/>
@@ -471,7 +471,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         )}
 
         {screen === 'recovery-setup' && (
-          <div className="fi">
+          <div>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Save your recovery secret</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>If you ever forget your password, this word is the only other way back into your data. Nobody else has a copy of it — not even us.</div>
 
@@ -488,7 +488,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         )}
 
         {screen === 'forgot' && !forgotSent && (
-          <div className="fi">
+          <div>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Reset your password</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>We'll email you a secure link to set a new password.</div>
             <form onSubmit={e=>{e.preventDefault(); handleForgotRequest();}}>
@@ -502,7 +502,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         )}
 
         {screen === 'forgot' && forgotSent && (
-          <div className="fi">
+          <div>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Check your email</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>A reset link's on its way to {email}. Follow it to set a new password.</div>
             <button style={AS.btnGhost} onClick={()=>{ setScreen('signin'); setError(''); setForgotSent(false); }}>Back to sign in</button>
@@ -510,7 +510,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         )}
 
         {screen === 'set-new-password' && (
-          <div className="fi">
+          <div>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Set a new password</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Choose a new password for your account.</div>
             <form onSubmit={e=>{e.preventDefault(); handleSetNewPassword();}}>
@@ -525,7 +525,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         )}
 
         {screen === 'recovery-unlock' && (
-          <div className="fi">
+          <div>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Unlock your existing data</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Your password's been reset. Enter your recovery word to restore access to your previous shifts and TOIL.</div>
             <form onSubmit={e=>{e.preventDefault(); handleRecoveryUnlock();}}>
@@ -536,7 +536,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             </form>
             <div style={AS.linkRow}><span style={AS.link} onClick={()=>setNoRecoveryWarning(true)}>I don't have my recovery word</span></div>
             {noRecoveryWarning && (
-              <div style={{marginTop:'12px'}} className="fi">
+              <div style={{marginTop:'12px'}}>
                 <div style={{fontSize:'11.5px',color:'#dc2626',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>Without it, your existing shifts and TOIL can't be recovered by anyone. You can continue and set up a fresh recovery word, but everything logged before this reset will be gone for good.</div>
                 <button type="button" style={AS.btnGhost} onClick={()=>{ setError(''); setRecoveryWord(''); setNoRecoveryWarning(false); setScreen('recovery-setup'); }}>Continue without my old data</button>
               </div>
