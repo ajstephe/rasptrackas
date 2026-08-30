@@ -93,8 +93,18 @@ export function TabSettings({
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
-        <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>Options, Settings, Export and Backup</h2>
+        <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>Settings &amp; More</h2>
         {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'var(--text-green-deep)'}}>Saved</span></div>}
+        {/* Mobile-only — same low-key icon pill as the Home screen's
+            sign-out button, duplicated here on the title line (right
+            aligned) since this tab no longer carries its own sign-out
+            box further down. */}
+        {!isWide && session&&(
+          <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',gap:'7px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'20px',padding:'8px 14px',cursor:'pointer',fontFamily:'inherit'}}>
+            <FireExitIcon size={15} color="#059669"/>
+            <span style={{fontWeight:700,fontSize:'12px',color:'#059669'}}>Sign out</span>
+          </button>
+        )}
       </div>
 
       {/* ── Desktop: the six settings sections below reflow into a
@@ -102,6 +112,23 @@ export function TabSettings({
            card still expands independently — a taller expanded card
            just makes its own grid row taller, same as any 2-up
            layout. Mobile is untouched (grid only turns on at isWide). ── */}
+      {/* ── Want to say thanks — its own full-width card, same shape
+           as Appearance below, sitting above it. One shared card for
+           both mobile and desktop now (it used to be split: folded
+           into the Help & Suggestions box on mobile, and a separate
+           card further down the grid on desktop). ── */}
+      <div style={{...S.card,marginBottom:'12px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
+          <Ico n="coffee" s={16} c="#d97706"/>
+          <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Want to say thanks?</div>
+        </div>
+        <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,lineHeight:1.6}}>
+          A lot of late nights, caffeine, and swearing went into building and hosting this. If it's making your life easier and you'd like to say thanks, you can{' '}
+          <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank).
+        </div>
+        <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
+      </div>
+
       {/* ── Appearance — not an accordion like the rest of this tab;
            a 3-way choice doesn't need to hide behind a "tap to
            expand". Sits outside the grid on desktop too, full-width,
@@ -121,21 +148,6 @@ export function TabSettings({
           ))}
         </SegSlider>
       </div>
-
-      {/* ── Sign Out, mobile only — pulled up to sit right under
-           Appearance instead of at the very bottom of a long scroll, so
-           it's reachable without hunting for it. Desktop keeps its own
-           copy further down (its 2-column grid doesn't have a "top" in
-           the same way a single mobile stack does). ── */}
-      {!isWide && session&&(
-        <button onClick={()=>setSignOutConfirmOpen(true)} style={{...S.card,width:'100%',display:'flex',alignItems:'center',gap:'12px',background:'#059669',border:'1px solid #059669',cursor:'pointer',fontFamily:'inherit',textAlign:'left',marginBottom:'12px'}}>
-          <div style={{background:'rgba(255,255,255,0.15)',padding:'11px',borderRadius:'13px',flexShrink:0}}><FireExitIcon size={19}/></div>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:900,fontSize:'14px',color:'#fff'}}>Sign Out</div>
-          </div>
-          <Ico n="cR" s={16} c="rgba(255,255,255,0.7)"/>
-        </button>
-      )}
 
       <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}:undefined}>
 
@@ -748,19 +760,6 @@ export function TabSettings({
 
       {!isWide && <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',padding:'8px 4px 6px'}}>Support</div>}
 
-      {/* ── Sign Out, desktop — mobile gets its own copy up near
-           Appearance instead (see above); desktop's 2-column grid stays
-           in its original bottom position. ── */}
-      {isWide && session&&(
-        <button onClick={()=>setSignOutConfirmOpen(true)} style={{...S.card,width:'100%',display:'flex',alignItems:'center',gap:'12px',background:'#059669',border:'1px solid #059669',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-          <div style={{background:'rgba(255,255,255,0.15)',padding:'11px',borderRadius:'13px',flexShrink:0}}><FireExitIcon size={19}/></div>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:900,fontSize:'14px',color:'#fff'}}>Sign Out</div>
-          </div>
-          <Ico n="cR" s={16} c="rgba(255,255,255,0.7)"/>
-        </button>
-      )}
-
       {/* ── Help & suggestions ── */}
       <div style={S.card}>
         <a href="mailto:ajstephe@me.com?subject=Overtime%20Tracker%20—%20Feedback" style={{display:'flex',alignItems:'center',gap:'12px',textDecoration:'none',cursor:'pointer'}}>
@@ -771,36 +770,7 @@ export function TabSettings({
           </div>
           <Ico n="cR" s={16} c="#94a3b8"/>
         </a>
-        {!isWide && (
-          <>
-            <div style={{borderTop:'1px solid var(--border-2)',margin:'14px 0'}}/>
-            <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
-              <Ico n="coffee" s={16} c="#d97706"/>
-              <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Want to say thanks?</div>
-            </div>
-            <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,lineHeight:1.6}}>
-              A lot of late nights, caffeine, and swearing went into making this. If it's made your life easier and you'd like to say thanks, you can{' '}
-              <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank). Thanks.
-            </div>
-          </>
-        )}
       </div>
-
-      {/* ── Want to say thanks — its own card on desktop instead of
-           sharing the Help & Suggestions box. ── */}
-      {isWide && (
-        <div style={S.card}>
-          <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
-            <Ico n="coffee" s={16} c="#d97706"/>
-            <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Want to say thanks?</div>
-          </div>
-          <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,lineHeight:1.6}}>
-            A lot of late nights, caffeine, and swearing went into building and hosting this. If it's making your life easier and you'd like to say thanks, you can{' '}
-            <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank).
-          </div>
-          <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
-        </div>
-      )}
       </div>
 
       {/* ── Backdrop for the desktop popup cards above — click
