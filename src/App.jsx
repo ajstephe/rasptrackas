@@ -3488,6 +3488,7 @@ export default function App() {
             scrollToTaxImpact={scrollToTaxImpact} setTaxImpactExpanded={setTaxImpactExpanded}
             skipBreakdownReset={skipBreakdownReset} setBreakdownView={setBreakdownView} setCalPeriodIdx={setCalPeriodIdx}
             renderMonthlyChart={renderMonthlyChart} S={S} MONO={MONO} BRASS={BRASS}
+            session={session} setSignOutConfirmOpen={setSignOutConfirmOpen}
           />
         )}
 
