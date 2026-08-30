@@ -1,11 +1,15 @@
 import { fmtHM } from '../lib/format.js';
 import { Ico } from './Icons.jsx';
+import { useCountUp } from '../lib/useCountUp.js';
 
 // ─── TOIL tab ────────────────────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='graph' block — no behaviour change,
 // just given its own file. Everything it needs comes in as props rather than
 // closing over App()'s state directly.
 export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTakenForm, addToilTaken, deleteToilTaken }) {
+  // Counts up/down instead of jumping whenever the balance changes —
+  // logging a TOIL shift or redeeming hours in the form below.
+  const animatedBalance = useCountUp(toilLedger.balance);
   return (
     <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
       <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',marginBottom:'14px',letterSpacing:'-0.5px'}}>TOIL</h2>
@@ -18,7 +22,7 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
       <div style={{display:'grid',gridTemplateColumns:'1fr 1.3fr',gap:'16px',alignItems:'stretch',marginBottom:'14px'}}>
       <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',border:toilLedger.balance<0?'1.5px solid var(--border-2)':'1.5px solid var(--border-2)',borderRadius:'16px',padding:'16px',display:'flex',flexDirection:'column',justifyContent:'center'}}>
         <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
-        <div style={{fontFamily:MONO,fontSize:'25px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--text-purple-deep)'}}>{fmtHM(toilLedger.balance)} h</div>
+        <div style={{fontFamily:MONO,fontSize:'25px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--text-purple-deep)'}}>{fmtHM(animatedBalance)} h</div>
         <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
       </div>
 
@@ -46,7 +50,7 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
       <div style={{...S.card,background:toilLedger.balance<0?'var(--tint-red)':'var(--surface)',border:toilLedger.balance<0?'1.5px solid var(--border-2)':'1px solid var(--border-2)',marginBottom:'14px'}}>
         <div>
           <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
-          <div style={{fontFamily:MONO,fontSize:'25px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--text-purple-deep)'}}>{fmtHM(toilLedger.balance)} h</div>
+          <div style={{fontFamily:MONO,fontSize:'25px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--text-purple-deep)'}}>{fmtHM(animatedBalance)} h</div>
           <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
         </div>
 
@@ -74,8 +78,8 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
         <div style={{fontSize:'14px',color:'var(--quiet)',textAlign:'center',padding:'20px'}}>No TOIL activity yet</div>
       ) : (
       <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}:undefined}>
-      {toilLedger.rows.map(l=>(
-        <div key={l.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'11px 12px',marginBottom:isWide?0:'8px',borderRadius:'11px',gap:'10px',background:l.type==='earned'?'var(--tint-green)':'var(--tint-red)',border:l.type==='earned'?'1px solid var(--border-2)':'1px solid var(--border-2)'}}>
+      {toilLedger.rows.map((l,i)=>(
+        <div key={l.id} className="claim-in" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'11px 12px',marginBottom:isWide?0:'8px',borderRadius:'11px',gap:'10px',background:l.type==='earned'?'var(--tint-green)':'var(--tint-red)',border:l.type==='earned'?'1px solid var(--border-2)':'1px solid var(--border-2)',animationDelay:(Math.min(i,6)*55)+'ms'}}>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:'13.5px',fontWeight:700,color:'var(--muted)'}}>{l.note}</div>
             <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'4px'}}>

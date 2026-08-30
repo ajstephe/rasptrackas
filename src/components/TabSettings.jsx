@@ -86,7 +86,12 @@ export function TabSettings({
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Config, Rates &amp; Payscales</div>
             </div>
-            {!configSetupIncomplete && <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{configShown?'Tap to Close':'Tap to expand'}</span>}
+            {!configSetupIncomplete && (
+              <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
+                <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{configShown?'Tap to Close':'Tap to expand'}</span>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:configShown?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            )}
           </div>
         );
         const cardBody = configShown && (
@@ -181,10 +186,10 @@ export function TabSettings({
           <>
             <div style={S.card}>
               {cardHeader}
-              {showInline && cardBody}
+              {showInline && <div className="fi">{cardBody}</div>}
             </div>
             {showModal && contentWrapRef.current && createPortal(
-              <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
+              <div className="fi" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -244,7 +249,10 @@ export function TabSettings({
               <div style={{background:over?'var(--tint-red)':'var(--tint-green)',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="calc" s={isWide?21:17} c={over?'#dc2626':'#059669'}/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Tax & 100K+ Calculator</div>
             </div>
-            <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{taxImpactExpanded?'Tap to Close':'Tap to expand'}</span>
+            <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
+              <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{taxImpactExpanded?'Tap to Close':'Tap to expand'}</span>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:taxImpactExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
           </div>
         );
         const cardBody = taxImpactExpanded&&(
@@ -390,10 +398,10 @@ export function TabSettings({
           <>
             <div ref={taxImpactCardRef} style={S.card}>
               {cardHeader}
-              {!isWide && cardBody}
+              {!isWide && <div className="fi">{cardBody}</div>}
             </div>
             {isWide && taxImpactExpanded && contentWrapRef.current && createPortal(
-              <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'12px'}}>{cardBody}</div></div>,
+              <div className="fi" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'12px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -410,7 +418,10 @@ export function TabSettings({
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cal" s={isWide?21:17} c="#2563eb"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Archived Financial Years</div>
             </div>
-            <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{financialYearsExpanded?'Tap to Close':'Tap to expand'}</span>
+            <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
+              <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{financialYearsExpanded?'Tap to Close':'Tap to expand'}</span>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:financialYearsExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
           </div>
         );
         const cardBody = financialYearsExpanded&&(
@@ -441,10 +452,10 @@ export function TabSettings({
           <>
             <div style={S.card}>
               {cardHeader}
-              {!isWide && cardBody}
+              {!isWide && <div className="fi">{cardBody}</div>}
             </div>
             {isWide && financialYearsExpanded && contentWrapRef.current && createPortal(
-              <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
+              <div className="fi" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -459,7 +470,10 @@ export function TabSettings({
               <div style={{background:'var(--tint-amber)',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="share" s={isWide?21:17} c="#d97706"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Financial Reports &amp; Export</div>
             </div>
-            <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{exportDataExpanded?'Tap to Close':'Tap to expand'}</span>
+            <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
+              <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{exportDataExpanded?'Tap to Close':'Tap to expand'}</span>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:exportDataExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
           </div>
         );
         const cardBody = exportDataExpanded&&(
@@ -473,10 +487,10 @@ export function TabSettings({
           <>
             <div style={S.card}>
               {cardHeader}
-              {!isWide && cardBody}
+              {!isWide && <div className="fi">{cardBody}</div>}
             </div>
             {isWide && exportDataExpanded && contentWrapRef.current && createPortal(
-              <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
+              <div className="fi" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -497,7 +511,10 @@ export function TabSettings({
               <div style={{background:'var(--tint-blue)',padding:'11px',borderRadius:'13px'}}><Ico n="user" s={21} c="#2563eb"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Account &amp; Data Management</div>
             </div>
-            <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{dataManagementExpanded?'Tap to Close':'Tap to expand'}</span>
+            <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
+              <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{dataManagementExpanded?'Tap to Close':'Tap to expand'}</span>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:dataManagementExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
           </div>
         );
         const cardBody = dataManagementExpanded&&(
@@ -555,10 +572,10 @@ export function TabSettings({
           <>
             <div style={acctBase}>
               {cardHeader}
-              {!isWide && cardBody}
+              {!isWide && <div className="fi">{cardBody}</div>}
             </div>
             {isWide && dataManagementExpanded && contentWrapRef.current && createPortal(
-              <div style={modalBoxStyle(acctBase)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
+              <div className="fi" style={modalBoxStyle(acctBase)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
