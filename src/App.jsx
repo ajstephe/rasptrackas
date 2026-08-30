@@ -386,14 +386,25 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
   // mounts — the same moment the .fi entrance animation below is still
   // moving the card into place — which can race a password manager's
   // suggestion popover right as it's trying to anchor itself to the field.
-  const pwField = (value, onChange, placeholder, autoComplete, fieldId, onAnimationStart) => (
+  const pwField = (value, onChange, placeholder, autoComplete, fieldId, onAnimationStart, onKeyDown) => (
     <input
       id={fieldId} name={fieldId}
       style={AS.input}
       type="password" placeholder={placeholder} value={value} onChange={onChange}
-      autoComplete={autoComplete} onAnimationStart={onAnimationStart}
+      autoComplete={autoComplete} onAnimationStart={onAnimationStart} onKeyDown={onKeyDown}
     />
   );
+
+  // No <form> element around these fields — deliberately. The very first,
+  // long-confirmed-working version of this screen (before any of this
+  // session's changes) was bare inputs plus a plain onClick button, no
+  // <form> at all. A <form> was added later purely for Enter-to-submit
+  // convenience, and it's the one structural difference between "Safari
+  // fills the saved password the instant the page loads, no tap needed"
+  // and "Safari only offers it as a suggestion you have to tap" — Safari
+  // treats a form-wrapped password field more conservatively. Enter-to-
+  // submit is kept, just via a plain keydown check instead of a form.
+  const submitOnEnter = fn => e => { if (e.key === 'Enter') fn(); };
 
   return (
     <div style={AS.page}>
@@ -436,14 +447,14 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
                 credential match. "username" is what both Safari's and
                 Chrome's own guidance recommend for a login form's identifier
                 field, even when it's styled/typed as an email address. */}
-            <form onSubmit={e=>{e.preventDefault(); handleSignIn();}}>
+            <div>
               <label style={AS.label}>Email</label>
-              <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)}/>
+              <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)} onKeyDown={submitOnEnter(handleSignIn)}/>
               <label style={AS.label}>Password</label>
-              {pwField(password, e=>setPassword(e.target.value), '••••••••', 'current-password', 'current-password', handleAutofill(setPassword))}
+              {pwField(password, e=>setPassword(e.target.value), '••••••••', 'current-password', 'current-password', handleAutofill(setPassword), submitOnEnter(handleSignIn))}
               {error && <div style={AS.err}>{error}</div>}
-              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Signing in…':'Sign in'}</button>
-            </form>
+              <button type="button" onClick={handleSignIn} style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Signing in…':'Sign in'}</button>
+            </div>
             <div style={AS.divider}>or</div>
             <button type="button" style={AS.btnGhost} onClick={()=>{ setScreen('signup'); setError(''); }}>Create account</button>
             <div style={AS.linkRow}><span style={AS.link} onClick={()=>{ setScreen('forgot'); setError(''); setForgotSent(false); }}>Forgot password?</span></div>
@@ -452,20 +463,20 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
 
         {screen === 'signup' && (
           <div className="fi">
-            <form onSubmit={e=>{e.preventDefault(); handleSignUp();}}>
+            <div>
               <label style={AS.label}>Email</label>
-              <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)}/>
+              <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)} onKeyDown={submitOnEnter(handleSignUp)}/>
               <label style={AS.label}>Password</label>
-              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', 'new-password', handleAutofill(setPassword))}
+              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', 'new-password', handleAutofill(setPassword), submitOnEnter(handleSignUp))}
               <label style={AS.label}>Confirm password</label>
-              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', 'new-password-confirm', handleAutofill(setPassword2))}
+              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', 'new-password-confirm', handleAutofill(setPassword2), submitOnEnter(handleSignUp))}
               <div style={AS.note}>
                 <span>↻</span>
                 <span><b>You'll set up a recovery secret next.</b> That protects your data if you ever forget your password.</span>
               </div>
               {error && <div style={AS.err}>{error}</div>}
-              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Creating…':'Create account'}</button>
-            </form>
+              <button type="button" onClick={handleSignUp} style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Creating…':'Create account'}</button>
+            </div>
             <div style={AS.linkRow}>Already have an account? <span style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Sign in</span></div>
           </div>
         )}
@@ -475,15 +486,15 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Save your recovery secret</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>If you ever forget your password, this word is the only other way back into your data. Nobody else has a copy of it — not even us.</div>
 
-            <form onSubmit={e=>{e.preventDefault(); handleRecoverySetup();}}>
+            <div>
               <label style={AS.label}>Your recovery word</label>
-              <input style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
+              <input style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)} onKeyDown={submitOnEnter(handleRecoverySetup)}/>
               <div style={{fontSize:'12px',color:recoveryWord.length>=RECOVERY_MIN_LENGTH?'#16a34a':'var(--quiet)',margin:'-10px 0 6px',fontWeight:700}}>{recoveryWord.length} / {RECOVERY_MIN_LENGTH} characters minimum</div>
               {recoveryTooCommon && recoveryWord.length>0 && <div style={AS.err}>Too common — choose something less predictable</div>}
               {error && <div style={{...AS.err,marginTop:recoveryTooCommon?0:'-4px'}}>{error}</div>}
 
-              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1,marginTop:'8px'}} disabled={busy}>{busy?'Saving…':'Save and continue'}</button>
-            </form>
+              <button type="button" onClick={handleRecoverySetup} style={{...AS.btn,opacity:busy?0.7:1,marginTop:'8px'}} disabled={busy}>{busy?'Saving…':'Save and continue'}</button>
+            </div>
           </div>
         )}
 
@@ -491,12 +502,12 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
           <div className="fi">
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Reset your password</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>We'll email you a secure link to set a new password.</div>
-            <form onSubmit={e=>{e.preventDefault(); handleForgotRequest();}}>
+            <div>
               <label style={AS.label}>Email</label>
-              <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)}/>
+              <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)} onKeyDown={submitOnEnter(handleForgotRequest)}/>
               {error && <div style={AS.err}>{error}</div>}
-              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Sending…':'Send reset link'}</button>
-            </form>
+              <button type="button" onClick={handleForgotRequest} style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Sending…':'Send reset link'}</button>
+            </div>
             <div style={AS.linkRow}><span style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Back to sign in</span></div>
           </div>
         )}
@@ -513,14 +524,14 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
           <div className="fi">
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Set a new password</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Choose a new password for your account.</div>
-            <form onSubmit={e=>{e.preventDefault(); handleSetNewPassword();}}>
+            <div>
               <label style={AS.label}>New password</label>
-              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', 'new-password', handleAutofill(setPassword))}
+              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', 'new-password', handleAutofill(setPassword), submitOnEnter(handleSetNewPassword))}
               <label style={AS.label}>Confirm new password</label>
-              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', 'new-password-confirm', handleAutofill(setPassword2))}
+              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', 'new-password-confirm', handleAutofill(setPassword2), submitOnEnter(handleSetNewPassword))}
               {error && <div style={AS.err}>{error}</div>}
-              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Saving…':'Set new password'}</button>
-            </form>
+              <button type="button" onClick={handleSetNewPassword} style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Saving…':'Set new password'}</button>
+            </div>
           </div>
         )}
 
@@ -528,12 +539,12 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
           <div className="fi">
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Unlock your existing data</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Your password's been reset. Enter your recovery word to restore access to your previous shifts and TOIL.</div>
-            <form onSubmit={e=>{e.preventDefault(); handleRecoveryUnlock();}}>
+            <div>
               <label style={AS.label}>Recovery word</label>
-              <input style={AS.input} type="text" placeholder="Enter your recovery word" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
+              <input style={AS.input} type="text" placeholder="Enter your recovery word" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)} onKeyDown={submitOnEnter(handleRecoveryUnlock)}/>
               {error && <div style={AS.err}>{error}</div>}
-              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Unlocking…':'Unlock my data'}</button>
-            </form>
+              <button type="button" onClick={handleRecoveryUnlock} style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Unlocking…':'Unlock my data'}</button>
+            </div>
             <div style={AS.linkRow}><span style={AS.link} onClick={()=>setNoRecoveryWarning(true)}>I don't have my recovery word</span></div>
             {noRecoveryWarning && (
               <div style={{marginTop:'12px'}} className="fi">
