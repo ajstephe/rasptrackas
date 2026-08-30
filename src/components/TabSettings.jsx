@@ -93,8 +93,18 @@ export function TabSettings({
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
-        <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>Options, Settings, Export and Backup</h2>
+        <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>Settings &amp; More</h2>
         {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'var(--text-green-deep)'}}>Saved</span></div>}
+        {/* Mobile-only — same low-key icon pill as the Home screen's
+            sign-out button, duplicated here on the title line (right
+            aligned) since this tab no longer carries its own sign-out
+            box further down. */}
+        {!isWide && session&&(
+          <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',gap:'7px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'20px',padding:'8px 14px',cursor:'pointer',fontFamily:'inherit'}}>
+            <FireExitIcon size={15} color="#059669"/>
+            <span style={{fontWeight:700,fontSize:'12px',color:'#059669'}}>Sign out</span>
+          </button>
+        )}
       </div>
 
       {/* ── Desktop: the six settings sections below reflow into a
@@ -121,21 +131,6 @@ export function TabSettings({
           ))}
         </SegSlider>
       </div>
-
-      {/* ── Sign Out, mobile only — pulled up to sit right under
-           Appearance instead of at the very bottom of a long scroll, so
-           it's reachable without hunting for it. Desktop keeps its own
-           copy further down (its 2-column grid doesn't have a "top" in
-           the same way a single mobile stack does). ── */}
-      {!isWide && session&&(
-        <button onClick={()=>setSignOutConfirmOpen(true)} style={{...S.card,width:'100%',display:'flex',alignItems:'center',gap:'12px',background:'#059669',border:'1px solid #059669',cursor:'pointer',fontFamily:'inherit',textAlign:'left',marginBottom:'12px'}}>
-          <div style={{background:'rgba(255,255,255,0.15)',padding:'11px',borderRadius:'13px',flexShrink:0}}><FireExitIcon size={19}/></div>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:900,fontSize:'14px',color:'#fff'}}>Sign Out</div>
-          </div>
-          <Ico n="cR" s={16} c="rgba(255,255,255,0.7)"/>
-        </button>
-      )}
 
       <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}:undefined}>
 
@@ -748,9 +743,10 @@ export function TabSettings({
 
       {!isWide && <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',padding:'8px 4px 6px'}}>Support</div>}
 
-      {/* ── Sign Out, desktop — mobile gets its own copy up near
-           Appearance instead (see above); desktop's 2-column grid stays
-           in its original bottom position. ── */}
+      {/* ── Sign Out, desktop only — mobile's copy now lives as an icon
+           pill on the title line up top (see header row above); desktop's
+           2-column grid keeps this full box in its original bottom
+           position. ── */}
       {isWide && session&&(
         <button onClick={()=>setSignOutConfirmOpen(true)} style={{...S.card,width:'100%',display:'flex',alignItems:'center',gap:'12px',background:'#059669',border:'1px solid #059669',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
           <div style={{background:'rgba(255,255,255,0.15)',padding:'11px',borderRadius:'13px',flexShrink:0}}><FireExitIcon size={19}/></div>
