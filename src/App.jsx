@@ -373,9 +373,30 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
   // input on this screen went through this, rather than duplicating the
   // wrapper+button markup five times over. autoFocus is opt-in per call
   // since only one field per screen should ever carry it.
+  //
+  // Deliberately TWO separate <input> elements, not one input whose type
+  // flips between 'password' and 'text' \u2014 that was the first version of
+  // this, and it broke Safari/iCloud Keychain autofill: WebKit ties its
+  // decision to offer/fill a saved password to a stable type="password"
+  // node, and mutating an existing input's type attribute (React reusing
+  // the same DOM node across renders, not remounting it) makes it stop
+  // being treated as an autofillable password field at all. Both inputs
+  // stay mounted the whole time, sharing the same value/onChange \u2014 only
+  // which one is visible (display:none has no layout box, so it's a
+  // no-op for autofill scanning) and focusable (tabIndex) ever toggles,
+  // and the real password-tracked node's type never changes after mount.
   const pwField = (value, onChange, placeholder, autoComplete, show, setShow, autoFocus=false) => (
     <div style={{position:'relative',marginBottom:'14px'}}>
-      <input style={{...AS.input,marginBottom:0,paddingRight:'44px'}} type={show?'text':'password'} placeholder={placeholder} value={value} onChange={onChange} autoComplete={autoComplete} autoFocus={autoFocus}/>
+      <input
+        style={{...AS.input,marginBottom:0,paddingRight:'44px',display:show?'none':'block'}}
+        type="password" placeholder={placeholder} value={value} onChange={onChange}
+        autoComplete={autoComplete} autoFocus={autoFocus} tabIndex={show?-1:0}
+      />
+      <input
+        style={{...AS.input,marginBottom:0,paddingRight:'44px',display:show?'block':'none'}}
+        type="text" placeholder={placeholder} value={value} onChange={onChange}
+        autoComplete={autoComplete} tabIndex={show?0:-1}
+      />
       <button type="button" onClick={()=>setShow(v=>!v)} aria-label={show?'Hide password':'Show password'} style={{position:'absolute',right:'4px',top:0,bottom:0,background:'none',border:'none',padding:'0 10px',cursor:'pointer',display:'flex',alignItems:'center',color:'var(--quiet)'}}>
         <Ico n={show?'eyeOff':'eye'} s={16} c="var(--quiet)"/>
       </button>
