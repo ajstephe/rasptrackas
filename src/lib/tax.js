@@ -124,8 +124,10 @@ export const calcPensionContribution = (pensionablePay, yearFraction=1) => {
 };
 
 // Named bands, used to tell the person plainly which bracket their overtime/PA
-// lands in, rather than a blended "effective %" figure.
-export const TAX_BANDS = [
+// lands in, rather than a blended "effective %" figure. Only used internally
+// here (computeTaxBandBreakdown/getTaxBand) — not exported, nothing outside
+// this file reads it directly.
+const TAX_BANDS = [
   { name:'Personal Allowance', min:0,      rate:0  },
   { name:'Basic Rate',         min:12570,  rate:20 },
   { name:'Higher Rate',        min:50270,  rate:40 },
