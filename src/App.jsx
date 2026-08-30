@@ -1234,7 +1234,7 @@ export default function App() {
           <button onClick={()=>changeMonth(1)} style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
         </div>
         <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:'14px'}}>
-          {datePickerFor==='ot' ? 'Select the date you submitted this OT to CARMS' : datePickerFor==='pa' ? 'Select the date you submitted this PA claim to MetHR' : 'Select the date of this shift'}
+          {datePickerFor==='ot' ? 'Select the date you submitted this OT to CARMS' : datePickerFor==='pa' ? 'Select the date you submitted this PA claim to MetHR' : datePickerFor==='carmsBulk' ? `Select the date you submitted ${Object.keys(carmsSelected).length} claim${Object.keys(carmsSelected).length!==1?'s':''}` : 'Select the date of this shift'}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'6px'}}>
           {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=><div key={d} style={{textAlign:'center',fontSize:'11.5px',fontWeight:800,color:'var(--quiet)',padding:'4px 0'}}>{d}</div>)}
@@ -1584,6 +1584,58 @@ export default function App() {
   // outstanding on both counts shows under either filter), since there's
   // no longer a separate "Both" option to catch that overlap.
   const [carmsFilter, setCarmsFilter] = useState('all');
+  // ── CARMS bulk submit ─────────────────────────────────────────────────────
+  // The real workflow this screen exists for — submitting a stack of claims
+  // to CARMS in one sitting — used to mean visiting each shift's own edit
+  // screen and flipping its toggle individually, once per claim. Select mode
+  // lets several rows (or a whole period at once) get marked submitted
+  // together, asking for one shared submission date instead of one per shift.
+  // carmsSelected maps entry id -> which of that row's own pieces were
+  // actually showing (and therefore selected) at the moment it was picked —
+  // {ot,pa} rather than a flat id set, since one entry can carry both an
+  // outstanding OT and PA claim, and a filtered view might only be showing
+  // one of the two. Nothing here touches the existing single-tap-to-edit
+  // flow — it only exists while carmsSelectMode is on.
+  const [carmsSelectMode, setCarmsSelectMode] = useState(false);
+  const [carmsSelected, setCarmsSelected] = useState({});
+  const toggleCarmsSelectMode = () => { setCarmsSelectMode(v=>!v); setCarmsSelected({}); };
+  useEscapeToClose(carmsSelectMode, toggleCarmsSelectMode);
+  useBackButtonCloses(carmsSelectMode, toggleCarmsSelectMode);
+  const toggleCarmsClaim = (entryId, markers) => {
+    setCarmsSelected(prev => {
+      const next = {...prev};
+      if (next[entryId]) delete next[entryId]; else next[entryId] = markers;
+      return next;
+    });
+  };
+  const toggleCarmsGroup = (rows) => { // rows: [{id, markers}]
+    setCarmsSelected(prev => {
+      const allSelected = rows.every(r => prev[r.id]);
+      const next = {...prev};
+      rows.forEach(r => { if (allSelected) delete next[r.id]; else next[r.id] = r.markers; });
+      return next;
+    });
+  };
+  const openCarmsBulkConfirm = () => {
+    setDatePickerMonth(todayStr.slice(0,7));
+    setDatePickerFor('carmsBulk');
+  };
+  const bulkMarkCarmsSubmitted = (dateStr) => {
+    const selectedIds = Object.keys(carmsSelected);
+    if (selectedIds.length===0) return;
+    setEntries(prev => prev.map(e => {
+      const markers = carmsSelected[e.id];
+      if (!markers) return e;
+      const updates = {};
+      if (markers.ot) { updates.otSubmitted = true; updates.otSubmittedDate = dateStr; }
+      if (markers.pa) { updates.paSubmitted = true; updates.paSubmittedDate = dateStr; }
+      return { ...e, ...updates };
+    }));
+    addToast(`${selectedIds.length} claim${selectedIds.length!==1?'s':''} marked as submitted`);
+    haptic();
+    setDatePickerFor(null);
+    toggleCarmsSelectMode();
+  };
   // Sequential numbering for the CARMS/PA list — oldest claim is #1, and the
   // numbers shift automatically as claims get submitted, since this is
   // recomputed fresh from whatever's still outstanding rather than being
@@ -3232,7 +3284,8 @@ export default function App() {
 
         {/* ══════════════════════════════════════════ CARMS OUTSTANDING */}
         {tab==='carms'&&(
-          <TabCarms animClass={tabAnimClass} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide} carmsOutstanding={carmsOutstanding} carmsFilter={carmsFilter} setCarmsFilter={setCarmsFilter} periodGroupRefs={periodGroupRefs} pulsePeriodIdx={pulsePeriodIdx} startEdit={startEdit} setFocusCarmsToggle={setFocusCarmsToggle} carmsClaimNumbers={carmsClaimNumbers}/>
+          <TabCarms animClass={tabAnimClass} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide} carmsOutstanding={carmsOutstanding} carmsFilter={carmsFilter} setCarmsFilter={setCarmsFilter} periodGroupRefs={periodGroupRefs} pulsePeriodIdx={pulsePeriodIdx} startEdit={startEdit} setFocusCarmsToggle={setFocusCarmsToggle} carmsClaimNumbers={carmsClaimNumbers}
+            carmsSelectMode={carmsSelectMode} toggleCarmsSelectMode={toggleCarmsSelectMode} carmsSelected={carmsSelected} toggleCarmsClaim={toggleCarmsClaim} toggleCarmsGroup={toggleCarmsGroup} openCarmsBulkConfirm={openCarmsBulkConfirm}/>
         )}
 
         {/* ══════════════════════════════════════════ TOIL */}
@@ -3832,6 +3885,8 @@ export default function App() {
             ? renderDatePickerGrid(form.otSubmittedDate||'', v=>setForm(f=>({...f,otSubmittedDate:v,otSubmitted:true})))
             : datePickerFor==='pa'
             ? renderDatePickerGrid(form.paSubmittedDate||'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})))
+            : datePickerFor==='carmsBulk'
+            ? renderDatePickerGrid(todayStr, v=>bulkMarkCarmsSubmitted(v))
             : renderDatePickerGrid(form.date||todayStr, v=>setForm(f=>({...f,date:v})))}
         </div>
       )}

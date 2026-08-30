@@ -9,7 +9,9 @@ import { SegSlider } from './SegSlider.jsx';
 // separate translucent stat tiles, then hairline rows with icon chips
 // instead of a boxed dark card. Behaviour (filters, refs, pulse-scroll,
 // claim numbering, edit-on-tap) is unchanged from the original extraction.
-export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter, setCarmsFilter, periodGroupRefs, pulsePeriodIdx, startEdit, setFocusCarmsToggle, carmsClaimNumbers, animClass='fi' }) {
+export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter, setCarmsFilter, periodGroupRefs, pulsePeriodIdx, startEdit, setFocusCarmsToggle, carmsClaimNumbers, animClass='fi',
+  carmsSelectMode, toggleCarmsSelectMode, carmsSelected, toggleCarmsClaim, toggleCarmsGroup, openCarmsBulkConfirm,
+}) {
   // Small tinted icon-chip, shared by every OT/PA/TOIL row below —
   // replaces the old flat colour text pill so a claim's category reads
   // the same way the rest of the app (Dashboard, Summary) marks one:
@@ -26,6 +28,26 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
   // Counts up/down instead of jumping whenever the outstanding total
   // changes — e.g. marking a claim as submitted on Log Overtime.
   const animatedTotal = useCountUp(carmsOutstanding.totalAmount);
+
+  // Selected count/total for the bulk action bar — looked up against the
+  // same carmsOutstanding data every row already renders from, using
+  // whichever of {ot,pa} was actually showing (and therefore selectable)
+  // on that row at the moment it was picked.
+  const selectedIds = Object.keys(carmsSelected||{});
+  const selectedTotal = (() => {
+    if (selectedIds.length===0) return 0;
+    const byId = new Map();
+    carmsOutstanding.groups.forEach(g=>g.items.forEach(it=>byId.set(it.entry.id, it)));
+    let total = 0;
+    selectedIds.forEach(id=>{
+      const it = byId.get(id);
+      const markers = carmsSelected[id];
+      if (!it || !markers) return;
+      if (markers.ot) total += it.otAmt;
+      if (markers.pa) total += it.paAmt;
+    });
+    return total;
+  })();
 
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
@@ -75,6 +97,9 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
               This {fmtGBP(carmsOutstanding.totalAmount)} isn't in your Total Gross YTD yet — it only counts once it's been marked as submitted on the Log Overtime screen.
             </div>
 
+            <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',marginBottom:'8px'}}>
+              <span onClick={toggleCarmsSelectMode} className="tap-row" style={{fontSize:'11.5px',fontWeight:800,color:'#2563eb',cursor:'pointer',padding:'4px'}}>{carmsSelectMode?'Cancel':'Select'}</span>
+            </div>
             <SegSlider activeKey={carmsFilter} trackStyle={{display:'flex',gap:'6px',marginBottom:'14px'}} indicatorStyle={{background:BRASS,borderRadius:'10px'}}>
               {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'},{id:'toil',lbl:'TOIL'}].map(f=>(
                 <div key={f.id} data-seg-key={f.id} onClick={()=>setCarmsFilter(f.id)} className="tap-row" style={{position:'relative',zIndex:1,flex:1,textAlign:'center',padding:'8px 4px',borderRadius:'10px',fontSize:'11px',fontWeight:800,cursor:'pointer',background:'transparent',color:carmsFilter===f.id?'#fff':'var(--muted)',border:carmsFilter===f.id?'none':'1px solid var(--border-2)'}}>{f.lbl}</div>
@@ -121,7 +146,22 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
               return (
                 <div key={g.periodIdx} ref={el=>periodGroupRefs.current[g.periodIdx]=el} className={pulsePeriodIdx===g.periodIdx?'carms-pulse':''} style={{marginBottom:'14px',borderRadius:'14px',border:pulsePeriodIdx===g.periodIdx?'2px solid #2563eb':'2px solid transparent'}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 4px',fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.6px',borderBottom:'1px solid var(--border-2)'}}>
-                    <span>{g.period.short} · {g.period.month} · {fmtD(g.period.start)} – {fmtD(g.period.end)}</span>
+                    <span
+                      onClick={carmsSelectMode?()=>{
+                        const rows = visibleItems.map(it=>({ id: it.entry.id, markers: {
+                          ot: it.otOutstanding && carmsFilter!=='pa' && carmsFilter!=='toil',
+                          pa: it.paOutstanding && carmsFilter!=='ot' && carmsFilter!=='toil',
+                        }}));
+                        toggleCarmsGroup(rows);
+                      }:undefined}
+                      style={{display:'flex',alignItems:'center',gap:'8px',cursor:carmsSelectMode?'pointer':'default'}}>
+                      {carmsSelectMode&&(
+                        <span style={{width:'15px',height:'15px',borderRadius:'50%',border:`1.5px solid ${visibleItems.every(it=>carmsSelected[it.entry.id])?BRASS:'var(--quiet)'}`,background:visibleItems.every(it=>carmsSelected[it.entry.id])?BRASS:'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                          {visibleItems.every(it=>carmsSelected[it.entry.id])&&<Ico n="check" s={9} c="#fff" w={3}/>}
+                        </span>
+                      )}
+                      <span>{g.period.short} · {g.period.month} · {fmtD(g.period.start)} – {fmtD(g.period.end)}</span>
+                    </span>
                     <span style={{fontFamily:MONO,color:BRASS}}>{visibleTotalLabel}</span>
                   </div>
                   <div style={{background:'var(--surface-2)',borderRadius:'12px',padding:'4px 12px'}}>
@@ -140,8 +180,15 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
                       // A day showing TOIL on its own (the dedicated TOIL filter
                       // tab, where showOt is always false) still gets its own row.
                       const mergeOtToil = showOt && showToil;
+                      const isSelected = !!carmsSelected[it.entry.id];
                       return (
-                        <div key={it.entry.id} onClick={goToEntry} className="claim-in tap-row" style={{padding:isWide?'12px 0':'10px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer',animationDelay:(Math.min(i,6)*55)+'ms'}}>
+                        <div key={it.entry.id} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,{ot:showOt,pa:showPa}):goToEntry} className="claim-in tap-row" style={{display:'flex',alignItems:'flex-start',gap:'10px',padding:isWide?'12px 0':'10px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer',animationDelay:(Math.min(i,6)*55)+'ms',background:isSelected?'rgba(184,130,63,0.07)':'transparent',margin:isSelected?'0 -10px':0,paddingLeft:isSelected?'10px':0,paddingRight:isSelected?'10px':0,borderRadius:isSelected?'8px':0}}>
+                          {carmsSelectMode&&(
+                            <span style={{width:'19px',height:'19px',borderRadius:'50%',border:`1.5px solid ${isSelected?BRASS:'var(--quiet)'}`,background:isSelected?BRASS:'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',marginTop:'1px'}}>
+                              {isSelected&&<Ico n="check" s={11} c="#fff" w={3}/>}
+                            </span>
+                          )}
+                          <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',marginBottom:'6px'}}>
                             {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
                           </div>
@@ -183,6 +230,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
                               <span style={{fontFamily:MONO,fontSize:isWide?'14.5px':'12.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
                             </div>
                           )}
+                          </div>
                         </div>
                       );
                     })}
@@ -194,6 +242,19 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
           </div>
         )}
       </div>
+
+      {/* ── bulk action bar — only present while there's something to act
+           on, same "floats just above the bottom nav" placement as Log
+           Overtime's own sticky preview banner ── */}
+      {carmsSelectMode && selectedIds.length>0 && (
+        <div style={{position:'sticky',bottom:'calc(88px + env(safe-area-inset-bottom))',zIndex:24,marginTop:'11px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'15px',padding:'12px 14px',boxShadow:'0 10px 24px rgba(15,39,68,0.16)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
+            <div style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>{selectedIds.length} selected</div>
+            <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:BRASS}}>{fmtGBP(selectedTotal)}</div>
+          </div>
+          <button onClick={openCarmsBulkConfirm} style={{width:'100%',background:BRASS,border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'12.5px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Mark as Submitted</button>
+        </div>
+      )}
     </div>
   );
 }
