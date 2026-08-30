@@ -199,7 +199,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
     cardWrap: {flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',position:'relative',zIndex:1,minHeight:0},
     card: {width:'100%',maxWidth:isWide?'460px':'none',background:'var(--surface)',borderRadius:'18px',padding:isWide?'34px 30px 28px':'26px 22px 22px',boxShadow:'0 12px 34px rgba(0,0,0,0.28)',boxSizing:'border-box'},
     label:{display:'block',fontSize:'9px',color:'var(--muted)',margin:'0 0 6px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1.5px'},
-    input:{width:'100%',background:'var(--surface-2)',border:'none',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'14px'},
+    input:{width:'100%',background:'var(--surface-2)',border:'none',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'14px'},
     err:{fontSize:'12px',color:'#dc2626',margin:'-10px 0 14px',fontWeight:700},
     btn:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'none',fontFamily:'inherit',fontSize:'11px',fontWeight:900,cursor:'pointer',background:'#2563eb',color:'#fff',textTransform:'uppercase',letterSpacing:'1px'},
     btnGhost:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'1px solid var(--border-2)',fontFamily:'inherit',fontSize:'11px',fontWeight:900,cursor:'pointer',background:'var(--surface)',color:'var(--muted)',marginTop:'10px',textTransform:'uppercase',letterSpacing:'1px'},
@@ -2533,9 +2533,9 @@ export default function App() {
     card: {background:'var(--surface)',borderRadius:'18px',padding:'18px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid var(--border-2)',marginBottom:'10px'},
     dark: {background:'var(--navy)',borderRadius:'18px',padding:'19px',boxShadow:'0 8px 28px rgba(15,39,68,0.28)',marginBottom:'10px',position:'relative',overflow:'hidden'},
     lbl:  {display:'block',fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'},
-    inp:  {width:'100%',background:'var(--surface-2)',border:'none',padding:'12px 15px',borderRadius:'12px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)'},
-    ta:   {width:'100%',background:'var(--surface-2)',border:'none',padding:'12px 15px',borderRadius:'12px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',resize:'none',boxSizing:'border-box',color:'var(--ink)'},
-    sel:  {width:'100%',background:'var(--surface-2)',border:'1px solid var(--border)',padding:'12px 15px',borderRadius:'12px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',appearance:'none'},
+    inp:  {width:'100%',background:'var(--surface-2)',border:'none',padding:'12px 15px',borderRadius:'12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)'},
+    ta:   {width:'100%',background:'var(--surface-2)',border:'none',padding:'12px 15px',borderRadius:'12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',resize:'none',boxSizing:'border-box',color:'var(--ink)'},
+    sel:  {width:'100%',background:'var(--surface-2)',border:'1px solid var(--border)',padding:'12px 15px',borderRadius:'12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',appearance:'none'},
   };
 
   // ── More.. tab, desktop only: an opened settings card becomes a
@@ -2899,8 +2899,23 @@ export default function App() {
              statement rows, CARMS claim rows, Settings' accordion headers —
              are <div onClick> instead, which that rule never reaches. This
              is the same press feedback for those. ── */
-        .tap-row{transition:transform 0.12s ease, opacity 0.12s ease}
+        .tap-row{transition:transform 0.12s ease, opacity 0.12s ease, filter 0.15s ease}
         .tap-row:active{transform:scale(0.975);opacity:0.7}
+        /* ── hover feedback, desktop only ─────────────────────────────────
+             Every clickable surface got tap feedback for touch a while
+             back; this is the mouse equivalent, which the app never had
+             at all — a real gap given how much of it (the sidebar, the
+             two-column dashboard, every popover) only exists on desktop.
+             hover:hover excludes touch devices, so a tap never leaves a
+             phone's row looking artificially "stuck" hovered. A brightness
+             filter (rather than a fixed background colour) works the same
+             way regardless of what's underneath — a plain row, a tinted
+             card, a solid-colour button — without needing its own tuned
+             value for every different context. ── */
+        @media (hover:hover){
+          .tap-row:hover{filter:brightness(0.96)}
+          button:not(:disabled):hover{filter:brightness(0.94)}
+        }
         /* ── toast enter/exit — ToastStack mirrors the toasts array into
              local state so a dismissed toast plays this leave transition
              before it's actually dropped, instead of vanishing the instant
@@ -2998,6 +3013,7 @@ export default function App() {
         input:focus,select:focus,textarea:focus{outline:2px solid #2563eb;outline-offset:-2px}
         input,select,textarea{font-size:16px}
         button:active{opacity:0.8;transform:scale(0.96)}
+        button{transition:filter 0.15s ease}
         input[type=date]{-webkit-appearance:none;appearance:none;color-scheme:light;line-height:1.2}
         /* Same theme-detection pattern as every custom property in
            index.html — without this, the OS's native date-picker icon and

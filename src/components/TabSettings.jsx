@@ -554,7 +554,7 @@ export function TabSettings({
                       value={deleteAcctTyped}
                       onChange={e=>setDeleteAcctTyped(e.target.value)}
                       placeholder={session.user?.email}
-                      style={{width:'100%',background:'var(--surface)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'10px'}}
+                      style={{width:'100%',background:'var(--surface)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'10px'}}
                     />
                     <div style={{display:'flex',gap:'6px'}}>
                       <button
