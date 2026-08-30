@@ -88,7 +88,7 @@ export function TabDashboard({
       </div>
 
       {salaryBreakdownExpanded&&(
-        <div onClick={e=>e.stopPropagation()} style={{cursor:'default'}}>
+        <div onClick={e=>e.stopPropagation()} className="accordion-in" style={{cursor:'default'}}>
           {/* breakdown rows — London Weighting/Allowance shown as YTD out of full year */}
           <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',display:'flex',flexDirection:'column',gap:'6px'}}>
             {[
