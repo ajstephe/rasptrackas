@@ -247,7 +247,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
            on, same "floats just above the bottom nav" placement as Log
            Overtime's own sticky preview banner ── */}
       {carmsSelectMode && selectedIds.length>0 && (
-        <div style={{position:'sticky',bottom:'calc(88px + env(safe-area-inset-bottom))',zIndex:24,marginTop:'11px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'15px',padding:'12px 14px',boxShadow:'0 10px 24px rgba(15,39,68,0.16)'}}>
+        <div className="sheet-pop" style={{position:'sticky',bottom:'calc(88px + env(safe-area-inset-bottom))',zIndex:24,marginTop:'11px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'15px',padding:'12px 14px',boxShadow:'0 10px 24px rgba(15,39,68,0.16)'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
             <div style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>{selectedIds.length} selected</div>
             <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:BRASS}}>{fmtGBP(selectedTotal)}</div>
