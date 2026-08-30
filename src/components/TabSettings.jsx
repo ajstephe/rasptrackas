@@ -112,6 +112,23 @@ export function TabSettings({
            card still expands independently — a taller expanded card
            just makes its own grid row taller, same as any 2-up
            layout. Mobile is untouched (grid only turns on at isWide). ── */}
+      {/* ── Want to say thanks — its own full-width card, same shape
+           as Appearance below, sitting above it. One shared card for
+           both mobile and desktop now (it used to be split: folded
+           into the Help & Suggestions box on mobile, and a separate
+           card further down the grid on desktop). ── */}
+      <div style={{...S.card,marginBottom:'12px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
+          <Ico n="coffee" s={16} c="#d97706"/>
+          <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Want to say thanks?</div>
+        </div>
+        <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,lineHeight:1.6}}>
+          A lot of late nights, caffeine, and swearing went into building and hosting this. If it's making your life easier and you'd like to say thanks, you can{' '}
+          <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank).
+        </div>
+        <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
+      </div>
+
       {/* ── Appearance — not an accordion like the rest of this tab;
            a 3-way choice doesn't need to hide behind a "tap to
            expand". Sits outside the grid on desktop too, full-width,
@@ -743,20 +760,6 @@ export function TabSettings({
 
       {!isWide && <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',padding:'8px 4px 6px'}}>Support</div>}
 
-      {/* ── Sign Out, desktop only — mobile's copy now lives as an icon
-           pill on the title line up top (see header row above); desktop's
-           2-column grid keeps this full box in its original bottom
-           position. ── */}
-      {isWide && session&&(
-        <button onClick={()=>setSignOutConfirmOpen(true)} style={{...S.card,width:'100%',display:'flex',alignItems:'center',gap:'12px',background:'#059669',border:'1px solid #059669',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-          <div style={{background:'rgba(255,255,255,0.15)',padding:'11px',borderRadius:'13px',flexShrink:0}}><FireExitIcon size={19}/></div>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:900,fontSize:'14px',color:'#fff'}}>Sign Out</div>
-          </div>
-          <Ico n="cR" s={16} c="rgba(255,255,255,0.7)"/>
-        </button>
-      )}
-
       {/* ── Help & suggestions ── */}
       <div style={S.card}>
         <a href="mailto:ajstephe@me.com?subject=Overtime%20Tracker%20—%20Feedback" style={{display:'flex',alignItems:'center',gap:'12px',textDecoration:'none',cursor:'pointer'}}>
@@ -767,36 +770,7 @@ export function TabSettings({
           </div>
           <Ico n="cR" s={16} c="#94a3b8"/>
         </a>
-        {!isWide && (
-          <>
-            <div style={{borderTop:'1px solid var(--border-2)',margin:'14px 0'}}/>
-            <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
-              <Ico n="coffee" s={16} c="#d97706"/>
-              <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Want to say thanks?</div>
-            </div>
-            <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,lineHeight:1.6}}>
-              A lot of late nights, caffeine, and swearing went into making this. If it's made your life easier and you'd like to say thanks, you can{' '}
-              <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank). Thanks.
-            </div>
-          </>
-        )}
       </div>
-
-      {/* ── Want to say thanks — its own card on desktop instead of
-           sharing the Help & Suggestions box. ── */}
-      {isWide && (
-        <div style={S.card}>
-          <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
-            <Ico n="coffee" s={16} c="#d97706"/>
-            <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Want to say thanks?</div>
-          </div>
-          <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,lineHeight:1.6}}>
-            A lot of late nights, caffeine, and swearing went into building and hosting this. If it's making your life easier and you'd like to say thanks, you can{' '}
-            <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank).
-          </div>
-          <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
-        </div>
-      )}
       </div>
 
       {/* ── Backdrop for the desktop popup cards above — click
