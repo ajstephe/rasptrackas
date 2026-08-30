@@ -194,22 +194,6 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
   const [forgotSent, setForgotSent] = useState(false);
   const [noRecoveryWarning, setNoRecoveryWarning] = useState(false);
 
-  // Browser password managers (Safari/Keychain, Chrome/Edge) fill a field's
-  // DOM value directly, bypassing the normal keystroke path React's
-  // controlled <input> relies on — so our onChange never fires, our state
-  // never updates, and on the next render React silently snaps the field's
-  // displayed value back to the (still-empty) state, making the fill look
-  // like it never happened. This is what was actually breaking "autofill"
-  // this whole time, on every platform, regardless of the password-toggle
-  // markup above. The fix: browsers add the CSS pseudo-class :-webkit-
-  // autofill (and the standard :autofill) to a field the instant they fill
-  // it, so a no-op animation hung off that selector fires an
-  // animationstart event we CAN listen for, and pull the real DOM value
-  // into state from there.
-  const handleAutofill = setter => e => {
-    if (e.animationName === 'onAutoFillStart' || e.animationName === 'onAutoFillCancel') setter(e.target.value);
-  };
-
   const AS = {
     // Dark blue page — deliberately different from the rest of the app's
     // light theme, matching the brand-moment treatment requested for this
@@ -380,39 +364,8 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     }
   };
 
-  // Plain type="password" input — no show/hide toggle, no autoFocus. Both
-  // were tried and reverted chasing autofill regressions. autoFocus in
-  // particular forces the browser to grab focus the instant the screen
-  // mounts — the same moment the .fi entrance animation below is still
-  // moving the card into place — which can race a password manager's
-  // suggestion popover right as it's trying to anchor itself to the field.
-  const pwField = (value, onChange, placeholder, autoComplete, fieldId, onAnimationStart) => (
-    <input
-      id={fieldId} name={fieldId}
-      style={AS.input}
-      type="password" placeholder={placeholder} value={value} onChange={onChange}
-      autoComplete={autoComplete} onAnimationStart={onAnimationStart}
-    />
-  );
-
   return (
     <div style={AS.page}>
-      {/* No entrance fade/slide animation on this screen's fields (deliberately
-          removed, along with autoFocus earlier) — one more candidate for why
-          Safari stopped silently autofilling a saved password the instant the
-          page loads: if the field is still visibly animating into place at
-          the moment Safari would decide to fill it, that's a plausible reason
-          it defers to the tap-to-select suggestion instead. */}
-      <style>{`
-        /* No-op animations, purely so we get an animationstart event to hook
-           when a browser autofills a field — see handleAutofill above. */
-        @keyframes onAutoFillStart{from{opacity:1}to{opacity:1}}
-        @keyframes onAutoFillCancel{from{opacity:1}to{opacity:1}}
-        input:-webkit-autofill{animation-name:onAutoFillStart}
-        input:autofill{animation-name:onAutoFillStart}
-        input:not(:-webkit-autofill){animation-name:onAutoFillCancel}
-        input:not(:autofill){animation-name:onAutoFillCancel}
-      `}</style>
       <div style={AS.cardWrap}>
       <div style={AS.card}>
         {/* Title lives inside the card itself on this screen, rather than
@@ -427,121 +380,101 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         </div>
 
         {screen === 'signin' && (
-          <div>
-            {/* autoComplete="username" here, not "email" — Safari treats
-                autocomplete=email as a Contacts-card field (its separate
-                Contact Info autofill system), not a login identifier, so it
-                was offering to fill your name/address instead of pairing
-                this field with the password field below for a Keychain
-                credential match. "username" is what both Safari's and
-                Chrome's own guidance recommend for a login form's identifier
-                field, even when it's styled/typed as an email address. */}
-            <form onSubmit={e=>{e.preventDefault(); handleSignIn();}}>
-              <label style={AS.label}>Email</label>
-              <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)}/>
-              <label style={AS.label}>Password</label>
-              {pwField(password, e=>setPassword(e.target.value), '••••••••', 'current-password', 'current-password', handleAutofill(setPassword))}
-              {error && <div style={AS.err}>{error}</div>}
-              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Signing in…':'Sign in'}</button>
-            </form>
+          <>
+            <label style={AS.label}>Email</label>
+            <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
+            <label style={AS.label}>Password</label>
+            <input style={AS.input} type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password"/>
+            {error && <div style={AS.err}>{error}</div>}
+            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignIn}>{busy?'Signing in…':'Sign in'}</button>
             <div style={AS.divider}>or</div>
-            <button type="button" style={AS.btnGhost} onClick={()=>{ setScreen('signup'); setError(''); }}>Create account</button>
+            <button style={AS.btnGhost} onClick={()=>{ setScreen('signup'); setError(''); }}>Create account</button>
             <div style={AS.linkRow}><span style={AS.link} onClick={()=>{ setScreen('forgot'); setError(''); setForgotSent(false); }}>Forgot password?</span></div>
-          </div>
+          </>
         )}
 
         {screen === 'signup' && (
-          <div>
-            <form onSubmit={e=>{e.preventDefault(); handleSignUp();}}>
-              <label style={AS.label}>Email</label>
-              <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)}/>
-              <label style={AS.label}>Password</label>
-              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', 'new-password', handleAutofill(setPassword))}
-              <label style={AS.label}>Confirm password</label>
-              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', 'new-password-confirm', handleAutofill(setPassword2))}
-              <div style={AS.note}>
-                <span>↻</span>
-                <span><b>You'll set up a recovery secret next.</b> That protects your data if you ever forget your password.</span>
-              </div>
-              {error && <div style={AS.err}>{error}</div>}
-              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Creating…':'Create account'}</button>
-            </form>
+          <>
+            <label style={AS.label}>Email</label>
+            <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
+            <label style={AS.label}>Password</label>
+            <input style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
+            <label style={AS.label}>Confirm password</label>
+            <input style={AS.input} type="password" placeholder="••••••••" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
+            <div style={AS.note}>
+              <span>↻</span>
+              <span><b>You'll set up a recovery secret next.</b> That protects your data if you ever forget your password.</span>
+            </div>
+            {error && <div style={AS.err}>{error}</div>}
+            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignUp}>{busy?'Creating…':'Create account'}</button>
             <div style={AS.linkRow}>Already have an account? <span style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Sign in</span></div>
-          </div>
+          </>
         )}
 
         {screen === 'recovery-setup' && (
-          <div>
+          <>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Save your recovery secret</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>If you ever forget your password, this word is the only other way back into your data. Nobody else has a copy of it — not even us.</div>
 
-            <form onSubmit={e=>{e.preventDefault(); handleRecoverySetup();}}>
-              <label style={AS.label}>Your recovery word</label>
-              <input style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
-              <div style={{fontSize:'12px',color:recoveryWord.length>=RECOVERY_MIN_LENGTH?'#16a34a':'var(--quiet)',margin:'-10px 0 6px',fontWeight:700}}>{recoveryWord.length} / {RECOVERY_MIN_LENGTH} characters minimum</div>
-              {recoveryTooCommon && recoveryWord.length>0 && <div style={AS.err}>Too common — choose something less predictable</div>}
-              {error && <div style={{...AS.err,marginTop:recoveryTooCommon?0:'-4px'}}>{error}</div>}
+            <label style={AS.label}>Your recovery word</label>
+            <input style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
+            <div style={{fontSize:'12px',color:recoveryWord.length>=RECOVERY_MIN_LENGTH?'#16a34a':'var(--quiet)',margin:'-10px 0 6px',fontWeight:700}}>{recoveryWord.length} / {RECOVERY_MIN_LENGTH} characters minimum</div>
+            {recoveryTooCommon && recoveryWord.length>0 && <div style={AS.err}>Too common — choose something less predictable</div>}
+            {error && <div style={{...AS.err,marginTop:recoveryTooCommon?0:'-4px'}}>{error}</div>}
 
-              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1,marginTop:'8px'}} disabled={busy}>{busy?'Saving…':'Save and continue'}</button>
-            </form>
-          </div>
+            <button style={{...AS.btn,opacity:busy?0.7:1,marginTop:'8px'}} disabled={busy} onClick={handleRecoverySetup}>{busy?'Saving…':'Save and continue'}</button>
+          </>
         )}
 
         {screen === 'forgot' && !forgotSent && (
-          <div>
+          <>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Reset your password</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>We'll email you a secure link to set a new password.</div>
-            <form onSubmit={e=>{e.preventDefault(); handleForgotRequest();}}>
-              <label style={AS.label}>Email</label>
-              <input style={AS.input} type="email" id="email" name="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="username" onAnimationStart={handleAutofill(setEmail)}/>
-              {error && <div style={AS.err}>{error}</div>}
-              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Sending…':'Send reset link'}</button>
-            </form>
+            <label style={AS.label}>Email</label>
+            <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
+            {error && <div style={AS.err}>{error}</div>}
+            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleForgotRequest}>{busy?'Sending…':'Send reset link'}</button>
             <div style={AS.linkRow}><span style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Back to sign in</span></div>
-          </div>
+          </>
         )}
 
         {screen === 'forgot' && forgotSent && (
-          <div>
+          <>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Check your email</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>A reset link's on its way to {email}. Follow it to set a new password.</div>
             <button style={AS.btnGhost} onClick={()=>{ setScreen('signin'); setError(''); setForgotSent(false); }}>Back to sign in</button>
-          </div>
+          </>
         )}
 
         {screen === 'set-new-password' && (
-          <div>
+          <>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Set a new password</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Choose a new password for your account.</div>
-            <form onSubmit={e=>{e.preventDefault(); handleSetNewPassword();}}>
-              <label style={AS.label}>New password</label>
-              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', 'new-password', handleAutofill(setPassword))}
-              <label style={AS.label}>Confirm new password</label>
-              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', 'new-password-confirm', handleAutofill(setPassword2))}
-              {error && <div style={AS.err}>{error}</div>}
-              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Saving…':'Set new password'}</button>
-            </form>
-          </div>
+            <label style={AS.label}>New password</label>
+            <input style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
+            <label style={AS.label}>Confirm new password</label>
+            <input style={AS.input} type="password" placeholder="••••••••" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
+            {error && <div style={AS.err}>{error}</div>}
+            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSetNewPassword}>{busy?'Saving…':'Set new password'}</button>
+          </>
         )}
 
         {screen === 'recovery-unlock' && (
-          <div>
+          <>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Unlock your existing data</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Your password's been reset. Enter your recovery word to restore access to your previous shifts and TOIL.</div>
-            <form onSubmit={e=>{e.preventDefault(); handleRecoveryUnlock();}}>
-              <label style={AS.label}>Recovery word</label>
-              <input style={AS.input} type="text" placeholder="Enter your recovery word" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
-              {error && <div style={AS.err}>{error}</div>}
-              <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Unlocking…':'Unlock my data'}</button>
-            </form>
+            <label style={AS.label}>Recovery word</label>
+            <input style={AS.input} type="text" placeholder="Enter your recovery word" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
+            {error && <div style={AS.err}>{error}</div>}
+            <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleRecoveryUnlock}>{busy?'Unlocking…':'Unlock my data'}</button>
             <div style={AS.linkRow}><span style={AS.link} onClick={()=>setNoRecoveryWarning(true)}>I don't have my recovery word</span></div>
             {noRecoveryWarning && (
               <div style={{marginTop:'12px'}}>
                 <div style={{fontSize:'11.5px',color:'#dc2626',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>Without it, your existing shifts and TOIL can't be recovered by anyone. You can continue and set up a fresh recovery word, but everything logged before this reset will be gone for good.</div>
-                <button type="button" style={AS.btnGhost} onClick={()=>{ setError(''); setRecoveryWord(''); setNoRecoveryWarning(false); setScreen('recovery-setup'); }}>Continue without my old data</button>
+                <button style={AS.btnGhost} onClick={()=>{ setError(''); setRecoveryWord(''); setNoRecoveryWarning(false); setScreen('recovery-setup'); }}>Continue without my old data</button>
               </div>
             )}
-          </div>
+          </>
         )}
 
       </div>
