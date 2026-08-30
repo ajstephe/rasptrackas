@@ -135,7 +135,7 @@ export function TabDashboard({
               { key:'125', value: 125140, label: '£125.1k' },
             ];
             return (
-              <div onClick={e=>{e.stopPropagation();scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
+              <div onClick={e=>{e.stopPropagation();scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} className="tap-row" style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'26px'}}>
                   <div style={{fontSize:'11px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'1.5px'}}>Gross Salary (Actual)</div>
                   <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
@@ -172,7 +172,7 @@ export function TabDashboard({
               { key:'125', value: 125140, label: '£125.1k' },
             ];
             return (
-              <div onClick={e=>{e.stopPropagation();scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
+              <div onClick={e=>{e.stopPropagation();scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} className="tap-row" style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'3px'}}>
                   <div style={{fontSize:'11px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'1.5px'}}>Gross Salary (Forecast)</div>
                   <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
@@ -271,7 +271,7 @@ export function TabDashboard({
             : 'Set your rank & pay point in More..'}
         </div>
         {carmsOutstanding.totalAmount>0&&(
-          <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',cursor:'pointer'}}>
+          <div onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',cursor:'pointer'}}>
             <Ico n="clock" s={11} c="#fbbf24"/>+{fmtGBP(carmsOutstanding.totalAmount)} not yet submitted to CARMS
           </div>
         )}
@@ -279,7 +279,7 @@ export function TabDashboard({
 
       <div style={{padding:'4px 26px'}}>
         {totals.curr&&(
-          <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer'}}>
+          <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
               <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Current pay period</div>
@@ -291,7 +291,7 @@ export function TabDashboard({
           </div>
         )}
         {netHeroRow(false)}
-        <div onClick={()=>setTab('graph')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:carmsOutstanding.totalClaims>0?'1px solid var(--border-2)':'none',cursor:'pointer'}}>
+        <div onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:carmsOutstanding.totalClaims>0?'1px solid var(--border-2)':'none',cursor:'pointer'}}>
           <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
             <div style={{fontSize:'13px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL balance{toilLedger.balance<0?' — overdrawn':''}</div>
@@ -302,7 +302,7 @@ export function TabDashboard({
           </div>
         </div>
         {carmsOutstanding.totalClaims>0&&(
-          <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',cursor:'pointer'}}>
+          <div onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
               <div>
@@ -341,7 +341,7 @@ export function TabDashboard({
             : 'Set your rank & pay point in More..'}
         </div>
         {carmsOutstanding.totalAmount>0&&(
-          <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',cursor:'pointer'}}>
+          <div onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',cursor:'pointer'}}>
             <Ico n="clock" s={11} c="#fbbf24"/>+{fmtGBP(carmsOutstanding.totalAmount)} not yet submitted to CARMS
           </div>
         )}
@@ -349,7 +349,7 @@ export function TabDashboard({
 
       <div style={{padding:'2px 18px'}}>
         {totals.curr&&(
-          <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer'}}>
+          <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
               <div style={{background:'var(--tint-teal)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="cal" s={16} c="#0d9488"/></div>
               <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>Current period</div>
@@ -361,7 +361,7 @@ export function TabDashboard({
           </div>
         )}
         {netHeroRow(true)}
-        <div onClick={()=>setTab('graph')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:carmsOutstanding.totalClaims>0?'1px solid var(--border-2)':'none',cursor:'pointer'}}>
+        <div onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:carmsOutstanding.totalClaims>0?'1px solid var(--border-2)':'none',cursor:'pointer'}}>
           <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="clock" s={16} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
             <div style={{fontSize:'12px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL balance{toilLedger.balance<0?' — overdrawn':''}</div>
@@ -372,7 +372,7 @@ export function TabDashboard({
           </div>
         </div>
         {carmsOutstanding.totalClaims>0&&(
-          <div onClick={()=>setTab('carms')} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',cursor:'pointer'}}>
+          <div onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
               <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
               <div>

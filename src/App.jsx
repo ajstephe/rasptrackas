@@ -2848,12 +2848,30 @@ export default function App() {
         .save-pulse{animation:saveRingPulse 0.65s ease-out}
         @keyframes badgePop{0%{transform:scale(0)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
         .badge-pop{animation:badgePop 0.4s cubic-bezier(.34,1.56,.64,1)}
+        /* ── tap feedback for div-based rows ─────────────────────────────
+             button:active (below) already gives real <button>s a press
+             state, but most of the app's busiest tap targets — Dashboard's
+             statement rows, CARMS claim rows, Settings' accordion headers —
+             are <div onClick> instead, which that rule never reaches. This
+             is the same press feedback for those. ── */
+        .tap-row{transition:transform 0.12s ease, opacity 0.12s ease}
+        .tap-row:active{transform:scale(0.975);opacity:0.7}
+        /* ── toast enter/exit — ToastStack mirrors the toasts array into
+             local state so a dismissed toast plays this leave transition
+             before it's actually dropped, instead of vanishing the instant
+             its id falls out of the array. ── */
+        .toast-enter{animation:su 0.22s ease}
+        @keyframes toastOut{to{opacity:0;transform:translateY(-8px) scale(0.98)}}
+        .toast-leave{animation:toastOut 0.22s ease forwards}
         @media (prefers-reduced-motion: reduce){
           .nav-pill{transition-duration:0.001ms}
           .nav-ico{transition-duration:0.001ms}
           .claim-in{animation-duration:0.001ms}
           .save-pulse{animation-duration:0.001ms}
           .badge-pop{animation-duration:0.001ms}
+          .tap-row{transition-duration:0.001ms}
+          .toast-enter{animation-duration:0.001ms}
+          .toast-leave{animation-duration:0.001ms}
         }
         /* ── Fluid mobile nav ───────────────────────────────────────────
            Six tabs at fixed sizes leave almost no slack on a 320px phone
