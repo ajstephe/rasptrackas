@@ -183,7 +183,7 @@ const RECOVERY_KDF_ITERATIONS = 600000; // used maybe once ever, so it can affor
 // local-only escape hatch. Recovery-secret setup and real cloud sync of
 // entries/toilTaken/settings are phase 2, once the data-key wrap/unwrap
 // functions exist — signing up here does not yet mean data is backed up.
-function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInPasswordRecovery, onRecoveryComplete, isWide }) {
+function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy, onUnlocked, startInPasswordRecovery, onRecoveryComplete, isWide }) {
   const [screen, setScreen]         = useState(startInPasswordRecovery ? 'set-new-password' : 'signin'); // 'signin' | 'signup' | 'forgot' | 'recovery-setup' | 'set-new-password' | 'recovery-unlock'
   const [email, setEmail]           = useState('');
   const [password, setPassword]     = useState('');
@@ -546,6 +546,12 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
 
       </div>
       </div>
+      {/* This screen is an early return out of App() itself (logged-out /
+          mid-auth), before App's own <ToastStack> ever mounts — without a
+          copy here, any toast fired while on this screen (e.g. the "a new
+          version is ready" PWA-update prompt) would silently queue into
+          state with nothing rendering it, and never be seen. */}
+      <ToastStack toasts={toasts} onDismiss={dismissToast}/>
     </div>
   );
 }
@@ -3124,6 +3130,8 @@ export default function App() {
         key="recovery"
         supabase={supabase}
         addToast={addToast}
+        toasts={toasts}
+        dismissToast={dismissToast}
         onUnlocked={handleUnlocked}
         startInPasswordRecovery={true}
         onRecoveryComplete={()=>setPasswordRecoveryMode(false)}
@@ -3132,7 +3140,7 @@ export default function App() {
     );
   }
   if (supabase && (!session || !dataKey)) {
-    return <AuthScreens key="normal" supabase={supabase} addToast={addToast} onUnlocked={handleUnlocked} isWide={isWide} />;
+    return <AuthScreens key="normal" supabase={supabase} addToast={addToast} toasts={toasts} dismissToast={dismissToast} onUnlocked={handleUnlocked} isWide={isWide} />;
   }
 
   return (
