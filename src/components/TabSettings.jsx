@@ -5,6 +5,7 @@ import { calcUKIncomeTax, calcUKIncomeTaxNoTaper, computeTaxBandBreakdown, calcP
 import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { SegSlider } from './SegSlider.jsx';
+import { useMountTransition } from '../lib/useMountTransition.js';
 
 // ─── More.. (settings) tab ───────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='settings' block — no behaviour
@@ -36,6 +37,16 @@ export function TabSettings({
   yearsWithData, setArchiveExpandedPeriod, setFySummaryPrintMode, setFySummaryYear,
   animClass='fi',
 }) {
+  // Mirrored exit for the two destructive confirm cards below (Wipe All
+  // Data, Delete Account) — same useMountTransition trick as App.jsx's
+  // overlays: cancelling one of these used to hard-cut it away instantly
+  // despite it popping in with .alert-pop; these are arguably the two
+  // highest-stakes confirmations in the whole app, so it's worth them
+  // settling back down rather than just vanishing. Called unconditionally
+  // here at the top rather than inside the accordion's own IIFE further
+  // down, so hook order never depends on what that render happens to do.
+  const wipeMounted = useMountTransition(wipeConf, 220);
+  const deleteAcctMounted = useMountTransition(deleteAcctConf, 220);
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
@@ -530,9 +541,9 @@ export function TabSettings({
             </div>
 
             <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'11px'}}>
-              {!wipeConf
+              {!wipeMounted
                 ?<button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'0.06em'}}><Ico n="trash" s={12} c="#b91c1c"/> Wipe All Data</button>
-                :<div className="alert-pop" style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px'}}>
+                :<div className={'alert-pop'+(wipeConf?'':' pop-out')} style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px'}}>
                     <div style={{textAlign:'center',color:'var(--text-red-deep)',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'#dc2626'}}>{session ? 'Deletes every logged shift and all TOIL data — on this device and in the cloud. ' : 'Deletes every logged shift and all TOIL data on this device. '}This cannot be undone unless you have downloaded a backup file to your device.</span></div>
                     <div style={{display:'flex',gap:'6px'}}>
                       <button onClick={handleWipe} disabled={wipingData} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:wipingData?'not-allowed':'pointer',textTransform:'uppercase',letterSpacing:'0.06em',opacity:wipingData?0.7:1}}>{wipingData?'Wiping…':'Yes, Delete'}</button>
@@ -544,10 +555,10 @@ export function TabSettings({
 
             {session&&(
               <div style={{borderTop:'1px solid var(--border-2)',marginTop:'11px',paddingTop:'11px'}}>
-                {!deleteAcctConf ? (
+                {!deleteAcctMounted ? (
                   <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'0.06em'}}><Ico n="trash" s={12} c="#b91c1c"/> Delete Account</button>
                 ) : (
-                  <div className="alert-pop" style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px'}}>
+                  <div className={'alert-pop'+(deleteAcctConf?'':' pop-out')} style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px'}}>
                     <div style={{fontSize:'11.5px',color:'var(--text-red-deep)',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>
                     <div style={{fontSize:'10px',color:'#dc2626',fontWeight:900,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Type your email to confirm: {session.user?.email}</div>
                     <input

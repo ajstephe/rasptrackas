@@ -152,6 +152,13 @@ export function TabSummary({
         )}
       </div>
 
+      {/* key={breakdownView} forces a full remount on every List↔Calendar
+          switch, purely so .fi's fade-in replays — the SegSlider pill up
+          top already slides between the two, but the content underneath
+          used to hard-cut with no transition of its own at all. Both
+          branches are prop-driven (nothing keeps state across the switch
+          that a remount would lose), so this is safe. ── */}
+      <div key={breakdownView} className="fi">
       {breakdownView==='list' ? (
       <>
       {/* Desktop: period cards reflow into a 2-column grid instead of
@@ -302,7 +309,7 @@ export function TabSummary({
             </button>
 
             {isExp&&(
-              <div className="fi" style={{background:'var(--surface-2)',borderTop:'1px solid var(--border-2)',padding:'13px'}}>
+              <div className="accordion-in" style={{background:'var(--surface-2)',borderTop:'1px solid var(--border-2)',padding:'13px'}}>
                 {/* month summary — net figures now use cumulative marginal tax, rate shown.
                     Desktop: OT Pay and PA keep their own bordered boxes side by side (this
                     card already spans both grid columns once expanded, so there's room).
@@ -701,7 +708,7 @@ export function TabSummary({
                   <span style={{display:'flex',transform:calLegendExpanded?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.15s'}}><Ico n="cR" s={11} c="#2563eb" w={2.5}/></span>
                 </button>
                 {calLegendExpanded&&(
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginTop:'14px'}}>
+                <div className="accordion-in" style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginTop:'14px'}}>
                   <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-red)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>OT/PA Recorded NOT Submitted</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-green)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>OT/PA Submitted</span></div>
@@ -810,6 +817,7 @@ export function TabSummary({
       })()}
       </>
       )}
+      </div>
     </div>
   );
 }
