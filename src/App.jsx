@@ -1623,6 +1623,20 @@ export default function App() {
   const bulkMarkCarmsSubmitted = (dateStr) => {
     const selectedIds = Object.keys(carmsSelected);
     if (selectedIds.length===0) return;
+    // Snapshot only the fields this action is about to touch on each
+    // entry, not the whole entry — matching the same "the toast can put
+    // this back" convention delEntry/deleteToilTaken already use, just
+    // per-field instead of whole-item since this changes several entries
+    // at once rather than removing one.
+    const before = {};
+    entries.forEach(e => {
+      const markers = carmsSelected[e.id];
+      if (!markers) return;
+      before[e.id] = {
+        ...(markers.ot ? { otSubmitted: e.otSubmitted, otSubmittedDate: e.otSubmittedDate } : {}),
+        ...(markers.pa ? { paSubmitted: e.paSubmitted, paSubmittedDate: e.paSubmittedDate } : {}),
+      };
+    });
     setEntries(prev => prev.map(e => {
       const markers = carmsSelected[e.id];
       if (!markers) return e;
@@ -1631,7 +1645,8 @@ export default function App() {
       if (markers.pa) { updates.paSubmitted = true; updates.paSubmittedDate = dateStr; }
       return { ...e, ...updates };
     }));
-    addToast(`${selectedIds.length} claim${selectedIds.length!==1?'s':''} marked as submitted`);
+    const undoBulkSubmit = () => setEntries(prev => prev.map(e => before[e.id] ? { ...e, ...before[e.id] } : e));
+    addToast(`${selectedIds.length} claim${selectedIds.length!==1?'s':''} marked as submitted`, 'undo', {label:'Undo', fn:undoBulkSubmit}, 7000);
     haptic();
     setDatePickerFor(null);
     toggleCarmsSelectMode();
