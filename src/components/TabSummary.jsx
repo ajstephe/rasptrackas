@@ -72,9 +72,18 @@ export function TabSummary({
   }, [isWide, calSwipeStartX]);
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
-      {/* Sticky header — heading, toggle and month pills all float together */}
-      <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'rgba(var(--surface-2-rgb),0.82)',backdropFilter:'blur(16px) saturate(1.5)',WebkitBackdropFilter:'blur(16px) saturate(1.5)',paddingTop:'14px',paddingBottom:'8px',marginTop:'-14px',marginBottom:'6px'}}>
-        <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 10px',letterSpacing:'-0.5px'}}>Summary</h2>
+      {/* Heading sits in normal flow, like every other tab's — it scrolls
+          away with the page instead of living inside the sticky group
+          below. It used to be the sticky div's own first child, sharing
+          that div's tinted/blurred backdrop with no visual break before
+          the Calendar/List toggle immediately under it — which read as
+          the heading being the toggle card's own title bar rather than
+          the page's heading. Only the actually-functional bit (the view
+          toggle and month pills) needs to stay pinned while scrolling. ── */}
+      <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 12px',letterSpacing:'-0.5px'}}>Summary</h2>
+
+      {/* Sticky header — toggle and month pills float together */}
+      <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'rgba(var(--surface-2-rgb),0.82)',backdropFilter:'blur(16px) saturate(1.5)',WebkitBackdropFilter:'blur(16px) saturate(1.5)',paddingTop:'10px',paddingBottom:'8px',marginBottom:'6px'}}>
         <SegSlider activeKey={breakdownView} trackStyle={{display:'flex',background:'var(--chip-bg)',borderRadius:'14px',padding:'4px',boxShadow:'0 4px 14px rgba(15,23,42,0.08)'}} indicatorStyle={{background:BRASS,borderRadius:'11px',boxShadow:'0 2px 8px rgba(184,130,63,0.35)'}}>
           {/* Each half is a div rather than a button so the star can be its own
               tap target inside it — nesting buttons isn't valid HTML. */}
