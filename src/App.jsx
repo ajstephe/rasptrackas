@@ -380,20 +380,17 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
     }
   };
 
-  // Plain type="password" input — no show/hide toggle. Two different
-  // toggle implementations were tried here (a dual mirrored-input version,
-  // then a single input with a stable id flipping type on click) chasing
-  // autofill regressions on Safari and then desktop Chrome/Edge in turn.
-  // Neither held up in real-world use, and this sandbox has no way to
-  // drive a browser's native password-manager UI to verify a fix before
-  // shipping it, so the toggle is gone rather than iterated on again —
-  // this plain field is the last confirmed-working state for autofill
-  // on every platform.
-  const pwField = (value, onChange, placeholder, autoComplete, onAnimationStart, autoFocus=false) => (
+  // Plain type="password" input — no show/hide toggle, no autoFocus. Both
+  // were tried and reverted chasing autofill regressions. autoFocus in
+  // particular forces the browser to grab focus the instant the screen
+  // mounts — the same moment the .fi entrance animation below is still
+  // moving the card into place — which can race a password manager's
+  // suggestion popover right as it's trying to anchor itself to the field.
+  const pwField = (value, onChange, placeholder, autoComplete, onAnimationStart) => (
     <input
       style={AS.input}
       type="password" placeholder={placeholder} value={value} onChange={onChange}
-      autoComplete={autoComplete} autoFocus={autoFocus} onAnimationStart={onAnimationStart}
+      autoComplete={autoComplete} onAnimationStart={onAnimationStart}
     />
   );
 
@@ -432,7 +429,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
           <div className="fi">
             <form onSubmit={e=>{e.preventDefault(); handleSignIn();}}>
               <label style={AS.label}>Email</label>
-              <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" autoFocus={isWide} onAnimationStart={handleAutofill(setEmail)}/>
+              <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" onAnimationStart={handleAutofill(setEmail)}/>
               <label style={AS.label}>Password</label>
               {pwField(password, e=>setPassword(e.target.value), '••••••••', 'current-password', handleAutofill(setPassword))}
               {error && <div style={AS.err}>{error}</div>}
@@ -448,7 +445,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
           <div className="fi">
             <form onSubmit={e=>{e.preventDefault(); handleSignUp();}}>
               <label style={AS.label}>Email</label>
-              <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" autoFocus={isWide} onAnimationStart={handleAutofill(setEmail)}/>
+              <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" onAnimationStart={handleAutofill(setEmail)}/>
               <label style={AS.label}>Password</label>
               {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', handleAutofill(setPassword))}
               <label style={AS.label}>Confirm password</label>
@@ -471,7 +468,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
 
             <form onSubmit={e=>{e.preventDefault(); handleRecoverySetup();}}>
               <label style={AS.label}>Your recovery word</label>
-              <input style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)} autoFocus={isWide}/>
+              <input style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
               <div style={{fontSize:'12px',color:recoveryWord.length>=RECOVERY_MIN_LENGTH?'#16a34a':'var(--quiet)',margin:'-10px 0 6px',fontWeight:700}}>{recoveryWord.length} / {RECOVERY_MIN_LENGTH} characters minimum</div>
               {recoveryTooCommon && recoveryWord.length>0 && <div style={AS.err}>Too common — choose something less predictable</div>}
               {error && <div style={{...AS.err,marginTop:recoveryTooCommon?0:'-4px'}}>{error}</div>}
@@ -487,7 +484,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>We'll email you a secure link to set a new password.</div>
             <form onSubmit={e=>{e.preventDefault(); handleForgotRequest();}}>
               <label style={AS.label}>Email</label>
-              <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" autoFocus={isWide} onAnimationStart={handleAutofill(setEmail)}/>
+              <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" onAnimationStart={handleAutofill(setEmail)}/>
               {error && <div style={AS.err}>{error}</div>}
               <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Sending…':'Send reset link'}</button>
             </form>
@@ -509,7 +506,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Choose a new password for your account.</div>
             <form onSubmit={e=>{e.preventDefault(); handleSetNewPassword();}}>
               <label style={AS.label}>New password</label>
-              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', handleAutofill(setPassword), isWide)}
+              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', handleAutofill(setPassword))}
               <label style={AS.label}>Confirm new password</label>
               {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', handleAutofill(setPassword2))}
               {error && <div style={AS.err}>{error}</div>}
@@ -524,7 +521,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Your password's been reset. Enter your recovery word to restore access to your previous shifts and TOIL.</div>
             <form onSubmit={e=>{e.preventDefault(); handleRecoveryUnlock();}}>
               <label style={AS.label}>Recovery word</label>
-              <input style={AS.input} type="text" placeholder="Enter your recovery word" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)} autoFocus={isWide}/>
+              <input style={AS.input} type="text" placeholder="Enter your recovery word" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
               {error && <div style={AS.err}>{error}</div>}
               <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Unlocking…':'Unlock my data'}</button>
             </form>
