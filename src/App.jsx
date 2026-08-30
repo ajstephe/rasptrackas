@@ -36,6 +36,7 @@ import { ToastStack } from './components/ToastStack.jsx';
 import { SegSlider } from './components/SegSlider.jsx';
 import { MonthlyChart } from './components/MonthlyChart.jsx';
 import { useEscapeToClose } from './lib/useEscapeToClose.js';
+import { useBackButtonCloses } from './lib/useBackButtonCloses.js';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
 // Only one of these six is ever on screen at a time (via `tab` state below),
 // so there's no reason all six ship in the initial JS payload. Each becomes
@@ -485,7 +486,19 @@ export default function App() {
   const todayStr      = new Date().toISOString().split('T')[0];
   const currPeriodIdx = PAY_PERIODS.findIndex(p=>todayStr>=p.start&&todayStr<=p.end);
 
-  const [tab,          setTab]          = useState('dashboard');
+  // The Android home-screen shortcut (manifest.json) launches with
+  // ?shortcut=log so it can open straight onto Log Overtime — the one
+  // thing people actually open this app to do most — instead of always
+  // landing on Home first. iOS has no equivalent (Safari doesn't support
+  // manifest shortcuts at all), so this only ever fires on Android.
+  const [tab,          setTab]          = useState(()=>
+    new URLSearchParams(window.location.search).get('shortcut')==='log' ? 'add' : 'dashboard'
+  );
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('shortcut')) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
   // ── directional tab-switch entrance ─────────────────────────────────────
   // Bottom-nav taps already have a sense of direction (the sliding pill),
   // but the tab content itself just cut-and-faded regardless of which way
@@ -535,6 +548,26 @@ export default function App() {
     else document.documentElement.setAttribute('data-theme', themeMode);
   },[themeMode]);
   const setTheme = v => { setThemeMode(v); dualWrite(KEYS.themeMode, v); };
+
+  // ── Android's status bar follows theme-color, and it's a solid colour
+  // (not translucent like iOS's), so a value that's only ever right for one
+  // theme leaves a mismatched stripe above the header in the other one.
+  // Keeps it in sync with themeMode, including 'system' — where it has to
+  // watch prefers-color-scheme itself, since nothing else in the app does. ──
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) return;
+    const LIGHT = '#ffffff', DARK = '#111c2e';
+    const apply = () => {
+      const dark = themeMode==='dark' || (themeMode==='system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      meta.setAttribute('content', dark ? DARK : LIGHT);
+    };
+    apply();
+    if (themeMode!=='system') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, [themeMode]);
 
   const [defaultBreakdownView, setDefaultBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'calendar'));
   const [breakdownView, setBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'calendar')); // 'list' | 'calendar'
@@ -678,6 +711,24 @@ export default function App() {
   useEscapeToClose(
     configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded,
     () => { setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }
+  );
+  // ── Android back closes whatever's open ─────────────────────────────────
+  // Same overlay list as the Escape handling above, collapsed into one
+  // combined "is anything open" check and one "close everything" — only one
+  // of these is ever realistically open at a time, so there's no need to
+  // track which specific one for this. See useBackButtonCloses for why this
+  // needs pushState/popstate rather than something simpler.
+  useBackButtonCloses(
+    !!(signOutConfirmOpen || restoreConfirmOpen || payslipModalOpen || chartModal || confirmCreateDay || selectedCalDay || datePickerFor
+      || configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded),
+    () => {
+      setSignOutConfirmOpen(false); setRestoreConfirmOpen(false); setPayslipModalOpen(false);
+      setChartModal(null); setChartTap(null);
+      setConfirmCreateDay(null);
+      setSelectedCalDay(null); setConfirmDel(null);
+      setDatePickerFor(null);
+      setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false);
+    }
   );
   const notesRef = useRef(null);
   // What's already been pushed to Supabase, keyed by row id — compared
