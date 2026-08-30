@@ -82,8 +82,16 @@ export function TabSummary({
           toggle and month pills) needs to stay pinned while scrolling. ── */}
       <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 12px',letterSpacing:'-0.5px'}}>Summary</h2>
 
-      {/* Sticky header — toggle and month pills float together */}
-      <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'rgba(var(--surface-2-rgb),0.82)',backdropFilter:'blur(16px) saturate(1.5)',WebkitBackdropFilter:'blur(16px) saturate(1.5)',paddingTop:'10px',paddingBottom:'8px',marginBottom:'6px'}}>
+      {/* Sticky header — toggle and month pills float together. Rounded
+          and bordered like every other card in the app (S.card's own
+          18px radius) rather than a flush, hard-cornered strip — the
+          frosted blur/tint is kept (this still wants to read as glass,
+          not a solid card, since content scrolls underneath it while
+          pinned), just given the same edges as everything else. Sitting
+          inside the tab's own 14px page padding already insets it
+          exactly like any other card, including while stuck — sticky
+          only affects its vertical position, not its width. ── */}
+      <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'rgba(var(--surface-2-rgb),0.82)',backdropFilter:'blur(16px) saturate(1.5)',WebkitBackdropFilter:'blur(16px) saturate(1.5)',borderRadius:'18px',border:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',overflow:'hidden',paddingTop:'10px',paddingBottom:'8px',paddingLeft:'12px',paddingRight:'12px',marginBottom:'6px'}}>
         <SegSlider activeKey={breakdownView} trackStyle={{display:'flex',background:'var(--chip-bg)',borderRadius:'14px',padding:'4px',boxShadow:'0 4px 14px rgba(15,23,42,0.08)'}} indicatorStyle={{background:BRASS,borderRadius:'11px',boxShadow:'0 2px 8px rgba(184,130,63,0.35)'}}>
           {/* Each half is a div rather than a button so the star can be its own
               tap target inside it — nesting buttons isn't valid HTML. */}
