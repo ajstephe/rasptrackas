@@ -2637,7 +2637,20 @@ export default function App() {
       // Session clears via onAuthStateChange once the token this session
       // was using no longer resolves to an existing user, same as sign-out.
     } catch (e) {
-      addToast('Couldn\u2019t delete account \u2014 ' + (e.message || 'try again'), 'warn', null, 6000);
+      // supabase-js's own error for this is always the same generic
+      // "Edge Function returned a non-2xx status code", regardless of what
+      // actually went wrong \u2014 the real reason (our own {error: "..."} body)
+      // is only reachable via e.context, the raw fetch Response, which has
+      // to be read separately. Without this, every failure here looks
+      // identical and undiagnosable.
+      let message = e.message || 'try again';
+      if (e?.context?.json) {
+        try {
+          const body = await e.context.json();
+          if (body?.error) message = body.error;
+        } catch { /* body wasn't JSON, or already consumed \u2014 keep the generic message */ }
+      }
+      addToast('Couldn\u2019t delete account \u2014 ' + message, 'warn', null, 6000);
     } finally {
       setDeletingAcct(false);
     }
