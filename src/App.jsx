@@ -37,6 +37,7 @@ import { SegSlider } from './components/SegSlider.jsx';
 import { MonthlyChart } from './components/MonthlyChart.jsx';
 import { useEscapeToClose } from './lib/useEscapeToClose.js';
 import { useBackButtonCloses } from './lib/useBackButtonCloses.js';
+import { haptic } from './lib/haptics.js';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
 // Only one of these six is ever on screen at a time (via `tab` state below),
 // so there's no reason all six ship in the initial JS payload. Each becomes
@@ -1760,6 +1761,7 @@ export default function App() {
     // committing the entry and navigating away (which happens instantly,
     // so without this delay the confirmation would never be seen).
     setJustSaved(true);
+    haptic();
     setTimeout(() => {
       let savedId, updatedEntries;
       if(editing){
@@ -2335,6 +2337,7 @@ export default function App() {
   // local data is left untouched rather than risk local being wiped while
   // stale cloud data silently survives.
   const handleWipe = async () => {
+    haptic();
     setWipingData(true);
     if (supabase && session) {
       try {
@@ -2385,6 +2388,7 @@ export default function App() {
   // everything (local and cloud) but leaves the same account signed in.
   const handleDeleteAccount = async () => {
     if (!supabase) return;
+    haptic();
     setDeletingAcct(true);
     try {
       const { data, error } = await supabase.functions.invoke('delete-account');
