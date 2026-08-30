@@ -11,7 +11,7 @@ export function TabDashboard({
   salaryBreakdownExpanded, setSalaryBreakdownExpanded,
   scrollToTaxImpact, setTaxImpactExpanded,
   skipBreakdownReset, setBreakdownView, setCalPeriodIdx,
-  renderMonthlyChart, S, MONO, BRASS,
+  renderMonthlyChart, S, MONO, BRASS, animClass='fi',
 }) {
   // The two headline mono figures count up/down when they change instead
   // of jumping straight to the new value — logging a shift, editing one,
@@ -226,7 +226,7 @@ export function TabDashboard({
   );
 
   return (
-  <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
+  <div className={animClass} style={{padding:'14px',paddingBottom:'96px'}}>
     {!settings.rank&&(
       <div className="setup-pulse-urgent" style={{background:'var(--tint-red)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'13px 14px',marginBottom:'12px',display:'flex',gap:'11px',alignItems:'flex-start'}}>
         <Ico n="uPlus" s={19} c="#dc2626"/>
