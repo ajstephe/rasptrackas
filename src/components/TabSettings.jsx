@@ -61,7 +61,7 @@ export function TabSettings({
         </div>
         <div style={{display:'flex',gap:'6px'}}>
           {[['system','Auto'],['light','Light'],['dark','Dark']].map(([v,lbl])=>(
-            <button key={v} onClick={()=>setTheme(v)} style={{flex:1,padding:'9px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:themeMode===v?'var(--navy)':'var(--surface-2)',color:themeMode===v?'#fff':BRASS,boxShadow:themeMode===v?'0 4px 11px rgba(15,39,68,0.35)':'none'}}>{lbl}</button>
+            <button key={v} onClick={()=>setTheme(v)} style={{flex:1,padding:'9px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:themeMode===v?BRASS:'var(--surface-2)',color:themeMode===v?'#fff':'var(--muted)',boxShadow:themeMode===v?'0 4px 11px rgba(184,130,63,0.35)':'none'}}>{lbl}</button>
           ))}
         </div>
       </div>
@@ -81,7 +81,7 @@ export function TabSettings({
            — that part was never meant to be hideable. ── */}
       {(()=>{
         const cardHeader = (
-          <div onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setConfigExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete))?'13px':0}}>
+          <div onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setConfigExpanded(v=>!v); }} className={configSetupIncomplete?'':'tap-row'} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete))?'13px':0}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Config, Rates &amp; Payscales</div>
@@ -244,7 +244,7 @@ export function TabSettings({
         );
 
         const cardHeader = (
-          <div onClick={()=>{ if(isWide){setConfigExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setTaxImpactExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(taxImpactExpanded&&!isWide)?'12px':0,cursor:'pointer'}}>
+          <div onClick={()=>{ if(isWide){setConfigExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setTaxImpactExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(taxImpactExpanded&&!isWide)?'12px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:over?'var(--tint-red)':'var(--tint-green)',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="calc" s={isWide?21:17} c={over?'#dc2626':'#059669'}/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Tax & 100K+ Calculator</div>
@@ -413,7 +413,7 @@ export function TabSettings({
       {/* ── Financial Years — generated calendar, every past year with data is browsable ── */}
       {(()=>{
         const cardHeader = (
-          <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setFinancialYearsExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(financialYearsExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
+          <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setFinancialYearsExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(financialYearsExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="cal" s={isWide?21:17} c="#2563eb"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Archived Financial Years</div>
@@ -465,7 +465,7 @@ export function TabSettings({
       {/* ── Export to spreadsheet — separate from backup ── */}
       {(()=>{
         const cardHeader = (
-          <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setDataManagementExpanded(false);} setExportDataExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(exportDataExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
+          <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setDataManagementExpanded(false);} setExportDataExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(exportDataExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-amber)',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="share" s={isWide?21:17} c="#d97706"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Financial Reports &amp; Export</div>
@@ -506,7 +506,7 @@ export function TabSettings({
       {(()=>{
         const acctBase = {background:'var(--surface)',borderRadius:'18px',padding:'19px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid var(--border-2)',marginBottom:'10px',position:'relative',overflow:'hidden'};
         const cardHeader = (
-          <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);} setDataManagementExpanded(v=>!v); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:(dataManagementExpanded&&!isWide)?'13px':0}}>
+          <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);} setDataManagementExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:(dataManagementExpanded&&!isWide)?'13px':0}}>
             <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
               <div style={{background:'var(--tint-blue)',padding:'11px',borderRadius:'13px'}}><Ico n="user" s={21} c="#2563eb"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Account &amp; Data Management</div>

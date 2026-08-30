@@ -61,7 +61,13 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
         </div>
 
         {carmsOutstanding.groups.length===0 ? (
-          <div style={{textAlign:'center',padding:'18px 10px 24px',color:'var(--quiet)',fontSize:'13px',fontWeight:700}}>Nothing outstanding — every logged claim has been marked as submitted.</div>
+          <div style={{textAlign:'center',padding:'22px 10px 26px'}}>
+            <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
+              <Ico n="check" s={20} c={BRASS} w={2.3}/>
+            </div>
+            <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>All caught up</div>
+            <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Every logged claim has been marked as submitted</div>
+          </div>
         ) : (
           <div style={{padding:'0 20px 18px'}}>
             <div style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'10px 12px',fontSize:'11px',color:'var(--text-amber-deep)',lineHeight:1.5,margin:'10px 0 14px'}}>
@@ -114,7 +120,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
                       // tab, where showOt is always false) still gets its own row.
                       const mergeOtToil = showOt && showToil;
                       return (
-                        <div key={it.entry.id} onClick={goToEntry} className="claim-in" style={{padding:isWide?'12px 0':'10px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer',animationDelay:(Math.min(i,6)*55)+'ms'}}>
+                        <div key={it.entry.id} onClick={goToEntry} className="claim-in tap-row" style={{padding:isWide?'12px 0':'10px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer',animationDelay:(Math.min(i,6)*55)+'ms'}}>
                           <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',marginBottom:'6px'}}>
                             {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
                           </div>

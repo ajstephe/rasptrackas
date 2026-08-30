@@ -75,7 +75,13 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
       <div style={{...S.lbl,fontSize:'11px',margin:'14px 0 8px'}}>Ledger</div>
       <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5,marginBottom:'10px'}}>Green entries post automatically whenever you log a shift as TOIL or Mix. Red entries result when you redeem TOIL in the box above.</div>
       {toilLedger.rows.length===0 ? (
-        <div style={{fontSize:'14px',color:'var(--quiet)',textAlign:'center',padding:'20px'}}>No TOIL activity yet</div>
+        <div style={{textAlign:'center',padding:'22px 10px 26px'}}>
+          <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'var(--tint-purple)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
+            <Ico n="moon" s={19} c="#7c3aed" w={2}/>
+          </div>
+          <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No TOIL activity yet</div>
+          <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log a TOIL shift or redeem hours above</div>
+        </div>
       ) : (
       <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}:undefined}>
       {toilLedger.rows.map((l,i)=>(
