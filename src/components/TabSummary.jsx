@@ -27,7 +27,7 @@ export function TabSummary({
   return (
     <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
       {/* Sticky header — heading, toggle and month pills all float together */}
-      <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'rgba(var(--surface-2-rgb),0.82)',backdropFilter:'blur(16px) saturate(1.5)',WebkitBackdropFilter:'blur(16px) saturate(1.5)',paddingTop:'6px',paddingBottom:'8px',marginTop:'-14px',marginBottom:'6px'}}>
+      <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'rgba(var(--surface-2-rgb),0.82)',backdropFilter:'blur(16px) saturate(1.5)',WebkitBackdropFilter:'blur(16px) saturate(1.5)',paddingTop:'14px',paddingBottom:'8px',marginTop:'-14px',marginBottom:'6px'}}>
         <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 10px',letterSpacing:'-0.5px'}}>Summary</h2>
         <SegSlider activeKey={breakdownView} trackStyle={{display:'flex',background:'var(--chip-bg)',borderRadius:'14px',padding:'4px',boxShadow:'0 4px 14px rgba(15,23,42,0.08)'}} indicatorStyle={{background:BRASS,borderRadius:'11px',boxShadow:'0 2px 8px rgba(184,130,63,0.35)'}}>
           {/* Each half is a div rather than a button so the star can be its own
