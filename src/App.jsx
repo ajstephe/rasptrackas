@@ -2819,9 +2819,17 @@ export default function App() {
   // unreachable or misconfigured (supabase is null), this still falls back
   // to rendering the app rather than a dead end — see the client setup above.
   if (authLoading) {
+    // Same wordmark/icon treatment as the real header below, so the very
+    // first thing anyone sees on a cold load already looks like this app
+    // rather than a generic "Loading…" placeholder — .fi eases it in
+    // instead of it just cutting straight in over whatever was there before.
     return (
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',background:'var(--surface-2)'}}>
-        <span style={{fontSize:'13px',fontWeight:700,color:'var(--quiet)',fontFamily:"'DM Sans',system-ui,sans-serif"}}>Loading…</span>
+      <div className="fi" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'18px',height:'100dvh',background:'var(--surface-2)',fontFamily:"'DM Sans',system-ui,sans-serif"}}>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'10px'}}>
+          <ClockCashIcon width={40} height={27}/>
+          <span style={{fontSize:'17px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.3px'}}>Overtime &amp; Shift Tracker</span>
+        </div>
+        <div className="tab-spinner"/>
       </div>
     );
   }
@@ -2916,6 +2924,15 @@ export default function App() {
              needs a real stylesheet rule, not an inline style. ── */
         .time-wheel-col{scrollbar-width:none;-ms-overflow-style:none;}
         .time-wheel-col::-webkit-scrollbar{display:none;}
+        /* ── accordion reveal — Settings' five inline sections (mobile) and
+             Dashboard's Salary Breakdown pop into view the instant their
+             chevron finishes rotating rather than snapping in dead still;
+             the desktop popover equivalents already get modal-pop. Only
+             the open direction animates — closing loses less by vanishing
+             instantly since attention's already moved on by then, and it
+             keeps this from needing its own mirrored exit-state plumbing. ── */
+        @keyframes accordionIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+        .accordion-in{animation:accordionIn 0.28s cubic-bezier(.32,.72,0,1)}
         /* ── tab-chunk loading spinner — only ever visible for a beat on
              a slow connection's first visit to a given tab (each tab is
              its own lazy-loaded chunk, cached after that). ── */
@@ -2933,6 +2950,7 @@ export default function App() {
           .alert-pop{animation-duration:0.001ms}
           .sheet-pop{animation-duration:0.001ms}
           .modal-pop{animation-duration:0.001ms}
+          .accordion-in{animation-duration:0.001ms}
         }
         /* ── Fluid mobile nav ───────────────────────────────────────────
            Six tabs at fixed sizes leave almost no slack on a 320px phone

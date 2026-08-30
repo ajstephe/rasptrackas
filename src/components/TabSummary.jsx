@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { buildCalendarWeeks } from '../lib/payPeriods.js';
 import { KEYS, dualWrite } from '../lib/storage.js';
 import { fmt, fmtHM, fmtGBP, fmtD, fmtDDMM } from '../lib/format.js';
@@ -24,6 +25,11 @@ export function TabSummary({
   calcEntry, crossPeriodInfo, carmsBadge, renderDatePills, renderFYTotalsCard,
   jumpTo, snapToActiveMonth, startEdit, delEntry, setTab,
 }) {
+  // Purely a gesture-visual concern (not app state), so it's local rather
+  // than lifted like calSwipeStartX — mutated directly via the ref during
+  // the drag rather than through React state, so the calendar visibly
+  // tracks the finger at 60fps instead of only reacting once the swipe ends.
+  const weeksGridRef = useRef(null);
   return (
     <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
       {/* Sticky header — heading, toggle and month pills all float together */}
@@ -536,11 +542,28 @@ export function TabSummary({
 
             {/* calendar grid */}
             <div
-              onTouchStart={isWide?undefined:(e=>{ calSwipeStartX.current = e.touches[0].clientX; })}
+              onTouchStart={isWide?undefined:(e=>{
+                calSwipeStartX.current = e.touches[0].clientX;
+                if (weeksGridRef.current) weeksGridRef.current.style.transition = 'none';
+              })}
+              onTouchMove={isWide?undefined:(e=>{
+                if (calSwipeStartX.current===null || !weeksGridRef.current) return;
+                const dx = e.touches[0].clientX - calSwipeStartX.current;
+                // rubber-banded past 90px so a long drag doesn't just keep
+                // dragging the grid off into space — same idea as an iOS
+                // scroll-past-the-end bounce, capped rather than elastic.
+                const damped = Math.abs(dx) > 90 ? Math.sign(dx) * (90 + (Math.abs(dx) - 90) * 0.25) : dx;
+                weeksGridRef.current.style.transform = `translateX(${damped}px)`;
+              })}
               onTouchEnd={isWide?undefined:(e=>{
                 if (calSwipeStartX.current===null) return;
                 const dx = e.changedTouches[0].clientX - calSwipeStartX.current;
                 calSwipeStartX.current = null;
+                if (weeksGridRef.current) {
+                  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                  weeksGridRef.current.style.transition = reduced ? 'none' : 'transform 0.28s cubic-bezier(.32,.72,0,1)';
+                  weeksGridRef.current.style.transform = 'translateX(0px)';
+                }
                 if (Math.abs(dx) < 50) return; // too small to count as an intentional swipe
                 if (dx > 0) setCalPeriodIdx(i=>Math.max(0,(i===null?currPeriodIdx:i)-1));
                 else setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1));
@@ -553,7 +576,7 @@ export function TabSummary({
                   <div key={d} style={{textAlign:'center',fontSize:'13px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',minWidth:0,overflow:'hidden'}}>{d}</div>
                 ))}
               </div>
-              <div style={{display:'flex',flexDirection:'column',gap:'3px'}}>
+              <div ref={weeksGridRef} style={{display:'flex',flexDirection:'column',gap:'3px'}}>
                 {weeks.map((week,wi)=>(
                   <div key={`${cIdx}-${wi}`} style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:'3px'}}>
                     {week.map((date,di)=>{

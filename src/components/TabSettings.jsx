@@ -187,7 +187,7 @@ export function TabSettings({
           <>
             <div style={S.card}>
               {cardHeader}
-              {showInline && cardBody}
+              {showInline && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {showModal && contentWrapRef.current && createPortal(
               <div className="modal-pop" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
@@ -399,7 +399,7 @@ export function TabSettings({
           <>
             <div ref={taxImpactCardRef} style={S.card}>
               {cardHeader}
-              {!isWide && cardBody}
+              {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {isWide && taxImpactExpanded && contentWrapRef.current && createPortal(
               <div className="modal-pop" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'12px'}}>{cardBody}</div></div>,
@@ -453,7 +453,7 @@ export function TabSettings({
           <>
             <div style={S.card}>
               {cardHeader}
-              {!isWide && cardBody}
+              {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {isWide && financialYearsExpanded && contentWrapRef.current && createPortal(
               <div className="modal-pop" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
@@ -488,7 +488,7 @@ export function TabSettings({
           <>
             <div style={S.card}>
               {cardHeader}
-              {!isWide && cardBody}
+              {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {isWide && exportDataExpanded && contentWrapRef.current && createPortal(
               <div className="modal-pop" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
@@ -573,7 +573,7 @@ export function TabSettings({
           <>
             <div style={acctBase}>
               {cardHeader}
-              {!isWide && cardBody}
+              {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {isWide && dataManagementExpanded && contentWrapRef.current && createPortal(
               <div className="modal-pop" style={modalBoxStyle(acctBase)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
