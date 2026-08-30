@@ -115,10 +115,10 @@ export function TabLogOvertime({
                       </div>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px',marginBottom:'5px'}}>
                         <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
-                          <TimeSelect value={form.rosteredStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredStart:v}))}/>
+                          <TimeSelect value={form.rosteredStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredStart:v}))} label="Rostered Start" BRASS={BRASS}/>
                         </div>
                         <div><label style={{...S.lbl,marginBottom:'5px'}}>End</label>
-                          <TimeSelect value={form.rosteredEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredEnd:v}))}/>
+                          <TimeSelect value={form.rosteredEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredEnd:v}))} label="Rostered End" BRASS={BRASS}/>
                         </div>
                       </div>
                       {form.rosteredStart&&form.rosteredEnd&&toMinutesOfDay(form.rosteredEnd)<=toMinutesOfDay(form.rosteredStart)&&(
@@ -137,10 +137,10 @@ export function TabLogOvertime({
                   </div>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px'}}>
                     <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
-                      <TimeSelect value={form.actualStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualStart:v}))}/>
+                      <TimeSelect value={form.actualStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualStart:v}))} label="Actual Start" BRASS={BRASS}/>
                     </div>
                     <div><label style={{...S.lbl,marginBottom:'5px'}}>End</label>
-                      <TimeSelect value={form.actualEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualEnd:v}))}/>
+                      <TimeSelect value={form.actualEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualEnd:v}))} label="Actual End" BRASS={BRASS}/>
                     </div>
                   </div>
                   {form.actualStart&&form.actualEnd&&toMinutesOfDay(form.actualEnd)<=toMinutesOfDay(form.actualStart)&&(

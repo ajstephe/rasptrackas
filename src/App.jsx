@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { createClient } from "@supabase/supabase-js";
 
@@ -32,14 +32,18 @@ import {
   isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate, periodIdxForDate,
 } from './lib/calc.js';
 import { Ico, ClockCashIcon, FireExitIcon } from './components/Icons.jsx';
-import { TimeSelect } from './components/TimeSelect.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
-import { TabToil } from './components/TabToil.jsx';
-import { TabCarms } from './components/TabCarms.jsx';
-import { TabDashboard } from './components/TabDashboard.jsx';
-import { TabLogOvertime } from './components/TabLogOvertime.jsx';
-import { TabSummary } from './components/TabSummary.jsx';
-import { TabSettings } from './components/TabSettings.jsx';
+// ── tabs are code-split, not bundled up front ───────────────────────────────
+// Only one of these six is ever on screen at a time (via `tab` state below),
+// so there's no reason all six ship in the initial JS payload. Each becomes
+// its own chunk, fetched the first time its tab is opened and cached by the
+// browser after that — same components, same props, just loaded on demand.
+const TabToil = lazy(() => import('./components/TabToil.jsx').then(m => ({ default: m.TabToil })));
+const TabCarms = lazy(() => import('./components/TabCarms.jsx').then(m => ({ default: m.TabCarms })));
+const TabDashboard = lazy(() => import('./components/TabDashboard.jsx').then(m => ({ default: m.TabDashboard })));
+const TabLogOvertime = lazy(() => import('./components/TabLogOvertime.jsx').then(m => ({ default: m.TabLogOvertime })));
+const TabSummary = lazy(() => import('./components/TabSummary.jsx').then(m => ({ default: m.TabSummary })));
+const TabSettings = lazy(() => import('./components/TabSettings.jsx').then(m => ({ default: m.TabSettings })));
 
 // ─── ledger redesign tokens ────────────────────────────────────────────────
 // The "one statement, not six boxes" visual direction: a single brass accent
@@ -1022,6 +1026,35 @@ export default function App() {
   },[]);
 
   const dismissToast = useCallback(id=>setToasts(t=>t.filter(x=>x.id!==id)),[]);
+
+  // ── offline resilience ────────────────────────────────────────────────────
+  // The service worker (vite-plugin-pwa, see vite.config.js) precaches the
+  // app shell so opening this with no signal shows your last-synced data
+  // instead of a blank/failed load. registerType:'prompt' means an update
+  // never silently swaps the running app out from under you mid-shift-entry
+  // — it sits waiting until this toast's Reload is tapped. Runs once, register
+  // in dev is a harmless no-op since the SW itself is production-build-only.
+  useEffect(() => {
+    let cancelled = false;
+    import('virtual:pwa-register').then(({ registerSW }) => {
+      if (cancelled) return;
+      // updateSW(true) is the correct way to apply a waiting worker — it
+      // tells that worker to skipWaiting and reloads once it's taken
+      // control, rather than a plain reload that could keep serving the
+      // old cached version until every other open tab closes.
+      const updateSW = registerSW({
+        immediate: true,
+        onNeedRefresh() {
+          addToast('A new version is ready', 'warn', { label: 'Reload', fn: () => updateSW(true) }, 30000);
+        },
+        onOfflineReady() {
+          addToast('Ready to work offline', 'success');
+        },
+      });
+    }).catch(() => { /* dev server / unsupported browser — app works exactly as before, just without offline caching */ });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const saveSett = s=>{ setSettings(s); setSavedBadge(true); setTimeout(()=>setSavedBadge(false),2200); };
 
@@ -2880,6 +2913,17 @@ export default function App() {
         .sheet-pop{animation:sheetPop 0.32s cubic-bezier(.32,.72,0,1)}
         @keyframes modalPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
         .modal-pop{animation:modalPop 0.28s cubic-bezier(.34,1.42,.64,1)}
+        /* ── time wheel picker (TimeSelect.jsx) — hides the scrollbar on
+             its two scroll-snap columns; scrollbar-width is set inline
+             (works cross-property in React), but hiding WebKit's scrollbar
+             needs a real stylesheet rule, not an inline style. ── */
+        .time-wheel-col{scrollbar-width:none;-ms-overflow-style:none;}
+        .time-wheel-col::-webkit-scrollbar{display:none;}
+        /* ── tab-chunk loading spinner — only ever visible for a beat on
+             a slow connection's first visit to a given tab (each tab is
+             its own lazy-loaded chunk, cached after that). ── */
+        @keyframes tabSpin{to{transform:rotate(360deg)}}
+        .tab-spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--border-2);border-top-color:#b8823f;animation:tabSpin 0.7s linear infinite;}
         @media (prefers-reduced-motion: reduce){
           .nav-pill{transition-duration:0.001ms}
           .nav-ico{transition-duration:0.001ms}
@@ -3032,6 +3076,7 @@ export default function App() {
            (this row itself never scrolls — only <main> does, internally). ── */}
       <div ref={contentWrapRef} style={{display:'flex',flex:1,overflow:'hidden',position:'relative'}}>
       <main ref={mainRef} className="no-print" style={S.main}>
+      <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'50vh'}}><div className="tab-spinner"/></div>}>
 
         {/* ══════════════════════════════════════════ DASHBOARD */}
         {tab==='dashboard'&&(
@@ -3105,6 +3150,7 @@ export default function App() {
             yearsWithData={yearsWithData} setArchiveExpandedPeriod={setArchiveExpandedPeriod} setFySummaryPrintMode={setFySummaryPrintMode} setFySummaryYear={setFySummaryYear}
           />
         )}
+      </Suspense>
       </main>
 
       {/* ── Desktop secondary column — gives the empty space beside the
