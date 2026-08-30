@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CURRENT_FY_YEAR, generateFYPeriods } from '../lib/payPeriods.js';
 import { PAY_RATES } from '../lib/payRates.js';
@@ -33,6 +33,7 @@ export function TabSettings({
   session, handleExport, pulseBackupBtn, setRestoreConfirmOpen, fileRef, handleImport,
   wipeConf, setWipeConf, handleWipe, wipingData,
   deleteAcctConf, setDeleteAcctConf, deleteAcctTyped, setDeleteAcctTyped, handleDeleteAccount, deletingAcct,
+  changePwOpen, setChangePwOpen, newPw, setNewPw, newPw2, setNewPw2, handleChangePassword, changingPw, changePwError, setChangePwError,
   setSignOutConfirmOpen,
   contentWrapRef, modalBoxStyle,
   yearsWithData, setArchiveExpandedPeriod, setFySummaryPrintMode, setFySummaryYear,
@@ -48,6 +49,15 @@ export function TabSettings({
   // down, so hook order never depends on what that render happens to do.
   const wipeMounted = useMountTransition(wipeConf, 220);
   const deleteAcctMounted = useMountTransition(deleteAcctConf, 220);
+  const changePwMounted = useMountTransition(changePwOpen, 220);
+
+  // The Tax & 100K+ Calculator card below lives inside a
+  // settings.rank&&settings.service&&(()=>{...})() IIFE — conditionally
+  // invoked, so any hook declared inside it would violate the Rules of
+  // Hooks the moment that condition is ever false on some render (the
+  // same reasoning already documented above for the five modal-mount
+  // hooks). Declared here, unconditionally, for that reason.
+  const [taxPrintOpen, setTaxPrintOpen] = useState(false);
 
   // Same mirrored-exit treatment for the five desktop popover cards below
   // (Config/Rates, Tax Calculator, Financial Years, Export, Account & Data
@@ -111,6 +121,21 @@ export function TabSettings({
           ))}
         </SegSlider>
       </div>
+
+      {/* ── Sign Out, mobile only — pulled up to sit right under
+           Appearance instead of at the very bottom of a long scroll, so
+           it's reachable without hunting for it. Desktop keeps its own
+           copy further down (its 2-column grid doesn't have a "top" in
+           the same way a single mobile stack does). ── */}
+      {!isWide && session&&(
+        <button onClick={()=>setSignOutConfirmOpen(true)} style={{...S.card,width:'100%',display:'flex',alignItems:'center',gap:'12px',background:'#059669',border:'1px solid #059669',cursor:'pointer',fontFamily:'inherit',textAlign:'left',marginBottom:'12px'}}>
+          <div style={{background:'rgba(255,255,255,0.15)',padding:'11px',borderRadius:'13px',flexShrink:0}}><FireExitIcon size={19}/></div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:900,fontSize:'14px',color:'#fff'}}>Sign Out</div>
+          </div>
+          <Ico n="cR" s={16} c="rgba(255,255,255,0.7)"/>
+        </button>
+      )}
 
       <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}:undefined}>
 
@@ -315,6 +340,7 @@ export function TabSettings({
                   <Ico n="shield" s={13} c="#94a3b8"/>
                   <span style={{fontSize:'11px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>Tax is calculated automatically using real UK income tax bands, applied cumulatively across your salary, allowances and overtime — no manual rate needed.</span>
                 </div>
+                <button onClick={()=>setTaxPrintOpen(true)} style={{width:'100%',marginBottom:'13px',background:'#2563eb',color:'#fff',border:'none',borderRadius:'10px',padding:'10px',fontWeight:900,fontSize:'11px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
                   <div style={{fontSize:'10px',fontWeight:900,color:overA?'#dc2626':'#059669',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',background:overA?'var(--tint-red)':'var(--tint-green)',borderRadius:'8px',padding:'5px 0'}}>Actual (YTD)</div>
                   <div style={{fontSize:'10px',fontWeight:900,color:overF?'#dc2626':'#059669',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',background:overF?'var(--tint-red)':'var(--tint-green)',borderRadius:'8px',padding:'5px 0'}}>Forecast</div>
@@ -449,6 +475,40 @@ export function TabSettings({
               </>
             );
         if (taxModalOpen) taxModalContentRef.current = <>{cardHeader}<div style={{marginTop:'12px'}}>{cardBody}</div></>;
+
+        // Printable summary — same underlying numbers as the on-screen
+        // breakdown above, laid out for a full printed page instead of a
+        // compact card. Portaled straight to document.body (bypassing
+        // <main>'s own no-print) rather than nested inside this component's
+        // usual tree, so it's the only thing left visible once the global
+        // @media print rule hides everything else.
+        const printRow = (label, value, opts={}) => (
+          <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom: opts.noBorder?'none':'1px solid #e2e8f0'}}>
+            <span style={{fontSize:'13px',fontWeight:opts.bold?800:600,color:opts.bold?'#0f172a':'#475569'}}>{label}</span>
+            <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:opts.bold?'#0f172a':'#0f172a'}}>{value}</span>
+          </div>
+        );
+        const printSection = (title, over, gross, pension, pensionRate, pensionablePay, taxable, pa, breakdown, ni, net, extraTax, paRemaining) => (
+          <div style={{marginBottom:'28px',pageBreakInside:'avoid'}}>
+            <div style={{fontSize:'15px',fontWeight:800,color:'#0f172a',marginBottom:'10px',borderBottom:'2px solid #0f172a',paddingBottom:'6px'}}>{title}</div>
+            {printRow('Gross', fmtGBP(gross))}
+            {printRow(`Pension Contribution (${(pensionRate*100).toFixed(2)}% of ${fmtGBP(pensionablePay)} pensionable pay)`, '−'+fmtGBP(pension))}
+            {printRow('Taxable Gross', fmtGBP(taxable))}
+            {printRow('Personal Allowance', fmtGBP(pa))}
+            {printRow(`Basic Rate (20% on ${fmtGBP(breakdown.basicAmt)})`, fmtGBP(breakdown.basicTax))}
+            {printRow(`Higher Rate (40% on ${fmtGBP(breakdown.higherAmt)})`, fmtGBP(breakdown.higherTax))}
+            {breakdown.additionalAmt>0 && printRow(`Additional Rate (45% on ${fmtGBP(breakdown.additionalAmt)})`, fmtGBP(breakdown.additionalTax))}
+            {printRow('Total Income Tax', fmtGBP(breakdown.totalTax), {bold:true})}
+            {printRow('National Insurance', fmtGBP(ni))}
+            {printRow('Estimated Net Pay', fmtGBP(net), {bold:true, noBorder:true})}
+            <div style={{marginTop:'12px',fontSize:'12px',color: over?'#dc2626':'#059669',fontWeight:700}}>
+              {over
+                ? `Over the £100k taper threshold — ${fmtGBP(extraTax)} extra tax from ${fmtGBP(paRemaining===12570?0:12570-paRemaining)} of Personal Allowance lost, ${fmtGBP(paRemaining)} remaining.`
+                : `Under the £100k taper threshold — full £${paRemaining.toLocaleString()} Personal Allowance retained.`}
+            </div>
+          </div>
+        );
+
         return (
           <>
             <div ref={taxImpactCardRef} style={S.card}>
@@ -458,6 +518,24 @@ export function TabSettings({
             {taxModalMounted && contentWrapRef.current && createPortal(
               <div className={'modal-pop'+(taxModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{taxModalContentRef.current}</div>,
               contentWrapRef.current
+            )}
+            {taxPrintOpen && createPortal(
+              <div className="payslip-print-area" style={{position:'fixed',inset:0,background:'#fff',zIndex:80,overflowY:'auto',padding:'20px'}}>
+                <div className="no-print" style={{display:'flex',gap:'8px',marginBottom:'18px',maxWidth:'640px',margin:'0 auto 18px'}}>
+                  <button onClick={()=>setTaxPrintOpen(false)} style={{background:'var(--chip-bg)',border:'none',borderRadius:'11px',padding:'12px 16px',fontWeight:800,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',color:'#0f172a'}}><Ico n="back" s={13} c="#0f172a"/></button>
+                  <button onClick={()=>window.print()} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
+                </div>
+                <div className="payslip-print-doc" style={{maxWidth:'640px',margin:'0 auto',background:'#fff'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'6px'}}>
+                    <div style={{fontSize:'20px',fontWeight:900,color:'#0f172a'}}>Tax &amp; £100k Calculator</div>
+                    <div style={{fontSize:'11px',color:'#64748b',fontWeight:600}}>Generated {new Date().toLocaleDateString('en-GB')}</div>
+                  </div>
+                  <div style={{fontSize:'11px',color:'#64748b',marginBottom:'22px',lineHeight:1.5}}>UK income tax and National Insurance, calculated cumulatively across salary, allowances and overtime. Pension figures follow the 2015 Police Pension Scheme (England &amp; Wales) rates effective 1 April 2026. Estimates only — please consult an accountant, HMRC, or your pension provider for anything you intend to rely on.</div>
+                  {printSection('Actual — Year to Date', overA, ytd, pensionA.amount, pensionA.rate, pensionablePayA, taxableYTD, breakdownA.pa, breakdownA, niA, netA, extraTaxA, paRemainingA)}
+                  {printSection('Forecast — Full Year', overF, proj, pensionF.amount, pensionF.rate, pensionablePayF, taxableGrossF, breakdownF.pa, breakdownF, niF, netF, extraTaxF, paRemainingF)}
+                </div>
+              </div>,
+              document.body
             )}
           </>
         );
@@ -577,6 +655,34 @@ export function TabSettings({
         const cardBody = dataManagementExpanded&&(
           <div style={{background:'var(--surface-2)',borderRadius:'13px',padding:'13px'}}>
             {session&&<div style={{fontSize:'12px',color:'var(--ink)',fontWeight:700,marginBottom:'11px'}}>Signed in as {session.user?.email}</div>}
+
+            {session&&(
+              <div style={{marginBottom:'11px'}}>
+                {!changePwMounted ? (
+                  <button onClick={()=>setChangePwOpen(true)} style={{width:'100%',padding:'10px',background:'var(--chip-bg)',border:'1px solid var(--border)',borderRadius:'13px',color:'var(--ink)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'0.06em'}}><Ico n="lock" s={12} c="var(--muted)"/> Change Password</button>
+                ) : (
+                  <div className={'alert-pop'+(changePwOpen?'':' pop-out')} style={{background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px'}}>
+                    <div style={{fontSize:'11px',color:'var(--muted)',lineHeight:1.5,fontWeight:600,marginBottom:'10px'}}>Choose a new password for your account.</div>
+                    <input
+                      type="password" placeholder="New password (at least 8 characters)" autoComplete="new-password"
+                      value={newPw} onChange={e=>setNewPw(e.target.value)}
+                      style={{width:'100%',background:'var(--surface-2)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'8px'}}
+                    />
+                    <input
+                      type="password" placeholder="Confirm new password" autoComplete="new-password"
+                      value={newPw2} onChange={e=>setNewPw2(e.target.value)}
+                      style={{width:'100%',background:'var(--surface-2)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'8px'}}
+                    />
+                    {changePwError && <div style={{fontSize:'11.5px',color:'#dc2626',fontWeight:700,marginBottom:'8px'}}>{changePwError}</div>}
+                    <div style={{display:'flex',gap:'6px'}}>
+                      <button onClick={handleChangePassword} disabled={changingPw} style={{flex:1,padding:'9px',background:'#2563eb',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:changingPw?'not-allowed':'pointer',textTransform:'uppercase',letterSpacing:'0.06em',opacity:changingPw?0.7:1}}>{changingPw?'Saving…':'Save New Password'}</button>
+                      <button onClick={()=>{ setChangePwOpen(false); setNewPw(''); setNewPw2(''); setChangePwError(''); }} disabled={changingPw} style={{flex:1,padding:'9px',background:'transparent',border:'1px solid var(--border)',borderRadius:'8px',color:'var(--muted)',fontWeight:700,fontSize:'12px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{fontSize:'11px',color:'var(--muted)',marginBottom:'11px',lineHeight:1.5}}>Data is automatically synced and backed up to a secure cloud. To create a hard downloadable backup, select BACKUP. To restore from a previous hard copy, select RESTORE.</div>
             <div style={{display:'flex',gap:'6px',marginBottom:'11px'}}>
               <button onClick={handleExport} className={pulseBackupBtn?'backup-pulse':''} style={{flex:1,padding:'10px',background:'#2563eb',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'0.06em'}}><Ico n="dl" s={12} c="#fff"/> Backup</button>
@@ -642,11 +748,10 @@ export function TabSettings({
 
       {!isWide && <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',padding:'8px 4px 6px'}}>Support</div>}
 
-      {/* ── Sign Out — its own full box-button, same size/shape as the
-           other cards, matching how Help & Suggestions below is
-           itself the clickable element rather than a button inside
-           a static box. ── */}
-      {session&&(
+      {/* ── Sign Out, desktop — mobile gets its own copy up near
+           Appearance instead (see above); desktop's 2-column grid stays
+           in its original bottom position. ── */}
+      {isWide && session&&(
         <button onClick={()=>setSignOutConfirmOpen(true)} style={{...S.card,width:'100%',display:'flex',alignItems:'center',gap:'12px',background:'#059669',border:'1px solid #059669',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
           <div style={{background:'rgba(255,255,255,0.15)',padding:'11px',borderRadius:'13px',flexShrink:0}}><FireExitIcon size={19}/></div>
           <div style={{flex:1}}>

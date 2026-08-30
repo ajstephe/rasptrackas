@@ -38,6 +38,7 @@ export const Ico = ({ n, s=20, c, w=2, f='none' }) => (
     {n==='user'&&<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>}
     {n==='sun'&&<><circle cx="12" cy="12" r="4.5"/><path d="M12 3v2M12 19v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M3 12h2M19 12h2M4.6 19.4l1.4-1.4M18 6l1.4-1.4"/></>}
     {n==='moon'&&<path d="M20.5 13.7A8.5 8.5 0 1 1 10.3 3.5a7 7 0 0 0 10.2 10.2z"/>}
+    {n==='lock'&&<><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>}
   </svg>
 );
 
