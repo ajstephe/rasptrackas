@@ -39,6 +39,7 @@ import { useEscapeToClose } from './lib/useEscapeToClose.js';
 import { useBackButtonCloses } from './lib/useBackButtonCloses.js';
 import { useMountTransition, useLastTruthy } from './lib/useMountTransition.js';
 import { haptic } from './lib/haptics.js';
+import { useCountUp } from './lib/useCountUp.js';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
 // Only one of these six is ever on screen at a time (via `tab` state below),
 // so there's no reason all six ship in the initial JS payload. Each becomes
@@ -643,6 +644,14 @@ export default function App() {
   // doesn't leave something open from a previous visit that's easy to
   // forget was expanded (mobile), while desktop keeps its always-open default.
   useEffect(()=>{ if (tab!=='dashboard') setSalaryBreakdownExpanded(isWide); },[tab]);
+  // Desktop never shows a tap-to-expand affordance on this card at all
+  // (it's meant to just always be open there) — so if it was collapsed
+  // while narrow and the window is then widened past the breakpoint
+  // without changing tabs, there'd be nothing left to tap it back open
+  // with. Re-opening it the moment isWide flips true closes that gap;
+  // narrowing back doesn't need the same treatment since mobile's own
+  // tap-to-expand header is always available regardless of prior state.
+  useEffect(()=>{ if (isWide) setSalaryBreakdownExpanded(true); },[isWide]);
   // Mobile-only: the Calendar View colour key is collapsed by default,
   // since it otherwise eats a big chunk of the screen right after the
   // grid on first load. Desktop still shows it inline unconditionally.
@@ -1539,6 +1548,17 @@ export default function App() {
       projectedAnnualGross, taperExtraTax,
     };
   },[fyEntries,calcEntry,settings,currPeriodIdx,todayStr]);
+
+  // Desktop's "At a Glance" sidebar (below, in the JSX) shows this same
+  // current-period Gross/Net pair Dashboard's own hero row does — but
+  // unlike every other headline figure in the app, it used to just snap to
+  // a new value instead of counting there. Declared here at the top level
+  // (rather than inside the aside's own render, which only ever runs while
+  // isWide is true) so the hook itself is called unconditionally regardless
+  // of screen width, same reasoning as every other top-level hook in here.
+  const glancePb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
+  const animatedGlanceGross = useCountUp(glancePb ? glancePb.combinedGross : 0);
+  const animatedGlanceNet = useCountUp(glancePb ? glancePb.combinedNet : 0);
 
   // Full-year tax forecast, pension-adjusted and taper-aware — pulled out
   // of the Tax & 100K+ Calculator card's own render so the actual formula
@@ -3442,18 +3462,18 @@ export default function App() {
 
           <div style={{background:'var(--surface)',borderRadius:'16px',border:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',padding:'4px 16px',overflow:'hidden'}}>
           {(()=>{
-            const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
+            const pb = glancePb;
             return (
               <div style={{padding:'14px 0',borderBottom:'1px solid var(--border-2)'}}>
                 <div style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
                 <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
                   <div>
                     <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</div>
-                    <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'var(--ink)',marginTop:'2px'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
+                    <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'var(--ink)',marginTop:'2px'}}>{pb?fmtGBP(animatedGlanceGross):'£0.00'}</div>
                   </div>
                   <div style={{textAlign:'right'}}>
                     <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</div>
-                    <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'#059669',marginTop:'2px'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
+                    <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'#059669',marginTop:'2px'}}>{pb?fmtGBP(animatedGlanceNet):'£0.00'}</div>
                   </div>
                 </div>
                 <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'8px'}}>{pb?pb.month:'—'} · submitted only</div>
@@ -4020,11 +4040,14 @@ export default function App() {
               <div className="badge-pop" style={{position:'absolute',top:'2px',right:'calc(50% - 16px)',background:'#d97706',color:'#fff',fontSize:'8px',fontWeight:900,width:'14px',height:'14px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>{carmsOutstanding.totalClaims>9?'9+':carmsOutstanding.totalClaims}</div>
             )}
             {t.id==='add' ? (
-              <span className="nav-add-pulse nav-ico-add" style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
+              <span className={`nav-ico-add${tab!==t.id?' nav-add-pulse':''}`} style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
             ) : (
               <span className={`nav-ico${tab===t.id?' active':''}`} style={{display:'flex'}}><Ico n={t.n} s={18} c={tab===t.id?BRASS:'var(--quiet)'} w={tab===t.id?2.5:2}/></span>
             )}
-            <span style={S.nLbl} className={`nav-lbl${t.id==='add'?' nav-add-pulse':''}`}>{t.lbl}</span>
+            {/* the pulse is a "come tap this" nudge — it stops once you're
+                actually on the tab it's pointing at, rather than nagging
+                the whole time you're using it */}
+            <span style={S.nLbl} className={`nav-lbl${t.id==='add'&&tab!==t.id?' nav-add-pulse':''}`}>{t.lbl}</span>
           </button>
         ))}
       </nav>
@@ -4060,11 +4083,13 @@ export default function App() {
             return (
               <button key={t.id} data-seg-key={t.id} onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'transparent',color:isAdd?'#10b981':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
                 {isAdd ? (
-                  <span className="nav-add-pulse" style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
+                  <span className={isActive?'':'nav-add-pulse'} style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
                 ) : (
                   <Ico n={t.n} s={20} c={isActive?'#e3bd85':'#93c5fd'} w={isActive?2.5:2}/>
                 )}
-                <span className={isAdd?'nav-add-pulse':''}>{t.lbl}</span>
+                {/* stops nudging once you're actually on this tab — see the
+                    matching comment on the mobile bottom nav below */}
+                <span className={(isAdd&&!isActive)?'nav-add-pulse':''}>{t.lbl}</span>
                 {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
                   <span className="badge-pop" style={{marginLeft:'auto',background:'#d97706',color:'#fff',fontSize:'10px',fontWeight:900,padding:'1px 7px',borderRadius:'10px',display:'inline-block'}}>{carmsOutstanding.totalClaims>99?'99+':carmsOutstanding.totalClaims}</span>
                 )}
