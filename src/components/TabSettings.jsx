@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { CURRENT_FY_YEAR, generateFYPeriods } from '../lib/payPeriods.js';
 import { PAY_RATES } from '../lib/payRates.js';
@@ -47,6 +48,38 @@ export function TabSettings({
   // down, so hook order never depends on what that render happens to do.
   const wipeMounted = useMountTransition(wipeConf, 220);
   const deleteAcctMounted = useMountTransition(deleteAcctConf, 220);
+
+  // Same mirrored-exit treatment for the five desktop popover cards below
+  // (Config/Rates, Tax Calculator, Financial Years, Export, Account & Data
+  // Management) and their shared backdrop — these still hard-cut on close
+  // today. The "desktop popovers already get modal-pop" note by
+  // accordion-in's own definition is about that accordion's entrance-only
+  // asymmetry specifically; it was never a considered call for modal-pop
+  // itself, so there's no reason left to leave this one unfixed.
+  const configModalOpen = isWide && configExpanded && !configSetupIncomplete;
+  const taxModalOpen = isWide && taxImpactExpanded;
+  const fyModalOpen = isWide && financialYearsExpanded;
+  const exportModalOpen = isWide && exportDataExpanded;
+  const dataModalOpen = isWide && dataManagementExpanded;
+  const configModalMounted = useMountTransition(configModalOpen, 220);
+  const taxModalMounted = useMountTransition(taxModalOpen, 220);
+  const fyModalMounted = useMountTransition(fyModalOpen, 220);
+  const exportModalMounted = useMountTransition(exportModalOpen, 220);
+  const dataModalMounted = useMountTransition(dataModalOpen, 220);
+  const anyModalOpen = configModalOpen || taxModalOpen || fyModalOpen || exportModalOpen || dataModalOpen;
+  const anyModalMounted = configModalMounted || taxModalMounted || fyModalMounted || exportModalMounted || dataModalMounted;
+  // Each card's own cardHeader/cardBody depend on its *Expanded flag, which
+  // flips false the instant the card closes — same render the mount stays
+  // true for its 220ms exit tail. Without freezing the actual rendered
+  // content here, the popover would go blank (cardBody turning false)
+  // while it's still visibly scaling/fading out. Refs rather than another
+  // useMountTransition-style hook since what needs freezing is the whole
+  // JSX node, not a boolean.
+  const configModalContentRef = useRef(null);
+  const taxModalContentRef = useRef(null);
+  const fyModalContentRef = useRef(null);
+  const exportModalContentRef = useRef(null);
+  const dataModalContentRef = useRef(null);
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
@@ -114,8 +147,8 @@ export function TabSettings({
             <label style={{...S.lbl,marginBottom:0}}>Rank</label>
             {!settings.rank&&<span style={{fontSize:'10px',fontWeight:900,color:'#dc2626',background:'var(--tint-red)',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Start here</span>}
           </div>
-          <div className={!settings.rank?'setup-pulse-urgent':''} style={{borderRadius:'13px'}}>
-            <select style={{...S.sel,border: !settings.rank ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.rank ? 900 : 700}} value={settings.rank} onChange={e=>{
+          <div className={!settings.rank?'setup-pulse-urgent':''} style={{borderRadius:'13px',position:'relative'}}>
+            <select style={{...S.sel,paddingRight:'36px',border: !settings.rank ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.rank ? 900 : 700}} value={settings.rank} onChange={e=>{
               const r=e.target.value;
               if(!r) return saveSett({...settings,rank:'',service:''});
               saveSett({...settings,rank:r,service:''});
@@ -123,6 +156,12 @@ export function TabSettings({
               <option value="">Select Rank...</option>
               {Object.keys(PAY_RATES).map(k=><option key={k} value={k}>{k}</option>)}
             </select>
+            {/* appearance:'none' above strips the native dropdown arrow for
+                custom styling — nothing was ever drawn in to replace it, so
+                this looked like a plain text box with no hint it opens a
+                list. pointer-events:'none' so it doesn't steal the select's
+                own click target. */}
+            <div style={{position:'absolute',right:'13px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex'}}><Ico n="cD" s={13} c="var(--quiet)" w={2.5}/></div>
           </div>
         </div>
         {settings.rank&&(
@@ -131,11 +170,12 @@ export function TabSettings({
               <label style={{...S.lbl,marginBottom:0}}>Pay Point</label>
               {!settings.service&&<span style={{fontSize:'10px',fontWeight:900,color:'#dc2626',background:'var(--tint-red)',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Now this</span>}
             </div>
-            <div className={!settings.service?'setup-pulse-urgent':''} style={{borderRadius:'13px'}}>
-              <select style={{...S.sel,border: !settings.service ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.service ? 900 : 700}} value={settings.service} onChange={e=>saveSett({...settings,service:e.target.value})}>
+            <div className={!settings.service?'setup-pulse-urgent':''} style={{borderRadius:'13px',position:'relative'}}>
+              <select style={{...S.sel,paddingRight:'36px',border: !settings.service ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.service ? 900 : 700}} value={settings.service} onChange={e=>saveSett({...settings,service:e.target.value})}>
                 <option value="">Select pay point...</option>
                 {Object.keys(PAY_RATES[settings.rank]).map(p=><option key={p} value={p}>{p}</option>)}
               </select>
+              <div style={{position:'absolute',right:'13px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex'}}><Ico n="cD" s={13} c="var(--quiet)" w={2.5}/></div>
             </div>
           </div>
         )}
@@ -195,14 +235,15 @@ export function TabSettings({
         // popup the moment you land on this tab).
         const showInline = configShown && (!isWide || configSetupIncomplete);
         const showModal = isWide && configExpanded && !configSetupIncomplete;
+        if (showModal) configModalContentRef.current = <>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></>;
         return (
           <>
             <div style={S.card}>
               {cardHeader}
               {showInline && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
-            {showModal && contentWrapRef.current && createPortal(
-              <div className="modal-pop" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
+            {configModalMounted && contentWrapRef.current && createPortal(
+              <div className={'modal-pop'+(showModal?'':' pop-out')} style={modalBoxStyle(S.card)}>{configModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
@@ -407,14 +448,15 @@ export function TabSettings({
                 <div style={{fontSize:'9.5px',color:'var(--quiet)',lineHeight:1.5,marginTop:'10px'}}>Based on your current pay rate projected across the tax year. Pension figures follow the 2015 Police Pension Scheme (England & Wales) rates effective 1 April 2026. Please do your own due diligence and if needs be consult an accountant/HMRC or your pension provider.</div>
               </>
             );
+        if (taxModalOpen) taxModalContentRef.current = <>{cardHeader}<div style={{marginTop:'12px'}}>{cardBody}</div></>;
         return (
           <>
             <div ref={taxImpactCardRef} style={S.card}>
               {cardHeader}
               {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
-            {isWide && taxImpactExpanded && contentWrapRef.current && createPortal(
-              <div className="modal-pop" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'12px'}}>{cardBody}</div></div>,
+            {taxModalMounted && contentWrapRef.current && createPortal(
+              <div className={'modal-pop'+(taxModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{taxModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
@@ -461,14 +503,15 @@ export function TabSettings({
             <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'10px',lineHeight:1.5}}>Dates are generated from your confirmed pay pattern (4-4-5 weeks, 52 weeks/year). Archived data is only retained for 4 years.</div>
           </>
         );
+        if (fyModalOpen) fyModalContentRef.current = <>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></>;
         return (
           <>
             <div style={S.card}>
               {cardHeader}
               {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
-            {isWide && financialYearsExpanded && contentWrapRef.current && createPortal(
-              <div className="modal-pop" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
+            {fyModalMounted && contentWrapRef.current && createPortal(
+              <div className={'modal-pop'+(fyModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{fyModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
@@ -496,14 +539,15 @@ export function TabSettings({
             <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'8px',lineHeight:1.5}}>Archived data is only retained for 4 years.</div>
           </>
         );
+        if (exportModalOpen) exportModalContentRef.current = <>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></>;
         return (
           <>
             <div style={S.card}>
               {cardHeader}
               {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
-            {isWide && exportDataExpanded && contentWrapRef.current && createPortal(
-              <div className="modal-pop" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
+            {exportModalMounted && contentWrapRef.current && createPortal(
+              <div className={'modal-pop'+(exportModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{exportModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
@@ -581,14 +625,15 @@ export function TabSettings({
             )}
           </div>
         );
+        if (dataModalOpen) dataModalContentRef.current = <>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></>;
         return (
           <>
             <div style={acctBase}>
               {cardHeader}
               {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
-            {isWide && dataManagementExpanded && contentWrapRef.current && createPortal(
-              <div className="modal-pop" style={modalBoxStyle(acctBase)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
+            {dataModalMounted && contentWrapRef.current && createPortal(
+              <div className={'modal-pop'+(dataModalOpen?'':' pop-out')} style={modalBoxStyle(acctBase)}>{dataModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
@@ -660,8 +705,8 @@ export function TabSettings({
            equivalent to closing whichever one is actually open.
            Portalled to contentWrapRef, same reasoning as the popup
            cards themselves (see modalBoxStyle above). ── */}
-      {isWide && (configExpanded&&!configSetupIncomplete || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded) && contentWrapRef.current && createPortal(
-        <div onClick={()=>{ setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',zIndex:55}}/>,
+      {anyModalMounted && contentWrapRef.current && createPortal(
+        <div onClick={()=>{ setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} className={anyModalOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',zIndex:55}}/>,
         contentWrapRef.current
       )}
     </div>

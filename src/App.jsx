@@ -3209,14 +3209,18 @@ export default function App() {
              hard-cutting away. Reverses the same curve family the entrance
              used rather than a plain fade, so the close reads as the open
              running backward. .ov-in/.ov-out do the same for each
-             overlay's semi-transparent backdrop. Left out of scope: the
-             Settings modal-pop popovers / accordion-in, which already made
-             the opposite call deliberately (see the accordion-in comment
-             above) — only the alert/sheet overlays this pass reviewed. */
+             overlay's semi-transparent backdrop. modal-pop.pop-out below
+             extends this to Settings' five desktop popovers too — left out
+             of an earlier pass on the mistaken assumption they'd made the
+             same "closing loses less" call as accordion-in's own asymmetry;
+             re-reading that comment, it's only ever about accordion-in
+             itself, so there was no actual reason left to skip these. */
         @keyframes alertPopOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(0.92)}}
         .alert-pop.pop-out{animation:alertPopOut 0.2s cubic-bezier(.4,0,1,1) forwards}
         @keyframes sheetPopOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(28px)}}
         .sheet-pop.pop-out{animation:sheetPopOut 0.22s cubic-bezier(.4,0,1,1) forwards}
+        @keyframes modalPopOut{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-50%) scale(0.92)}}
+        .modal-pop.pop-out{animation:modalPopOut 0.2s cubic-bezier(.4,0,1,1) forwards}
         @keyframes ovFadeIn{from{opacity:0}to{opacity:1}}
         @keyframes ovFadeOut{from{opacity:1}to{opacity:0}}
         .ov-in{animation:ovFadeIn 0.22s ease}
@@ -3269,6 +3273,7 @@ export default function App() {
           .accordion-in{animation-duration:0.001ms}
           .alert-pop.pop-out{animation-duration:0.001ms}
           .sheet-pop.pop-out{animation-duration:0.001ms}
+          .modal-pop.pop-out{animation-duration:0.001ms}
           .ov-in{animation-duration:0.001ms}
           .ov-out{animation-duration:0.001ms}
           .banner-collapsing{animation-duration:0.001ms}
