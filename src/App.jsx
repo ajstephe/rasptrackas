@@ -1047,9 +1047,6 @@ export default function App() {
         onNeedRefresh() {
           addToast('A new version is ready', 'warn', { label: 'Reload', fn: () => updateSW(true) }, 30000);
         },
-        onOfflineReady() {
-          addToast('Ready to work offline', 'success');
-        },
       });
     }).catch(() => { /* dev server / unsupported browser — app works exactly as before, just without offline caching */ });
     return () => { cancelled = true; };
