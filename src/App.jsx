@@ -596,6 +596,11 @@ export default function App() {
   const [deleteAcctConf, setDeleteAcctConf] = useState(false);
   const [deleteAcctTyped, setDeleteAcctTyped] = useState('');
   const [deletingAcct, setDeletingAcct] = useState(false);
+  const [changePwOpen, setChangePwOpen] = useState(false);
+  const [newPw, setNewPw] = useState('');
+  const [newPw2, setNewPw2] = useState('');
+  const [changingPw, setChangingPw] = useState(false);
+  const [changePwError, setChangePwError] = useState('');
   const [confirmDel,   setConfirmDel]   = useState(null);
   const [toasts,       setToasts]       = useState([]);
   const [savedBadge,   setSavedBadge]   = useState(false);
@@ -2589,6 +2594,50 @@ export default function App() {
     }
   };
 
+  // Changes the Supabase Auth password. The data encryption key itself
+  // never changes -- only which password can unwrap it -- so this
+  // re-wraps the SAME in-memory dataKey (already unwrapped for this whole
+  // signed-in session, the same way the recovery-word "set new password"
+  // flow re-wraps it under a new password) rather than touching any
+  // actual data. No re-entry of the current password: a valid session is
+  // already this app's bar for every other account-level action (Delete
+  // Account included), so this stays consistent with that rather than
+  // adding a check only here.
+  const handleChangePassword = async () => {
+    if (!supabase || !session || !dataKey) return;
+    setChangePwError('');
+    if (newPw.length < 8) { setChangePwError('Must be at least 8 characters'); return; }
+    if (newPw !== newPw2) { setChangePwError('Passwords do not match'); return; }
+    haptic();
+    setChangingPw(true);
+    try {
+      const { error: updateErr } = await supabase.auth.updateUser({ password: newPw });
+      if (updateErr) { setChangingPw(false); setChangePwError(updateErr.message); return; }
+      const newWrap = await wrapDataKey(dataKey, newPw, PASSWORD_KDF_ITERATIONS);
+      const { error: keyErr } = await supabase.from('user_keys').update({
+        wrapped_dek: newWrap.wrapped,
+        kek_salt: newWrap.salt,
+        kek_iterations: PASSWORD_KDF_ITERATIONS,
+      }).eq('user_id', session.user.id);
+      if (keyErr) {
+        // The Auth password DID change at this point -- only the re-wrap
+        // failed. Surfacing this distinctly matters: silently calling it
+        // "failed" would leave someone re-trying against an already
+        // -changed password, locking themselves out for a different reason.
+        setChangingPw(false);
+        setChangePwError('Password changed, but saving the new encryption key failed - contact support before signing out');
+        return;
+      }
+      setChangingPw(false);
+      setChangePwOpen(false);
+      setNewPw(''); setNewPw2('');
+      addToast('Password changed', 'success', null, 4000);
+    } catch (e) {
+      setChangingPw(false);
+      setChangePwError('Something went wrong - try again');
+    }
+  };
+
   // Manual "sync now" — the same pull-and-merge already used on unlock and
   // on realtime reconnect, just triggered on demand instead of waiting for
   // one of those moments. Push isn't included deliberately: local changes
@@ -3501,6 +3550,7 @@ export default function App() {
             session={session} handleExport={handleExport} pulseBackupBtn={pulseBackupBtn} setRestoreConfirmOpen={setRestoreConfirmOpen} fileRef={fileRef} handleImport={handleImport}
             wipeConf={wipeConf} setWipeConf={setWipeConf} handleWipe={handleWipe} wipingData={wipingData}
             deleteAcctConf={deleteAcctConf} setDeleteAcctConf={setDeleteAcctConf} deleteAcctTyped={deleteAcctTyped} setDeleteAcctTyped={setDeleteAcctTyped} handleDeleteAccount={handleDeleteAccount} deletingAcct={deletingAcct}
+            changePwOpen={changePwOpen} setChangePwOpen={setChangePwOpen} newPw={newPw} setNewPw={setNewPw} newPw2={newPw2} setNewPw2={setNewPw2} handleChangePassword={handleChangePassword} changingPw={changingPw} changePwError={changePwError} setChangePwError={setChangePwError}
             setSignOutConfirmOpen={setSignOutConfirmOpen}
             contentWrapRef={contentWrapRef} modalBoxStyle={modalBoxStyle}
             yearsWithData={yearsWithData} setArchiveExpandedPeriod={setArchiveExpandedPeriod} setFySummaryPrintMode={setFySummaryPrintMode} setFySummaryYear={setFySummaryYear}

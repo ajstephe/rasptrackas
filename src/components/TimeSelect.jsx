@@ -31,12 +31,22 @@ function WheelColumn({ values, selected, onSettle, brass }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // scroll-snap-type:mandatory (the old approach) forces the browser to
+  // fight for a snap point on every single scroll frame, which caps how
+  // much momentum a flick can carry through — a real iOS wheel does the
+  // opposite: momentum runs completely free, and only clicks into the
+  // nearest slot once it's actually finished moving. Dropping CSS snap
+  // entirely and doing that final settle ourselves, once scrolling has
+  // gone quiet, gets both the quicker flick-through and a crisp landing.
   const handleScroll = () => {
     const idx = Math.round(colRef.current.scrollTop / ITEM_H);
     const clamped = Math.max(0, Math.min(values.length - 1, idx));
     setCenterIdx(clamped);
     clearTimeout(settleTimer.current);
-    settleTimer.current = setTimeout(() => onSettle(values[clamped]), 90);
+    settleTimer.current = setTimeout(() => {
+      onSettle(values[clamped]);
+      colRef.current?.scrollTo({ top: clamped * ITEM_H, behavior: 'smooth' });
+    }, 90);
   };
 
   const jumpTo = (idx) => {
@@ -44,12 +54,12 @@ function WheelColumn({ values, selected, onSettle, brass }) {
   };
 
   return (
-    <div ref={colRef} onScroll={handleScroll} className="time-wheel-col" style={{width:'68px',height:ITEM_H*VISIBLE+'px',overflowY:'scroll',overscrollBehavior:'contain',scrollSnapType:'y mandatory',position:'relative'}}>
+    <div ref={colRef} onScroll={handleScroll} className="time-wheel-col" style={{width:'68px',height:ITEM_H*VISIBLE+'px',overflowY:'scroll',overscrollBehavior:'contain',WebkitOverflowScrolling:'touch',position:'relative'}}>
       <div style={{height:PAD_H+'px'}}/>
       {values.map((v,i)=>{
         const dist = Math.abs(i-centerIdx);
         return (
-          <div key={v} onClick={()=>jumpTo(i)} style={{height:ITEM_H+'px',display:'flex',alignItems:'center',justifyContent:'center',scrollSnapAlign:'center',fontFamily:MONO,fontSize:'19px',cursor:'pointer',userSelect:'none',transition:'opacity 0.15s,font-weight 0.15s,color 0.15s',opacity:dist===0?1:dist===1?0.7:0.35,fontWeight:dist===0?800:600,color:dist===0?brass:'var(--quiet)'}}>{v}</div>
+          <div key={v} onClick={()=>jumpTo(i)} style={{height:ITEM_H+'px',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:MONO,fontSize:'19px',cursor:'pointer',userSelect:'none',transition:'opacity 0.15s,font-weight 0.15s,color 0.15s',opacity:dist===0?1:dist===1?0.7:0.35,fontWeight:dist===0?800:600,color:dist===0?brass:'var(--quiet)'}}>{v}</div>
         );
       })}
       <div style={{height:PAD_H+'px'}}/>
