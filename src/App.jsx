@@ -1721,18 +1721,53 @@ export default function App() {
   const toggleCarmsSelectMode = () => { setCarmsSelectMode(v=>!v); setCarmsSelected({}); };
   useEscapeToClose(carmsSelectMode, toggleCarmsSelectMode);
   useBackButtonCloses(carmsSelectMode, toggleCarmsSelectMode);
-  const toggleCarmsClaim = (entryId, markers) => {
+  // Toggles ONE claim-type on ONE entry — not the whole entry at once.
+  // An entry with both OT and PA outstanding used to select/deselect both
+  // together as a single unit, forcing them into the same bulk submission
+  // even though CARMS (overtime) and MetHR (PA) are separate systems people
+  // often don't submit to on the same schedule. 'key' is 'ot' or 'pa';
+  // the entry drops out of carmsSelected entirely once neither is set,
+  // rather than lingering as an empty {} that would still count towards
+  // "N selected".
+  const toggleCarmsClaim = (entryId, key) => {
     setCarmsSelected(prev => {
+      const existing = prev[entryId] || {};
+      const updated = {...existing, [key]: !existing[key]};
       const next = {...prev};
-      if (next[entryId]) delete next[entryId]; else next[entryId] = markers;
+      if (!updated.ot && !updated.pa) delete next[entryId];
+      else next[entryId] = updated;
       return next;
     });
   };
   const toggleCarmsGroup = (rows) => { // rows: [{id, markers}]
     setCarmsSelected(prev => {
-      const allSelected = rows.every(r => prev[r.id]);
+      // "fully selected" means every row's *required* markers (whichever of
+      // ot/pa that row's own r.markers says actually applies) are already
+      // set — not just that the entry has any marker at all. Otherwise a
+      // row selected for PA only would count as "done" here even with its
+      // own OT still outstanding, and clicking the group header would
+      // deselect everything instead of finishing the job.
+      const allSelected = rows.every(r => {
+        const sel = prev[r.id] || {};
+        return (!r.markers.ot || sel.ot) && (!r.markers.pa || sel.pa);
+      });
+      // r.markers only ever carries the keys actually relevant to this row
+      // under whatever filter produced it (see TabCarms' required()), never
+      // an explicit false — so merging (rather than replacing) an entry's
+      // existing markers here can't clobber a key this particular group
+      // toggle isn't concerned with, e.g. an OT claim already selected on
+      // its own while this toggle only cares about PA.
       const next = {...prev};
-      rows.forEach(r => { if (allSelected) delete next[r.id]; else next[r.id] = r.markers; });
+      rows.forEach(r => {
+        const existing = prev[r.id] || {};
+        if (allSelected) {
+          const cleared = {...existing};
+          Object.keys(r.markers).forEach(k => delete cleared[k]);
+          if (cleared.ot || cleared.pa) next[r.id] = cleared; else delete next[r.id];
+        } else {
+          next[r.id] = {...existing, ...r.markers};
+        }
+      });
       return next;
     });
   };
