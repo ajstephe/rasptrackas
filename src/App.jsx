@@ -2846,11 +2846,14 @@ export default function App() {
         .claim-in{animation:claimIn 0.4s cubic-bezier(.34,1.2,.64,1) both}
         @keyframes saveRingPulse{from{box-shadow:0 4px 20px rgba(220,38,38,0.5),0 0 0 0 rgba(5,150,105,0.55)}to{box-shadow:0 4px 20px rgba(220,38,38,0.5),0 0 0 22px rgba(5,150,105,0)}}
         .save-pulse{animation:saveRingPulse 0.65s ease-out}
+        @keyframes badgePop{0%{transform:scale(0)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+        .badge-pop{animation:badgePop 0.4s cubic-bezier(.34,1.56,.64,1)}
         @media (prefers-reduced-motion: reduce){
           .nav-pill{transition-duration:0.001ms}
           .nav-ico{transition-duration:0.001ms}
           .claim-in{animation-duration:0.001ms}
           .save-pulse{animation-duration:0.001ms}
+          .badge-pop{animation-duration:0.001ms}
         }
         /* ── Fluid mobile nav ───────────────────────────────────────────
            Six tabs at fixed sizes leave almost no slack on a 320px phone
@@ -3653,7 +3656,7 @@ export default function App() {
         {NAV_TABS.map(t=>(
           <button key={t.id} ref={el=>navBtnRefs.current[t.id]=el} onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{...S.nBtn(tab===t.id,t.id==='add'),position:'relative'}}>
             {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
-              <div style={{position:'absolute',top:'2px',right:'calc(50% - 16px)',background:'#d97706',color:'#fff',fontSize:'8px',fontWeight:900,width:'14px',height:'14px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>{carmsOutstanding.totalClaims>9?'9+':carmsOutstanding.totalClaims}</div>
+              <div className="badge-pop" style={{position:'absolute',top:'2px',right:'calc(50% - 16px)',background:'#d97706',color:'#fff',fontSize:'8px',fontWeight:900,width:'14px',height:'14px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>{carmsOutstanding.totalClaims>9?'9+':carmsOutstanding.totalClaims}</div>
             )}
             {t.id==='add' ? (
               <span className="nav-add-pulse nav-ico-add" style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
@@ -3701,7 +3704,7 @@ export default function App() {
                 )}
                 <span className={isAdd?'nav-add-pulse':''}>{t.lbl}</span>
                 {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
-                  <span style={{marginLeft:'auto',background:'#d97706',color:'#fff',fontSize:'10px',fontWeight:900,padding:'1px 7px',borderRadius:'10px'}}>{carmsOutstanding.totalClaims>99?'99+':carmsOutstanding.totalClaims}</span>
+                  <span className="badge-pop" style={{marginLeft:'auto',background:'#d97706',color:'#fff',fontSize:'10px',fontWeight:900,padding:'1px 7px',borderRadius:'10px',display:'inline-block'}}>{carmsOutstanding.totalClaims>99?'99+':carmsOutstanding.totalClaims}</span>
                 )}
               </button>
             );
