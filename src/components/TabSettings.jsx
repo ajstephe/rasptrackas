@@ -134,17 +134,17 @@ export function TabSettings({
            expand". Sits outside the grid on desktop too, full-width,
            since a 2-up grid cell would leave it looking cramped next
            to a tall accordion. ── */}
-      <div style={{...S.card,marginBottom:'12px'}}>
-        <div style={{display:'flex',alignItems:'center',gap:'11px',marginBottom:'13px'}}>
-          <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="sun" s={17} c={BRASS}/></div>
+      <div style={{...S.card,padding:'13px 16px',marginBottom:'12px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'9px',marginBottom:'9px'}}>
+          <div style={{background:'var(--tint-amber)',padding:'6px',borderRadius:'11px',flexShrink:0}}><Ico n="sun" s={14} c={BRASS}/></div>
           <div>
-            <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Appearance</div>
-            <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'1px'}}>Light, dark, or match your device</div>
+            <div style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Appearance</div>
+            <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>Light, dark, or match your device</div>
           </div>
         </div>
-        <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px'}} indicatorStyle={{background:BRASS,borderRadius:'10px',boxShadow:'0 4px 11px rgba(184,130,63,0.35)'}}>
+        <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px'}} indicatorStyle={{background:BRASS,borderRadius:'9px',boxShadow:'0 4px 11px rgba(184,130,63,0.35)'}}>
           {[['system','Auto'],['light','Light'],['dark','Dark']].map(([v,lbl])=>(
-            <button key={v} data-seg-key={v} onClick={()=>setTheme(v)} style={{position:'relative',zIndex:1,flex:1,padding:'9px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:themeMode===v?'#fff':'var(--muted)'}}>{lbl}</button>
+            <button key={v} data-seg-key={v} onClick={()=>setTheme(v)} style={{position:'relative',zIndex:1,flex:1,padding:'6px 4px',borderRadius:'9px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:themeMode===v?'#fff':'var(--muted)'}}>{lbl}</button>
           ))}
         </SegSlider>
       </div>
