@@ -522,7 +522,7 @@ export function TabSettings({
             {taxPrintOpen && createPortal(
               <div className="payslip-print-area" style={{position:'fixed',inset:0,background:'#fff',zIndex:80,overflowY:'auto',padding:'20px'}}>
                 <div className="no-print" style={{display:'flex',gap:'8px',marginBottom:'18px',maxWidth:'640px',margin:'0 auto 18px'}}>
-                  <button onClick={()=>setTaxPrintOpen(false)} style={{background:'var(--chip-bg)',border:'none',borderRadius:'11px',padding:'12px 16px',fontWeight:800,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',color:'#0f172a'}}><Ico n="back" s={13} c="#0f172a"/></button>
+                  <button onClick={()=>setTaxPrintOpen(false)} style={{background:'#f1f5f9',border:'none',borderRadius:'11px',padding:'12px 16px',fontWeight:800,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',color:'#0f172a'}}><Ico n="back" s={13} c="#0f172a"/></button>
                   <button onClick={()=>window.print()} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
                 </div>
                 <div className="payslip-print-doc" style={{maxWidth:'640px',margin:'0 auto',background:'#fff'}}>
