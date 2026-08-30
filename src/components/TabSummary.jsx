@@ -31,7 +31,7 @@ export function TabSummary({
         <div style={{display:'flex',background:'var(--chip-bg)',borderRadius:'14px',padding:'4px',boxShadow:'0 4px 14px rgba(15,23,42,0.08)'}}>
           {/* Each half is a div rather than a button so the star can be its own
               tap target inside it — nesting buttons isn't valid HTML. */}
-          <div onClick={()=>{ setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }} style={{flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:breakdownView==='calendar'?'#2563eb':'transparent',color:breakdownView==='calendar'?'#fff':'var(--muted)',boxShadow:breakdownView==='calendar'?'0 2px 8px rgba(37,99,235,0.3)':'none',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
+          <div onClick={()=>{ setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }} style={{flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:breakdownView==='calendar'?BRASS:'transparent',color:breakdownView==='calendar'?'#fff':'var(--muted)',boxShadow:breakdownView==='calendar'?'0 2px 8px rgba(184,130,63,0.35)':'none',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
             <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
               <Ico n="cal" s={13} c={breakdownView==='calendar'?'#fff':'var(--muted)'} w={2.5}/>Calendar View
             </span>
@@ -41,7 +41,7 @@ export function TabSummary({
                 f={defaultBreakdownView==='calendar'?'#fbbf24':'none'}/>
             </span>
           </div>
-          <div onClick={()=>{ setBreakdownView('list'); snapToActiveMonth(); }} style={{flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:breakdownView==='list'?'#2563eb':'transparent',color:breakdownView==='list'?'#fff':'var(--muted)',boxShadow:breakdownView==='list'?'0 2px 8px rgba(37,99,235,0.3)':'none',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
+          <div onClick={()=>{ setBreakdownView('list'); snapToActiveMonth(); }} style={{flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:breakdownView==='list'?BRASS:'transparent',color:breakdownView==='list'?'#fff':'var(--muted)',boxShadow:breakdownView==='list'?'0 2px 8px rgba(184,130,63,0.35)':'none',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
             <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
               <Ico n="list" s={13} c={breakdownView==='list'?'#fff':'var(--muted)'} w={2.5}/>List View
             </span>
@@ -75,7 +75,7 @@ export function TabSummary({
                 // flex:1 with minWidth:0 lets all twelve periods share the
                 // row evenly and fit without horizontal scrolling, rather
                 // than each sizing to its own text and overflowing.
-                <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isActive?'1.5px solid #2563eb':hasOutstanding?'1px solid var(--border-2)':isCurr?'1.5px solid #2563eb':'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isActive?'#2563eb':isCurr?'var(--tint-blue)':'var(--surface)',color:hasOutstanding?'var(--text-red-deep)':isActive?'#fff':isCurr?'#2563eb':'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
+                <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isActive?`1.5px solid ${BRASS}`:hasOutstanding?'1px solid var(--border-2)':isCurr?`1.5px solid ${BRASS}`:'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isActive?BRASS:isCurr?'var(--tint-brass)':'var(--surface)',color:hasOutstanding?'var(--text-red-deep)':isActive?'#fff':isCurr?BRASS:'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
                   {p.short}
                 </button>
               );
@@ -95,7 +95,7 @@ export function TabSummary({
               const isSel=(calPeriodIdx===null?currPeriodIdx:calPeriodIdx)===idx;
               const hasOutstanding = carmsOutstanding.groups.some(g=>g.periodIdx===idx);
               return(
-                <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isSel?'1.5px solid #2563eb':hasOutstanding?'1px solid var(--border-2)':isCurr?'1.5px solid #2563eb':'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isSel?'#2563eb':isCurr?'var(--tint-blue)':'var(--surface)',color:hasOutstanding?'var(--text-red-deep)':isSel?'#fff':isCurr?'#2563eb':'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
+                <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isSel?`1.5px solid ${BRASS}`:hasOutstanding?'1px solid var(--border-2)':isCurr?`1.5px solid ${BRASS}`:'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isSel?BRASS:isCurr?'var(--tint-brass)':'var(--surface)',color:hasOutstanding?'var(--text-red-deep)':isSel?'#fff':isCurr?BRASS:'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
                   {p.short}
                 </button>
               );
@@ -496,17 +496,17 @@ export function TabSummary({
           <>
             {/* period navigator */}
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'14px'}}>
-              <button onClick={()=>setCalPeriodIdx(i=>Math.max(0,(i===null?currPeriodIdx:i)-1))} disabled={cIdx===0} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===0?'default':'pointer',opacity:cIdx===0?0.3:1}}><Ico n="cL" s={18} c="#2563eb"/></button>
+              <button onClick={()=>setCalPeriodIdx(i=>Math.max(0,(i===null?currPeriodIdx:i)-1))} disabled={cIdx===0} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===0?'default':'pointer',opacity:cIdx===0?0.3:1}}><Ico n="cL" s={18} c={BRASS}/></button>
               <div style={{textAlign:'center'}}>
                 {cIdx===currPeriodIdx&&(
-                  <div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'#fff',fontSize:'10px',fontWeight:900,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px',boxShadow:'0 2px 6px rgba(37,99,235,0.35)'}}>
+                  <div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:BRASS,color:'#fff',fontSize:'10px',fontWeight:900,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>
                     <span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Active Month
                   </div>
                 )}
-                <div style={{fontWeight:900,fontSize:'22px',color:cIdx===currPeriodIdx?'#1d4ed8':'var(--ink)'}}>{cPeriod.month}</div>
-                <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'#3b82f6'}}>{fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
+                <div style={{fontWeight:900,fontSize:'22px',color:cIdx===currPeriodIdx?BRASS:'var(--ink)'}}>{cPeriod.month}</div>
+                <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--quiet)'}}>{fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
               </div>
-              <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c="#2563eb"/></button>
+              <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c={BRASS}/></button>
             </div>
 
             {/* stats strip — Shifts and Total O/T Hours. Desktop:
@@ -518,16 +518,15 @@ export function TabSummary({
                 <span style={{color:'var(--text-navy)',fontWeight:900}}>{cEntries.length}</span> shift{cEntries.length!==1?'s':''} logged &nbsp;·&nbsp; <span style={{color:'var(--text-navy)',fontWeight:900}}>{cTotalHrs}</span> total O/T hours
               </div>
             ) : (
-            <div style={{...S.card,display:'flex',padding:'16px',background:cIdx===currPeriodIdx?'var(--tint-blue)':'var(--surface)',border:cIdx===currPeriodIdx?'2px solid #2563eb':'1px solid var(--border-2)',boxShadow:cIdx===currPeriodIdx?'0 4px 20px rgba(37,99,235,0.18)':'0 1px 6px rgba(0,0,0,0.05)'}}>
+            <div style={{...S.card,display:'flex',padding:'16px',background:'var(--surface)',border:'1px solid var(--border-2)',borderLeft:cIdx===currPeriodIdx?`3px solid ${BRASS}`:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
               <div style={{flex:1,textAlign:'center'}}>
                 <div style={{fontSize:'12px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.5px'}}>Shifts Logged</div>
-                <div style={{fontSize:'22px',fontWeight:900,color:'var(--text-navy)'}}>{cEntries.length}</div>
+                <div style={{fontFamily:MONO,fontSize:'22px',fontWeight:600,color:'var(--text-navy)'}}>{cEntries.length}</div>
               </div>
-              {/* separator needs a darker tone on the active month, since #f1f5f9 is invisible against the blue tint */}
-              <div style={{width:'1px',background:cIdx===currPeriodIdx?'#bfdbfe':'var(--border-2)'}}/>
+              <div style={{width:'1px',background:'var(--border-2)'}}/>
               <div style={{flex:1,textAlign:'center'}}>
                 <div style={{fontSize:'12px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.5px'}}>Total O/T Hours</div>
-                <div style={{fontSize:'22px',fontWeight:900,color:'var(--text-navy)'}}>{cTotalHrs}</div>
+                <div style={{fontFamily:MONO,fontSize:'22px',fontWeight:600,color:'var(--text-navy)'}}>{cTotalHrs}</div>
               </div>
             </div>
             )}
@@ -568,7 +567,7 @@ export function TabSummary({
                           style={{
                             ...(isWide ? {height:'76px'} : {aspectRatio:'1', minHeight:'46px'}),
                             display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                            borderRadius:'10px', border: isToday?'2px solid #2563eb':info.isRecordOnly?'1px solid var(--border-2)':info.hasOT?(info.isFullySubmitted?'1px solid var(--border-2)':'1px solid var(--border-2)'):'1px solid var(--border-2)',
+                            borderRadius:'10px', border: isToday?`2px solid ${BRASS}`:info.isRecordOnly?'1px solid var(--border-2)':info.hasOT?(info.isFullySubmitted?'1px solid var(--border-2)':'1px solid var(--border-2)'):'1px solid var(--border-2)',
                             background: info.isRecordOnly?'var(--border)':info.hasOT ? (info.isFullySubmitted?'var(--tint-green)':'var(--tint-red)') : 'transparent',
                             cursor:'pointer', padding:'2px 1px', fontFamily:'inherit', position:'relative',
                             minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
@@ -734,9 +733,15 @@ export function TabSummary({
             })()}
 
             <div style={{...S.card,marginTop:'9px'}}>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px'}}>
-                <div><div style={{fontSize:'14px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Gross</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'23px',color:'var(--text-navy)'}}>{fmt(pb.combinedGross)}</div></div>
-                <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'2px'}}>Net</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'23px',color:'#059669'}}>{fmt(pb.combinedNet)}</div></div>
+              <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'6px 0',borderBottom:'1px solid var(--border-2)'}}>
+                <div style={{width:'30px',height:'30px',borderRadius:'10px',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="cash" s={15} c="var(--text-navy)"/></div>
+                <div style={{flex:1,fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Gross</div>
+                <div style={{fontFamily:MONO,fontSize:'19px',fontWeight:600,color:'var(--text-navy)'}}>{fmt(pb.combinedGross)}</div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'6px 0'}}>
+                <div style={{width:'30px',height:'30px',borderRadius:'10px',background:'var(--tint-green)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="cash" s={15} c="#059669"/></div>
+                <div style={{flex:1,fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Net</div>
+                <div style={{fontFamily:MONO,fontSize:'19px',fontWeight:600,color:'#059669'}}>{fmt(pb.combinedNet)}</div>
               </div>
             </div>
             {renderFYTotalsCard()}
