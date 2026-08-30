@@ -1,6 +1,7 @@
 import { fmt, fmtHM, fmtGBP } from '../lib/format.js';
 import { toMinutesOfDay, shiftDurationMinutes, generateShiftTimesLine } from '../lib/shiftTimes.js';
 import { getRates, PA_LABELS, PA_RATES, RATE_TIER_MULT } from '../lib/payRates.js';
+import { useCountUp } from '../lib/useCountUp.js';
 import { Ico } from './Icons.jsx';
 import { TimeSelect } from './TimeSelect.jsx';
 import { SegSlider } from './SegSlider.jsx';
@@ -14,10 +15,17 @@ export function TabLogOvertime({
   editing, setEditing, setTab, settings, isWide, S, MONO, BRASS,
   form, setForm, todayStr, notesRef, effectiveTier, preview, handleSave, justSaved,
   carmsToggleRef, focusCarmsToggle, setDatePickerMonth, setDatePickerFor,
-  syncShiftTimesIntoForm,
+  syncShiftTimesIntoForm, animClass='fi',
 }) {
+  // Every other headline money figure in the app (Net pay, Gross YTD, TOIL
+  // balance, CARMS outstanding) counts up rather than jumping when it
+  // changes — this preview was the one exception. Shorter duration than
+  // those (400ms vs 700ms) since this one can change on every keystroke
+  // while actively filling the form in, not just once per data refresh.
+  const animatedPreviewGross = useCountUp(preview.gross, 400);
+  const animatedPreviewNet = useCountUp(preview.net, 400);
   return (
-    <div className="fi" style={{padding:'14px',paddingBottom:isWide?'14px':'160px'}}>
+    <div className={animClass} style={{padding:'14px',paddingBottom:isWide?'14px':'160px'}}>
       <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'18px'}}>
         {editing&&<button onClick={()=>{setEditing(null);setTab('months');}} style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="back" s={16}/></button>}
         <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>{editing?'Edit Record':'Log Overtime'}</h2>
@@ -431,10 +439,10 @@ export function TabLogOvertime({
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom: preview.toilBanked>0?'10px':0}}>
             <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1px'}}>This Shift</div>
             <div style={{display:'flex',gap:'18px',alignItems:'center'}}>
-              <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.5px'}}>Gross</div><div style={{fontSize:'23px',fontWeight:900,color:'#fff'}}>{fmt(preview.gross)}</div></div>
+              <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.5px'}}>Gross</div><div style={{fontSize:'23px',fontWeight:900,color:'#fff'}}>{fmt(animatedPreviewGross)}</div></div>
               <div style={{textAlign:'right'}}>
                 <div style={{fontSize:'14px',fontWeight:900,color:'#6ee7b7',textTransform:'uppercase',letterSpacing:'0.5px'}}>Net</div>
-                <div style={{fontSize:'23px',fontWeight:900,color:'#34d399'}}>{fmt(preview.net)}</div>
+                <div style={{fontSize:'23px',fontWeight:900,color:'#34d399'}}>{fmt(animatedPreviewNet)}</div>
               </div>
             </div>
           </div>

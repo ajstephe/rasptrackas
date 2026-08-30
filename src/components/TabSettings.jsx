@@ -34,9 +34,10 @@ export function TabSettings({
   setSignOutConfirmOpen,
   contentWrapRef, modalBoxStyle,
   yearsWithData, setArchiveExpandedPeriod, setFySummaryPrintMode, setFySummaryYear,
+  animClass='fi',
 }) {
   return (
-    <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
+    <div className={animClass} style={{padding:'14px',paddingBottom:'96px'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
         <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>Options, Settings, Export and Backup</h2>
         {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'var(--text-green-deep)'}}>Saved</span></div>}

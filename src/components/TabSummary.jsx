@@ -23,7 +23,7 @@ export function TabSummary({
   setSelectedCalDay, setConfirmCreateDay,
   PAY_PERIODS, fyEntries, totals, carmsOutstanding, todayStr,
   calcEntry, crossPeriodInfo, carmsBadge, renderDatePills, renderFYTotalsCard,
-  jumpTo, snapToActiveMonth, startEdit, delEntry, setTab,
+  jumpTo, snapToActiveMonth, startEdit, delEntry, setTab, animClass='fi',
 }) {
   // Purely a gesture-visual concern (not app state), so it's local rather
   // than lifted like calSwipeStartX — mutated directly via the ref during
@@ -31,7 +31,7 @@ export function TabSummary({
   // tracks the finger at 60fps instead of only reacting once the swipe ends.
   const weeksGridRef = useRef(null);
   return (
-    <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
+    <div className={animClass} style={{padding:'14px',paddingBottom:'96px'}}>
       {/* Sticky header — heading, toggle and month pills all float together */}
       <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'rgba(var(--surface-2-rgb),0.82)',backdropFilter:'blur(16px) saturate(1.5)',WebkitBackdropFilter:'blur(16px) saturate(1.5)',paddingTop:'14px',paddingBottom:'8px',marginTop:'-14px',marginBottom:'6px'}}>
         <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 10px',letterSpacing:'-0.5px'}}>Summary</h2>

@@ -57,13 +57,23 @@ export function ToastStack({ toasts, onDismiss }) {
             </div>
           );
         }
+        // Compact toast — frosted glass instead of a solid colour fill (the
+        // same rgba(surface,alpha)+blur recipe the nav bar already uses, so
+        // this reads as the same material rather than a new one), an
+        // icon-in-a-tint-circle instead of a plain icon on solid colour
+        // (matching the empty-state/row-icon language used everywhere
+        // else), and text on theme tokens instead of hardcoded white.
+        const tint = t.type==='undo' ? 'var(--tint-blue-2)' : t.type==='warn' ? 'var(--tint-amber-2)' : 'var(--tint-green-2)';
+        const deep = t.type==='undo' ? 'var(--text-blue-deep)' : t.type==='warn' ? 'var(--text-amber-deep)' : 'var(--text-green-deep)';
         return (
-          <div key={t.id} className={t.leaving?'toast-leave':'toast-enter'} style={{background:t.type==='undo'?'#1e3a5f':t.type==='warn'?'#b45309':'#065f46',color:'#fff',borderRadius:'14px',padding:'11px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px',boxShadow:'0 4px 20px rgba(0,0,0,0.22)',pointerEvents:'all'}}>
-            <div style={{display:'flex',alignItems:'center',gap:'9px'}}>
-              <Ico n={t.type==='undo'?'undo':t.type==='warn'?'bell':'check'} s={15} c="#fff"/>
-              <span style={{fontSize:'13px',fontWeight:700}}>{t.message}</span>
+          <div key={t.id} className={t.leaving?'toast-leave':'toast-enter'} style={{background:'rgba(var(--surface-rgb),0.82)',backdropFilter:'blur(20px) saturate(1.8)',WebkitBackdropFilter:'blur(20px) saturate(1.8)',border:'1px solid var(--border-2)',borderRadius:'16px',padding:'9px 10px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px',boxShadow:'0 12px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)',pointerEvents:'all'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'10px',minWidth:0}}>
+              <div style={{width:'30px',height:'30px',borderRadius:'50%',background:tint,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                <Ico n={t.type==='undo'?'undo':t.type==='warn'?'bell':'check'} s={14} c={deep}/>
+              </div>
+              <span style={{fontSize:'13px',fontWeight:700,color:'var(--ink)',minWidth:0}}>{t.message}</span>
             </div>
-            {t.action&&<button onClick={t.action.fn} style={{background:'rgba(255,255,255,0.2)',border:'none',borderRadius:'8px',padding:'4px 10px',color:'#fff',fontWeight:900,fontSize:'11px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>{t.action.label}</button>}
+            {t.action&&<button onClick={t.action.fn} style={{background:tint,border:'none',borderRadius:'8px',padding:'6px 11px',color:deep,fontWeight:800,fontSize:'11px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',flexShrink:0}}>{t.action.label}</button>}
           </div>
         );
       })}

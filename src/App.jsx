@@ -483,6 +483,31 @@ export default function App() {
   const currPeriodIdx = PAY_PERIODS.findIndex(p=>todayStr>=p.start&&todayStr<=p.end);
 
   const [tab,          setTab]          = useState('dashboard');
+  // ── directional tab-switch entrance ─────────────────────────────────────
+  // Bottom-nav taps already have a sense of direction (the sliding pill),
+  // but the tab content itself just cut-and-faded regardless of which way
+  // you navigated. Reading which side of NAV_TABS the new tab sits on
+  // relative to the one you were just on gives the incoming tab a matching
+  // left/right entrance instead of the generic one every other reveal in
+  // the app uses. Deliberately entrance-only, same call as the accordions —
+  // the outgoing tab still just unmounts, rather than restructuring all six
+  // tabs to stay mounted through their own exit animation for a fuller
+  // two-panel slide.
+  // Computed (and locked in) during render rather than via a ref updated
+  // in an effect — an effect-based ref update races every other thing in
+  // this component that re-renders shortly after a tab switch (the
+  // useCountUp tweens on Dashboard alone fire a dozen re-renders in the
+  // 700ms after mount), which would silently overwrite fi-right/fi-left
+  // back to plain fi mid-animation. Guarding on tab !== tabAnimState.tab
+  // means this only ever recomputes on an actual tab change, and then
+  // holds steady through every re-render that follows until the next one.
+  const [tabAnimState, setTabAnimState] = useState({ forTab: tab, cls: 'fi' });
+  if (tab !== tabAnimState.forTab) {
+    const newIdx = NAV_TABS.findIndex(t=>t.id===tab);
+    const oldIdx = NAV_TABS.findIndex(t=>t.id===tabAnimState.forTab);
+    setTabAnimState({ forTab: tab, cls: newIdx===oldIdx ? 'fi' : (newIdx>oldIdx ? 'fi-right' : 'fi-left') });
+  }
+  const tabAnimClass = tabAnimState.cls;
   const [entries,      setEntries]      = useState(()=>migrateEntries(dualRead(KEYS.entries,[])));
   const [toilTaken,    setToilTaken]    = useState(()=>dualRead(KEYS.toilTaken,[]));
   const [settings,     setSettings]     = useState(()=>migrateSettings(dualRead(KEYS.settings,null)));
@@ -1128,7 +1153,7 @@ export default function App() {
       setDatePickerMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
     };
     return (
-      <div onClick={ev=>ev.stopPropagation()} style={{background:'var(--surface)',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid var(--border)',padding:'22px',width:'360px',maxWidth:'calc(100vw - 32px)',boxSizing:'border-box'}}>
+      <div onClick={ev=>ev.stopPropagation()} className="alert-pop" style={{background:'var(--surface)',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid var(--border)',padding:'22px',width:'360px',maxWidth:'calc(100vw - 32px)',boxSizing:'border-box'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'18px'}}>
           <button onClick={()=>changeMonth(-1)} style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cL" s={18} c="#475569"/></button>
           <div style={{fontWeight:900,fontSize:'17px',color:'var(--ink)'}}>{monthLabel}</div>
@@ -2856,6 +2881,13 @@ export default function App() {
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         ::-webkit-scrollbar{display:none}
         @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        /* ── directional tab entrance — same fade, sliding in from whichever
+             side of the nav order the tab you left sits on, instead of
+             always rising from below like .fi. See tabAnimClass above. ── */
+        @keyframes fiRight{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes fiLeft{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+        .fi-right{animation:fiRight 0.24s ease}
+        .fi-left{animation:fiLeft 0.24s ease}
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         @keyframes su{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         @keyframes urgentPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0);transform:scale(1)}25%{opacity:0.78;box-shadow:0 0 0 9px rgba(220,38,38,0.38);transform:scale(1.012)}50%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0);transform:scale(1)}75%{opacity:0.78;box-shadow:0 0 0 9px rgba(220,38,38,0.38);transform:scale(1.012)}}
@@ -2898,9 +2930,15 @@ export default function App() {
              local state so a dismissed toast plays this leave transition
              before it's actually dropped, instead of vanishing the instant
              its id falls out of the array. ── */
-        .toast-enter{animation:su 0.22s ease}
-        @keyframes toastOut{to{opacity:0;transform:translateY(-8px) scale(0.98)}}
-        .toast-leave{animation:toastOut 0.22s ease forwards}
+        /* toasts sit near the top of the screen, so they now drop in from
+           above with a soft overshoot (like an iOS notification banner
+           landing) instead of rising up from below into that position —
+           own keyframe rather than reusing .fi's su, since su's direction
+           is shared by unrelated fades all over the app. */
+        @keyframes toastIn{from{opacity:0;transform:translateY(-22px) scale(0.96)}60%{transform:translateY(3px) scale(1.005)}to{opacity:1;transform:translateY(0) scale(1)}}
+        .toast-enter{animation:toastIn 0.42s cubic-bezier(.32,1.1,.4,1)}
+        @keyframes toastOut{to{opacity:0;transform:translateY(-14px) scale(0.97)}}
+        .toast-leave{animation:toastOut 0.24s ease forwards}
         /* ── confirmation modals pop in, they don't just appear ──────────
              .alert-pop: centred dialogs (desktop sign-out/restore/export,
              and Settings' inline wipe/delete-account warnings) scale up
@@ -2942,6 +2980,8 @@ export default function App() {
           .nav-pill{transition-duration:0.001ms}
           .nav-ico{transition-duration:0.001ms}
           .claim-in{animation-duration:0.001ms}
+          .fi-right{animation-duration:0.001ms}
+          .fi-left{animation-duration:0.001ms}
           .save-pulse{animation-duration:0.001ms}
           .badge-pop{animation-duration:0.001ms}
           .tap-row{transition-duration:0.001ms}
@@ -3096,6 +3136,7 @@ export default function App() {
         {/* ══════════════════════════════════════════ DASHBOARD */}
         {tab==='dashboard'&&(
           <TabDashboard
+            animClass={tabAnimClass}
             isWide={isWide} settings={settings} setTab={setTab} totals={totals}
             currPeriodIdx={currPeriodIdx} toilLedger={toilLedger} carmsOutstanding={carmsOutstanding}
             salaryBreakdownExpanded={salaryBreakdownExpanded} setSalaryBreakdownExpanded={setSalaryBreakdownExpanded}
@@ -3108,6 +3149,7 @@ export default function App() {
         {/* ══════════════════════════════════════════ LOG SHIFT */}
         {tab==='add'&&(
           <TabLogOvertime
+            animClass={tabAnimClass}
             editing={editing} setEditing={setEditing} setTab={setTab} settings={settings} isWide={isWide}
             S={S} MONO={MONO} BRASS={BRASS} form={form} setForm={setForm} todayStr={todayStr} notesRef={notesRef}
             effectiveTier={effectiveTier} preview={preview} handleSave={handleSave} justSaved={justSaved}
@@ -3120,6 +3162,7 @@ export default function App() {
         {/* ══════════════════════════════════════════ BREAKDOWN */}
         {tab==='months'&&(
           <TabSummary
+            animClass={tabAnimClass}
             isWide={isWide} S={S} MONO={MONO} BRASS={BRASS}
             stickyRef={stickyRef} mainRef={mainRef} monthRefs={monthRefs} entryRefs={entryRefs} calSwipeStartX={calSwipeStartX}
             breakdownView={breakdownView} setBreakdownView={setBreakdownView} defaultBreakdownView={defaultBreakdownView} setDefaultBreakdownView={setDefaultBreakdownView}
@@ -3135,17 +3178,18 @@ export default function App() {
 
         {/* ══════════════════════════════════════════ CARMS OUTSTANDING */}
         {tab==='carms'&&(
-          <TabCarms S={S} MONO={MONO} BRASS={BRASS} isWide={isWide} carmsOutstanding={carmsOutstanding} carmsFilter={carmsFilter} setCarmsFilter={setCarmsFilter} periodGroupRefs={periodGroupRefs} pulsePeriodIdx={pulsePeriodIdx} startEdit={startEdit} setFocusCarmsToggle={setFocusCarmsToggle} carmsClaimNumbers={carmsClaimNumbers}/>
+          <TabCarms animClass={tabAnimClass} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide} carmsOutstanding={carmsOutstanding} carmsFilter={carmsFilter} setCarmsFilter={setCarmsFilter} periodGroupRefs={periodGroupRefs} pulsePeriodIdx={pulsePeriodIdx} startEdit={startEdit} setFocusCarmsToggle={setFocusCarmsToggle} carmsClaimNumbers={carmsClaimNumbers}/>
         )}
 
         {/* ══════════════════════════════════════════ TOIL */}
         {tab==='graph'&&(
-          <TabToil isWide={isWide} S={S} MONO={MONO} toilLedger={toilLedger} toilTakenForm={toilTakenForm} setToilTakenForm={setToilTakenForm} addToilTaken={addToilTaken} deleteToilTaken={deleteToilTaken}/>
+          <TabToil animClass={tabAnimClass} isWide={isWide} S={S} MONO={MONO} toilLedger={toilLedger} toilTakenForm={toilTakenForm} setToilTakenForm={setToilTakenForm} addToilTaken={addToilTaken} deleteToilTaken={deleteToilTaken}/>
         )}
 
         {/* ══════════════════════════════════════════ SETTINGS */}
         {tab==='settings'&&(
           <TabSettings
+            animClass={tabAnimClass}
             isWide={isWide} S={S} MONO={MONO} BRASS={BRASS}
             savedBadge={savedBadge} themeMode={themeMode} setTheme={setTheme}
             configExpanded={configExpanded} setConfigExpanded={setConfigExpanded} configShown={configShown} configSetupIncomplete={configSetupIncomplete}
@@ -3581,8 +3625,8 @@ export default function App() {
 
       {/* Trends — chart enlarge modal, shares render functions with the inline charts */}
       {chartModal&&(
-        <div onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50,padding:'16px'}}>
-          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'var(--surface)',borderRadius:'20px',padding:'20px 16px',width:'100%',maxWidth:'480px',maxHeight:'85vh',overflow:'auto',position:'relative'}}>
+        <div onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50,padding:'16px'}}>
+          <div onClick={e=>e.stopPropagation()} className="alert-pop" style={{background:'var(--surface)',borderRadius:'20px',padding:'20px 16px',width:'100%',maxWidth:'480px',maxHeight:'85vh',overflow:'auto',position:'relative'}}>
             <button onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',top:'14px',right:'14px',background:'var(--chip-bg)',border:'none',borderRadius:'50%',width:'30px',height:'30px',fontSize:'15px',fontWeight:900,color:'var(--muted)',cursor:'pointer'}}>✕</button>
             <div style={{fontSize:'13px',fontWeight:900,color:'var(--ink)',marginBottom:'16px',paddingRight:'36px'}}>{chartModal==='cum'?'Cumulative Gross Earnings':'Monthly OT Gross/Net'}</div>
             {chartModal==='cum' ? renderCumulativeChart(true) : renderMonthlyChart(true)}
@@ -3603,8 +3647,8 @@ export default function App() {
       {/* Calendar View — empty-day tap confirmation, so a stray tap doesn't
           silently drop you into Log Overtime */}
       {confirmCreateDay&&(
-        <div onClick={()=>setConfirmCreateDay(null)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:41,padding:'20px'}}>
-          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'var(--surface)',borderRadius:'18px',padding:'22px',width:'100%',maxWidth:'320px',textAlign:'center'}}>
+        <div onClick={()=>setConfirmCreateDay(null)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:41,padding:'20px'}}>
+          <div onClick={e=>e.stopPropagation()} className="alert-pop" style={{background:'var(--surface)',borderRadius:'18px',padding:'22px',width:'100%',maxWidth:'320px',textAlign:'center'}}>
             <div style={{fontWeight:900,fontSize:'15px',color:'var(--ink)',marginBottom:'6px'}}>Create an entry for this day?</div>
             <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginBottom:'18px'}}>{new Date(confirmCreateDay+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
             <div style={{display:'flex',gap:'8px'}}>
@@ -3617,8 +3661,8 @@ export default function App() {
 
       {/* Calendar View — day detail popover */}
       {selectedCalDay&&(
-        <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:40}}>
-          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+        <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:40}}>
+          <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
               <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{new Date(selectedCalDay.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
               <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={isWide?20:16} c="#64748b"/></button>
@@ -3729,7 +3773,7 @@ export default function App() {
            picked; dismissing without picking leaves both the toggle and
            the date untouched. */}
       {datePickerFor&&(
-        <div onClick={()=>setDatePickerFor(null)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60}}>
+        <div onClick={()=>setDatePickerFor(null)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60}}>
           {datePickerFor==='ot'
             ? renderDatePickerGrid(form.otSubmittedDate||'', v=>setForm(f=>({...f,otSubmittedDate:v,otSubmitted:true})))
             : datePickerFor==='pa'

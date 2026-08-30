@@ -9,7 +9,7 @@ import { SegSlider } from './SegSlider.jsx';
 // separate translucent stat tiles, then hairline rows with icon chips
 // instead of a boxed dark card. Behaviour (filters, refs, pulse-scroll,
 // claim numbering, edit-on-tap) is unchanged from the original extraction.
-export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter, setCarmsFilter, periodGroupRefs, pulsePeriodIdx, startEdit, setFocusCarmsToggle, carmsClaimNumbers }) {
+export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter, setCarmsFilter, periodGroupRefs, pulsePeriodIdx, startEdit, setFocusCarmsToggle, carmsClaimNumbers, animClass='fi' }) {
   // Small tinted icon-chip, shared by every OT/PA/TOIL row below —
   // replaces the old flat colour text pill so a claim's category reads
   // the same way the rest of the app (Dashboard, Summary) marks one:
@@ -28,7 +28,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
   const animatedTotal = useCountUp(carmsOutstanding.totalAmount);
 
   return (
-    <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
+    <div className={animClass} style={{padding:'14px',paddingBottom:'96px'}}>
       <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 18px',letterSpacing:'-0.5px'}}>CARMS &amp; PA Outstanding</h2>
 
       <div style={{background:'var(--surface)',borderRadius:'18px',border:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',overflow:'hidden'}}>

@@ -6,12 +6,12 @@ import { useCountUp } from '../lib/useCountUp.js';
 // Extracted verbatim from App.jsx's tab==='graph' block — no behaviour change,
 // just given its own file. Everything it needs comes in as props rather than
 // closing over App()'s state directly.
-export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTakenForm, addToilTaken, deleteToilTaken }) {
+export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTakenForm, addToilTaken, deleteToilTaken, animClass='fi' }) {
   // Counts up/down instead of jumping whenever the balance changes —
   // logging a TOIL shift or redeeming hours in the form below.
   const animatedBalance = useCountUp(toilLedger.balance);
   return (
-    <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
+    <div className={animClass} style={{padding:'14px',paddingBottom:'96px'}}>
       <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',marginBottom:'14px',letterSpacing:'-0.5px'}}>TOIL</h2>
 
       {isWide ? (
