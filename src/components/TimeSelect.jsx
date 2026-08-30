@@ -42,7 +42,7 @@ function WheelColumn({ values, selected, onSettle, brass }) {
   };
 
   return (
-    <div ref={colRef} onScroll={handleScroll} className="time-wheel-col" style={{width:'68px',height:ITEM_H*VISIBLE+'px',overflowY:'scroll',scrollSnapType:'y mandatory',position:'relative'}}>
+    <div ref={colRef} onScroll={handleScroll} className="time-wheel-col" style={{width:'68px',height:ITEM_H*VISIBLE+'px',overflowY:'scroll',overscrollBehavior:'contain',scrollSnapType:'y mandatory',position:'relative'}}>
       <div style={{height:PAD_H+'px'}}/>
       {values.map((v,i)=>{
         const dist = Math.abs(i-centerIdx);

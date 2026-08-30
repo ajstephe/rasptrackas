@@ -11,7 +11,7 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
   // logging a TOIL shift or redeeming hours in the form below.
   const animatedBalance = useCountUp(toilLedger.balance);
   return (
-    <div className={animClass} style={{padding:'14px',paddingBottom:'96px'}}>
+    <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',marginBottom:'14px',letterSpacing:'-0.5px'}}>TOIL</h2>
 
       {isWide ? (

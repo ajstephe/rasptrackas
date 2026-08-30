@@ -195,7 +195,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
     // light theme, matching the brand-moment treatment requested for this
     // screen specifically. #0f2744 matches the app's own theme-color, so
     // it's not a new colour being introduced, just used at page-scale here.
-    page: {display:'flex',flexDirection:'column',minHeight:'100dvh',maxWidth:isWide?'none':'430px',margin:'0 auto',background:'var(--navy)',fontFamily:"'DM Sans',system-ui,sans-serif",color:'var(--ink)',boxSizing:'border-box',position:'relative',overflowY:'auto'},
+    page: {display:'flex',flexDirection:'column',minHeight:'100dvh',maxWidth:isWide?'none':'430px',margin:'0 auto',background:'var(--navy)',fontFamily:"'DM Sans',system-ui,sans-serif",color:'var(--ink)',boxSizing:'border-box',position:'relative',overflowY:'auto',overscrollBehavior:'contain'},
     cardWrap: {flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',position:'relative',zIndex:1,minHeight:0},
     card: {width:'100%',maxWidth:isWide?'460px':'none',background:'var(--surface)',borderRadius:'18px',padding:isWide?'34px 30px 28px':'26px 22px 22px',boxShadow:'0 12px 34px rgba(0,0,0,0.28)',boxSizing:'border-box'},
     label:{display:'block',fontSize:'9px',color:'var(--muted)',margin:'0 0 6px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1.5px'},
@@ -2525,9 +2525,9 @@ export default function App() {
   // ── styles ─────────────────────────────────────────────────────────────────
   const S={
     wrap: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'var(--page-bg)',fontFamily:"'DM Sans',system-ui,sans-serif",color:'var(--ink)',position:'relative',boxShadow:'0 0 60px rgba(0,0,0,0.14)',overflow:'hidden'},
-    hdr:  {background:'var(--surface)',padding:'13px 18px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,zIndex:10},
-    main: {flex:1,overflowY:'auto',overflowX:'hidden',minWidth:0,scrollbarWidth:'none',msOverflowStyle:'none'},
-    nav:  {background:'rgba(var(--surface-rgb),0.72)',backdropFilter:'blur(20px) saturate(1.5)',WebkitBackdropFilter:'blur(20px) saturate(1.5)',borderTop:'1px solid var(--border-2)',position:'absolute',bottom:0,width:'100%',padding:'7px 4px 12px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
+    hdr:  {background:'var(--surface)',paddingTop:'calc(13px + env(safe-area-inset-top))',paddingRight:'18px',paddingBottom:'13px',paddingLeft:'18px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,zIndex:10},
+    main: {flex:1,overflowY:'auto',overflowX:'hidden',overscrollBehaviorY:'contain',minWidth:0,scrollbarWidth:'none',msOverflowStyle:'none'},
+    nav:  {background:'rgba(var(--surface-rgb),0.72)',backdropFilter:'blur(20px) saturate(1.5)',WebkitBackdropFilter:'blur(20px) saturate(1.5)',borderTop:'1px solid var(--border-2)',position:'absolute',bottom:0,width:'100%',paddingTop:'7px',paddingRight:'4px',paddingBottom:'calc(12px + env(safe-area-inset-bottom))',paddingLeft:'4px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
     nBtn: (a,add)=>({flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',padding:add?'9px 4px':'6px 4px',background:'transparent',color:add?'#10b981':a?BRASS:'var(--quiet)',borderRadius:add?'13px':'8px',border:'none',cursor:'pointer',transition:'all 0.18s',fontFamily:'inherit',boxShadow:'none'}),
     nLbl: {fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.5px',whiteSpace:'nowrap'},
     card: {background:'var(--surface)',borderRadius:'18px',padding:'18px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid var(--border-2)',marginBottom:'10px'},
@@ -2555,7 +2555,7 @@ export default function App() {
   // sidebar-excluded content wrapper (see its position:'relative'
   // above) instead of the full browser viewport, and is unaffected by
   // <main>'s own internal scroll.
-  const modalBoxStyle = (base) => ({...base, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%, -50%)', width:'min(640px, 90vw)', maxHeight:'80vh', overflowY:'auto', zIndex:56, boxShadow:'0 24px 64px rgba(0,0,0,0.35)', cursor:'default'});
+  const modalBoxStyle = (base) => ({...base, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%, -50%)', width:'min(640px, 90vw)', maxHeight:'80vh', overflowY:'auto', overscrollBehavior:'contain', zIndex:56, boxShadow:'0 24px 64px rgba(0,0,0,0.35)', cursor:'default'});
 
   // ── Trends charts — shared between the inline (small) card and the
   // enlarge modal (big), so both stay pixel-for-pixel consistent. Tapping a
@@ -3058,7 +3058,7 @@ export default function App() {
            modal, with an explicit close (×) as well as Cancel ── */}
       {signOutConfirmOpen&&(
         <div onClick={()=>setSignOutConfirmOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-          <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+          <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <button onClick={()=>setSignOutConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
@@ -3075,7 +3075,7 @@ export default function App() {
 
       {restoreConfirmOpen&&(
         <div onClick={()=>setRestoreConfirmOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-          <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+          <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <button onClick={()=>setRestoreConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
@@ -3312,7 +3312,7 @@ export default function App() {
         const formatLabel = exportFormat==='csv' ? 'Spreadsheet' : 'PDF';
         return (
           <div onClick={()=>setPayslipModalOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-            <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+            <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
               {!isWide && <div style={{width:'36px',height:'4px',background:'var(--border)',borderRadius:'4px',margin:'0 auto 14px'}}/>}
               {exportFormat===null ? (
                 <>
@@ -3441,7 +3441,7 @@ export default function App() {
         const thStyle = {textAlign:'left',fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px',padding:'4px 0',borderBottom:'1px solid var(--border-2)'};
         const sectionTitle = {fontSize:'10.5px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'1.2px',margin:'20px 0 8px',paddingTop:'14px',borderTop:'1px solid var(--border-2)'};
         return (
-          <div className="payslip-print-area" style={{position:'absolute',inset:0,background:'var(--page-bg)',zIndex:70,overflowY:'auto',padding:'16px'}}>
+          <div className="payslip-print-area" style={{position:'absolute',inset:0,background:'var(--page-bg)',zIndex:70,overflowY:'auto',overscrollBehavior:'contain',padding:'16px'}}>
             <div className="no-print" style={{display:'flex',gap:'8px',marginBottom:'14px',maxWidth:'560px',margin:'0 auto 14px'}}>
               <button onClick={()=>window.print()} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
               <button onClick={()=>setPayslipPreview(null)} style={{background:'var(--surface)',color:'var(--muted)',border:'1px solid var(--border)',borderRadius:'11px',padding:'12px 18px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit'}}>Close</button>
@@ -3551,7 +3551,7 @@ export default function App() {
         const y = computeArchivedYear(fySummaryYear);
         const label = `${fySummaryYear} / ${(fySummaryYear+1).toString().slice(-2)}`;
         return (
-          <div className={fySummaryPrintMode?'payslip-print-area':''} style={{position:'absolute',inset:0,background:'var(--surface-2)',zIndex:65,overflowY:'auto'}}>
+          <div className={fySummaryPrintMode?'payslip-print-area':''} style={{position:'absolute',inset:0,background:'var(--surface-2)',zIndex:65,overflowY:'auto',overscrollBehavior:'contain'}}>
             <div className="no-print" style={{background:'var(--tint-amber-2)',padding:'8px',fontSize:'10px',fontWeight:800,color:'var(--text-amber-deep)',textAlign:'center'}}>📁 Archived — {label} is read-only</div>
             {!fySummaryPrintMode&&(
               <div className="no-print" style={{display:'flex',gap:'8px',padding:'12px 12px 0'}}>
@@ -3661,7 +3661,7 @@ export default function App() {
       {/* Calendar View — day detail popover */}
       {selectedCalDay&&(
         <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:40}}>
-          <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+          <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
               <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{new Date(selectedCalDay.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
               <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={isWide?20:16} c="#64748b"/></button>
