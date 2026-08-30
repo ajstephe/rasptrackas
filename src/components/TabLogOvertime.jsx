@@ -25,7 +25,7 @@ export function TabLogOvertime({
   const animatedPreviewGross = useCountUp(preview.gross, 400);
   const animatedPreviewNet = useCountUp(preview.net, 400);
   return (
-    <div className={animClass} style={{padding:'14px',paddingBottom:isWide?'14px':'160px'}}>
+    <div className={animClass} style={{padding:'14px',paddingBottom:isWide?'14px':'calc(160px + env(safe-area-inset-bottom))'}}>
       <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'18px'}}>
         {editing&&<button onClick={()=>{setEditing(null);setTab('months');}} style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="back" s={16}/></button>}
         <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>{editing?'Edit Record':'Log Overtime'}</h2>
@@ -435,7 +435,7 @@ export function TabLogOvertime({
            up to where it naturally sits. Desktop is unaffected — its
            Save button is already in-flow at the end of the form. ── */}
       {preview.has&&(
-        <div style={{background:'linear-gradient(135deg,#1e3a5f,#1d4ed8)',borderRadius:'15px',padding:'14px 18px',marginBottom:'11px',...(!isWide?{position:'sticky',bottom:'88px',zIndex:24,boxShadow:'0 10px 24px rgba(15,39,68,0.35)'}:{})}}>
+        <div style={{background:'linear-gradient(135deg,#1e3a5f,#1d4ed8)',borderRadius:'15px',padding:'14px 18px',marginBottom:'11px',...(!isWide?{position:'sticky',bottom:'calc(88px + env(safe-area-inset-bottom))',zIndex:24,boxShadow:'0 10px 24px rgba(15,39,68,0.35)'}:{})}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom: preview.toilBanked>0?'10px':0}}>
             <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1px'}}>This Shift</div>
             <div style={{display:'flex',gap:'18px',alignItems:'center'}}>

@@ -31,7 +31,7 @@ function useAnimatedToasts(toasts) {
 export function ToastStack({ toasts, onDismiss }) {
   const items = useAnimatedToasts(toasts);
   return (
-    <div style={{position:'absolute',top:'72px',left:'50%',transform:'translateX(-50%)',zIndex:999,display:'flex',flexDirection:'column',gap:'7px',width:'calc(100% - 24px)',maxWidth:'390px',pointerEvents:'none'}}>
+    <div style={{position:'absolute',top:'calc(72px + env(safe-area-inset-top))',left:'50%',transform:'translateX(-50%)',zIndex:999,display:'flex',flexDirection:'column',gap:'7px',width:'calc(100% - 24px)',maxWidth:'390px',pointerEvents:'none'}}>
       {items.map(t=>{
         // 'alert' gets an enlarged layout — charcoal with a red accent bar, a
         // bold title, an explanatory line and a full-width action button.
