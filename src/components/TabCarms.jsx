@@ -197,7 +197,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
                       const mergeOtToil = showOt && showToil;
                       const isSelected = !!carmsSelected[it.entry.id];
                       return (
-                        <div key={it.entry.id} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,{ot:showOt,pa:showPa}):goToEntry} className="claim-in tap-row" style={{display:'flex',alignItems:'flex-start',gap:'10px',padding:isWide?'12px 0':'10px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer',animationDelay:(Math.min(i,6)*55)+'ms',background:isSelected?'rgba(184,130,63,0.07)':'transparent',margin:isSelected?'0 -10px':0,paddingLeft:isSelected?'10px':0,paddingRight:isSelected?'10px':0,borderRadius:isSelected?'8px':0}}>
+                        <div key={it.entry.id} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,{ot:showOt,pa:showPa}):goToEntry} className="claim-in tap-row" style={{display:'flex',alignItems:'flex-start',gap:'10px',paddingTop:isWide?'12px':'10px',paddingBottom:isWide?'12px':'10px',borderBottom:'1px solid var(--border-2)',cursor:'pointer',animationDelay:(Math.min(i,6)*55)+'ms',background:isSelected?'rgba(184,130,63,0.07)':'transparent',margin:isSelected?'0 -10px':0,paddingLeft:isSelected?'10px':0,paddingRight:isSelected?'10px':0,borderRadius:isSelected?'8px':0}}>
                           {carmsSelectMode&&(
                             <span style={{width:'19px',height:'19px',borderRadius:'50%',border:`1.5px solid ${isSelected?BRASS:'var(--quiet)'}`,background:isSelected?BRASS:'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',marginTop:'1px'}}>
                               {isSelected&&<Ico n="check" s={11} c="#fff" w={3}/>}
@@ -260,9 +260,14 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
 
       {/* ── bulk action bar — only present while there's something to act
            on, same "floats just above the bottom nav" placement as Log
-           Overtime's own sticky preview banner ── */}
+           Overtime's own sticky preview banner. That 88px only clears
+           the mobile bottom nav — desktop has no bottom nav (it's a
+           fixed left sidebar instead), so this used to stick with a big
+           dead gap reserved under it for nothing. Matches Log Overtime's
+           own preview banner: sticky only applies on mobile, desktop
+           just renders it in normal flow at the end of the list. ── */}
       {barMounted && (
-        <div className={'sheet-pop'+(barOpen?'':' pop-out')} style={{position:'sticky',bottom:'calc(88px + env(safe-area-inset-bottom))',zIndex:24,marginTop:'11px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'15px',padding:'12px 14px',boxShadow:'0 10px 24px rgba(15,39,68,0.16)'}}>
+        <div className={'sheet-pop'+(barOpen?'':' pop-out')} style={{...(!isWide?{position:'sticky',bottom:'calc(88px + env(safe-area-inset-bottom))'}:{}),zIndex:24,marginTop:'11px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'15px',padding:'12px 14px',boxShadow:'0 10px 24px rgba(15,39,68,0.16)'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
             <div style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>{barCount} selected</div>
             <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:BRASS}}>{fmtGBP(barTotal)}</div>
