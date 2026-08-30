@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Ico } from './Icons.jsx';
+import { useBackButtonCloses } from '../lib/useBackButtonCloses.js';
 
 // ─── Time wheel picker ───────────────────────────────────────────────────────
 // Replaces the old pair of native HH/MM <select> boxes — the one control left
@@ -65,6 +66,7 @@ export function TimeSelect({ value, onChange, label, BRASS='#b8823f' }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
+  useBackButtonCloses(open, () => setOpen(false));
 
   return (
     <>
