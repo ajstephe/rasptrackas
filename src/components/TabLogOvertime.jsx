@@ -229,7 +229,7 @@ export function TabLogOvertime({
                       if (f.otRateTier===h) return f;
                       const val = f.otRateTier ? f[f.otRateTier] : '';
                       return {...f, otRateTier:h, hours133:'', hours150:'', hours200:'', [h]:val};
-                    })} style={{flex:1,padding:'8px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:tier===h?'var(--navy)':'var(--surface)',color:tier===h?'#fff':BRASS,boxShadow:tier===h?'0 4px 11px rgba(15,39,68,0.35)':'none'}}>{[1.33,1.5,2.0][i]}x</button>
+                    })} style={{flex:1,padding:'8px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:tier===h?BRASS:'var(--surface)',color:tier===h?'#fff':'var(--muted)',boxShadow:tier===h?'0 4px 11px rgba(184,130,63,0.35)':'none'}}>{[1.33,1.5,2.0][i]}x</button>
                   ))}
                 </div>
                 <div style={{background:'var(--surface)',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
