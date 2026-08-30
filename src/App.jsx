@@ -1,35 +1,33 @@
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback, lazy, Suspense } from "react";
-import { createPortal } from "react-dom";
 import { createClient } from "@supabase/supabase-js";
 
 import {
   CURRENT_FY_YEAR, PAY_PERIODS, FY_START, FY_END, getFYStartYearFor, generateFYPeriods,
-  CLOUD_RETENTION_CUTOFF, isWithinCloudRetention, RATE_CHANGE_DATE,
-  daysInclusive, buildCalendarWeeks,
+  CLOUD_RETENTION_CUTOFF, isWithinCloudRetention,
+  daysInclusive,
   getUKTaxYearStart, addYearMinusOneDay, taxYearFractionForDate,
 } from './lib/payPeriods.js';
 import {
-  PAY_RATES, PA_RATES, PA_LABELS, RATE_TIER_MULT, getRates,
+  PAY_RATES, PA_RATES, RATE_TIER_MULT, getRates,
 } from './lib/payRates.js';
 import {
   LONDON_WEIGHTING, LONDON_ALLOWANCE,
   calcUKIncomeTax, calcUKIncomeTaxNoTaper,
-  NI_PT, NI_UEL, calcNI, estimateAnnualNI,
+  calcNI, estimateAnnualNI,
   computeTaxBandBreakdown, pensionTierRate, calcPensionContribution,
-  TAX_BANDS, getTaxBand, applyBandTax, splitAcrossBands,
+  getTaxBand, applyBandTax, splitAcrossBands,
   monthlySteppedAmount, monthlySteppedSplitBySept, periodBaseAmount,
 } from './lib/tax.js';
-import { fmt, fmtHM, fmtGBP, fmtD, fmtDDMM } from './lib/format.js';
+import { fmt, fmtHM, fmtGBP, fmtD } from './lib/format.js';
 import {
-  toMinutesOfDay, fmtShiftRange, SHIFT_TIMES_MARKER, generateShiftTimesLine,
-  shiftDurationMinutes, calcAutoOTHours, syncShiftTimesIntoForm,
+  calcAutoOTHours, syncShiftTimesIntoForm,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { migrateSettings, migrateEntries } from './lib/migrations.js';
 import {
   calcEntry as calcEntryPure, submittedGross as submittedGrossPure,
   crossPeriodInfo as crossPeriodInfoPure,
-  isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate, periodIdxForDate,
+  isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate,
 } from './lib/calc.js';
 import { Ico, ClockCashIcon, FireExitIcon } from './components/Icons.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
@@ -3514,7 +3512,7 @@ export default function App() {
             breakdownView={breakdownView} setBreakdownView={setBreakdownView} defaultBreakdownView={defaultBreakdownView} setDefaultBreakdownView={setDefaultBreakdownView}
             currPeriodIdx={currPeriodIdx} calPeriodIdx={calPeriodIdx} setCalPeriodIdx={setCalPeriodIdx} expanded={expanded} setExpanded={setExpanded}
             calLegendExpanded={calLegendExpanded} setCalLegendExpanded={setCalLegendExpanded}
-            focusEntryId={focusEntryId} confirmDel={confirmDel} setConfirmDel={setConfirmDel} pulsePeriodIdx={pulsePeriodIdx} setPulsePeriodIdx={setPulsePeriodIdx}
+            focusEntryId={focusEntryId} confirmDel={confirmDel} setConfirmDel={setConfirmDel} setPulsePeriodIdx={setPulsePeriodIdx}
             setSelectedCalDay={setSelectedCalDay} setConfirmCreateDay={setConfirmCreateDay}
             PAY_PERIODS={PAY_PERIODS} fyEntries={fyEntries} totals={totals} carmsOutstanding={carmsOutstanding} todayStr={todayStr}
             calcEntry={calcEntry} crossPeriodInfo={crossPeriodInfo} carmsBadge={carmsBadge} renderDatePills={renderDatePills} renderFYTotalsCard={renderFYTotalsCard}
@@ -3524,7 +3522,7 @@ export default function App() {
 
         {/* ══════════════════════════════════════════ CARMS OUTSTANDING */}
         {tab==='carms'&&(
-          <TabCarms animClass={tabAnimClass} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide} carmsOutstanding={carmsOutstanding} carmsFilter={carmsFilter} setCarmsFilter={setCarmsFilter} periodGroupRefs={periodGroupRefs} pulsePeriodIdx={pulsePeriodIdx} startEdit={startEdit} setFocusCarmsToggle={setFocusCarmsToggle} carmsClaimNumbers={carmsClaimNumbers}
+          <TabCarms animClass={tabAnimClass} MONO={MONO} BRASS={BRASS} isWide={isWide} carmsOutstanding={carmsOutstanding} carmsFilter={carmsFilter} setCarmsFilter={setCarmsFilter} periodGroupRefs={periodGroupRefs} pulsePeriodIdx={pulsePeriodIdx} startEdit={startEdit} setFocusCarmsToggle={setFocusCarmsToggle} carmsClaimNumbers={carmsClaimNumbers}
             carmsSelectMode={carmsSelectMode} toggleCarmsSelectMode={toggleCarmsSelectMode} carmsSelected={carmsSelected} toggleCarmsClaim={toggleCarmsClaim} toggleCarmsGroup={toggleCarmsGroup} openCarmsBulkConfirm={openCarmsBulkConfirm}/>
         )}
 

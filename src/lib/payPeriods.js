@@ -12,14 +12,15 @@
 // from what this generates, the fix is a single override below, not a rewrite.
 export const FY_ANCHOR_YEAR    = 2026;              // the "April" label's calendar year for the anchor
 export const FY_ANCHOR_START   = '2026-02-09';      // verified: start of "April 2026", from the user's own spreadsheet
-export const FY_WEEK_PATTERN   = [4,5,4,4,5,4,4,5,4,4,5,4]; // weeks per period, in order
-export const FY_MONTH_LABELS   = ['April','May','June','July','August','September','October','November','December','January','February','March'];
-export const FY_SHORT_LABELS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+const FY_WEEK_PATTERN   = [4,5,4,4,5,4,4,5,4,4,5,4]; // weeks per period, in order
+const FY_MONTH_LABELS   = ['April','May','June','July','August','September','October','November','December','January','February','March'];
+const FY_SHORT_LABELS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
 
 // Known corrections for years where the simple 364-day rule doesn't hold —
 // e.g. a 53-week year. Empty for now since no such year has been confirmed;
 // add an entry here (fyStartCalendarYear -> explicit period list) if/when one is.
-export const FY_OVERRIDES = {};
+// Only read internally (generateFYPeriods) — not exported.
+const FY_OVERRIDES = {};
 
 export const addDaysToISO = (iso, days) => {
   const d = new Date(iso+'T12:00:00Z'); // noon UTC sidesteps DST edge cases

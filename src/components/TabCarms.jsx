@@ -11,7 +11,7 @@ import { useMountTransition } from '../lib/useMountTransition.js';
 // separate translucent stat tiles, then hairline rows with icon chips
 // instead of a boxed dark card. Behaviour (filters, refs, pulse-scroll,
 // claim numbering, edit-on-tap) is unchanged from the original extraction.
-export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter, setCarmsFilter, periodGroupRefs, pulsePeriodIdx, startEdit, setFocusCarmsToggle, carmsClaimNumbers, animClass='fi',
+export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, setCarmsFilter, periodGroupRefs, pulsePeriodIdx, startEdit, setFocusCarmsToggle, carmsClaimNumbers, animClass='fi',
   carmsSelectMode, toggleCarmsSelectMode, carmsSelected, toggleCarmsClaim, toggleCarmsGroup, openCarmsBulkConfirm,
 }) {
   // Small tinted icon-chip, shared by every OT/PA/TOIL row below —

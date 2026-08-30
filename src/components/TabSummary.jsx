@@ -19,7 +19,7 @@ export function TabSummary({
   breakdownView, setBreakdownView, defaultBreakdownView, setDefaultBreakdownView,
   currPeriodIdx, calPeriodIdx, setCalPeriodIdx, expanded, setExpanded,
   calLegendExpanded, setCalLegendExpanded,
-  focusEntryId, confirmDel, setConfirmDel, pulsePeriodIdx, setPulsePeriodIdx,
+  focusEntryId, confirmDel, setConfirmDel, setPulsePeriodIdx,
   setSelectedCalDay, setConfirmCreateDay,
   PAY_PERIODS, fyEntries, totals, carmsOutstanding, todayStr,
   calcEntry, crossPeriodInfo, carmsBadge, renderDatePills, renderFYTotalsCard,
