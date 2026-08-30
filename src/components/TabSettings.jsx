@@ -90,7 +90,7 @@ export function TabSettings({
             </div>
             {!configSetupIncomplete && (
               <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
-                <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{configShown?'Tap to Close':'Tap to expand'}</span>
+                {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{configShown?'Tap to Close':'Tap to expand'}</span>}
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:configShown?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
               </span>
             )}
@@ -252,7 +252,7 @@ export function TabSettings({
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Tax & 100K+ Calculator</div>
             </div>
             <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
-              <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{taxImpactExpanded?'Tap to Close':'Tap to expand'}</span>
+              {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{taxImpactExpanded?'Tap to Close':'Tap to expand'}</span>}
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:taxImpactExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
             </span>
           </div>
@@ -421,7 +421,7 @@ export function TabSettings({
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Archived Financial Years</div>
             </div>
             <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
-              <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{financialYearsExpanded?'Tap to Close':'Tap to expand'}</span>
+              {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{financialYearsExpanded?'Tap to Close':'Tap to expand'}</span>}
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:financialYearsExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
             </span>
           </div>
@@ -473,7 +473,7 @@ export function TabSettings({
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Financial Reports &amp; Export</div>
             </div>
             <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
-              <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{exportDataExpanded?'Tap to Close':'Tap to expand'}</span>
+              {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{exportDataExpanded?'Tap to Close':'Tap to expand'}</span>}
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:exportDataExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
             </span>
           </div>
@@ -514,7 +514,7 @@ export function TabSettings({
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Account &amp; Data Management</div>
             </div>
             <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
-              <span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{dataManagementExpanded?'Tap to Close':'Tap to expand'}</span>
+              {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{dataManagementExpanded?'Tap to Close':'Tap to expand'}</span>}
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:dataManagementExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
             </span>
           </div>
