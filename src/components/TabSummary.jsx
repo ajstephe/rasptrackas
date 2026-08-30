@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { buildCalendarWeeks } from '../lib/payPeriods.js';
 import { KEYS, dualWrite } from '../lib/storage.js';
 import { fmt, fmtHM, fmtGBP, fmtD, fmtDDMM } from '../lib/format.js';
@@ -30,6 +30,46 @@ export function TabSummary({
   // the drag rather than through React state, so the calendar visibly
   // tracks the finger at 60fps instead of only reacting once the swipe ends.
   const weeksGridRef = useRef(null);
+  // Axis-lock for the calendar swipe — a touch that starts over the
+  // calendar could just as easily be a vertical scroll as a horizontal
+  // month-swipe, and letting both happen at once (the grid dragging
+  // sideways while the page also scrolls under your thumb) feels like the
+  // gesture is fighting itself. calSwipeAxisRef decides 'x' or 'y' from the
+  // first few pixels of movement and commits to it for the rest of that
+  // touch; only once it's decided 'x' do we call preventDefault to stop
+  // the page's own vertical scroll for the remainder of the gesture.
+  const calCardRef = useRef(null);
+  const calSwipeStartYRef = useRef(null);
+  const calSwipeAxisRef = useRef(null);
+
+  // React's onTouchMove is bound passively (matching the browser's own
+  // default, for scroll performance), so calling preventDefault from the
+  // JSX prop would silently do nothing — this needs a real, non-passive
+  // listener attached directly to the node.
+  useEffect(() => {
+    const el = calCardRef.current;
+    if (!el || isWide) return;
+    const onMove = (e) => {
+      if (calSwipeStartX.current===null || !weeksGridRef.current) return;
+      const dx = e.touches[0].clientX - calSwipeStartX.current;
+      const dy = e.touches[0].clientY - calSwipeStartYRef.current;
+      if (calSwipeAxisRef.current===null) {
+        // a couple of pixels of "is this even a drag yet" dead zone before
+        // committing, so a near-vertical scroll never gets mistaken for x
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        calSwipeAxisRef.current = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      }
+      if (calSwipeAxisRef.current!=='x') return; // vertical — let the page scroll as normal
+      e.preventDefault();
+      // rubber-banded past 90px so a long drag doesn't just keep dragging
+      // the grid off into space — same idea as an iOS scroll-past-the-end
+      // bounce, capped rather than elastic.
+      const damped = Math.abs(dx) > 90 ? Math.sign(dx) * (90 + (Math.abs(dx) - 90) * 0.25) : dx;
+      weeksGridRef.current.style.transform = `translateX(${damped}px)`;
+    };
+    el.addEventListener('touchmove', onMove, { passive: false });
+    return () => el.removeEventListener('touchmove', onMove);
+  }, [isWide, calSwipeStartX]);
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'96px'}}>
       {/* Sticky header — heading, toggle and month pills all float together */}
@@ -542,29 +582,25 @@ export function TabSummary({
 
             {/* calendar grid */}
             <div
+              ref={calCardRef}
               onTouchStart={isWide?undefined:(e=>{
                 calSwipeStartX.current = e.touches[0].clientX;
+                calSwipeStartYRef.current = e.touches[0].clientY;
+                calSwipeAxisRef.current = null;
                 if (weeksGridRef.current) weeksGridRef.current.style.transition = 'none';
-              })}
-              onTouchMove={isWide?undefined:(e=>{
-                if (calSwipeStartX.current===null || !weeksGridRef.current) return;
-                const dx = e.touches[0].clientX - calSwipeStartX.current;
-                // rubber-banded past 90px so a long drag doesn't just keep
-                // dragging the grid off into space — same idea as an iOS
-                // scroll-past-the-end bounce, capped rather than elastic.
-                const damped = Math.abs(dx) > 90 ? Math.sign(dx) * (90 + (Math.abs(dx) - 90) * 0.25) : dx;
-                weeksGridRef.current.style.transform = `translateX(${damped}px)`;
               })}
               onTouchEnd={isWide?undefined:(e=>{
                 if (calSwipeStartX.current===null) return;
                 const dx = e.changedTouches[0].clientX - calSwipeStartX.current;
+                const wasHorizontal = calSwipeAxisRef.current==='x';
                 calSwipeStartX.current = null;
+                calSwipeAxisRef.current = null;
                 if (weeksGridRef.current) {
                   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
                   weeksGridRef.current.style.transition = reduced ? 'none' : 'transform 0.28s cubic-bezier(.32,.72,0,1)';
                   weeksGridRef.current.style.transform = 'translateX(0px)';
                 }
-                if (Math.abs(dx) < 50) return; // too small to count as an intentional swipe
+                if (!wasHorizontal || Math.abs(dx) < 50) return; // a vertical scroll, or too small to count as an intentional swipe
                 if (dx > 0) setCalPeriodIdx(i=>Math.max(0,(i===null?currPeriodIdx:i)-1));
                 else setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1));
               })}
