@@ -87,8 +87,8 @@ export function TabLogOvertime({
                     setForm(f=>syncShiftTimesIntoForm({...f, recordShiftTimes:!switchingToManual, otRateTier: !switchingToManual && !f.otRateTier ? 'hours133' : f.otRateTier}));
                   }} style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',flexShrink:0}}>
                   <span style={{fontSize:'9px',fontWeight:600,color:'var(--muted)'}}>Input Hours Manually</span>
-                  <div style={{width:'32px',height:'18px',borderRadius:'10px',position:'relative',flexShrink:0,transition:'background 0.2s',background:!form.recordShiftTimes?'#2563eb':'var(--border)'}}>
-                    <div style={{width:'14px',height:'14px',borderRadius:'50%',background:'#fff',position:'absolute',top:'2px',transition:'left 0.2s',left:!form.recordShiftTimes?'16px':'2px',boxShadow:'0 1px 2px rgba(0,0,0,0.3)'}}/>
+                  <div style={{width:'32px',height:'18px',borderRadius:'10px',position:'relative',flexShrink:0,transition:'background 0.2s cubic-bezier(.4,0,.2,1)',background:!form.recordShiftTimes?'#2563eb':'var(--border)'}}>
+                    <div style={{width:'14px',height:'14px',borderRadius:'50%',background:'#fff',position:'absolute',top:'2px',transition:'left 0.2s cubic-bezier(.4,0,.2,1)',left:!form.recordShiftTimes?'16px':'2px',boxShadow:'0 1px 2px rgba(0,0,0,0.3)'}}/>
                   </div>
                 </div>
               </div>
@@ -378,8 +378,8 @@ export function TabLogOvertime({
                   if (form.otSubmitted) { setForm({...form,otSubmitted:false}); return; }
                   setDatePickerMonth(todayStr.slice(0,7));
                   setDatePickerFor('ot');
-                }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:hasOTHours?'pointer':'default',flexShrink:0,background:(hasOTHours&&form.otSubmitted)?'#059669':'var(--border)',transition:'background 0.15s'}}>
-                  <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(hasOTHours&&form.otSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
+                }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:hasOTHours?'pointer':'default',flexShrink:0,background:(hasOTHours&&form.otSubmitted)?'#059669':'var(--border)',transition:'background 0.15s cubic-bezier(.4,0,.2,1)'}}>
+                  <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(hasOTHours&&form.otSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s cubic-bezier(.4,0,.2,1)'}}/>
                 </div>
           </div>
           {form.otSubmitted&&(
@@ -408,8 +408,8 @@ export function TabLogOvertime({
               if (form.paSubmitted) { setForm({...form,paSubmitted:false}); return; }
               setDatePickerMonth(todayStr.slice(0,7));
               setDatePickerFor('pa');
-            }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:form.paRate==='None'?'default':'pointer',flexShrink:0,background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'var(--border)',transition:'background 0.15s'}}>
-              <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(form.paRate!=='None'&&form.paSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s'}}/>
+            }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:form.paRate==='None'?'default':'pointer',flexShrink:0,background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'var(--border)',transition:'background 0.15s cubic-bezier(.4,0,.2,1)'}}>
+              <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(form.paRate!=='None'&&form.paSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s cubic-bezier(.4,0,.2,1)'}}/>
             </div>
           </div>
           {form.paRate!=='None'&&form.paSubmitted&&(
