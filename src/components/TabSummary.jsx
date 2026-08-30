@@ -572,7 +572,13 @@ export function TabSummary({
                 <span style={{color:'var(--text-navy)',fontWeight:900}}>{cEntries.length}</span> shift{cEntries.length!==1?'s':''} logged &nbsp;·&nbsp; <span style={{color:'var(--text-navy)',fontWeight:900}}>{cTotalHrs}</span> total O/T hours
               </div>
             ) : (
-            <div style={{...S.card,display:'flex',padding:'16px',background:'var(--surface)',border:'1px solid var(--border-2)',borderLeft:cIdx===currPeriodIdx?`3px solid ${BRASS}`:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
+            // overflow:'hidden' matches the same accent-border pattern on
+            // List View's own period cards below — without it, the 3px
+            // brass accent on the active month (vs. the other three sides'
+            // 1px border) makes that corner render as a hard right angle
+            // instead of following S.card's 18px radius like every other
+            // card on this tab.
+            <div style={{...S.card,display:'flex',padding:'16px',overflow:'hidden',background:'var(--surface)',border:'1px solid var(--border-2)',borderLeft:cIdx===currPeriodIdx?`3px solid ${BRASS}`:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
               <div style={{flex:1,textAlign:'center'}}>
                 <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Shifts Logged</div>
                 <div style={{fontFamily:MONO,fontSize:'22px',fontWeight:600,color:'var(--text-navy)'}}>{cEntries.length}</div>
