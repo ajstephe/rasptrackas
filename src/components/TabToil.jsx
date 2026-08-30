@@ -31,12 +31,15 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
         <div style={{display:'grid',gridTemplateColumns:'1fr 52px 80px',gap:'8px',marginBottom:'8px'}}>
           <input type="date" style={{...S.inp,padding:'8px'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
           <input type="number" min="0" step="1" placeholder="Hrs" style={{...S.inp,padding:'8px',textAlign:'center'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>
-          <select style={{...S.inp,padding:'8px 4px',textAlign:'center',appearance:'none'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
-            <option value="00">00m</option>
-            <option value="15">15m</option>
-            <option value="30">30m</option>
-            <option value="45">45m</option>
-          </select>
+          <div style={{position:'relative'}}>
+            <select style={{...S.inp,width:'100%',boxSizing:'border-box',padding:'8px 20px 8px 4px',textAlign:'center',appearance:'none'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
+              <option value="00">00m</option>
+              <option value="15">15m</option>
+              <option value="30">30m</option>
+              <option value="45">45m</option>
+            </select>
+            <div style={{position:'absolute',right:'4px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex'}}><Ico n="cD" s={11} c="var(--quiet)" w={2.5}/></div>
+          </div>
         </div>
         <input type="text" placeholder="Note (optional) — e.g. half day, appointment" style={{...S.inp,padding:'8px',marginBottom:'8px'}} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
         <button onClick={addToilTaken} style={{width:'100%',background:'#7c3aed',color:'#fff',border:'none',borderRadius:'10px',padding:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Redeem TOIL</button>
@@ -59,12 +62,15 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
           <div style={{display:'grid',gridTemplateColumns:'1fr 52px 80px',gap:'8px',marginBottom:'8px'}}>
             <input type="date" style={{...S.inp,padding:'8px'}} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
             <input type="number" min="0" step="1" placeholder="Hrs" style={{...S.inp,padding:'8px',textAlign:'center'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>
-            <select style={{...S.inp,padding:'8px 4px',textAlign:'center',appearance:'none'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
-              <option value="00">00m</option>
-              <option value="15">15m</option>
-              <option value="30">30m</option>
-              <option value="45">45m</option>
-            </select>
+            <div style={{position:'relative'}}>
+              <select style={{...S.inp,width:'100%',boxSizing:'border-box',padding:'8px 20px 8px 4px',textAlign:'center',appearance:'none'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
+                <option value="00">00m</option>
+                <option value="15">15m</option>
+                <option value="30">30m</option>
+                <option value="45">45m</option>
+              </select>
+              <div style={{position:'absolute',right:'4px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex'}}><Ico n="cD" s={11} c="var(--quiet)" w={2.5}/></div>
+            </div>
           </div>
           <input type="text" placeholder="Note (optional) — e.g. half day, appointment" style={{...S.inp,padding:'8px',marginBottom:'8px'}} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
           <button onClick={addToilTaken} style={{width:'100%',background:'#7c3aed',color:'#fff',border:'none',borderRadius:'10px',padding:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Redeem TOIL</button>
