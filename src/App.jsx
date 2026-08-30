@@ -2455,7 +2455,7 @@ export default function App() {
     nLbl: {fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.5px',whiteSpace:'nowrap'},
     card: {background:'var(--surface)',borderRadius:'18px',padding:'18px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid var(--border-2)',marginBottom:'10px'},
     dark: {background:'var(--navy)',borderRadius:'18px',padding:'19px',boxShadow:'0 8px 28px rgba(15,39,68,0.28)',marginBottom:'10px',position:'relative',overflow:'hidden'},
-    lbl:  {display:'block',fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'7px'},
+    lbl:  {display:'block',fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'},
     inp:  {width:'100%',background:'var(--surface-2)',border:'none',padding:'12px 15px',borderRadius:'12px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)'},
     ta:   {width:'100%',background:'var(--surface-2)',border:'none',padding:'12px 15px',borderRadius:'12px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',resize:'none',boxSizing:'border-box',color:'var(--ink)'},
     sel:  {width:'100%',background:'var(--surface-2)',border:'1px solid var(--border)',padding:'12px 15px',borderRadius:'12px',fontWeight:700,fontSize:'16px',outline:'none',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',appearance:'none'},
@@ -2538,18 +2538,18 @@ export default function App() {
   // rather than competing with Home's day-to-day figures.
   const renderFYTotalsCard = () => (
     <div style={{...S.card,background:'#2563eb',border:'none',marginTop:'9px',boxShadow:'0 6px 20px rgba(37,99,235,0.28)'}}>
-      <div style={{fontSize:'11px',fontWeight:900,color:'#dbeafe',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'10px'}}>Overtime & PA — FY {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
+      <div style={{fontSize:'10px',fontWeight:900,color:'#dbeafe',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'10px'}}>Overtime & PA — FY {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'10px'}}>
         <div>
-          <div style={{fontSize:'11px',fontWeight:900,color:'#bfdbfe',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'3px'}}>Gross OT</div>
+          <div style={{fontSize:'10px',fontWeight:900,color:'#bfdbfe',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Gross OT</div>
           <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#fff'}}>{fmt(totals.totalGross)}</div>
         </div>
         <div>
-          <div style={{fontSize:'11px',fontWeight:900,color:'var(--border-2)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'3px'}}>Net OT</div>
+          <div style={{fontSize:'10px',fontWeight:900,color:'var(--border-2)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Net OT</div>
           <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#dcfce7'}}>{fmt(totals.totalNet)}</div>
         </div>
         <div>
-          <div style={{fontSize:'11px',fontWeight:900,color:'#bfdbfe',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'3px'}}>Hours</div>
+          <div style={{fontSize:'10px',fontWeight:900,color:'#bfdbfe',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Hours</div>
           <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#fff',display:'flex',alignItems:'center',gap:'5px'}}><Ico n="clock" s={13} c="rgba(255,255,255,0.6)"/>{totals.totalHrs.toFixed(1)}</div>
         </div>
       </div>
@@ -2986,7 +2986,7 @@ export default function App() {
             <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>Do you want to create a backup before proceeding?</div>
             <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
               <button onClick={async ()=>{ setRestoreConfirmOpen(false); await handleExport(); fileRef.current.click(); }} style={{padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Back up, then restore</button>
-              <button onClick={()=>{ setRestoreConfirmOpen(false); fileRef.current.click(); }} style={{padding:'12px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'11px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'1px'}}>Restore Without Backup</button>
+              <button onClick={()=>{ setRestoreConfirmOpen(false); fileRef.current.click(); }} style={{padding:'12px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'0.06em'}}>Restore Without Backup</button>
               <button onClick={()=>setRestoreConfirmOpen(false)} style={{padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--muted)',fontWeight:700,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>
@@ -2996,7 +2996,7 @@ export default function App() {
       {/* ── monthly backup reminder — optional, dismissible, never blocks the app ── */}
       {showBackupReminder&&(
         <div className="fi no-print" style={{background:'var(--tint-blue)',borderBottom:'1px solid var(--border-2)',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15}}>
-          <div style={{background:'var(--tint-blue-2)',borderRadius:'10px',padding:'7px',flexShrink:0}}><Ico n="shield" s={15} c="#2563eb"/></div>
+          <div style={{background:'var(--tint-blue-2)',borderRadius:'13px',padding:'7px',flexShrink:0}}><Ico n="shield" s={15} c="#2563eb"/></div>
           <div style={{flex:1}}>
             <div style={{fontWeight:900,fontSize:'12px',color:'var(--text-navy)',marginBottom:'2px'}}>Time for a backup</div>
             <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>It's been a couple of weeks — worth downloading a fresh backup of your records.</div>
@@ -3012,7 +3012,7 @@ export default function App() {
       {/* ── financial year rollover — one-time, dismissible, never blocks the app ── */}
       {showFYRollover&&(
         <div className="fi no-print" style={{background:'var(--tint-blue)',borderBottom:'1px solid var(--border-2)',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15}}>
-          <div style={{background:'var(--tint-blue-2)',borderRadius:'10px',padding:'7px',flexShrink:0}}><Ico n="star" s={15} c="#2563eb"/></div>
+          <div style={{background:'var(--tint-blue-2)',borderRadius:'13px',padding:'7px',flexShrink:0}}><Ico n="star" s={15} c="#2563eb"/></div>
           <div style={{flex:1}}>
             <div style={{fontWeight:900,fontSize:'12px',color:'var(--text-navy)',marginBottom:'2px'}}>Welcome to FY {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
             <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>Your {CURRENT_FY_YEAR-1}/{CURRENT_FY_YEAR.toString().slice(-2)} year is complete — find it any time under Financial Years in Options.</div>
@@ -3117,21 +3117,21 @@ export default function App() {
            figure on two screens. ── */}
       {isWide && (
         <aside className="no-print" style={{width:'320px',flexShrink:0,padding:'24px 24px 24px 0',overflowY:'auto'}}>
-          <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px',padding:'0 2px'}}>At a Glance</div>
+          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'12px',padding:'0 2px'}}>At a Glance</div>
 
           <div style={{background:'var(--surface)',borderRadius:'16px',border:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',padding:'4px 16px',overflow:'hidden'}}>
           {(()=>{
             const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
             return (
               <div style={{padding:'14px 0',borderBottom:'1px solid var(--border-2)'}}>
-                <div style={{fontWeight:700,fontSize:'10.5px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
+                <div style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
                 <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
                   <div>
-                    <div style={{fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px'}}>Gross</div>
+                    <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</div>
                     <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'var(--ink)',marginTop:'2px'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'}</div>
                   </div>
                   <div style={{textAlign:'right'}}>
-                    <div style={{fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px'}}>Net</div>
+                    <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</div>
                     <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'#059669',marginTop:'2px'}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
                   </div>
                 </div>
@@ -3142,7 +3142,7 @@ export default function App() {
 
           <div style={{padding:'14px 0 4px'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}}>
-              <span style={{fontWeight:700,fontSize:'10.5px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1.5px'}}>CARMS &amp; PA Outstanding</span>
+              <span style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>CARMS &amp; PA Outstanding</span>
               {carmsOutstanding.totalClaims>0&&<span onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:700,color:BRASS,cursor:'pointer'}}>View all →</span>}
             </div>
             {carmsOutstanding.totalClaims===0
@@ -3178,7 +3178,7 @@ export default function App() {
                           +{hidden} more claim{hidden!==1?'s':''} →
                         </div>
                       )}
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'var(--tint-brass)',borderRadius:'10px',padding:'9px 11px',marginTop:'8px'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'var(--tint-brass)',borderRadius:'13px',padding:'9px 11px',marginTop:'8px'}}>
                         <span style={{fontSize:'10px',fontWeight:700,color:'var(--text-amber-deep)'}}>{carmsOutstanding.totalClaims} CLAIM{carmsOutstanding.totalClaims!==1?'S':''} TO SUBMIT</span>
                         <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</span>
                       </div>
@@ -3215,15 +3215,15 @@ export default function App() {
                   <div style={{fontSize:'15px',fontWeight:900,marginBottom:'4px'}}>Financial Reports &amp; Export</div>
                   <div style={{fontSize:'11px',color:'var(--quiet)',marginBottom:'18px'}}>Choose a format to continue</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
-                    <button onClick={()=>setExportFormat('pdf')} style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px',borderRadius:'14px',border:'1.5px solid var(--border-2)',background:'var(--tint-blue)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-                      <div style={{background:'var(--tint-blue-2)',padding:'10px',borderRadius:'11px',flexShrink:0}}><Ico n="doc" s={18} c="#2563eb"/></div>
+                    <button onClick={()=>setExportFormat('pdf')} style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px',borderRadius:'13px',border:'1.5px solid var(--border-2)',background:'var(--tint-blue)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                      <div style={{background:'var(--tint-blue-2)',padding:'10px',borderRadius:'13px',flexShrink:0}}><Ico n="doc" s={18} c="#2563eb"/></div>
                       <div>
                         <div style={{fontWeight:900,fontSize:'13.5px',color:'var(--ink)'}}>PDF</div>
                         <div style={{fontSize:'10.5px',color:'var(--muted)',marginTop:'1px'}}>A formatted, printable summary</div>
                       </div>
                     </button>
-                    <button onClick={()=>setExportFormat('csv')} style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px',borderRadius:'14px',border:'1.5px solid var(--border-2)',background:'var(--tint-green)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-                      <div style={{background:'var(--tint-green-2)',padding:'10px',borderRadius:'11px',flexShrink:0}}><Ico n="table" s={18} c="#059669"/></div>
+                    <button onClick={()=>setExportFormat('csv')} style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px',borderRadius:'13px',border:'1.5px solid var(--border-2)',background:'var(--tint-green)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                      <div style={{background:'var(--tint-green-2)',padding:'10px',borderRadius:'13px',flexShrink:0}}><Ico n="table" s={18} c="#059669"/></div>
                       <div>
                         <div style={{fontWeight:900,fontSize:'13.5px',color:'var(--ink)'}}>Spreadsheet</div>
                         <div style={{fontSize:'10.5px',color:'var(--muted)',marginTop:'1px'}}>An XLSX file for Excel, Sheets or Numbers</div>
@@ -3243,7 +3243,7 @@ export default function App() {
                 <button onClick={()=>setPayslipMode('financialYear')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='financialYear'?'#fff':'transparent',color:payslipMode==='financialYear'?'#2563eb':'var(--muted)',boxShadow:payslipMode==='financialYear'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Financial Year</button>
               </div>
 
-              <div onClick={()=>setSanitiseNotes(v=>!v)} style={{display:'flex',alignItems:'flex-start',gap:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'12px 14px',marginBottom:'16px',cursor:'pointer'}}>
+              <div onClick={()=>setSanitiseNotes(v=>!v)} style={{display:'flex',alignItems:'flex-start',gap:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px 14px',marginBottom:'16px',cursor:'pointer'}}>
                 <div style={{width:'20px',height:'20px',borderRadius:'6px',border:`2px solid ${sanitiseNotes?'#dc2626':'#cbd5e1'}`,background:sanitiseNotes?'#dc2626':'var(--surface)',flexShrink:0,marginTop:'1px',display:'flex',alignItems:'center',justifyContent:'center'}}>
                   {sanitiseNotes&&<Ico n="check" s={12} c="#fff" w={3}/>}
                 </div>
@@ -3255,7 +3255,7 @@ export default function App() {
 
               {payslipMode==='period' ? (
                 <>
-                  <div style={{fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'8px'}}>Pay Periods</div>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Pay Periods</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'7px',marginBottom:'6px'}}>
                     {periodChoices.map(p=>(
                       <div key={p.idx} onClick={()=>setPayslipPeriodIdx(p.idx)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:p.idx===payslipPeriodIdx?'1.5px solid #2563eb':'1.5px solid var(--border-2)',background:p.idx===payslipPeriodIdx?'var(--tint-blue)':'var(--surface)',cursor:'pointer'}}>
@@ -3272,14 +3272,14 @@ export default function App() {
                 </>
               ) : payslipMode==='custom' ? (
                 <>
-                  <div style={{fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'8px'}}>Custom Range</div>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Custom Range</div>
                   <div style={{display:'flex',gap:'10px',marginBottom:'6px'}}>
                     <div style={{flex:1}}>
-                      <label style={{display:'block',fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Start</label>
+                      <label style={{display:'block',fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>Start</label>
                       <input type="date" value={payslipStart} onChange={e=>setPayslipStart(e.target.value)} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1.5px solid var(--border)',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
                     </div>
                     <div style={{flex:1}}>
-                      <label style={{display:'block',fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>End</label>
+                      <label style={{display:'block',fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>End</label>
                       <input type="date" value={payslipEnd} onChange={e=>setPayslipEnd(e.target.value)} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1.5px solid var(--border)',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
                     </div>
                   </div>
@@ -3287,7 +3287,7 @@ export default function App() {
                 </>
               ) : (
                 <>
-                  <div style={{fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'8px'}}>Financial Year</div>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Financial Year</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'7px',marginBottom:'6px'}}>
                     {[CURRENT_FY_YEAR, ...yearsWithData].map(y=>{
                       const yPeriods = generateFYPeriods(y);
@@ -3308,7 +3308,7 @@ export default function App() {
                 </>
               )}
 
-              <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'11px 14px',margin:'16px 0',fontSize:'12px',color:'var(--text-blue-deep)',fontWeight:700,textAlign:'center'}}>
+              <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',margin:'16px 0',fontSize:'12px',color:'var(--text-blue-deep)',fontWeight:700,textAlign:'center'}}>
                 {payslipMode==='period'
                   ? (payslipPeriodIdx!=null ? `${fmtD(PAY_PERIODS[payslipPeriodIdx].start)} – ${fmtD(PAY_PERIODS[payslipPeriodIdx].end)}` : 'Pick a pay period')
                   : payslipMode==='financialYear'
@@ -3347,7 +3347,7 @@ export default function App() {
               <div style={{background:'var(--navy)',color:'#fff',padding:'26px 26px 20px'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'18px'}}>
                   <div>
-                    <div style={{fontSize:'10px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.4px'}}>Overtime &amp; Shift Tracker</div>
+                    <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Overtime &amp; Shift Tracker</div>
                     <div style={{fontSize:'19px',fontWeight:900,marginTop:'3px',letterSpacing:'-0.3px'}}>Overtime Summary</div>
                     <div style={{fontSize:'10px',color:'#7c93b3',marginTop:'2px'}}>Personal record — not an official payslip</div>
                   </div>
@@ -3357,18 +3357,18 @@ export default function App() {
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
                   <div>
-                    <div style={{fontSize:'9px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'3px'}}>Rank / Pay Point</div>
+                    <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Rank / Pay Point</div>
                     <div style={{fontWeight:800,fontSize:'13px'}}>{settings.rank||'—'}, {settings.service||'—'}</div>
                   </div>
                   <div>
-                    <div style={{fontSize:'9px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'3px'}}>Period</div>
+                    <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Period</div>
                     <div style={{fontFamily:MONO,fontWeight:600,fontSize:'12.5px'}}>{payslipPreview.rangeLabel || `${fmtD(payslipPreview.start)} – ${fmtD(payslipPreview.end)}`}</div>
                   </div>
                 </div>
               </div>
 
               <div style={{padding:'22px 26px 10px'}}>
-                {d.clippedFrom&&<div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'var(--text-blue-deep)',lineHeight:1.5}}>The tax year restarts on 6 April, so this summary only covers {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)} — the part that falls in the current tax year. That's what keeps the figures accurate.</div>}
+                {d.clippedFrom&&<div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'var(--text-blue-deep)',lineHeight:1.5}}>The tax year restarts on 6 April, so this summary only covers {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)} — the part that falls in the current tax year. That's what keeps the figures accurate.</div>}
                 {d.rangeEntries.length===0 ? (
                   <div style={{textAlign:'center',padding:'30px 10px',color:'var(--quiet)',fontSize:'13px',fontWeight:600}}>No shifts recorded in this range.</div>
                 ) : (
@@ -3404,7 +3404,7 @@ export default function App() {
                     {d.toilBanked>0&&(
                       <>
                         <div style={sectionTitle}>TOIL Banked This Period</div>
-                        <div style={{background:'var(--tint-purple)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'11px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#6d28d9'}}>
+                        <div style={{background:'var(--tint-purple)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#6d28d9'}}>
                           <span>Not included in the totals below</span>
                           <strong style={{fontFamily:MONO,fontWeight:600}}>+{fmtHM(d.toilBanked)}h</strong>
                         </div>
@@ -3414,7 +3414,7 @@ export default function App() {
                     {d.pensionForRange>0&&(
                       <>
                         <div style={sectionTitle}>Pension Contribution (this period)</div>
-                        <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'11px 14px',marginBottom:'8px'}}>
+                        <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',marginBottom:'8px'}}>
                           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'var(--text-blue-deep)'}}>
                             <span>{(d.pensionRate*100).toFixed(2)}% of {fmtGBP(d.pensionablePayForRange)} pensionable pay</span>
                             <strong style={{fontFamily:MONO,fontWeight:600}}>−{fmtGBP(d.pensionForRange)}</strong>
@@ -3452,7 +3452,7 @@ export default function App() {
             {!fySummaryPrintMode&&(
               <div className="no-print" style={{display:'flex',gap:'8px',padding:'12px 12px 0'}}>
                 <button onClick={()=>setFySummaryPrintMode(true)} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="doc" s={13} c="#fff"/> PDF</button>
-                <button onClick={()=>handleExportSpreadsheet(y.start, y.end, sanitiseNotes)} style={{flex:1,background:'var(--tint-green)',color:'#059669',border:'1.5px solid var(--border-2)',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="table" s={13} c="#059669"/> Spreadsheet</button>
+                <button onClick={()=>handleExportSpreadsheet(y.start, y.end, sanitiseNotes)} style={{flex:1,background:'var(--tint-green)',color:'#059669',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="table" s={13} c="#059669"/> Spreadsheet</button>
               </div>
             )}
             {fySummaryPrintMode&&(
@@ -3462,24 +3462,24 @@ export default function App() {
             )}
             <div className={fySummaryPrintMode?'payslip-print-doc':''} style={{background:'var(--navy)',color:'#fff',padding:'16px',margin:fySummaryPrintMode?'12px':0,borderRadius:fySummaryPrintMode?'12px':0}}>
               <button className="no-print" onClick={()=>{ if(fySummaryPrintMode){ setFySummaryPrintMode(false); } else { setFySummaryYear(null); } }} style={{background:'rgba(255,255,255,0.12)',border:'none',borderRadius:'9px',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',cursor:'pointer',marginBottom:'12px'}}><Ico n="back" s={16} c="#fff"/></button>
-              <div style={{fontSize:'10px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.2px'}}>Financial Year</div>
+              <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Financial Year</div>
               <div style={{fontSize:'19px',fontWeight:900}}>{label}</div>
               <div style={{fontFamily:MONO,fontSize:'9.5px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
               <div style={{background:'var(--text-navy)',borderRadius:'14px',padding:'14px',display:'flex',marginTop:'12px'}}>
                 <div style={{flex:1,textAlign:'center'}}>
-                  <div style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.8px'}}>Shifts Logged</div>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Shifts Logged</div>
                   <div style={{fontSize:'20px',fontWeight:900}}>{y.totalShifts}</div>
                 </div>
                 <div style={{width:'1px',background:'rgba(255,255,255,0.15)'}}/>
                 <div style={{flex:1,textAlign:'center'}}>
-                  <div style={{fontSize:'9px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.8px'}}>Gross</div>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</div>
                   <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600}}>{fmtGBP(y.totalGross)}</div>
                 </div>
               </div>
             </div>
 
             <div style={{padding:'14px',paddingBottom:'40px'}}>
-              <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'10px 12px',marginBottom:'12px',fontSize:'10.5px',color:'var(--text-blue-deep)',lineHeight:1.5}}>{fySummaryPrintMode ? 'Grouped by pay period. Gross figures only — no tax or NI estimate, since that math needs the current year\'s context to be accurate.' : 'Tap a period to see individual shifts, this is a record not a working copy. Gross figures only'}</div>
+              <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'10px 12px',marginBottom:'12px',fontSize:'10.5px',color:'var(--text-blue-deep)',lineHeight:1.5}}>{fySummaryPrintMode ? 'Grouped by pay period. Gross figures only — no tax or NI estimate, since that math needs the current year\'s context to be accurate.' : 'Tap a period to see individual shifts, this is a record not a working copy. Gross figures only'}</div>
 
               {y.periods.length===0 ? (
                 <div style={{textAlign:'center',padding:'30px 10px',color:'var(--quiet)',fontSize:'13px',fontWeight:600}}>No entries recorded in this year.</div>
@@ -3503,7 +3503,7 @@ export default function App() {
                           <div key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderTop:'1px solid var(--border-2)',marginTop:'9px'}}>
                             <div>
                               <div style={{fontWeight:800,fontSize:'11.5px',color:'var(--ink)'}}>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB')}</div>
-                              <div style={{fontSize:'9.5px',color:'var(--quiet)',marginTop:'1px',textTransform:'uppercase'}}>{e.reason||'—'}</div>
+                              <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px',textTransform:'uppercase'}}>{e.reason||'—'}</div>
                             </div>
                             <div style={{fontFamily:MONO,fontWeight:600,fontSize:'11px',color:'var(--text-navy)'}}>{fmtGBP(e.gross)}</div>
                           </div>
@@ -3530,8 +3530,8 @@ export default function App() {
             )}
             {chartModal==='mon' && (
               <div style={{display:'flex',justifyContent:'center',gap:'20px',marginTop:'14px'}}>
-                <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'15px',height:'3px',background:'#34d399',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</span></div>
-                <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'15px',height:'3px',background:'#f87171',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'1px'}}>Net</span></div>
+                <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'15px',height:'3px',background:'#34d399',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</span></div>
+                <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'15px',height:'3px',background:'#f87171',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</span></div>
               </div>
             )}
             <div style={{textAlign:'center',marginTop:'10px',fontSize:'10px',color:'var(--quiet)'}}>Tap any point for that period's figure</div>
@@ -3597,7 +3597,7 @@ export default function App() {
 
                   {/* delete confirmation */}
                   {confirmDel===e.id&&(
-                    <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
+                    <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
                       <span style={{fontSize:isWide?'14px':'12px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this record?</span>
                       <div style={{display:'flex',gap:'7px',flexShrink:0}}>
                         <button onClick={()=>setConfirmDel(null)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:isWide?'7px 15px':'5px 12px',fontSize:isWide?'13px':'11px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
@@ -3725,7 +3725,7 @@ export default function App() {
             const monthName = now.toLocaleDateString('en-GB',{month:'long'});
             return (
               <div style={{textAlign:'center',padding:'0 8px 16px',borderBottom:'1px solid rgba(255,255,255,0.1)',marginBottom:'16px'}}>
-                <div style={{fontSize:'11px',fontWeight:800,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px'}}>{dayName}</div>
+                <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>{dayName}</div>
                 <div style={{fontSize:'15px',fontWeight:900,color:'#fff',marginTop:'2px',whiteSpace:'nowrap'}}>{dd}{suffix} {monthName}</div>
               </div>
             );

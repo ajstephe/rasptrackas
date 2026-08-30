@@ -21,7 +21,7 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
           the way mobile has to. ── */
       <div style={{display:'grid',gridTemplateColumns:'1fr 1.3fr',gap:'16px',alignItems:'stretch',marginBottom:'14px'}}>
       <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',border:toilLedger.balance<0?'1.5px solid var(--border-2)':'1.5px solid var(--border-2)',borderRadius:'16px',padding:'16px',display:'flex',flexDirection:'column',justifyContent:'center'}}>
-        <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
+        <div style={{fontSize:'10px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
         <div style={{fontFamily:MONO,fontSize:'25px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--text-purple-deep)'}}>{fmtHM(animatedBalance)} h</div>
         <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
       </div>
@@ -49,7 +49,7 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
           shadow/margin. ── */
       <div style={{...S.card,background:toilLedger.balance<0?'var(--tint-red)':'var(--surface)',border:toilLedger.balance<0?'1.5px solid var(--border-2)':'1px solid var(--border-2)',marginBottom:'14px'}}>
         <div>
-          <div style={{fontSize:'11px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
+          <div style={{fontSize:'10px',fontWeight:900,color:toilLedger.balance<0?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>TOIL Balance{toilLedger.balance<0?' — Overdrawn':''}</div>
           <div style={{fontFamily:MONO,fontSize:'25px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--text-purple-deep)'}}>{fmtHM(animatedBalance)} h</div>
           <div style={{fontSize:'11px',fontWeight:700,color:toilLedger.balance<0?'#dc2626':'#7c3aed',marginTop:'2px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
         </div>

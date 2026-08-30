@@ -91,7 +91,7 @@ export function TabLogOvertime({
 
                   {/* Normal Duty vs Rest Day Working (RDW) — on RDW there's no
                       roster to compare against, so the whole shift is overtime */}
-                  <SegSlider activeKey={form.dutyType==='rdw'?'rdw':'normal'} trackStyle={{display:'flex',gap:'6px',background:'var(--tint-blue-2)',borderRadius:'11px',padding:'3px',marginBottom:'13px'}} indicatorStyle={{background:'#fff',borderRadius:'9px',boxShadow:'0 2px 6px rgba(37,99,235,0.25)'}}>
+                  <SegSlider activeKey={form.dutyType==='rdw'?'rdw':'normal'} trackStyle={{display:'flex',gap:'6px',background:'var(--tint-blue-2)',borderRadius:'13px',padding:'3px',marginBottom:'13px'}} indicatorStyle={{background:'#fff',borderRadius:'9px',boxShadow:'0 2px 6px rgba(37,99,235,0.25)'}}>
                     <button data-seg-key="normal" onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'normal'}))} style={{position:'relative',zIndex:1,flex:1,border:'none',background:'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer'}}>Normal Duty</button>
                     <button data-seg-key="rdw" onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'rdw',rosteredStart:'',rosteredEnd:''}))} style={{position:'relative',zIndex:1,flex:1,border:'none',background:'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer'}}>Rest Day Working (RDW)</button>
                   </SegSlider>
@@ -102,7 +102,7 @@ export function TabLogOvertime({
                         <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#2563eb'}}/>
                         <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Rostered CARM Shift</div>
                       </div>
-                      <div style={{fontSize:'9.5px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:'5px'}}>Quick presets</div>
+                      <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'5px'}}>Quick presets</div>
                       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'5px',marginBottom:'12px'}}>
                         {[['07:00','15:00'],['07:00','19:00'],['08:00','20:00'],['13:00','23:00']].map(([start,end])=>{
                           const isSelected = form.rosteredStart===start && form.rosteredEnd===end;
@@ -192,7 +192,7 @@ export function TabLogOvertime({
               // shifts that genuinely span more than one rate tier
               return (
                 <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'14px 13px'}}>
-                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'4px'}}>Overtime Hours</div>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'4px'}}>Overtime Hours</div>
                   <div style={{fontSize:'9px',fontWeight:600,color:'var(--muted)',textAlign:'center',marginBottom:'13px'}}>Record only the hours worked on overtime — not your whole shift</div>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'9px'}}>
                     {['hours133','hours150','hours200'].map((h,i)=>(
@@ -223,7 +223,7 @@ export function TabLogOvertime({
 
             return (
               <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'12px 13px'}}>
-                <div className="hint-pulse" style={{fontSize:'12px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'9px'}}>Select O/T Rate for this Shift</div>
+                <div className="hint-pulse" style={{fontSize:'10px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'9px'}}>Select O/T Rate for this Shift</div>
                 <SegSlider activeKey={tier} trackStyle={{display:'flex',gap:'6px',marginBottom:'9px'}} indicatorStyle={{background:BRASS,borderRadius:'10px',boxShadow:'0 4px 11px rgba(184,130,63,0.35)'}}>
                   {['hours133','hours150','hours200'].map((h,i)=>(
                     <button key={h} data-seg-key={h} onClick={()=>setForm(f=>{
@@ -257,7 +257,7 @@ export function TabLogOvertime({
             const payH = Math.max(0, total-toilH);
             return (
               <div style={{background:'#6d28d9',border:'none',borderRadius:'13px',padding:'14px 13px',marginTop:showTwoCol?0:'13px'}}>
-                <div style={{fontSize:'10px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Take Overtime As</div>
+                <div style={{fontSize:'10px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'13px'}}>Take Overtime As</div>
                 <SegSlider activeKey={form.takeAs} trackStyle={{display:'flex',gap:'6px',background:'rgba(0,0,0,0.18)',borderRadius:'11px',padding:'3px'}} indicatorStyle={{background:'#fff',borderRadius:'9px',boxShadow:'0 2px 6px rgba(0,0,0,0.25)'}}>
                   {[['pay','Pay','var(--text-blue-deep)'],['toil','TOIL','#6d28d9'],['mix','Mix','var(--muted)']].map(([m,lbl,col])=>(
                     <button key={m} data-seg-key={m} onClick={()=>setForm(f=>{
@@ -269,14 +269,14 @@ export function TabLogOvertime({
                 </SegSlider>
                 {form.takeAs==='mix' && (
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'12px'}}>
-                    <div style={{background:'var(--tint-blue)',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                      <div style={{fontSize:'9px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>Pay Hours</div>
+                    <div style={{background:'var(--tint-blue)',borderRadius:'13px',padding:'10px',textAlign:'center'}}>
+                      <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>Pay Hours</div>
                       <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'var(--surface)',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'var(--ink)'}}
                         value={payH.toFixed(2).replace(/\.00$/,'')}
                         onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(total-v)}); }}/>
                     </div>
-                    <div style={{background:'var(--tint-purple)',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
-                      <div style={{fontSize:'9px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'6px'}}>TOIL Hours</div>
+                    <div style={{background:'var(--tint-purple)',borderRadius:'13px',padding:'10px',textAlign:'center'}}>
+                      <div style={{fontSize:'10px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>TOIL Hours</div>
                       <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'var(--surface)',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'var(--ink)'}}
                         value={toilH.toFixed(2).replace(/\.00$/,'')}
                         onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(v)}); }}/>
@@ -284,7 +284,7 @@ export function TabLogOvertime({
                   </div>
                 )}
                 {toilH>0 && (
-                  <div style={{marginTop:'12px',background:'var(--tint-purple)',borderRadius:'10px',padding:'10px 13px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div style={{marginTop:'12px',background:'var(--tint-purple)',borderRadius:'13px',padding:'10px 13px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                     <span style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#6d28d9'}}>{fmtHM(toilH)}h worked @ {RATE_TIER_MULT[tier]}x</span>
                     <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHM(toilH*RATE_TIER_MULT[tier])}h banked</span>
                   </div>
@@ -295,8 +295,8 @@ export function TabLogOvertime({
 
           const paBlock = (
             <div style={{...S.card,background:'var(--tint-amber)',border:'1px solid var(--border-2)',marginBottom:showTwoCol?0:'10px',flex:showTwoCol?1:'none',display:'flex',flexDirection:'column',justifyContent:'center'}}>
-              <div style={{fontSize:'12px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
-              <SegSlider activeKey={form.paRate} trackStyle={{display:'flex',gap:'6px'}} indicatorStyle={{background:'#f59e0b',borderRadius:'11px',boxShadow:'0 4px 11px rgba(245,158,11,0.38)'}}>
+              <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
+              <SegSlider activeKey={form.paRate} trackStyle={{display:'flex',gap:'6px'}} indicatorStyle={{background:BRASS,borderRadius:'11px',boxShadow:'0 4px 11px rgba(184,130,63,0.35)'}}>
                 {['None','PA1','PA2','PA3'].map(pa=>(
                   <button key={pa} data-seg-key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{position:'relative',zIndex:1,flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'color 0.14s',background:'transparent',color:form.paRate===pa?'#fff':'#b45309',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
                     <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
@@ -333,10 +333,10 @@ export function TabLogOvertime({
                    scroll past. ── */}
               <div style={{borderTop:'1px solid var(--border-2)',marginTop:'13px',paddingTop:'13px'}}>
                 <div style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'13px'}}>
-                  <div style={{fontSize:'12px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
                   <div style={{display:'flex',gap:'6px'}}>
                     {['None','PA1','PA2','PA3'].map(pa=>(
-                      <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'var(--surface)',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
+                      <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?BRASS:'var(--surface)',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(184,130,63,0.35)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
                         <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
                         <span style={{fontSize:'9px',fontWeight:700,opacity:form.paRate===pa?0.85:0.55}}>{PA_LABELS[pa]}</span>
                       </button>
@@ -375,8 +375,8 @@ export function TabLogOvertime({
                 </div>
           </div>
           {form.otSubmitted&&(
-            <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'10px',marginTop:'9px'}}>
-              <div style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'5px'}}>Date submitted</div>
+            <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'10px',marginTop:'9px'}}>
+              <div style={{fontSize:'10px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'5px'}}>Date submitted</div>
               {isWide ? (
                 <button onClick={()=>{ setDatePickerMonth((form.otSubmittedDate||todayStr).slice(0,7)); setDatePickerFor('ot'); }} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer'}}>
                   {new Date((form.otSubmittedDate||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
@@ -405,8 +405,8 @@ export function TabLogOvertime({
             </div>
           </div>
           {form.paRate!=='None'&&form.paSubmitted&&(
-            <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'10px',marginTop:'9px'}}>
-              <div style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.8px',marginBottom:'5px'}}>Date submitted</div>
+            <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'10px',marginTop:'9px'}}>
+              <div style={{fontSize:'10px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'5px'}}>Date submitted</div>
               {isWide ? (
                 <button onClick={()=>{ setDatePickerMonth((form.paSubmittedDate||todayStr).slice(0,7)); setDatePickerFor('pa'); }} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer'}}>
                   {new Date((form.paSubmittedDate||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}

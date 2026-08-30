@@ -50,7 +50,7 @@ export function TabDashboard({
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:'2px'}}>
           <div style={{display:'flex',alignItems:'center',gap:compact?'10px':'12px'}}>
             <div style={{background:'var(--tint-green-2)',padding:compact?'8px':'9px',borderRadius:compact?'10px':'11px',flexShrink:0}}><Ico n="cash" s={compact?16:17} c="#15803d"/></div>
-            <span style={{fontFamily:MONO,fontSize:'9px',fontWeight:600,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--quiet)'}}>Net pay · this period</span>
+            <span style={{fontFamily:MONO,fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'}}>Net pay · this period</span>
           </div>
           <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}</span>
         </div>
@@ -80,7 +80,7 @@ export function TabDashboard({
         <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
           <div style={{background:'var(--tint-brass)',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c={BRASS}/></div>
           <div>
-            <div style={{fontWeight:900,fontSize:'10.5px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1.5px'}}>Salary Breakdown &amp; Overtime Forecast</div>
+            <div style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Salary Breakdown &amp; Overtime Forecast</div>
             <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'1px'}}>Base, allowances, overtime, full-year projection</div>
           </div>
         </div>
@@ -137,7 +137,7 @@ export function TabDashboard({
             return (
               <div onClick={e=>{e.stopPropagation();scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} className="tap-row" style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'26px'}}>
-                  <div style={{fontSize:'11px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'1.5px'}}>Gross Salary (Actual)</div>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross Salary (Actual)</div>
                   <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
                 </div>
                 <div style={{position:'relative',marginBottom:'16px'}}>
@@ -174,7 +174,7 @@ export function TabDashboard({
             return (
               <div onClick={e=>{e.stopPropagation();scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} className="tap-row" style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'3px'}}>
-                  <div style={{fontSize:'11px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'1.5px'}}>Gross Salary (Forecast)</div>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross Salary (Forecast)</div>
                   <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
                 </div>
                 <div style={{fontSize:'9.5px',fontWeight:600,color:'var(--quiet)',marginBottom:'19px'}}>Forecast based on your overtime submissions</div>
@@ -202,7 +202,7 @@ export function TabDashboard({
                since on a wide desktop card the two sections sat
                close enough to read as one continuous block. ── */}
           <div style={{borderTop:'2px solid var(--border)',marginTop:'22px',paddingTop:'20px'}}>
-            <div style={{fontSize:'11px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'12px'}}>Monthly OT Gross/Net</div>
+            <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'12px'}}>Monthly OT Gross/Net</div>
             {/* Desktop passes wide=true so renderMonthlyChart
                 itself uses a wider internal coordinate system
                 (W=700 vs 330) — the box then just renders that
@@ -215,8 +215,8 @@ export function TabDashboard({
               {renderMonthlyChart(false, false, isWide)}
             </div>
             <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
-              <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.8px'}}>Gross</span></div>
-              <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#ef4444',borderRadius:'2px'}}/><span style={{fontSize:'9px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.8px'}}>Net</span></div>
+              <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</span></div>
+              <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#ef4444',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</span></div>
             </div>
             <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'var(--quiet)'}}>Tap any point for that period's figure</div>
           </div>
@@ -228,7 +228,7 @@ export function TabDashboard({
   return (
   <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
     {!settings.rank&&(
-      <div className="setup-pulse-urgent" style={{background:'var(--tint-red)',border:'1.5px solid var(--border-2)',borderRadius:'14px',padding:'13px 14px',marginBottom:'12px',display:'flex',gap:'11px',alignItems:'flex-start'}}>
+      <div className="setup-pulse-urgent" style={{background:'var(--tint-red)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'13px 14px',marginBottom:'12px',display:'flex',gap:'11px',alignItems:'flex-start'}}>
         <Ico n="uPlus" s={19} c="#dc2626"/>
         <div style={{flex:1}}>
           <div style={{fontWeight:900,color:'var(--text-red-deep)',fontSize:'13px',marginBottom:'3px'}}>Setup Required</div>
@@ -257,10 +257,10 @@ export function TabDashboard({
       <div style={{background:'var(--navy)',padding:'22px 26px',position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'14px'}}>
-          <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
+          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
           {totals.curr&&<div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month} · {fmtD(totals.curr.start)}–{fmtD(totals.curr.end)}</div>}
         </div>
-        <div style={{fontSize:'12px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Total Gross YTD</div>
+        <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Total Gross YTD</div>
         <div style={{fontFamily:MONO,fontSize:'32px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'9px'}}>
           {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
         </div>
@@ -281,7 +281,7 @@ export function TabDashboard({
         {totals.curr&&(
           <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-              <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
+              <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
               <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Current pay period</div>
             </div>
             <div style={{textAlign:'right'}}>
@@ -304,7 +304,7 @@ export function TabDashboard({
         {carmsOutstanding.totalClaims>0&&(
           <div onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-              <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
+              <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
               <div>
                 <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR outstanding</div>
                 <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
@@ -327,10 +327,10 @@ export function TabDashboard({
       <div style={{background:'var(--navy)',padding:'20px 18px',position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'12px'}}>
-          <div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:700,letterSpacing:'1.2px',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
+          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
           {totals.curr&&<div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month}</div>}
         </div>
-        <div style={{fontSize:'11px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'7px'}}>Total Gross YTD</div>
+        <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'}}>Total Gross YTD</div>
         <div style={{fontFamily:MONO,fontSize:'27px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'8px'}}>
           {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
         </div>
@@ -351,7 +351,7 @@ export function TabDashboard({
         {totals.curr&&(
           <div onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-              <div style={{background:'var(--tint-teal)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="cal" s={16} c="#0d9488"/></div>
+              <div style={{background:'var(--tint-teal)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={16} c="#0d9488"/></div>
               <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>Current period</div>
             </div>
             <div style={{textAlign:'right'}}>
@@ -374,7 +374,7 @@ export function TabDashboard({
         {carmsOutstanding.totalClaims>0&&(
           <div onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-              <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
+              <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
               <div>
                 <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR outstanding</div>
                 <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
