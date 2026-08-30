@@ -33,6 +33,8 @@ import {
 } from './lib/calc.js';
 import { Ico, ClockCashIcon, FireExitIcon } from './components/Icons.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
+import { SegSlider } from './components/SegSlider.jsx';
+import { MonthlyChart } from './components/MonthlyChart.jsx';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
 // Only one of these six is ever on screen at a time (via `tab` state below),
 // so there's no reason all six ship in the initial JS payload. Each becomes
@@ -2618,61 +2620,14 @@ export default function App() {
   // line weight and text into an obviously non-uniform squash/stretch.
   // Widening W instead keeps the X:Y scale factor equal (no distortion)
   // while still spreading the same content across the full card width.
-  const renderMonthlyChart = (big, dark=false, wide=false) => {
-    const data = totals.periodBreakdown.map(pb=>({short:PAY_PERIODS.find(p=>p.month===pb.month).short, gross:pb.combinedGross, net:pb.combinedNet}));
-    const max = Math.max(...data.map(d=>d.gross), 200);
-    const W = big?520:(wide?700:330), H = big?300:170, pX = big?46:34, pY = big?20:12;
-    const eW = W-pX*2, eH = H-pY*2;
-    const fsAxis = big?11:8, fsLbl = big?11:8, ptR = big?6:3, lineW = big?3:2;
-    const pts = data.map((d,i)=>({x:pX+i*(eW/(data.length-1)), yG:H-pY-(d.gross/max)*eH, yN:H-pY-(d.net/max)*eH, g:d.gross, n:d.net, lbl:d.short}));
-    const gp = pts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.yG}`).join(' ');
-    const np = pts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.yN}`).join(' ');
-    const tapPt = (chartTap && chartTap.chart==='mon' && chartTap.big===big) ? pts[chartTap.i] : null;
-    const toggle = i => setChartTap(t=>(t&&t.chart==='mon'&&t.i===i&&t.big===big)?null:{chart:'mon',i,big});
-    // Dark variant sits on the navy Total Gross YTD card, so grid/label
-    // colours flip to bright blue-white instead of slate-on-white.
-    const gridStroke = dark ? 'rgba(255,255,255,0.08)' : '#f1f5f9';
-    const axisFill    = dark ? '#64748b' : '#cbd5e1';
-    const lblFill      = dark ? '#94a3b8' : '#94a3b8';
-    const dotStroke   = dark ? '#0f2744' : 'white';
-    const tooltipBg    = dark ? '#132f52' : '#1e3a5f';
-
-    let tooltip = null;
-    if (tapPt) {
-      const tw = big?150:114;
-      const padTop = big?16:12, lineH = big?17:14, padBottom = big?10:8;
-      const th = padTop + lineH*2 + padBottom;
-      let tx = tapPt.x - tw/2; if (tx<2) tx=2; if (tx+tw>W-2) tx=W-2-tw;
-      const topY = Math.min(tapPt.yG, tapPt.yN);
-      let ty = topY - th - 10; if (ty<2) ty = Math.max(tapPt.yG,tapPt.yN) + 14;
-      tooltip = (
-        <g>
-          <rect x={tx} y={ty} width={tw} height={th} rx="7" fill={tooltipBg}/>
-          <text x={tx+tw/2} y={ty+padTop} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?10:8,fontWeight:900,fill:'#93c5fd'}}>{tapPt.lbl}</text>
-          <text x={tx+tw/2} y={ty+padTop+lineH} textAnchor="middle" dominantBaseline="middle" style={{fontFamily:MONO,fontSize:big?11:9,fontWeight:600,fill:'#6ee7b7'}}>Gross {fmtGBP(tapPt.g)}</text>
-          <text x={tx+tw/2} y={ty+padTop+lineH*2} textAnchor="middle" dominantBaseline="middle" style={{fontFamily:MONO,fontSize:big?11:9,fontWeight:600,fill:'#fca5a5'}}>Net {fmtGBP(tapPt.n)}</text>
-        </g>
-      );
-    }
-
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',overflow:'visible'}} preserveAspectRatio="none">
-        {[0,0.5,1].map(v=>(<g key={v}><line x1={pX} y1={H-pY-v*eH} x2={W-pX} y2={H-pY-v*eH} stroke={gridStroke} strokeWidth="1" strokeDasharray={v===0?'0':'3 4'}/><text x={pX-4} y={H-pY-v*eH} textAnchor="end" dominantBaseline="middle" style={{fontSize:fsAxis,fill:axisFill,fontWeight:700}}>£{Math.round(max*v)}</text></g>))}
-        {pts.map((p,i)=><text key={i} x={p.x} y={H-pY+(big?17:11)} textAnchor="middle" style={{fontSize:fsLbl,fill:lblFill,fontWeight:900}}>{p.lbl}</text>)}
-        <path d={np} fill="none" stroke="#f87171" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
-        <path d={gp} fill="none" stroke="#34d399" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
-        {pts.map((p,i)=>(
-          <g key={i}>
-            <circle cx={p.x} cy={p.yG} r={ptR} fill="#34d399" stroke={dotStroke} strokeWidth="1.5" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
-            <circle cx={p.x} cy={p.yG} r={ptR+7} fill="transparent" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
-            <circle cx={p.x} cy={p.yN} r={ptR} fill="#f87171" stroke={dotStroke} strokeWidth="1.5" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
-            <circle cx={p.x} cy={p.yN} r={ptR+7} fill="transparent" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
-          </g>
-        ))}
-        {tooltip}
-      </svg>
-    );
-  };
+  // Actual rendering (and its point-tweening hook) lives in MonthlyChart.jsx
+  // now — a plain closure redefined fresh on every App render can't safely
+  // call a hook, only a real, stable component can. This wrapper just keeps
+  // every existing call site (`renderMonthlyChart(big, dark, wide)`, and the
+  // renderMonthlyChart prop handed to TabDashboard) unchanged.
+  const renderMonthlyChart = (big, dark=false, wide=false) => (
+    <MonthlyChart totals={totals} PAY_PERIODS={PAY_PERIODS} MONO={MONO} chartTap={chartTap} setChartTap={setChartTap} big={big} dark={dark} wide={wide}/>
+  );
 
   // Payslip data for an arbitrary date range. Reuses the same tax/NI approach
   // already used for the Log Overtime live preview: this range's gross is
@@ -3835,11 +3790,12 @@ export default function App() {
               </div>
             );
           })()}
+          <SegSlider activeKey={tab} orientation="vertical" trackStyle={{display:'flex',flexDirection:'column'}} indicatorStyle={{background:'rgba(184,130,63,0.18)',borderRadius:'11px',opacity:tab==='add'?0:1}}>
           {NAV_TABS.map(t=>{
             const isAdd = t.id==='add';
             const isActive = tab===t.id;
             return (
-              <button key={t.id} onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:isActive&&!isAdd?'rgba(184,130,63,0.18)':'transparent',color:isAdd?'#10b981':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
+              <button key={t.id} data-seg-key={t.id} onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'transparent',color:isAdd?'#10b981':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
                 {isAdd ? (
                   <span className="nav-add-pulse" style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
                 ) : (
@@ -3852,6 +3808,7 @@ export default function App() {
               </button>
             );
           })}
+          </SegSlider>
           {session&&(
             <button onClick={handleManualSync} disabled={manualSyncing} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:syncJustSucceeded?'rgba(5,150,105,0.35)':'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'auto',transition:'background 0.3s'}}>
               <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={14} c="#fff"/></span> {syncJustSucceeded?'Synced':'Sync'}
