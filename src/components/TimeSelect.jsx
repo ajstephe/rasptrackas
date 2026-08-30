@@ -20,6 +20,7 @@ function WheelColumn({ values, selected, onSettle, brass }) {
   const colRef = useRef(null);
   const [centerIdx, setCenterIdx] = useState(Math.max(0, values.indexOf(selected)));
   const settleTimer = useRef(null);
+  const rafId = useRef(null);
 
   // Snap to the incoming value once, when the sheet opens — after that the
   // user's own scrolling drives centerIdx, so this deliberately doesn't
@@ -38,12 +39,25 @@ function WheelColumn({ values, selected, onSettle, brass }) {
   // nearest slot once it's actually finished moving. Dropping CSS snap
   // entirely and doing that final settle ourselves, once scrolling has
   // gone quiet, gets both the quicker flick-through and a crisp landing.
+  // The native scroll event can fire far more often than the screen
+  // actually repaints (well above 60/sec during a fast flick), and every
+  // firing was triggering its own React re-render of every visible row —
+  // work the browser never gets to show before the next one supersedes
+  // it. Capping the state update to once per animation frame (still
+  // reads the live scrollTop each time, so nothing lags behind the
+  // finger) cuts that down to only renders that can actually be painted.
   const handleScroll = () => {
-    const idx = Math.round(colRef.current.scrollTop / ITEM_H);
-    const clamped = Math.max(0, Math.min(values.length - 1, idx));
-    setCenterIdx(clamped);
+    if (rafId.current == null) {
+      rafId.current = requestAnimationFrame(() => {
+        rafId.current = null;
+        const idx = Math.round(colRef.current.scrollTop / ITEM_H);
+        setCenterIdx(Math.max(0, Math.min(values.length - 1, idx)));
+      });
+    }
     clearTimeout(settleTimer.current);
     settleTimer.current = setTimeout(() => {
+      const idx = Math.round(colRef.current.scrollTop / ITEM_H);
+      const clamped = Math.max(0, Math.min(values.length - 1, idx));
       onSettle(values[clamped]);
       colRef.current?.scrollTo({ top: clamped * ITEM_H, behavior: 'smooth' });
     }, 90);
@@ -54,12 +68,17 @@ function WheelColumn({ values, selected, onSettle, brass }) {
   };
 
   return (
-    <div ref={colRef} onScroll={handleScroll} className="time-wheel-col" style={{width:'68px',height:ITEM_H*VISIBLE+'px',overflowY:'scroll',overscrollBehavior:'contain',WebkitOverflowScrolling:'touch',position:'relative'}}>
+    <div ref={colRef} onScroll={handleScroll} className="time-wheel-col" style={{width:'68px',height:ITEM_H*VISIBLE+'px',overflowY:'scroll',overscrollBehavior:'contain',WebkitOverflowScrolling:'touch',willChange:'scroll-position',position:'relative'}}>
       <div style={{height:PAD_H+'px'}}/>
       {values.map((v,i)=>{
         const dist = Math.abs(i-centerIdx);
         return (
-          <div key={v} onClick={()=>jumpTo(i)} style={{height:ITEM_H+'px',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:MONO,fontSize:'19px',cursor:'pointer',userSelect:'none',transition:'opacity 0.15s,font-weight 0.15s,color 0.15s',opacity:dist===0?1:dist===1?0.7:0.35,fontWeight:dist===0?800:600,color:dist===0?brass:'var(--quiet)'}}>{v}</div>
+          // A shorter transition than before (was 0.15s) — centerIdx now
+          // updates every animation frame during an active scroll, so a
+          // long transition was permanently chasing a moving target
+          // instead of ever catching up; short enough to still soften the
+          // very final settle, without visibly lagging behind a flick.
+          <div key={v} onClick={()=>jumpTo(i)} style={{height:ITEM_H+'px',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:MONO,fontSize:'19px',cursor:'pointer',userSelect:'none',transition:'opacity 0.08s,font-weight 0.08s,color 0.08s',opacity:dist===0?1:dist===1?0.7:0.35,fontWeight:dist===0?800:600,color:dist===0?brass:'var(--quiet)'}}>{v}</div>
         );
       })}
       <div style={{height:PAD_H+'px'}}/>
