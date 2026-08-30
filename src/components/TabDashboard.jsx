@@ -1,5 +1,5 @@
 import { fmtGBP, fmtHM, fmtD } from '../lib/format.js';
-import { Ico } from './Icons.jsx';
+import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
 
 // ─── Home (dashboard) tab ────────────────────────────────────────────────────
@@ -12,6 +12,7 @@ export function TabDashboard({
   scrollToTaxImpact, setTaxImpactExpanded,
   skipBreakdownReset, setBreakdownView, setCalPeriodIdx,
   renderMonthlyChart, S, MONO, BRASS, animClass='fi',
+  session, setSignOutConfirmOpen,
 }) {
   // The two headline mono figures count up/down when they change instead
   // of jumping straight to the new value — logging a shift, editing one,
@@ -387,6 +388,20 @@ export function TabDashboard({
     </div>
 
     {settings.rank&&settings.service&&salaryBreakdownCard}
+
+    {/* Mobile-only — a low-key way to sign out from Home itself, instead
+        of only reachable from the bottom of More... Deliberately a small
+        icon pill rather than a full box: this is a dashboard people
+        check often, not an actions screen, so it shouldn't compete with
+        the real content above it. */}
+    {session&&(
+      <div style={{display:'flex',justifyContent:'center',marginTop:'14px'}}>
+        <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',gap:'7px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'20px',padding:'8px 14px',cursor:'pointer',fontFamily:'inherit'}}>
+          <FireExitIcon size={15} color="#059669"/>
+          <span style={{fontWeight:700,fontSize:'12px',color:'#059669'}}>Sign out</span>
+        </button>
+      </div>
+    )}
     </>)}
 
     <div style={{fontSize:'10.5px',color:'var(--text-red-deep)',textAlign:'center',lineHeight:1.5,padding:'8px 12px 0'}}>For guidance only. Always verify amounts against your payslip.</div>

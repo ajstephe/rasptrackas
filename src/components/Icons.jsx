@@ -81,18 +81,18 @@ export function ClockCashIcon({ width=28, height=19 }) {
 // Simplified fire-exit-sign pictogram — running figure heading through a
 // doorway, with a directional arrow — evoking the standard green exit
 // sign. White strokes/fills throughout, meant to sit on a green backdrop.
-export function FireExitIcon({ size=20 }) {
+export function FireExitIcon({ size=20, color='#fff' }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle cx="6" cy="4" r="1.7" fill="#fff"/>
-      <path d="M6.5 6 L8 11" stroke="#fff" strokeWidth="1.7" strokeLinecap="round"/>
-      <path d="M8 11 L10.5 13 L9.5 16.5" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-      <path d="M8 11 L4.8 13 L4 11.5" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-      <path d="M7 7.3 L9.8 6.8" stroke="#fff" strokeWidth="1.7" strokeLinecap="round"/>
-      <path d="M6.8 7.6 L4.8 9.5" stroke="#fff" strokeWidth="1.7" strokeLinecap="round"/>
-      <rect x="15.5" y="2.5" width="6.5" height="19" rx="0.6" stroke="#fff" strokeWidth="1.4"/>
-      <path d="M11.5 12 H19" stroke="#fff" strokeWidth="1.7" strokeLinecap="round"/>
-      <path d="M16.3 9 L19.3 12 L16.3 15" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <circle cx="6" cy="4" r="1.7" fill={color}/>
+      <path d="M6.5 6 L8 11" stroke={color} strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M8 11 L10.5 13 L9.5 16.5" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <path d="M8 11 L4.8 13 L4 11.5" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <path d="M7 7.3 L9.8 6.8" stroke={color} strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M6.8 7.6 L4.8 9.5" stroke={color} strokeWidth="1.7" strokeLinecap="round"/>
+      <rect x="15.5" y="2.5" width="6.5" height="19" rx="0.6" stroke={color} strokeWidth="1.4"/>
+      <path d="M11.5 12 H19" stroke={color} strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M16.3 9 L19.3 12 L16.3 15" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
     </svg>
   );
 }
