@@ -206,7 +206,7 @@ export function TabLogOvertime({
                     {['hours133','hours150','hours200'].map((h,i)=>(
                       <div key={h} style={{textAlign:'center'}}>
                         <label style={{...S.lbl,color:'#3b82f6',textAlign:'center',display:'block'}}>{[1.33,1.5,2.0][i]}x</label>
-                        <input type="number" step="0.25" placeholder="0" style={{...S.inp,textAlign:'center',fontWeight:900,background:'var(--surface)',fontSize:'17px',padding:'11px 6px'}} value={form[h]} onChange={e=>setForm({...form,[h]:e.target.value})}/>
+                        <input type="number" step="0.25" inputMode="decimal" placeholder="0" style={{...S.inp,textAlign:'center',fontWeight:900,background:'var(--surface)',fontSize:'17px',padding:'11px 6px'}} value={form[h]} onChange={e=>setForm({...form,[h]:e.target.value})}/>
                         <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:700,marginTop:'4px'}}>£{(formRates[['r133','r150','r200'][i]]||0).toFixed(2)}/hr</div>
                       </div>
                     ))}
@@ -243,7 +243,7 @@ export function TabLogOvertime({
                 </SegSlider>
                 <div style={{background:'var(--surface)',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
                   <label style={{...S.lbl,marginBottom:'4px',display:'block'}}>Overtime Hours</label>
-                  <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:600,fontSize:'17px',border:'none',background:'transparent',fontFamily:MONO,color:'var(--ink)'}}
+                  <input type="number" step="0.25" inputMode="decimal" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:600,fontSize:'17px',border:'none',background:'transparent',fontFamily:MONO,color:'var(--ink)'}}
                     value={form[tier]}
                     onChange={e=>setForm({...form, otAuto:false, [tier]:e.target.value})}/>
                   {form.otAuto
@@ -279,13 +279,13 @@ export function TabLogOvertime({
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'12px'}}>
                     <div style={{background:'var(--tint-blue)',borderRadius:'13px',padding:'10px',textAlign:'center'}}>
                       <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>Pay Hours</div>
-                      <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'var(--surface)',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'var(--ink)'}}
+                      <input type="number" step="0.25" inputMode="decimal" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'var(--surface)',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'var(--ink)'}}
                         value={payH.toFixed(2).replace(/\.00$/,'')}
                         onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(total-v)}); }}/>
                     </div>
                     <div style={{background:'var(--tint-purple)',borderRadius:'13px',padding:'10px',textAlign:'center'}}>
                       <div style={{fontSize:'10px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>TOIL Hours</div>
-                      <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'var(--surface)',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'var(--ink)'}}
+                      <input type="number" step="0.25" inputMode="decimal" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'var(--surface)',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'var(--ink)'}}
                         value={toilH.toFixed(2).replace(/\.00$/,'')}
                         onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(v)}); }}/>
                     </div>
