@@ -66,7 +66,7 @@ export function ToastStack({ toasts, onDismiss }) {
         const tint = t.type==='undo' ? 'var(--tint-blue-2)' : t.type==='warn' ? 'var(--tint-amber-2)' : 'var(--tint-green-2)';
         const deep = t.type==='undo' ? 'var(--text-blue-deep)' : t.type==='warn' ? 'var(--text-amber-deep)' : 'var(--text-green-deep)';
         return (
-          <div key={t.id} className={t.leaving?'toast-leave':'toast-enter'} style={{background:'rgba(var(--surface-rgb),0.82)',backdropFilter:'blur(20px) saturate(1.8)',WebkitBackdropFilter:'blur(20px) saturate(1.8)',border:'1px solid var(--border-2)',borderRadius:'16px',padding:'9px 10px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px',boxShadow:'0 12px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)',pointerEvents:'all'}}>
+          <div key={t.id} className={t.leaving?'toast-leave':'toast-enter'} style={{position:'relative',overflow:'hidden',background:'rgba(var(--surface-rgb),0.82)',backdropFilter:'blur(20px) saturate(1.8)',WebkitBackdropFilter:'blur(20px) saturate(1.8)',border:'1px solid var(--border-2)',borderRadius:'16px',padding:'9px 10px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px',boxShadow:'0 12px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)',pointerEvents:'all'}}>
             <div style={{display:'flex',alignItems:'center',gap:'10px',minWidth:0}}>
               <div style={{width:'30px',height:'30px',borderRadius:'50%',background:tint,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                 <Ico n={t.type==='undo'?'undo':t.type==='warn'?'bell':'check'} s={14} c={deep}/>
@@ -74,6 +74,13 @@ export function ToastStack({ toasts, onDismiss }) {
               <span style={{fontSize:'13px',fontWeight:700,color:'var(--ink)',minWidth:0}}>{t.message}</span>
             </div>
             {t.action&&<button onClick={t.action.fn} style={{background:tint,border:'none',borderRadius:'8px',padding:'6px 11px',color:deep,fontWeight:800,fontSize:'11px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',flexShrink:0}}>{t.action.label}</button>}
+            {/* countdown — only on actionable toasts (Undo, Reload…), where
+                knowing the window's closing actually matters; a plain
+                confirmation toast has nothing to act on before it goes, so
+                it stays without one. Halts (rather than restarts) once the
+                toast starts leaving, so it never plays through the leave
+                transition. */}
+            {t.action&&!t.leaving&&<div className="toast-bar" style={{position:'absolute',left:0,right:0,bottom:0,height:'2.5px',background:deep,opacity:0.5,transformOrigin:'left','--toast-dur':(t.dur||3500)/1000+'s'}}/>}
           </div>
         );
       })}

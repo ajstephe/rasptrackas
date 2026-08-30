@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Ico } from './Icons.jsx';
 import { useBackButtonCloses } from '../lib/useBackButtonCloses.js';
+import { useMountTransition } from '../lib/useMountTransition.js';
 
 // ─── Time wheel picker ───────────────────────────────────────────────────────
 // Replaces the old pair of native HH/MM <select> boxes — the one control left
@@ -67,6 +68,7 @@ export function TimeSelect({ value, onChange, label, BRASS='#b8823f' }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
   useBackButtonCloses(open, () => setOpen(false));
+  const mounted = useMountTransition(open, 220);
 
   return (
     <>
@@ -75,9 +77,9 @@ export function TimeSelect({ value, onChange, label, BRASS='#b8823f' }) {
         {value ? `${h}:${m}` : <span style={{color:'var(--quiet)',fontWeight:600,fontSize:'13px',fontFamily:'inherit'}}>Set time</span>}
       </button>
 
-      {open && (
-        <div onClick={()=>setOpen(false)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:70}}>
-          <div onClick={ev=>ev.stopPropagation()} className="alert-pop" style={{background:'var(--surface)',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid var(--border)',padding:'20px 20px 18px',width:'260px',maxWidth:'calc(100vw - 32px)',boxSizing:'border-box'}}>
+      {mounted && (
+        <div onClick={()=>setOpen(false)} className={open?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:70}}>
+          <div onClick={ev=>ev.stopPropagation()} className={'alert-pop'+(open?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid var(--border)',padding:'20px 20px 18px',width:'260px',maxWidth:'calc(100vw - 32px)',boxSizing:'border-box'}}>
             <div style={{fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--muted)',textAlign:'center',marginBottom:'14px'}}>{label ? `Set ${label} Time` : 'Set Time'}</div>
             <div style={{position:'relative',display:'flex',justifyContent:'center',alignItems:'center',gap:'8px'}}>
               <div style={{position:'absolute',left:0,right:0,top:ITEM_H*2+'px',height:ITEM_H+'px',background:'rgba(184,130,63,0.16)',borderTop:`1.5px solid ${BRASS}`,borderBottom:`1.5px solid ${BRASS}`,borderRadius:'8px',pointerEvents:'none'}}/>

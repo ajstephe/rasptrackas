@@ -37,6 +37,7 @@ import { SegSlider } from './components/SegSlider.jsx';
 import { MonthlyChart } from './components/MonthlyChart.jsx';
 import { useEscapeToClose } from './lib/useEscapeToClose.js';
 import { useBackButtonCloses } from './lib/useBackButtonCloses.js';
+import { useMountTransition, useLastTruthy } from './lib/useMountTransition.js';
 import { haptic } from './lib/haptics.js';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
 // Only one of these six is ever on screen at a time (via `tab` state below),
@@ -623,6 +624,12 @@ export default function App() {
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
   const [showBackupReminder, setShowBackupReminder] = useState(false);
   const [showFYRollover, setShowFYRollover] = useState(false);
+  // Which of the two dismissible top banners is mid-exit — 'backup' | 'fy' |
+  // null. The show* flag above flips off immediately (nothing else reads it
+  // once dismissed), but this keeps the banner on screen for one more beat
+  // so .banner-collapsing can play instead of the row's height (and
+  // everything below it) just snapping away.
+  const [bannerClosing, setBannerClosing] = useState(null);
   const [fySummaryYear, setFySummaryYear] = useState(null); // calendar FY-start-year of the archived year being viewed, or null
   const [fySummaryPrintMode, setFySummaryPrintMode] = useState(false); // true when opened via Financial Year export (all periods expanded, Print button shown)
   const [archiveExpandedPeriod, setArchiveExpandedPeriod] = useState(null); // short label of the expanded period within that year, or null
@@ -731,6 +738,30 @@ export default function App() {
       setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false);
     }
   );
+  // ── mirrored close for the same seven overlays ──────────────────────────
+  // Each one currently pops in with .alert-pop/.sheet-pop but hard-unmounts
+  // the instant it closes — no reverse animation ever plays. Keeps each
+  // overlay mounted for one more beat after it closes so its JSX below can
+  // swap in the matching "-out" class instead of just vanishing. 220ms here
+  // matches the CSS exit animations' own duration (see alertPopOut/
+  // sheetPopOut below); Settings' modal-pop/accordion-in popovers are
+  // deliberately left out of this — they already made the opposite call on
+  // purpose (see TabSettings.jsx / the accordion-in comment in the
+  // stylesheet below) and that reasoning still holds.
+  const signOutMounted = useMountTransition(signOutConfirmOpen, 220);
+  const restoreMounted = useMountTransition(restoreConfirmOpen, 220);
+  const payslipMounted = useMountTransition(payslipModalOpen, 220);
+  const chartModalMounted = useMountTransition(!!chartModal, 220);
+  const confirmCreateDayMounted = useMountTransition(!!confirmCreateDay, 220);
+  const selectedCalDayMounted = useMountTransition(!!selectedCalDay, 220);
+  const datePickerMounted = useMountTransition(!!datePickerFor, 220);
+  // These four close to null/'' rather than false, and their JSX below reads
+  // the value itself to decide what to render — holding the last real value
+  // keeps that content stable during the mounted-but-closing tail above.
+  const chartModalV = useLastTruthy(chartModal);
+  const confirmCreateDayV = useLastTruthy(confirmCreateDay);
+  const selectedCalDayV = useLastTruthy(selectedCalDay);
+  const datePickerForV = useLastTruthy(datePickerFor);
   const notesRef = useRef(null);
   // What's already been pushed to Supabase, keyed by row id — compared
   // against on every local change so only genuinely new/edited/removed
@@ -1091,12 +1122,16 @@ export default function App() {
 
   const dismissBackupReminder = () => {
     dualWrite(KEYS.lastBackupReminder, Date.now());
+    setBannerClosing('backup');
     setShowBackupReminder(false);
+    setTimeout(()=>setBannerClosing(c=>c==='backup'?null:c), 340);
   };
 
   const goBackupNow = () => {
     dualWrite(KEYS.lastBackupReminder, Date.now());
+    setBannerClosing('backup');
     setShowBackupReminder(false);
+    setTimeout(()=>setBannerClosing(c=>c==='backup'?null:c), 340);
     setTab('settings');
     setPulseBackupBtn(true);
     setTimeout(()=>setPulseBackupBtn(false), 6000);
@@ -1114,13 +1149,19 @@ export default function App() {
 
   const dismissFYRollover = () => {
     dualWrite(KEYS.lastSeenFYYear, CURRENT_FY_YEAR);
+    setBannerClosing('fy');
     setShowFYRollover(false);
+    setTimeout(()=>setBannerClosing(c=>c==='fy'?null:c), 340);
   };
 
   // ── toasts ─────────────────────────────────────────────────────────────────
   const addToast = useCallback((msg,type='success',action=null,dur=3500,title=null)=>{
     const id=Date.now()+Math.random();
-    setToasts(t=>[...t,{id,message:msg,type,action,title}]);
+    // dur is carried onto the toast itself (not just used for the timeout
+    // below) so ToastStack can render a countdown bar timed to match —
+    // an actionable toast (Undo, Reload…) otherwise gives no sense of how
+    // long that action stays live before it's gone.
+    setToasts(t=>[...t,{id,message:msg,type,action,title,dur}]);
     setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),dur);
   },[]);
 
@@ -1215,7 +1256,7 @@ export default function App() {
   // quite small on desktop browsers. Deliberately generous sizing — this
   // exists specifically because the native picker felt too small here;
   // mobile keeps the native input untouched, where it already works well.
-  const renderDatePickerGrid = (currentValue, onSelect) => {
+  const renderDatePickerGrid = (currentValue, onSelect, closing=false) => {
     const [y, m] = datePickerMonth.split('-').map(Number);
     const firstDay = new Date(y, m-1, 1);
     const daysInMonth = new Date(y, m, 0).getDate();
@@ -1227,14 +1268,14 @@ export default function App() {
       setDatePickerMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
     };
     return (
-      <div onClick={ev=>ev.stopPropagation()} className="alert-pop" style={{background:'var(--surface)',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid var(--border)',padding:'22px',width:'360px',maxWidth:'calc(100vw - 32px)',boxSizing:'border-box'}}>
+      <div onClick={ev=>ev.stopPropagation()} className={'alert-pop'+(closing?' pop-out':'')} style={{background:'var(--surface)',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid var(--border)',padding:'22px',width:'360px',maxWidth:'calc(100vw - 32px)',boxSizing:'border-box'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'18px'}}>
           <button onClick={()=>changeMonth(-1)} style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cL" s={18} c="#475569"/></button>
           <div style={{fontWeight:900,fontSize:'17px',color:'var(--ink)'}}>{monthLabel}</div>
           <button onClick={()=>changeMonth(1)} style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
         </div>
         <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:'14px'}}>
-          {datePickerFor==='ot' ? 'Select the date you submitted this OT to CARMS' : datePickerFor==='pa' ? 'Select the date you submitted this PA claim to MetHR' : datePickerFor==='carmsBulk' ? `Select the date you submitted ${Object.keys(carmsSelected).length} claim${Object.keys(carmsSelected).length!==1?'s':''}` : 'Select the date of this shift'}
+          {datePickerForV==='ot' ? 'Select the date you submitted this OT to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this PA claim to MetHR' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${Object.keys(carmsSelected).length} claim${Object.keys(carmsSelected).length!==1?'s':''}` : 'Select the date of this shift'}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'6px'}}>
           {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=><div key={d} style={{textAlign:'center',fontSize:'11.5px',fontWeight:800,color:'var(--quiet)',padding:'4px 0'}}>{d}</div>)}
@@ -3051,6 +3092,18 @@ export default function App() {
         .toast-enter{animation:toastIn 0.42s cubic-bezier(.32,1.1,.4,1)}
         @keyframes toastOut{to{opacity:0;transform:translateY(-14px) scale(0.97)}}
         .toast-leave{animation:toastOut 0.24s ease forwards}
+        /* ── actionable-toast countdown — ToastStack draws this only under
+             a toast that has an action button (Undo, Reload…), timed via
+             the --toast-dur custom property to the same duration that
+             toast's own auto-dismiss timeout uses, so the bar actually
+             finishing lines up with the toast actually leaving instead of
+             a plain fixed wait with zero indication of how much is left.
+             Read through a custom property rather than setting
+             animation-duration directly inline — an inline style always
+             beats a stylesheet rule regardless of specificity, which would
+             otherwise defeat the prefers-reduced-motion override below. ── */
+        @keyframes toastShrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+        .toast-bar{animation-name:toastShrink;animation-timing-function:linear;animation-fill-mode:forwards;animation-duration:var(--toast-dur,3.5s)}
         /* ── confirmation modals pop in, they don't just appear ──────────
              .alert-pop: centred dialogs (desktop sign-out/restore/export,
              and Settings' inline wipe/delete-account warnings) scale up
@@ -3068,6 +3121,37 @@ export default function App() {
         .sheet-pop{animation:sheetPop 0.32s cubic-bezier(.32,.72,0,1)}
         @keyframes modalPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
         .modal-pop{animation:modalPop 0.28s cubic-bezier(.34,1.42,.64,1)}
+        /* ── …and mirror it on the way out ────────────────────────────────
+             Paired with useMountTransition (see useMountTransition.js):
+             every alert-pop/sheet-pop overlay above (Sign Out, Restore,
+             Export, chart modal, calendar day-detail/create-day confirm,
+             the date picker) now keeps rendering for 220ms after it closes
+             so this "-out" class can play instead of the dialog just
+             hard-cutting away. Reverses the same curve family the entrance
+             used rather than a plain fade, so the close reads as the open
+             running backward. .ov-in/.ov-out do the same for each
+             overlay's semi-transparent backdrop. Left out of scope: the
+             Settings modal-pop popovers / accordion-in, which already made
+             the opposite call deliberately (see the accordion-in comment
+             above) — only the alert/sheet overlays this pass reviewed. */
+        @keyframes alertPopOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(0.92)}}
+        .alert-pop.pop-out{animation:alertPopOut 0.2s cubic-bezier(.4,0,1,1) forwards}
+        @keyframes sheetPopOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(28px)}}
+        .sheet-pop.pop-out{animation:sheetPopOut 0.22s cubic-bezier(.4,0,1,1) forwards}
+        @keyframes ovFadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes ovFadeOut{from{opacity:1}to{opacity:0}}
+        .ov-in{animation:ovFadeIn 0.22s ease}
+        .ov-out{animation:ovFadeOut 0.2s ease forwards}
+        /* ── the two dismissible top banners collapse their own height on
+             the way out instead of the content underneath jumping up the
+             instant they're cut (see dismissBackupReminder/dismissFYRollover
+             pairing this with a 340ms setTimeout before the row actually
+             unmounts). max-height rather than height since these banners'
+             own height is never set explicitly — auto height can't be
+             animated directly, and 90px comfortably clears the tallest of
+             the two (FY rollover's two-line body) with room to spare. ── */
+        @keyframes bannerCollapse{from{max-height:90px;opacity:1;padding-top:12px;padding-bottom:12px}to{max-height:0;opacity:0;padding-top:0;padding-bottom:0}}
+        .banner-collapsing{animation:bannerCollapse 0.34s cubic-bezier(.4,0,.2,1) forwards}
         /* ── time wheel picker (TimeSelect.jsx) — hides the scrollbar on
              its two scroll-snap columns; scrollbar-width is set inline
              (works cross-property in React), but hiding WebKit's scrollbar
@@ -3099,10 +3183,16 @@ export default function App() {
           .tap-row{transition-duration:0.001ms}
           .toast-enter{animation-duration:0.001ms}
           .toast-leave{animation-duration:0.001ms}
+          .toast-bar{animation-duration:0.001ms}
           .alert-pop{animation-duration:0.001ms}
           .sheet-pop{animation-duration:0.001ms}
           .modal-pop{animation-duration:0.001ms}
           .accordion-in{animation-duration:0.001ms}
+          .alert-pop.pop-out{animation-duration:0.001ms}
+          .sheet-pop.pop-out{animation-duration:0.001ms}
+          .ov-in{animation-duration:0.001ms}
+          .ov-out{animation-duration:0.001ms}
+          .banner-collapsing{animation-duration:0.001ms}
         }
         /* ── Fluid mobile nav ───────────────────────────────────────────
            Six tabs at fixed sizes leave almost no slack on a 320px phone
@@ -3178,9 +3268,9 @@ export default function App() {
 
       {/* ── sign-out confirmation — bottom sheet, same pattern as the export
            modal, with an explicit close (×) as well as Cancel ── */}
-      {signOutConfirmOpen&&(
-        <div onClick={()=>setSignOutConfirmOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-          <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+      {signOutMounted&&(
+        <div onClick={()=>setSignOutConfirmOpen(false)} className={signOutConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
+          <div onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(signOutConfirmOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <button onClick={()=>setSignOutConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
@@ -3195,9 +3285,9 @@ export default function App() {
         </div>
       )}
 
-      {restoreConfirmOpen&&(
-        <div onClick={()=>setRestoreConfirmOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-          <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+      {restoreMounted&&(
+        <div onClick={()=>setRestoreConfirmOpen(false)} className={restoreConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
+          <div onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(restoreConfirmOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <button onClick={()=>setRestoreConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
@@ -3213,9 +3303,13 @@ export default function App() {
         </div>
       )}
 
-      {/* ── monthly backup reminder — optional, dismissible, never blocks the app ── */}
-      {showBackupReminder&&(
-        <div className="fi no-print" style={{background:'var(--tint-blue)',borderBottom:'1px solid var(--border-2)',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15}}>
+      {/* ── monthly backup reminder — optional, dismissible, never blocks the app ──
+           dismissBackupReminder/dismissFYRollover below play the collapse-and-
+           fade exit (see .banner-collapsing) before actually clearing the
+           show* flag, instead of the content underneath jumping up the
+           instant these are cut. ── */}
+      {(showBackupReminder||bannerClosing==='backup')&&(
+        <div className={"fi no-print"+(bannerClosing==='backup'?' banner-collapsing':'')} style={{background:'var(--tint-blue)',borderBottom:'1px solid var(--border-2)',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15,overflow:'hidden'}}>
           <div style={{background:'var(--tint-blue-2)',borderRadius:'13px',padding:'7px',flexShrink:0}}><Ico n="shield" s={15} c="#2563eb"/></div>
           <div style={{flex:1}}>
             <div style={{fontWeight:900,fontSize:'12px',color:'var(--text-navy)',marginBottom:'2px'}}>Time for a backup</div>
@@ -3230,8 +3324,8 @@ export default function App() {
       )}
 
       {/* ── financial year rollover — one-time, dismissible, never blocks the app ── */}
-      {showFYRollover&&(
-        <div className="fi no-print" style={{background:'var(--tint-blue)',borderBottom:'1px solid var(--border-2)',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15}}>
+      {(showFYRollover||bannerClosing==='fy')&&(
+        <div className={"fi no-print"+(bannerClosing==='fy'?' banner-collapsing':'')} style={{background:'var(--tint-blue)',borderBottom:'1px solid var(--border-2)',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15,overflow:'hidden'}}>
           <div style={{background:'var(--tint-blue-2)',borderRadius:'13px',padding:'7px',flexShrink:0}}><Ico n="star" s={15} c="#2563eb"/></div>
           <div style={{flex:1}}>
             <div style={{fontWeight:900,fontSize:'12px',color:'var(--text-navy)',marginBottom:'2px'}}>Welcome to FY {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
@@ -3428,14 +3522,14 @@ export default function App() {
       </div>
 
       {/* Financial Reports & Export — shared modal for both PDF and Spreadsheet formats */}
-      {payslipModalOpen&&(()=>{
+      {payslipMounted&&(()=>{
         const periodChoices = (currPeriodIdx>=0 ? PAY_PERIODS.slice(0,currPeriodIdx+1) : PAY_PERIODS).map((p,i)=>({...p,idx:i})).reverse();
         const rangeValid = payslipStart && payslipEnd && payslipEnd>=payslipStart;
         const canGenerate = payslipMode==='period' ? payslipPeriodIdx!=null : payslipMode==='financialYear' ? payslipFYYear!=null : rangeValid;
         const formatLabel = exportFormat==='csv' ? 'Spreadsheet' : 'PDF';
         return (
-          <div onClick={()=>setPayslipModalOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-            <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+          <div onClick={()=>setPayslipModalOpen(false)} className={payslipModalOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
+            <div onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(payslipModalOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
               {!isWide && <div style={{width:'36px',height:'4px',background:'var(--border)',borderRadius:'4px',margin:'0 auto 14px'}}/>}
               {exportFormat===null ? (
                 <>
@@ -3746,16 +3840,16 @@ export default function App() {
       })()}
 
       {/* Trends — chart enlarge modal, shares render functions with the inline charts */}
-      {chartModal&&(
-        <div onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50,padding:'16px'}}>
-          <div onClick={e=>e.stopPropagation()} className="alert-pop" style={{background:'var(--surface)',borderRadius:'20px',padding:'20px 16px',width:'100%',maxWidth:'480px',maxHeight:'85vh',overflow:'auto',position:'relative'}}>
+      {chartModalMounted&&(
+        <div onClick={()=>{setChartModal(null);setChartTap(null);}} className={chartModal?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50,padding:'16px'}}>
+          <div onClick={e=>e.stopPropagation()} className={'alert-pop'+(chartModal?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'20px',padding:'20px 16px',width:'100%',maxWidth:'480px',maxHeight:'85vh',overflow:'auto',position:'relative'}}>
             <button onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',top:'14px',right:'14px',background:'var(--chip-bg)',border:'none',borderRadius:'50%',width:'30px',height:'30px',fontSize:'15px',fontWeight:900,color:'var(--muted)',cursor:'pointer'}}>✕</button>
-            <div style={{fontSize:'13px',fontWeight:900,color:'var(--ink)',marginBottom:'16px',paddingRight:'36px'}}>{chartModal==='cum'?'Cumulative Gross Earnings':'Monthly OT Gross/Net'}</div>
-            {chartModal==='cum' ? renderCumulativeChart(true) : renderMonthlyChart(true)}
-            {chartModal==='cum' && (
+            <div style={{fontSize:'13px',fontWeight:900,color:'var(--ink)',marginBottom:'16px',paddingRight:'36px'}}>{chartModalV==='cum'?'Cumulative Gross Earnings':'Monthly OT Gross/Net'}</div>
+            {chartModalV==='cum' ? renderCumulativeChart(true) : renderMonthlyChart(true)}
+            {chartModalV==='cum' && (
               <div style={{textAlign:'center',marginTop:'10px',fontSize:'12px',fontWeight:700,color:'var(--muted)'}}>Running total: <strong style={{color:'var(--text-navy)'}}>£{totals.totalGross.toFixed(2)}</strong></div>
             )}
-            {chartModal==='mon' && (
+            {chartModalV==='mon' && (
               <div style={{display:'flex',justifyContent:'center',gap:'20px',marginTop:'14px'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'15px',height:'3px',background:'#34d399',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</span></div>
                 <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'15px',height:'3px',background:'#f87171',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</span></div>
@@ -3768,30 +3862,30 @@ export default function App() {
 
       {/* Calendar View — empty-day tap confirmation, so a stray tap doesn't
           silently drop you into Log Overtime */}
-      {confirmCreateDay&&(
-        <div onClick={()=>setConfirmCreateDay(null)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:41,padding:'20px'}}>
-          <div onClick={e=>e.stopPropagation()} className="alert-pop" style={{background:'var(--surface)',borderRadius:'18px',padding:'22px',width:'100%',maxWidth:'320px',textAlign:'center'}}>
+      {confirmCreateDayMounted&&(
+        <div onClick={()=>setConfirmCreateDay(null)} className={confirmCreateDay?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:41,padding:'20px'}}>
+          <div onClick={e=>e.stopPropagation()} className={'alert-pop'+(confirmCreateDay?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'18px',padding:'22px',width:'100%',maxWidth:'320px',textAlign:'center'}}>
             <div style={{fontWeight:900,fontSize:'15px',color:'var(--ink)',marginBottom:'6px'}}>Create an entry for this day?</div>
-            <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginBottom:'18px'}}>{new Date(confirmCreateDay+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
+            <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginBottom:'18px'}}>{new Date(confirmCreateDayV+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
             <div style={{display:'flex',gap:'8px'}}>
               <button onClick={()=>setConfirmCreateDay(null)} style={{flex:1,padding:'11px',background:'var(--chip-bg)',border:'none',borderRadius:'10px',fontWeight:900,fontSize:'12px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>No</button>
-              <button onClick={()=>{ setForm({...blankForm,date:confirmCreateDay}); setEditing(null); setTab('add'); setConfirmCreateDay(null); }} style={{flex:1,padding:'11px',background:'#2563eb',border:'none',borderRadius:'10px',fontWeight:900,fontSize:'12px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Yes</button>
+              <button onClick={()=>{ setForm({...blankForm,date:confirmCreateDayV}); setEditing(null); setTab('add'); setConfirmCreateDay(null); }} style={{flex:1,padding:'11px',background:'#2563eb',border:'none',borderRadius:'10px',fontWeight:900,fontSize:'12px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Yes</button>
             </div>
           </div>
         </div>
       )}
 
       {/* Calendar View — day detail popover */}
-      {selectedCalDay&&(
-        <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:40}}>
-          <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+      {selectedCalDayMounted&&(
+        <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} className={selectedCalDay?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:40}}>
+          <div onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(selectedCalDay?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
-              <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{new Date(selectedCalDay.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
+              <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{new Date(selectedCalDayV.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
               <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={isWide?20:16} c="#64748b"/></button>
             </div>
-            {selectedCalDay.dEntries.map(e=>{
+            {selectedCalDayV.dEntries.map(e=>{
               const c = calcEntry(e);
-              const pb = totals.periodBreakdown[selectedCalDay.periodIdx];
+              const pb = totals.periodBreakdown[selectedCalDayV.periodIdx];
               const eOTNet    = c.h1+c.h2+c.h3>0 ? c.ot*(1-pb.otResult.rate/100)       : 0;
               const ePANet    = c.pa>0           ? c.pa*(1-pb.paResult.rate/100)       : 0;
               const eNet = eOTNet+ePANet;
@@ -3828,7 +3922,7 @@ export default function App() {
                       <span style={{fontSize:isWide?'14px':'12px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this record?</span>
                       <div style={{display:'flex',gap:'7px',flexShrink:0}}>
                         <button onClick={()=>setConfirmDel(null)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:isWide?'7px 15px':'5px 12px',fontSize:isWide?'13px':'11px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
-                        <button onClick={()=>{ delEntry(e.id); if(selectedCalDay.dEntries.length<=1) setSelectedCalDay(null); }} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:isWide?'7px 15px':'5px 12px',fontSize:isWide?'13px':'11px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
+                        <button onClick={()=>{ delEntry(e.id); if(selectedCalDayV.dEntries.length<=1) setSelectedCalDay(null); }} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:isWide?'7px 15px':'5px 12px',fontSize:isWide?'13px':'11px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
                       </div>
                     </div>
                   )}
@@ -3894,15 +3988,15 @@ export default function App() {
            toggle itself only actually flips once a day is genuinely
            picked; dismissing without picking leaves both the toggle and
            the date untouched. */}
-      {datePickerFor&&(
-        <div onClick={()=>setDatePickerFor(null)} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60}}>
-          {datePickerFor==='ot'
-            ? renderDatePickerGrid(form.otSubmittedDate||'', v=>setForm(f=>({...f,otSubmittedDate:v,otSubmitted:true})))
-            : datePickerFor==='pa'
-            ? renderDatePickerGrid(form.paSubmittedDate||'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})))
-            : datePickerFor==='carmsBulk'
-            ? renderDatePickerGrid(todayStr, v=>bulkMarkCarmsSubmitted(v))
-            : renderDatePickerGrid(form.date||todayStr, v=>setForm(f=>({...f,date:v})))}
+      {datePickerMounted&&(
+        <div onClick={()=>setDatePickerFor(null)} className={datePickerFor?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60}}>
+          {datePickerForV==='ot'
+            ? renderDatePickerGrid(form.otSubmittedDate||'', v=>setForm(f=>({...f,otSubmittedDate:v,otSubmitted:true})), !datePickerFor)
+            : datePickerForV==='pa'
+            ? renderDatePickerGrid(form.paSubmittedDate||'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})), !datePickerFor)
+            : datePickerForV==='carmsBulk'
+            ? renderDatePickerGrid(todayStr, v=>bulkMarkCarmsSubmitted(v), !datePickerFor)
+            : renderDatePickerGrid(form.date||todayStr, v=>setForm(f=>({...f,date:v})), !datePickerFor)}
         </div>
       )}
 

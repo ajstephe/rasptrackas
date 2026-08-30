@@ -1,7 +1,9 @@
+import { useRef } from 'react';
 import { fmtGBP, fmtD } from '../lib/format.js';
 import { Ico } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
 import { SegSlider } from './SegSlider.jsx';
+import { useMountTransition } from '../lib/useMountTransition.js';
 
 // ─── CARMS & PA Outstanding tab ──────────────────────────────────────────────
 // Rebuilt onto the same "ledger" idiom as the Dashboard: a navy statement
@@ -48,6 +50,19 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
     });
     return total;
   })();
+
+  // ── bulk action bar mirrors its own entrance on the way out ─────────────
+  // Same useMountTransition trick as App.jsx's overlays: deselecting the
+  // last claim (or cancelling select mode) used to cut this bar away
+  // instantly; now it keeps rendering for one more beat so .sheet-pop's
+  // "-out" class can slide it back down instead. selectedIds/selectedTotal
+  // themselves drop to 0 the instant that happens, so barCount/barTotal
+  // freeze at their last real value (via the ref below) for that tail.
+  const barOpen = carmsSelectMode && selectedIds.length>0;
+  const barMounted = useMountTransition(barOpen, 240);
+  const lastBarRef = useRef({ count:selectedIds.length, total:selectedTotal });
+  if (barOpen) lastBarRef.current = { count:selectedIds.length, total:selectedTotal };
+  const { count:barCount, total:barTotal } = lastBarRef.current;
 
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
@@ -246,11 +261,11 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
       {/* ── bulk action bar — only present while there's something to act
            on, same "floats just above the bottom nav" placement as Log
            Overtime's own sticky preview banner ── */}
-      {carmsSelectMode && selectedIds.length>0 && (
-        <div className="sheet-pop" style={{position:'sticky',bottom:'calc(88px + env(safe-area-inset-bottom))',zIndex:24,marginTop:'11px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'15px',padding:'12px 14px',boxShadow:'0 10px 24px rgba(15,39,68,0.16)'}}>
+      {barMounted && (
+        <div className={'sheet-pop'+(barOpen?'':' pop-out')} style={{position:'sticky',bottom:'calc(88px + env(safe-area-inset-bottom))',zIndex:24,marginTop:'11px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'15px',padding:'12px 14px',boxShadow:'0 10px 24px rgba(15,39,68,0.16)'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
-            <div style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>{selectedIds.length} selected</div>
-            <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:BRASS}}>{fmtGBP(selectedTotal)}</div>
+            <div style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>{barCount} selected</div>
+            <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:BRASS}}>{fmtGBP(barTotal)}</div>
           </div>
           <button onClick={openCarmsBulkConfirm} style={{width:'100%',background:BRASS,border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'12.5px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Mark as Submitted</button>
         </div>
