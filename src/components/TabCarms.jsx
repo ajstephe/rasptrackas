@@ -113,7 +113,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
             </div>
 
             <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',marginBottom:'8px'}}>
-              <span onClick={toggleCarmsSelectMode} className="tap-row" style={{fontSize:'11.5px',fontWeight:800,color:'#2563eb',cursor:'pointer',padding:'4px'}}>{carmsSelectMode?'Cancel':'Select'}</span>
+              <span onClick={toggleCarmsSelectMode} className="tap-row" style={{fontSize:'11.5px',fontWeight:800,color:'#2563eb',cursor:'pointer',padding:'4px'}}>{carmsSelectMode?'Cancel':'Select Multiple Entries'}</span>
             </div>
             <SegSlider activeKey={carmsFilter} trackStyle={{display:'flex',gap:'6px',marginBottom:'14px'}} indicatorStyle={{background:BRASS,borderRadius:'10px'}}>
               {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'},{id:'toil',lbl:'TOIL'}].map(f=>(
