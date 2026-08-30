@@ -4,6 +4,7 @@ import { PAY_RATES } from '../lib/payRates.js';
 import { calcUKIncomeTax, calcUKIncomeTaxNoTaper, computeTaxBandBreakdown, calcPensionContribution } from '../lib/tax.js';
 import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
+import { SegSlider } from './SegSlider.jsx';
 
 // ─── More.. (settings) tab ───────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='settings' block — no behaviour
@@ -59,11 +60,11 @@ export function TabSettings({
             <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'1px'}}>Light, dark, or match your device</div>
           </div>
         </div>
-        <div style={{display:'flex',gap:'6px'}}>
+        <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px'}} indicatorStyle={{background:BRASS,borderRadius:'10px',boxShadow:'0 4px 11px rgba(184,130,63,0.35)'}}>
           {[['system','Auto'],['light','Light'],['dark','Dark']].map(([v,lbl])=>(
-            <button key={v} onClick={()=>setTheme(v)} style={{flex:1,padding:'9px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:themeMode===v?BRASS:'var(--surface-2)',color:themeMode===v?'#fff':'var(--muted)',boxShadow:themeMode===v?'0 4px 11px rgba(184,130,63,0.35)':'none'}}>{lbl}</button>
+            <button key={v} data-seg-key={v} onClick={()=>setTheme(v)} style={{position:'relative',zIndex:1,flex:1,padding:'9px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:themeMode===v?'#fff':'var(--muted)'}}>{lbl}</button>
           ))}
-        </div>
+        </SegSlider>
       </div>
 
       <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}:undefined}>
@@ -189,7 +190,7 @@ export function TabSettings({
               {showInline && cardBody}
             </div>
             {showModal && contentWrapRef.current && createPortal(
-              <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
+              <div className="modal-pop" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -401,7 +402,7 @@ export function TabSettings({
               {!isWide && cardBody}
             </div>
             {isWide && taxImpactExpanded && contentWrapRef.current && createPortal(
-              <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'12px'}}>{cardBody}</div></div>,
+              <div className="modal-pop" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'12px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -455,7 +456,7 @@ export function TabSettings({
               {!isWide && cardBody}
             </div>
             {isWide && financialYearsExpanded && contentWrapRef.current && createPortal(
-              <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
+              <div className="modal-pop" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -490,7 +491,7 @@ export function TabSettings({
               {!isWide && cardBody}
             </div>
             {isWide && exportDataExpanded && contentWrapRef.current && createPortal(
-              <div style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
+              <div className="modal-pop" style={modalBoxStyle(S.card)}>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -530,7 +531,7 @@ export function TabSettings({
             <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'11px'}}>
               {!wipeConf
                 ?<button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'10px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#b91c1c"/> Wipe All Data</button>
-                :<div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'12px'}}>
+                :<div className="alert-pop" style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'12px'}}>
                     <div style={{textAlign:'center',color:'var(--text-red-deep)',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'#dc2626'}}>{session ? 'Deletes every logged shift and all TOIL data — on this device and in the cloud. ' : 'Deletes every logged shift and all TOIL data on this device. '}This cannot be undone unless you have downloaded a backup file to your device.</span></div>
                     <div style={{display:'flex',gap:'6px'}}>
                       <button onClick={handleWipe} disabled={wipingData} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:wipingData?'not-allowed':'pointer',textTransform:'uppercase',letterSpacing:'1px',opacity:wipingData?0.7:1}}>{wipingData?'Wiping…':'Yes, Delete'}</button>
@@ -545,7 +546,7 @@ export function TabSettings({
                 {!deleteAcctConf ? (
                   <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'10px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'1px'}}><Ico n="trash" s={12} c="#b91c1c"/> Delete Account</button>
                 ) : (
-                  <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'12px'}}>
+                  <div className="alert-pop" style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'12px'}}>
                     <div style={{fontSize:'11.5px',color:'var(--text-red-deep)',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>
                     <div style={{fontSize:'10.5px',color:'#dc2626',fontWeight:700,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Type your email to confirm: {session.user?.email}</div>
                     <input
@@ -575,7 +576,7 @@ export function TabSettings({
               {!isWide && cardBody}
             </div>
             {isWide && dataManagementExpanded && contentWrapRef.current && createPortal(
-              <div style={modalBoxStyle(acctBase)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
+              <div className="modal-pop" style={modalBoxStyle(acctBase)}>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></div>,
               contentWrapRef.current
             )}
           </>
@@ -648,7 +649,7 @@ export function TabSettings({
            Portalled to contentWrapRef, same reasoning as the popup
            cards themselves (see modalBoxStyle above). ── */}
       {isWide && (configExpanded&&!configSetupIncomplete || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded) && contentWrapRef.current && createPortal(
-        <div onClick={()=>{ setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.55)',zIndex:55}}/>,
+        <div onClick={()=>{ setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',zIndex:55}}/>,
         contentWrapRef.current
       )}
     </div>

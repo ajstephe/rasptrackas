@@ -1,6 +1,7 @@
 import { fmtGBP, fmtD } from '../lib/format.js';
 import { Ico } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
+import { SegSlider } from './SegSlider.jsx';
 
 // ─── CARMS & PA Outstanding tab ──────────────────────────────────────────────
 // Rebuilt onto the same "ledger" idiom as the Dashboard: a navy statement
@@ -74,11 +75,11 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
               This {fmtGBP(carmsOutstanding.totalAmount)} isn't in your Total Gross YTD yet — it only counts once it's been marked as submitted on the Log Overtime screen.
             </div>
 
-            <div style={{display:'flex',gap:'6px',marginBottom:'14px'}}>
+            <SegSlider activeKey={carmsFilter} trackStyle={{display:'flex',gap:'6px',marginBottom:'14px'}} indicatorStyle={{background:BRASS,borderRadius:'10px'}}>
               {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'},{id:'toil',lbl:'TOIL'}].map(f=>(
-                <div key={f.id} onClick={()=>setCarmsFilter(f.id)} style={{flex:1,textAlign:'center',padding:'8px 4px',borderRadius:'10px',fontSize:'11px',fontWeight:800,cursor:'pointer',background:carmsFilter===f.id?BRASS:'var(--surface-2)',color:carmsFilter===f.id?'#fff':'var(--muted)',border:carmsFilter===f.id?'none':'1px solid var(--border-2)'}}>{f.lbl}</div>
+                <div key={f.id} data-seg-key={f.id} onClick={()=>setCarmsFilter(f.id)} className="tap-row" style={{position:'relative',zIndex:1,flex:1,textAlign:'center',padding:'8px 4px',borderRadius:'10px',fontSize:'11px',fontWeight:800,cursor:'pointer',background:'transparent',color:carmsFilter===f.id?'#fff':'var(--muted)',border:carmsFilter===f.id?'none':'1px solid var(--border-2)'}}>{f.lbl}</div>
               ))}
-            </div>
+            </SegSlider>
 
             {carmsOutstanding.groups.map(g=>{
               const visibleItems = g.items.filter(it => {
