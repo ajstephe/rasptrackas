@@ -1,5 +1,6 @@
 import { fmtGBP, fmtHM, fmtD } from '../lib/format.js';
 import { Ico } from './Icons.jsx';
+import { useCountUp } from '../lib/useCountUp.js';
 
 // ─── Home (dashboard) tab ────────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='dashboard' IIFE — no behaviour
@@ -12,6 +13,14 @@ export function TabDashboard({
   skipBreakdownReset, setBreakdownView, setCalPeriodIdx,
   renderMonthlyChart, S, MONO, BRASS,
 }) {
+  // The two headline mono figures count up/down when they change instead
+  // of jumping straight to the new value — logging a shift, editing one,
+  // or a settings change that shifts the tax calc all land as a felt
+  // change in the number, not a silent swap.
+  const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
+  const animatedNet = useCountUp(pb ? pb.combinedNet : 0);
+  const animatedGrossYTD = useCountUp(settings.rank&&settings.service ? totals.combinedGrossYTD : 0);
+
   // ── Net-pay hero row ──────────────────────────────────────────────
   // Replaces the old cramped "Gross & Net" mini-columns with the one
   // figure people actually open the app to check — net pay this
@@ -23,7 +32,6 @@ export function TabDashboard({
   // which already carries every period's combinedNet in order —
   // no new calculation, just reading neighbouring entries.
   const netHeroRow = (compact) => {
-    const pb     = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx]   : null;
     const prevPb = currPeriodIdx>0  ? totals.periodBreakdown[currPeriodIdx-1] : null;
     const delta  = (pb&&prevPb) ? (pb.combinedNet - prevPb.combinedNet) : null;
     const sparkFrom = Math.max(0, currPeriodIdx - 5);
@@ -48,7 +56,7 @@ export function TabDashboard({
         </div>
         <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'12px',paddingLeft:compact?'42px':'46px'}}>
           <div>
-            <div style={{fontFamily:MONO,fontSize:compact?'22px':'25px',fontWeight:700,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.1}}>{pb?fmtGBP(pb.combinedNet):'£0.00'}</div>
+            <div style={{fontFamily:MONO,fontSize:compact?'22px':'25px',fontWeight:700,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.1}}>{fmtGBP(animatedNet)}</div>
             {delta!=null&&(
               <span style={{display:'inline-flex',alignItems:'center',gap:'3px',fontFamily:MONO,fontSize:'10px',fontWeight:600,color:delta>=0?'#059669':'var(--text-red-deep)',background:delta>=0?'var(--tint-green)':'var(--tint-red)',padding:'2px 8px',borderRadius:'20px',marginTop:'4px'}}>
                 {delta>=0?'▲':'▼'} {fmtGBP(Math.abs(delta))} vs last period
@@ -254,7 +262,7 @@ export function TabDashboard({
         </div>
         <div style={{fontSize:'12px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'8px'}}>Total Gross YTD</div>
         <div style={{fontFamily:MONO,fontSize:'32px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'9px'}}>
-          {settings.rank&&settings.service ? fmtGBP(totals.combinedGrossYTD) : '—'}
+          {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
         </div>
         <div style={{width:'44px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'9px'}}/>
         <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#7c93b3',marginBottom:carmsOutstanding.totalAmount>0?'12px':0}}>
@@ -324,7 +332,7 @@ export function TabDashboard({
         </div>
         <div style={{fontSize:'11px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1.5px',marginBottom:'7px'}}>Total Gross YTD</div>
         <div style={{fontFamily:MONO,fontSize:'27px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'8px'}}>
-          {settings.rank&&settings.service ? fmtGBP(totals.combinedGrossYTD) : '—'}
+          {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
         </div>
         <div style={{width:'38px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'8px'}}/>
         <div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:600,color:'#7c93b3',marginBottom:carmsOutstanding.totalAmount>0?'10px':0}}>

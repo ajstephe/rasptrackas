@@ -1,5 +1,6 @@
 import { fmtGBP, fmtD } from '../lib/format.js';
 import { Ico } from './Icons.jsx';
+import { useCountUp } from '../lib/useCountUp.js';
 
 // ─── CARMS & PA Outstanding tab ──────────────────────────────────────────────
 // Rebuilt onto the same "ledger" idiom as the Dashboard: a navy statement
@@ -21,6 +22,10 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
     return <div style={{width:size+'px',height:size+'px',borderRadius:'9px',background:map.bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n={map.n} s={Math.round(size*0.5)} c={map.c} w={2}/></div>;
   };
 
+  // Counts up/down instead of jumping whenever the outstanding total
+  // changes — e.g. marking a claim as submitted on Log Overtime.
+  const animatedTotal = useCountUp(carmsOutstanding.totalAmount);
+
   return (
     <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
       <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 18px',letterSpacing:'-0.5px'}}>CARMS &amp; PA Outstanding</h2>
@@ -30,7 +35,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
         {/* ── navy statement header ── */}
         <div style={{background:'var(--navy)',padding:'22px 20px',position:'relative',overflow:'hidden'}}>
           <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'#c9a35f',marginBottom:'10px'}}>Outstanding</div>
-          <div style={{fontFamily:MONO,fontSize:'28px',fontWeight:600,color:'#fff',letterSpacing:'-0.02em',marginBottom:'9px'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+          <div style={{fontFamily:MONO,fontSize:'28px',fontWeight:600,color:'#fff',letterSpacing:'-0.02em',marginBottom:'9px'}}>{fmtGBP(animatedTotal)}</div>
           <div style={{width:'38px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'12px'}}/>
           <div style={{fontSize:'11px',color:'#93c5fd',fontWeight:600,lineHeight:1.5}}>Spacing out your overtime for a steadier payday, or quietly dodging the taxman as £100k creeps closer — either way, good thinking. This is everything still sitting unclaimed in CARMS and PA, so nothing gets left behind.</div>
         </div>
@@ -93,7 +98,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
                     <span style={{fontFamily:MONO,color:BRASS}}>{visibleTotalLabel}</span>
                   </div>
                   <div style={{background:'var(--surface-2)',borderRadius:'12px',padding:'4px 12px'}}>
-                    {visibleItems.map(it=>{
+                    {visibleItems.map((it,i)=>{
                       const goToEntry = () => {
                         startEdit(it.entry);
                         setFocusCarmsToggle(true);
@@ -109,7 +114,7 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
                       // tab, where showOt is always false) still gets its own row.
                       const mergeOtToil = showOt && showToil;
                       return (
-                        <div key={it.entry.id} onClick={goToEntry} style={{padding:isWide?'12px 0':'10px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer'}}>
+                        <div key={it.entry.id} onClick={goToEntry} className="claim-in" style={{padding:isWide?'12px 0':'10px 0',borderBottom:'1px solid var(--border-2)',cursor:'pointer',animationDelay:(Math.min(i,6)*55)+'ms'}}>
                           <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',marginBottom:'6px'}}>
                             {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
                           </div>

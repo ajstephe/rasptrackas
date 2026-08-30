@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { createClient } from "@supabase/supabase-js";
 
@@ -529,6 +529,12 @@ export default function App() {
   const [authLoading,  setAuthLoading]  = useState(true);
   const [dataKey,      setDataKey]      = useState(null); // unwrapped CryptoKey, in memory only, never persisted
   const [manualSyncing, setManualSyncing] = useState(false);
+  const [syncJustSucceeded, setSyncJustSucceeded] = useState(false);
+  // Briefly shows the Save button as a checkmark before handing off to
+  // handleSave's own navigation (which switches tabs immediately) — the
+  // navigation is delayed by the same amount so the confirmation is
+  // actually seen rather than replaced before it can render.
+  const [justSaved, setJustSaved] = useState(false);
 
   // Width-based desktop detection — 960px chosen as "narrow laptop and up",
   // matching what the reviewed mockups were built against. This is purely
@@ -598,6 +604,17 @@ export default function App() {
   const contentWrapRef = useRef(null);
   const fileRef   = useRef(null);
   const monthRefs = useRef({});
+  // ── bottom mobile nav's sliding pill — measured against the real
+  // button layout (fluid via clamp(), see the nav CSS) rather than
+  // assumed to be 1/6th width, so it stays correct at any phone size.
+  // A state-backed callback ref (not a plain useRef) so mounting the nav
+  // itself — which happens after the auth/loading gate resolves, well
+  // after this component's first render — reliably re-triggers the
+  // placement effect below rather than firing once too early and never
+  // again.
+  const [navEl, setNavEl] = useState(null);
+  const navBtnRefs = useRef({});
+  const [navPillRect, setNavPillRect] = useState({ left: 0, width: 0 });
   const stickyRef = useRef(null);
   const entryRefs = useRef({});
   const carmsToggleRef = useRef(null);
@@ -1609,53 +1626,62 @@ export default function App() {
     // Trim trailing whitespace so the blank line left for the cursor after
     // Record Shift Times doesn't get saved if the person never typed into it.
     const cleanForm = { ...form, comments: (form.comments||'').replace(/\s+$/,'') };
-    let savedId, updatedEntries;
-    if(editing){
-      savedId = editing.id;
-      updatedEntries = entries.map(e=>e.id===editing.id?{...cleanForm,id:e.id}:e);
-      setEntries(updatedEntries);
-      addToast('Record updated');
-    } else {
-      savedId = Date.now().toString();
-      updatedEntries = [...entries,{...cleanForm,id:savedId}];
-      setEntries(updatedEntries);
-      addToast('Overtime logged');
-      // nudge backup every 5 entries
-      const count=(dualRead(KEYS.backupCount,0)||0)+1;
-      dualWrite(KEYS.backupCount,count);
-      if(count%5===0) setTimeout(()=>addToast(`${count} records logged — download a backup?`,'warn',{label:'Backup now',fn:handleExport},8000),800);
-    }
 
-    // Show the person the record they just saved, in whichever Breakdown view
-    // they've set as their default.
-    const periodIdx = PAY_PERIODS.findIndex(p=>targetDate>=p.start&&targetDate<=p.end);
-    const period = periodIdx>=0 ? PAY_PERIODS[periodIdx] : null;
-    skipBreakdownReset.current = true; // this navigation targets a specific entry
+    // Past both guards, so this click is definitely going to save — show
+    // the button's own checkmark confirmation for a beat before actually
+    // committing the entry and navigating away (which happens instantly,
+    // so without this delay the confirmation would never be seen).
+    setJustSaved(true);
+    setTimeout(() => {
+      let savedId, updatedEntries;
+      if(editing){
+        savedId = editing.id;
+        updatedEntries = entries.map(e=>e.id===editing.id?{...cleanForm,id:e.id}:e);
+        setEntries(updatedEntries);
+        addToast('Record updated');
+      } else {
+        savedId = Date.now().toString();
+        updatedEntries = [...entries,{...cleanForm,id:savedId}];
+        setEntries(updatedEntries);
+        addToast('Overtime logged');
+        // nudge backup every 5 entries
+        const count=(dualRead(KEYS.backupCount,0)||0)+1;
+        dualWrite(KEYS.backupCount,count);
+        if(count%5===0) setTimeout(()=>addToast(`${count} records logged — download a backup?`,'warn',{label:'Backup now',fn:handleExport},8000),800);
+      }
 
-    if(defaultBreakdownView==='calendar' && period){
-      setBreakdownView('calendar');
-      setCalPeriodIdx(periodIdx);
-      // open that day's detail popover so the entry is visible straight away
-      const dEntries = updatedEntries.filter(e=>e.date===targetDate);
-      const dayTotals = dEntries.reduce((acc,e)=>{
-        const c=calcEntry(e);
-        acc.hrs += c.h1+c.h2+c.h3;
-        if(e.paRate && e.paRate!=='None') acc.pa = true;
-        return acc;
-      },{hrs:0,pa:false});
-      setSelectedCalDay({
-        ds: targetDate, dEntries, periodIdx,
-        totalHrs: dayTotals.hrs, hasPA: dayTotals.pa, hasOT: true,
-      });
-      if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'});
-    } else {
-      setBreakdownView('list');
-      if(period) setExpanded(period.month);
-      setFocusEntryId(savedId);
-    }
-    setTab('months');
+      // Show the person the record they just saved, in whichever Breakdown view
+      // they've set as their default.
+      const periodIdx = PAY_PERIODS.findIndex(p=>targetDate>=p.start&&targetDate<=p.end);
+      const period = periodIdx>=0 ? PAY_PERIODS[periodIdx] : null;
+      skipBreakdownReset.current = true; // this navigation targets a specific entry
 
-    setForm({...blankForm,date:todayStr}); setEditing(null);
+      if(defaultBreakdownView==='calendar' && period){
+        setBreakdownView('calendar');
+        setCalPeriodIdx(periodIdx);
+        // open that day's detail popover so the entry is visible straight away
+        const dEntries = updatedEntries.filter(e=>e.date===targetDate);
+        const dayTotals = dEntries.reduce((acc,e)=>{
+          const c=calcEntry(e);
+          acc.hrs += c.h1+c.h2+c.h3;
+          if(e.paRate && e.paRate!=='None') acc.pa = true;
+          return acc;
+        },{hrs:0,pa:false});
+        setSelectedCalDay({
+          ds: targetDate, dEntries, periodIdx,
+          totalHrs: dayTotals.hrs, hasPA: dayTotals.pa, hasOT: true,
+        });
+        if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'});
+      } else {
+        setBreakdownView('list');
+        if(period) setExpanded(period.month);
+        setFocusEntryId(savedId);
+      }
+      setTab('months');
+
+      setForm({...blankForm,date:todayStr}); setEditing(null);
+      setJustSaved(false);
+    }, 480);
   };
 
   const startEdit=e=>{ setForm(e); setEditing(e); setTab('add'); };
@@ -2312,6 +2338,8 @@ export default function App() {
       ]);
       pruneOldCloudData();
       addToast('Synced', 'success', null, 2000);
+      setSyncJustSucceeded(true);
+      setTimeout(()=>setSyncJustSucceeded(false), 1400);
     } catch (e) {
       addToast('Sync failed \u2014 check your connection', 'warn');
     } finally {
@@ -2393,6 +2421,25 @@ export default function App() {
     }, 220);
     return ()=>clearTimeout(t);
   },[pulsePeriodIdx, tab]);
+
+  // Re-measures the active nav button whenever the tab changes, the
+  // window resizes (the nav's own clamp()-based sizing means each
+  // button's width already shifts continuously with viewport width), or
+  // the nav itself changes size for any other reason (fonts finishing
+  // load, the very first layout once it mounts past the auth gate).
+  useLayoutEffect(() => {
+    if (!navEl) return;
+    const place = () => {
+      const btn = navBtnRefs.current[tab];
+      if (!btn) return;
+      setNavPillRect({ left: btn.offsetLeft, width: btn.offsetWidth });
+    };
+    place();
+    window.addEventListener('resize', place);
+    const ro = new ResizeObserver(place);
+    ro.observe(navEl);
+    return () => { window.removeEventListener('resize', place); ro.disconnect(); };
+  }, [navEl, tab, isWide]);
 
   // ── display helpers ────────────────────────────────────────────────────────
 
@@ -2788,6 +2835,23 @@ export default function App() {
         .carms-pulse{animation:carmsPulse 1.6s ease-out;}
         @keyframes navAddPulse{0%,100%{opacity:1}50%{opacity:0.45}}
         .nav-add-pulse{animation:navAddPulse 1.8s ease-in-out infinite;}
+        /* ── sliding nav pill (bottom mobile nav) — position/width are set
+             inline per-render (measured against the real button layout,
+             which itself is fluid via the clamp() rules below), only the
+             easing lives here. ── */
+        .nav-pill{position:absolute;top:5px;bottom:5px;border-radius:12px;background:var(--tint-brass);transition:left 0.45s cubic-bezier(.65,0,.35,1), width 0.45s cubic-bezier(.65,0,.35,1);pointer-events:none;z-index:0}
+        .nav-ico{transition:transform 0.35s cubic-bezier(.34,1.56,.64,1)}
+        .nav-ico.active{transform:scale(1.15)}
+        @keyframes claimIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+        .claim-in{animation:claimIn 0.4s cubic-bezier(.34,1.2,.64,1) both}
+        @keyframes saveRingPulse{from{box-shadow:0 4px 20px rgba(220,38,38,0.5),0 0 0 0 rgba(5,150,105,0.55)}to{box-shadow:0 4px 20px rgba(220,38,38,0.5),0 0 0 22px rgba(5,150,105,0)}}
+        .save-pulse{animation:saveRingPulse 0.65s ease-out}
+        @media (prefers-reduced-motion: reduce){
+          .nav-pill{transition-duration:0.001ms}
+          .nav-ico{transition-duration:0.001ms}
+          .claim-in{animation-duration:0.001ms}
+          .save-pulse{animation-duration:0.001ms}
+        }
         /* ── Fluid mobile nav ───────────────────────────────────────────
            Six tabs at fixed sizes leave almost no slack on a 320px phone
            (an iPhone SE) — "Log Overtime" in particular ends up exactly
@@ -2844,8 +2908,8 @@ export default function App() {
         </div>
         <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
           {session&&(
-            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',color:'#2563eb',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap'}}>
-              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={13} c="#2563eb"/></span> Sync
+            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:syncJustSucceeded?'var(--tint-green)':'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',color:syncJustSucceeded?'#059669':'#2563eb',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap',transition:'background 0.3s, color 0.3s'}}>
+              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={13} c={syncJustSucceeded?'#059669':'#2563eb'}/></span> {syncJustSucceeded?'Synced':'Sync'}
             </button>
           )}
         </div>
@@ -2945,7 +3009,7 @@ export default function App() {
           <TabLogOvertime
             editing={editing} setEditing={setEditing} setTab={setTab} settings={settings} isWide={isWide}
             S={S} MONO={MONO} BRASS={BRASS} form={form} setForm={setForm} todayStr={todayStr} notesRef={notesRef}
-            effectiveTier={effectiveTier} preview={preview} handleSave={handleSave}
+            effectiveTier={effectiveTier} preview={preview} handleSave={handleSave} justSaved={justSaved}
             carmsToggleRef={carmsToggleRef} focusCarmsToggle={focusCarmsToggle}
             setDatePickerMonth={setDatePickerMonth} setDatePickerFor={setDatePickerFor}
             syncShiftTimesIntoForm={syncShiftTimesIntoForm}
@@ -3577,23 +3641,24 @@ export default function App() {
            instead. */}
       {tab==='add'&&!isWide&&settings.rank&&settings.service&&(
         <div style={{position:'absolute',bottom:'72px',left:'14px',right:'14px',zIndex:25}}>
-          <button onClick={handleSave} style={{width:'100%',background:'#dc2626',color:'#fff',boxShadow:'0 4px 20px rgba(220,38,38,0.5)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px'}}>
-            <Ico n="save" s={18} c="#fff"/>
-            {editing?'Update Record':'Save Record'}
+          <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':''} style={{width:'100%',background:justSaved?'#059669':'#dc2626',color:'#fff',boxShadow:justSaved?'0 4px 20px rgba(5,150,105,0.5)':'0 4px 20px rgba(220,38,38,0.5)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',transition:'background 0.3s'}}>
+            <Ico n={justSaved?'check':'save'} s={18} c="#fff"/>
+            {justSaved?'Saved':(editing?'Update Record':'Save Record')}
           </button>
         </div>
       )}
 
-      <nav className="no-print" style={{...S.nav, display:isWide?'none':'flex'}}>
+      <nav ref={setNavEl} className="no-print" style={{...S.nav, display:isWide?'none':'flex'}}>
+        <div className="nav-pill" style={{left:navPillRect.left+'px', width:navPillRect.width+'px'}}/>
         {NAV_TABS.map(t=>(
-          <button key={t.id} onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{...S.nBtn(tab===t.id,t.id==='add'),position:'relative'}}>
+          <button key={t.id} ref={el=>navBtnRefs.current[t.id]=el} onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{...S.nBtn(tab===t.id,t.id==='add'),position:'relative'}}>
             {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
               <div style={{position:'absolute',top:'2px',right:'calc(50% - 16px)',background:'#d97706',color:'#fff',fontSize:'8px',fontWeight:900,width:'14px',height:'14px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>{carmsOutstanding.totalClaims>9?'9+':carmsOutstanding.totalClaims}</div>
             )}
             {t.id==='add' ? (
               <span className="nav-add-pulse nav-ico-add" style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
             ) : (
-              <span className="nav-ico" style={{display:'flex'}}><Ico n={t.n} s={18} c={tab===t.id?BRASS:'var(--quiet)'} w={tab===t.id?2.5:2}/></span>
+              <span className={`nav-ico${tab===t.id?' active':''}`} style={{display:'flex'}}><Ico n={t.n} s={18} c={tab===t.id?BRASS:'var(--quiet)'} w={tab===t.id?2.5:2}/></span>
             )}
             <span style={S.nLbl} className={`nav-lbl${t.id==='add'?' nav-add-pulse':''}`}>{t.lbl}</span>
           </button>
@@ -3642,8 +3707,8 @@ export default function App() {
             );
           })}
           {session&&(
-            <button onClick={handleManualSync} disabled={manualSyncing} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'auto'}}>
-              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={14} c="#fff"/></span> Sync
+            <button onClick={handleManualSync} disabled={manualSyncing} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:syncJustSucceeded?'rgba(5,150,105,0.35)':'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'auto',transition:'background 0.3s'}}>
+              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={14} c="#fff"/></span> {syncJustSucceeded?'Synced':'Sync'}
             </button>
           )}
           {session&&(

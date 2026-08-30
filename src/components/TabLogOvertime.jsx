@@ -11,7 +11,7 @@ import { TimeSelect } from './TimeSelect.jsx';
 // bundle it into one opaque object.
 export function TabLogOvertime({
   editing, setEditing, setTab, settings, isWide, S, MONO, BRASS,
-  form, setForm, todayStr, notesRef, effectiveTier, preview, handleSave,
+  form, setForm, todayStr, notesRef, effectiveTier, preview, handleSave, justSaved,
   carmsToggleRef, focusCarmsToggle, setDatePickerMonth, setDatePickerFor,
   syncShiftTimesIntoForm,
 }) {
@@ -454,9 +454,9 @@ export function TabLogOvertime({
            always shows once rank/pay point are set, whether or not
            a preview happens to be showing. */}
       {isWide&&(
-        <button onClick={handleSave} style={{width:'100%',background:'#dc2626',color:'#fff',boxShadow:'0 4px 20px rgba(220,38,38,0.5)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',marginTop:'18px'}}>
-          <Ico n="save" s={18} c="#fff"/>
-          {editing?'Update Record':'Save Record'}
+        <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':''} style={{width:'100%',background:justSaved?'#059669':'#dc2626',color:'#fff',boxShadow:justSaved?'0 4px 20px rgba(5,150,105,0.5)':'0 4px 20px rgba(220,38,38,0.5)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',marginTop:'18px',transition:'background 0.3s'}}>
+          <Ico n={justSaved?'check':'save'} s={18} c="#fff"/>
+          {justSaved?'Saved':(editing?'Update Record':'Save Record')}
         </button>
       )}
       </>
