@@ -2450,7 +2450,7 @@ export default function App() {
     wrap: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'var(--page-bg)',fontFamily:"'DM Sans',system-ui,sans-serif",color:'var(--ink)',position:'relative',boxShadow:'0 0 60px rgba(0,0,0,0.14)',overflow:'hidden'},
     hdr:  {background:'var(--surface)',padding:'13px 18px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,zIndex:10},
     main: {flex:1,overflowY:'auto',overflowX:'hidden',minWidth:0,scrollbarWidth:'none',msOverflowStyle:'none'},
-    nav:  {background:'rgba(255,255,255,0.96)',backdropFilter:'blur(14px)',borderTop:'1px solid var(--border-2)',position:'absolute',bottom:0,width:'100%',padding:'7px 4px 12px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
+    nav:  {background:'rgba(var(--surface-rgb),0.72)',backdropFilter:'blur(20px) saturate(1.5)',WebkitBackdropFilter:'blur(20px) saturate(1.5)',borderTop:'1px solid var(--border-2)',position:'absolute',bottom:0,width:'100%',padding:'7px 4px 12px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
     nBtn: (a,add)=>({flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',padding:add?'9px 4px':'6px 4px',background:'transparent',color:add?'#10b981':a?BRASS:'var(--quiet)',borderRadius:add?'13px':'8px',border:'none',cursor:'pointer',transition:'all 0.18s',fontFamily:'inherit',boxShadow:'none'}),
     nLbl: {fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.5px',whiteSpace:'nowrap'},
     card: {background:'var(--surface)',borderRadius:'18px',padding:'18px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid var(--border-2)',marginBottom:'10px'},
@@ -2863,6 +2863,23 @@ export default function App() {
         .toast-enter{animation:su 0.22s ease}
         @keyframes toastOut{to{opacity:0;transform:translateY(-8px) scale(0.98)}}
         .toast-leave{animation:toastOut 0.22s ease forwards}
+        /* ── confirmation modals pop in, they don't just appear ──────────
+             .alert-pop: centred dialogs (desktop sign-out/restore/export,
+             and Settings' inline wipe/delete-account warnings) scale up
+             with a touch of overshoot, like an iOS alert.
+             .sheet-pop: mobile bottom sheets slide up instead — a sheet
+             anchored to the screen edge scaling from its centre would
+             look broken.
+             .modal-pop: Settings' desktop popover cards — same overshoot
+             as alert-pop, but keyframed around the translate(-50%,-50%)
+             centering modalBoxStyle already sets inline, so the pop
+             doesn't fight that positioning. ── */
+        @keyframes alertPop{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
+        .alert-pop{animation:alertPop 0.32s cubic-bezier(.34,1.42,.64,1)}
+        @keyframes sheetPop{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+        .sheet-pop{animation:sheetPop 0.32s cubic-bezier(.32,.72,0,1)}
+        @keyframes modalPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+        .modal-pop{animation:modalPop 0.28s cubic-bezier(.34,1.42,.64,1)}
         @media (prefers-reduced-motion: reduce){
           .nav-pill{transition-duration:0.001ms}
           .nav-ico{transition-duration:0.001ms}
@@ -2872,6 +2889,9 @@ export default function App() {
           .tap-row{transition-duration:0.001ms}
           .toast-enter{animation-duration:0.001ms}
           .toast-leave{animation-duration:0.001ms}
+          .alert-pop{animation-duration:0.001ms}
+          .sheet-pop{animation-duration:0.001ms}
+          .modal-pop{animation-duration:0.001ms}
         }
         /* ── Fluid mobile nav ───────────────────────────────────────────
            Six tabs at fixed sizes leave almost no slack on a 320px phone
@@ -2939,8 +2959,8 @@ export default function App() {
       {/* ── sign-out confirmation — bottom sheet, same pattern as the export
            modal, with an explicit close (×) as well as Cancel ── */}
       {signOutConfirmOpen&&(
-        <div onClick={()=>setSignOutConfirmOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.55)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+        <div onClick={()=>setSignOutConfirmOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
+          <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <button onClick={()=>setSignOutConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
@@ -2956,8 +2976,8 @@ export default function App() {
       )}
 
       {restoreConfirmOpen&&(
-        <div onClick={()=>setRestoreConfirmOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.55)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-          <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+        <div onClick={()=>setRestoreConfirmOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
+          <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <button onClick={()=>setRestoreConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
@@ -3187,8 +3207,8 @@ export default function App() {
         const canGenerate = payslipMode==='period' ? payslipPeriodIdx!=null : payslipMode==='financialYear' ? payslipFYYear!=null : rangeValid;
         const formatLabel = exportFormat==='csv' ? 'Spreadsheet' : 'PDF';
         return (
-          <div onClick={()=>setPayslipModalOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.55)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-            <div onClick={e=>e.stopPropagation()} className="fi" style={{background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+          <div onClick={()=>setPayslipModalOpen(false)} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
+            <div onClick={e=>e.stopPropagation()} className={isWide?'alert-pop':'sheet-pop'} style={{background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
               {!isWide && <div style={{width:'36px',height:'4px',background:'var(--border)',borderRadius:'4px',margin:'0 auto 14px'}}/>}
               {exportFormat===null ? (
                 <>

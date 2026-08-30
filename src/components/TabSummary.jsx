@@ -4,6 +4,7 @@ import { fmt, fmtHM, fmtGBP, fmtD, fmtDDMM } from '../lib/format.js';
 import { isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate, periodIdxForDate } from '../lib/calc.js';
 import { RATE_TIER_MULT } from '../lib/payRates.js';
 import { Ico } from './Icons.jsx';
+import { SegSlider } from './SegSlider.jsx';
 
 // ─── Summary tab (List View + Calendar View) ────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='months' block — no behaviour
@@ -26,12 +27,12 @@ export function TabSummary({
   return (
     <div className="fi" style={{padding:'14px',paddingBottom:'96px'}}>
       {/* Sticky header — heading, toggle and month pills all float together */}
-      <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'var(--surface-2)',paddingTop:'6px',paddingBottom:'8px',marginTop:'-14px',marginBottom:'6px'}}>
+      <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'rgba(var(--surface-2-rgb),0.82)',backdropFilter:'blur(16px) saturate(1.5)',WebkitBackdropFilter:'blur(16px) saturate(1.5)',paddingTop:'6px',paddingBottom:'8px',marginTop:'-14px',marginBottom:'6px'}}>
         <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 10px',letterSpacing:'-0.5px'}}>Summary</h2>
-        <div style={{display:'flex',background:'var(--chip-bg)',borderRadius:'14px',padding:'4px',boxShadow:'0 4px 14px rgba(15,23,42,0.08)'}}>
+        <SegSlider activeKey={breakdownView} trackStyle={{display:'flex',background:'var(--chip-bg)',borderRadius:'14px',padding:'4px',boxShadow:'0 4px 14px rgba(15,23,42,0.08)'}} indicatorStyle={{background:BRASS,borderRadius:'11px',boxShadow:'0 2px 8px rgba(184,130,63,0.35)'}}>
           {/* Each half is a div rather than a button so the star can be its own
               tap target inside it — nesting buttons isn't valid HTML. */}
-          <div onClick={()=>{ setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }} style={{flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:breakdownView==='calendar'?BRASS:'transparent',color:breakdownView==='calendar'?'#fff':'var(--muted)',boxShadow:breakdownView==='calendar'?'0 2px 8px rgba(184,130,63,0.35)':'none',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
+          <div data-seg-key="calendar" onClick={()=>{ setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }} style={{position:'relative',zIndex:1,flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:'transparent',color:breakdownView==='calendar'?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
             <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
               <Ico n="cal" s={13} c={breakdownView==='calendar'?'#fff':'var(--muted)'} w={2.5}/>Calendar View
             </span>
@@ -41,7 +42,7 @@ export function TabSummary({
                 f={defaultBreakdownView==='calendar'?'#fbbf24':'none'}/>
             </span>
           </div>
-          <div onClick={()=>{ setBreakdownView('list'); snapToActiveMonth(); }} style={{flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:breakdownView==='list'?BRASS:'transparent',color:breakdownView==='list'?'#fff':'var(--muted)',boxShadow:breakdownView==='list'?'0 2px 8px rgba(184,130,63,0.35)':'none',transition:'all 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
+          <div data-seg-key="list" onClick={()=>{ setBreakdownView('list'); snapToActiveMonth(); }} style={{position:'relative',zIndex:1,flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:'transparent',color:breakdownView==='list'?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
             <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
               <Ico n="list" s={13} c={breakdownView==='list'?'#fff':'var(--muted)'} w={2.5}/>List View
             </span>
@@ -51,7 +52,7 @@ export function TabSummary({
                 f={defaultBreakdownView==='list'?'#fbbf24':'none'}/>
             </span>
           </div>
-        </div>
+        </SegSlider>
         <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',textAlign:'center',marginTop:'6px',lineHeight:1.4}}>
           {defaultBreakdownView==='list'?'List View':'Calendar View'} opens by default · tap ★ to change
         </div>

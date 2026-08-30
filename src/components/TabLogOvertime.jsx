@@ -3,6 +3,7 @@ import { toMinutesOfDay, shiftDurationMinutes, generateShiftTimesLine } from '..
 import { getRates, PA_LABELS, PA_RATES, RATE_TIER_MULT } from '../lib/payRates.js';
 import { Ico } from './Icons.jsx';
 import { TimeSelect } from './TimeSelect.jsx';
+import { SegSlider } from './SegSlider.jsx';
 
 // ─── Log Overtime tab ────────────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='add' block — no behaviour change.
@@ -90,10 +91,10 @@ export function TabLogOvertime({
 
                   {/* Normal Duty vs Rest Day Working (RDW) — on RDW there's no
                       roster to compare against, so the whole shift is overtime */}
-                  <div style={{display:'flex',gap:'6px',background:'var(--tint-blue-2)',borderRadius:'11px',padding:'3px',marginBottom:'13px'}}>
-                    <button onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'normal'}))} style={{flex:1,border:'none',background:form.dutyType!=='rdw'?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer',boxShadow:form.dutyType!=='rdw'?'0 2px 6px rgba(37,99,235,0.25)':'none'}}>Normal Duty</button>
-                    <button onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'rdw',rosteredStart:'',rosteredEnd:''}))} style={{flex:1,border:'none',background:form.dutyType==='rdw'?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer',boxShadow:form.dutyType==='rdw'?'0 2px 6px rgba(37,99,235,0.25)':'none'}}>Rest Day Working (RDW)</button>
-                  </div>
+                  <SegSlider activeKey={form.dutyType==='rdw'?'rdw':'normal'} trackStyle={{display:'flex',gap:'6px',background:'var(--tint-blue-2)',borderRadius:'11px',padding:'3px',marginBottom:'13px'}} indicatorStyle={{background:'#fff',borderRadius:'9px',boxShadow:'0 2px 6px rgba(37,99,235,0.25)'}}>
+                    <button data-seg-key="normal" onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'normal'}))} style={{position:'relative',zIndex:1,flex:1,border:'none',background:'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer'}}>Normal Duty</button>
+                    <button data-seg-key="rdw" onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'rdw',rosteredStart:'',rosteredEnd:''}))} style={{position:'relative',zIndex:1,flex:1,border:'none',background:'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer'}}>Rest Day Working (RDW)</button>
+                  </SegSlider>
 
                   {form.dutyType!=='rdw' && (
                     <>
@@ -223,15 +224,15 @@ export function TabLogOvertime({
             return (
               <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'12px 13px'}}>
                 <div className="hint-pulse" style={{fontSize:'12px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'9px'}}>Select O/T Rate for this Shift</div>
-                <div style={{display:'flex',gap:'6px',marginBottom:'9px'}}>
+                <SegSlider activeKey={tier} trackStyle={{display:'flex',gap:'6px',marginBottom:'9px'}} indicatorStyle={{background:BRASS,borderRadius:'10px',boxShadow:'0 4px 11px rgba(184,130,63,0.35)'}}>
                   {['hours133','hours150','hours200'].map((h,i)=>(
-                    <button key={h} onClick={()=>setForm(f=>{
+                    <button key={h} data-seg-key={h} onClick={()=>setForm(f=>{
                       if (f.otRateTier===h) return f;
                       const val = f.otRateTier ? f[f.otRateTier] : '';
                       return {...f, otRateTier:h, hours133:'', hours150:'', hours200:'', [h]:val};
-                    })} style={{flex:1,padding:'8px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:tier===h?BRASS:'var(--surface)',color:tier===h?'#fff':'var(--muted)',boxShadow:tier===h?'0 4px 11px rgba(184,130,63,0.35)':'none'}}>{[1.33,1.5,2.0][i]}x</button>
+                    })} style={{position:'relative',zIndex:1,flex:1,padding:'8px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:tier===h?'#fff':'var(--muted)'}}>{[1.33,1.5,2.0][i]}x</button>
                   ))}
-                </div>
+                </SegSlider>
                 <div style={{background:'var(--surface)',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
                   <label style={{...S.lbl,marginBottom:'4px',display:'block'}}>Overtime Hours</label>
                   <input type="number" step="0.25" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:600,fontSize:'17px',border:'none',background:'transparent',fontFamily:MONO,color:'var(--ink)'}}
@@ -257,15 +258,15 @@ export function TabLogOvertime({
             return (
               <div style={{background:'#6d28d9',border:'none',borderRadius:'13px',padding:'14px 13px',marginTop:showTwoCol?0:'13px'}}>
                 <div style={{fontSize:'10px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Take Overtime As</div>
-                <div style={{display:'flex',gap:'6px',background:'rgba(0,0,0,0.18)',borderRadius:'11px',padding:'3px'}}>
+                <SegSlider activeKey={form.takeAs} trackStyle={{display:'flex',gap:'6px',background:'rgba(0,0,0,0.18)',borderRadius:'11px',padding:'3px'}} indicatorStyle={{background:'#fff',borderRadius:'9px',boxShadow:'0 2px 6px rgba(0,0,0,0.25)'}}>
                   {[['pay','Pay','var(--text-blue-deep)'],['toil','TOIL','#6d28d9'],['mix','Mix','var(--muted)']].map(([m,lbl,col])=>(
-                    <button key={m} onClick={()=>setForm(f=>{
+                    <button key={m} data-seg-key={m} onClick={()=>setForm(f=>{
                       const t = parseFloat(f[tier])||0;
                       const th = m==='pay' ? 0 : m==='toil' ? t : (parseFloat(f.toilHours)||0);
                       return {...f, takeAs:m, toilHours: th?String(th):'0'};
-                    })} style={{flex:1,border:'none',background:form.takeAs===m?'#fff':'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:form.takeAs===m?col:'rgba(255,255,255,0.8)',cursor:'pointer',boxShadow:form.takeAs===m?'0 2px 6px rgba(0,0,0,0.25)':'none'}}>{lbl}</button>
+                    })} style={{position:'relative',zIndex:1,flex:1,border:'none',background:'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:form.takeAs===m?col:'rgba(255,255,255,0.8)',cursor:'pointer'}}>{lbl}</button>
                   ))}
-                </div>
+                </SegSlider>
                 {form.takeAs==='mix' && (
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'12px'}}>
                     <div style={{background:'var(--tint-blue)',borderRadius:'12px',padding:'10px',textAlign:'center'}}>
@@ -295,14 +296,14 @@ export function TabLogOvertime({
           const paBlock = (
             <div style={{...S.card,background:'var(--tint-amber)',border:'1px solid var(--border-2)',marginBottom:showTwoCol?0:'10px',flex:showTwoCol?1:'none',display:'flex',flexDirection:'column',justifyContent:'center'}}>
               <div style={{fontSize:'12px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'1px',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
-              <div style={{display:'flex',gap:'6px'}}>
+              <SegSlider activeKey={form.paRate} trackStyle={{display:'flex',gap:'6px'}} indicatorStyle={{background:'#f59e0b',borderRadius:'11px',boxShadow:'0 4px 11px rgba(245,158,11,0.38)'}}>
                 {['None','PA1','PA2','PA3'].map(pa=>(
-                  <button key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'all 0.14s',background:form.paRate===pa?'#f59e0b':'var(--surface)',color:form.paRate===pa?'#fff':'#b45309',boxShadow:form.paRate===pa?'0 4px 11px rgba(245,158,11,0.38)':'none',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
+                  <button key={pa} data-seg-key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{position:'relative',zIndex:1,flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'color 0.14s',background:'transparent',color:form.paRate===pa?'#fff':'#b45309',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
                     <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
                     <span style={{fontSize:'9px',fontWeight:700,opacity:form.paRate===pa?0.85:0.55}}>{PA_LABELS[pa]}</span>
                   </button>
                 ))}
-              </div>
+              </SegSlider>
             </div>
           );
 
