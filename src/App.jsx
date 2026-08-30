@@ -193,11 +193,6 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
   const [error, setError]           = useState('');
   const [forgotSent, setForgotSent] = useState(false);
   const [noRecoveryWarning, setNoRecoveryWarning] = useState(false);
-  // Show/hide toggles for the two password fields — shared across screens
-  // (only one screen is ever mounted at a time, so there's no cross-talk
-  // between e.g. signup's password and set-new-password's).
-  const [showPw, setShowPw] = useState(false);
-  const [showPw2, setShowPw2] = useState(false);
 
   const AS = {
     // Dark blue page — deliberately different from the rest of the app's
@@ -369,38 +364,20 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
     }
   };
 
-  // Password field with a show/hide toggle \u2014 every plain type="password"
-  // input on this screen went through this, rather than duplicating the
-  // wrapper+button markup five times over. autoFocus is opt-in per call
-  // since only one field per screen should ever carry it.
-  //
-  // Deliberately TWO separate <input> elements, not one input whose type
-  // flips between 'password' and 'text' \u2014 that was the first version of
-  // this, and it broke Safari/iCloud Keychain autofill: WebKit ties its
-  // decision to offer/fill a saved password to a stable type="password"
-  // node, and mutating an existing input's type attribute (React reusing
-  // the same DOM node across renders, not remounting it) makes it stop
-  // being treated as an autofillable password field at all. Both inputs
-  // stay mounted the whole time, sharing the same value/onChange \u2014 only
-  // which one is visible (display:none has no layout box, so it's a
-  // no-op for autofill scanning) and focusable (tabIndex) ever toggles,
-  // and the real password-tracked node's type never changes after mount.
-  const pwField = (value, onChange, placeholder, autoComplete, show, setShow, autoFocus=false) => (
-    <div style={{position:'relative',marginBottom:'14px'}}>
-      <input
-        style={{...AS.input,marginBottom:0,paddingRight:'44px',display:show?'none':'block'}}
-        type="password" placeholder={placeholder} value={value} onChange={onChange}
-        autoComplete={autoComplete} autoFocus={autoFocus} tabIndex={show?-1:0}
-      />
-      <input
-        style={{...AS.input,marginBottom:0,paddingRight:'44px',display:show?'block':'none'}}
-        type="text" placeholder={placeholder} value={value} onChange={onChange}
-        autoComplete={autoComplete} tabIndex={show?0:-1}
-      />
-      <button type="button" onClick={()=>setShow(v=>!v)} aria-label={show?'Hide password':'Show password'} style={{position:'absolute',right:'4px',top:0,bottom:0,background:'none',border:'none',padding:'0 10px',cursor:'pointer',display:'flex',alignItems:'center',color:'var(--quiet)'}}>
-        <Ico n={show?'eyeOff':'eye'} s={16} c="var(--quiet)"/>
-      </button>
-    </div>
+  // Plain type="password" input, no show/hide toggle. A dual-input
+  // toggle (one type="password", one type="text", mirrored via
+  // display:none) was tried here and then reverted: it fixed a Safari/
+  // iCloud Keychain autofill regression on mobile but broke desktop
+  // autofill in the process (two fields sharing autocomplete confuses
+  // desktop Chrome's/Edge's password-manager heuristics for offering to
+  // save or fill). Reverting to a single plain input is the last
+  // confirmed-working state on every platform.
+  const pwField = (value, onChange, placeholder, autoComplete, autoFocus=false) => (
+    <input
+      style={AS.input}
+      type="password" placeholder={placeholder} value={value} onChange={onChange}
+      autoComplete={autoComplete} autoFocus={autoFocus}
+    />
   );
 
   return (
@@ -432,7 +409,7 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
               <label style={AS.label}>Email</label>
               <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" autoFocus={isWide}/>
               <label style={AS.label}>Password</label>
-              {pwField(password, e=>setPassword(e.target.value), '••••••••', 'current-password', showPw, setShowPw)}
+              {pwField(password, e=>setPassword(e.target.value), '••••••••', 'current-password')}
               {error && <div style={AS.err}>{error}</div>}
               <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Signing in…':'Sign in'}</button>
             </form>
@@ -448,9 +425,9 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
               <label style={AS.label}>Email</label>
               <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email" autoFocus={isWide}/>
               <label style={AS.label}>Password</label>
-              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', showPw, setShowPw)}
+              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password')}
               <label style={AS.label}>Confirm password</label>
-              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', showPw2, setShowPw2)}
+              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password')}
               <div style={AS.note}>
                 <span>↻</span>
                 <span><b>You'll set up a recovery secret next.</b> That protects your data if you ever forget your password.</span>
@@ -507,9 +484,9 @@ function AuthScreens({ supabase, addToast, setAuthFlowBusy, onUnlocked, startInP
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Choose a new password for your account.</div>
             <form onSubmit={e=>{e.preventDefault(); handleSetNewPassword();}}>
               <label style={AS.label}>New password</label>
-              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', showPw, setShowPw, isWide)}
+              {pwField(password, e=>setPassword(e.target.value), 'At least 8 characters', 'new-password', isWide)}
               <label style={AS.label}>Confirm new password</label>
-              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password', showPw2, setShowPw2)}
+              {pwField(password2, e=>setPassword2(e.target.value), '••••••••', 'new-password')}
               {error && <div style={AS.err}>{error}</div>}
               <button type="submit" style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy}>{busy?'Saving…':'Set new password'}</button>
             </form>
