@@ -81,13 +81,33 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
               ))}
             </SegSlider>
 
-            {carmsOutstanding.groups.map(g=>{
-              const visibleItems = g.items.filter(it => {
+            {(()=>{
+              const matchesFilter = it => {
                 if (carmsFilter==='ot') return it.otOutstanding;
                 if (carmsFilter==='pa') return it.paOutstanding;
                 if (carmsFilter==='toil') return it.toilOutstanding;
                 return true;
-              });
+              };
+              const anyVisible = carmsOutstanding.groups.some(g=>g.items.some(matchesFilter));
+              // Something's outstanding overall (we're already past the
+              // groups.length===0 branch above) but nothing matches THIS
+              // filter — without this, the list below just silently
+              // renders nothing, which reads as a bug rather than "there's
+              // simply no PA outstanding right now."
+              if (!anyVisible) {
+                const filterLbl = carmsFilter==='ot'?'Overtime':carmsFilter==='pa'?'PA':'TOIL';
+                return (
+                  <div style={{textAlign:'center',padding:'20px 10px 24px'}}>
+                    <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
+                      <Ico n="check" s={18} c={BRASS} w={2.3}/>
+                    </div>
+                    <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>Nothing outstanding for {filterLbl}</div>
+                    <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Other categories still have claims — switch filters above to see them</div>
+                  </div>
+                );
+              }
+              return carmsOutstanding.groups.map(g=>{
+              const visibleItems = g.items.filter(matchesFilter);
               if (visibleItems.length===0) return null;
               const visibleTotalLabel = (() => {
                 if (carmsFilter==='toil') return `${visibleItems.reduce((s,it)=>s+it.toilHrs,0).toFixed(1)}h`;
@@ -169,7 +189,8 @@ export function TabCarms({ S, MONO, BRASS, isWide, carmsOutstanding, carmsFilter
                   </div>
                 </div>
               );
-            })}
+              });
+            })()}
           </div>
         )}
       </div>
