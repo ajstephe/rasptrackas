@@ -4,6 +4,14 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=5.0,user-scalable=yes,viewport-fit=cover"/>
     <meta name="theme-color" content="#0f2744"/>
+    <!-- Tells the browser this page genuinely supports both schemes and to
+         pick per the OS preference by default — without it, some browsers
+         (notably iOS Safari for an installed/home-screen PWA, which this is)
+         don't reliably follow prefers-color-scheme at all. The CSS
+         color-scheme property below does the same job for engines that
+         read it there instead; :root[data-theme] overrides both once the
+         user picks Light/Dark explicitly in Options. -->
+    <meta name="color-scheme" content="light dark"/>
 
     <!-- Standalone/installed-app behaviour: apple-mobile-web-app-capable covers
          iOS Safari's "Add to Home Screen"; mobile-web-app-capable is the modern,
@@ -36,6 +44,7 @@
          the artifact-design light/dark pattern used for the app's own
          mockups. */
       :root{
+        color-scheme: light dark;
         --page-bg:#e2e8f0;
         --surface:#ffffff;
         --surface-2:#f8fafc;
@@ -99,7 +108,11 @@
           --text-blue-deep:#a8c5f0;
         }
       }
+      :root[data-theme="light"]{
+        color-scheme: light;
+      }
       :root[data-theme="dark"]{
+        color-scheme: dark;
         --page-bg:#0b1220;
         --surface:#111c2e;
         --surface-2:#0e1726;
