@@ -207,11 +207,12 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                         the ring itself is also bigger now than it was. ── */}
                     <button
                       disabled={!carmsSelectMode}
+                      className={carmsSelectMode?'tap-anchor':undefined}
                       onClick={carmsSelectMode?()=>{
                         const rows = visibleItems.map(it=>({ id: it.entry.id, markers: required(it) }));
                         toggleCarmsGroup(rows);
                       }:undefined}
-                      style={{display:'flex',alignItems:'center',gap:'8px',padding:'6px 0',margin:'-6px 0',cursor:carmsSelectMode?'pointer':'default',background:'none',border:'none',color:'inherit',font:'inherit',textTransform:'inherit',letterSpacing:'inherit',touchAction:'manipulation'}}>
+                      style={{display:'flex',alignItems:'center',gap:'8px',padding:'6px 0',margin:'-6px 0',cursor:carmsSelectMode?'pointer':'default',background:'none',border:'none',color:'inherit',font:'inherit',textTransform:'inherit',letterSpacing:'inherit',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
                       {carmsSelectMode&&(
                         <span style={{width:'19px',height:'19px',borderRadius:'50%',border:`1.5px solid ${allDone?BRASS:'var(--quiet)'}`,background:allDone?BRASS:'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
                           {allDone&&<Ico n="check" s={11} c="#fff" w={3}/>}
@@ -262,22 +263,50 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                           {on&&<Ico n="check" s={13} c="#fff" w={3}/>}
                         </span>
                       );
-                      // Can't be a real <button> — it contains the four
-                      // toggle buttons above whenever select mode is active
-                      // (a <button> may not itself contain other
+                      // Below, each OT/PA/TOIL line renders as an actual
+                      // <button> only in select mode — outside it, it's a
+                      // plain <div>, not a disabled <button>. A disabled
+                      // button still occupies its full space but eats the
+                      // click entirely rather than letting it bubble
+                      // (disabled form controls don't dispatch — or
+                      // forward — click at all), which is exactly why
+                      // tapping this row anywhere except the reason/date
+                      // line above used to do nothing: every one of these
+                      // lines was a disabled button sitting on top of the
+                      // navigable area, silently swallowing the tap that
+                      // should have reached this row's own onClick below.
+                      //
+                      // Can't be a real <button> itself — it contains
+                      // those OT/PA/TOIL <button>s whenever select mode is
+                      // active (a <button> may not itself contain other
                       // interactive content per HTML5). role="button" +
                       // tabIndex + Enter/Space is the standard alternative;
                       // both drop away entirely in select mode, when this
                       // row's own click handler is disabled anyway and the
                       // toggles above are the real interactive elements.
+                      //
+                      // "tap-row" (the global :active{transform:scale(0.975)}
+                      // press feedback) also drops away in select mode, for
+                      // a subtler reason: it squeezes the whole row toward
+                      // its own center the instant the mouse goes down. On
+                      // a row this wide, that shifts a ring sitting near the
+                      // left edge several px away from wherever the pointer
+                      // physically is — so on a real mouse (which doesn't
+                      // move mid-click the way a resting finger can) the
+                      // mouseup can land next to the ring instead of on it,
+                      // and no click ever fires even though the button
+                      // still visibly took focus. Outside select mode this
+                      // div *is* the tap target, so the squeeze is harmless;
+                      // in select mode it's inert and its children are the
+                      // real targets, so the squeeze only costs reliability.
                       return (
-                        <div key={it.entry.id} role={carmsSelectMode?undefined:'button'} tabIndex={carmsSelectMode?undefined:0} onClick={carmsSelectMode?undefined:goToEntry} onKeyDown={carmsSelectMode?undefined:(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goToEntry(); } }} className="claim-in tap-row" style={{display:'flex',alignItems:'flex-start',gap:'10px',paddingTop:isWide?'12px':'10px',paddingBottom:isWide?'12px':'10px',borderBottom:'1px solid var(--border-2)',cursor:carmsSelectMode?'default':'pointer',animationDelay:(Math.min(i,6)*55)+'ms',background:anySelected?'rgba(184,130,63,0.07)':'transparent',margin:anySelected?'0 -10px':0,paddingLeft:anySelected?'10px':0,paddingRight:anySelected?'10px':0,borderRadius:anySelected?'8px':0,touchAction:'manipulation'}}>
+                        <div key={it.entry.id} role={carmsSelectMode?undefined:'button'} tabIndex={carmsSelectMode?undefined:0} onClick={carmsSelectMode?undefined:goToEntry} onKeyDown={carmsSelectMode?undefined:(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goToEntry(); } }} className={carmsSelectMode?'claim-in':'claim-in tap-row'} style={{display:'flex',alignItems:'flex-start',gap:'10px',paddingTop:isWide?'12px':'10px',paddingBottom:isWide?'12px':'10px',borderBottom:'1px solid var(--border-2)',cursor:carmsSelectMode?'default':'pointer',animationDelay:(Math.min(i,6)*55)+'ms',background:anySelected?'rgba(184,130,63,0.07)':'transparent',margin:anySelected?'0 -10px':0,paddingLeft:anySelected?'10px':0,paddingRight:anySelected?'10px':0,borderRadius:anySelected?'8px':0,touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
                           <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',marginBottom:'6px'}}>
                             {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
                           </div>
-                          {mergeOtToil&&(
-                            <button disabled={!carmsSelectMode} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default',touchAction:'manipulation'}}>
+                          {mergeOtToil&&(()=>{ const Row = carmsSelectMode?'button':'div'; return (
+                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
                               {ring(otSelected)}
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
                               <div style={{display:'flex',alignItems:'center',gap:'4px',flexShrink:0}}>
@@ -289,35 +318,35 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                                 <div style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706'}}>{fmtGBP(it.otAmt)}</div>
                                 <div style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:700,color:'#7c3aed'}}>+ {it.toilHrs.toFixed(1)}h TOIL</div>
                               </div>
-                            </button>
-                          )}
-                          {showOt&&!mergeOtToil&&(
-                            <button disabled={!carmsSelectMode} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default',touchAction:'manipulation'}}>
+                            </Row>
+                          ); })()}
+                          {showOt&&!mergeOtToil&&(()=>{ const Row = carmsSelectMode?'button':'div'; return (
+                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
                               {ring(otSelected)}
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
                               {catChip('ot')}
                               <span style={{fontSize:isWide?'13px':'11.5px',fontWeight:700,color:'var(--ink)'}}>Overtime</span>
                               <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
-                            </button>
-                          )}
-                          {showPa&&(
-                            <button disabled={!carmsSelectMode} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'pa'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default',touchAction:'manipulation'}}>
+                            </Row>
+                          ); })()}
+                          {showPa&&(()=>{ const Row = carmsSelectMode?'button':'div'; return (
+                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'pa'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
                               {ring(paSelected)}
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-pa')}</span>
                               {catChip('pa')}
                               <span style={{fontSize:isWide?'13px':'11.5px',fontWeight:700,color:'var(--ink)'}}>PA</span>
                               <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
-                            </button>
-                          )}
-                          {showToil&&!mergeOtToil&&(
-                            <button disabled={!carmsSelectMode} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default',touchAction:'manipulation'}}>
+                            </Row>
+                          ); })()}
+                          {showToil&&!mergeOtToil&&(()=>{ const Row = carmsSelectMode?'button':'div'; return (
+                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
                               {ring(otSelected)}
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-toil')}</span>
                               {catChip('toil')}
                               <span style={{fontSize:isWide?'13px':'11.5px',fontWeight:700,color:'var(--ink)'}}>TOIL</span>
                               <span style={{fontFamily:MONO,fontSize:isWide?'14.5px':'12.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
-                            </button>
-                          )}
+                            </Row>
+                          ); })()}
                           </div>
                         </div>
                       );
