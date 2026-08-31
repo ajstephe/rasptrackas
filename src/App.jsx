@@ -22,7 +22,7 @@ import {
   calcNI, estimateAnnualNI,
   computeTaxBandBreakdown, pensionTierRate, calcPensionContribution,
   getTaxBand, applyBandTax, splitAcrossBands,
-  monthlySteppedAmount, monthlySteppedSplitBySept, periodBaseAmount,
+  monthlySteppedAmount, monthlySteppedSplitBySept, periodBaseAmount, periodPensionablePay,
 } from './lib/tax.js';
 import { fmt, fmtHM, fmtGBP, fmtD, fmtRelTime } from './lib/format.js';
 import {
@@ -1508,6 +1508,7 @@ export default function App() {
     // into this year's cumulative, since this view has no visibility into
     // whatever else was earned earlier in that prior year.
     let cum = 0;
+    let cumPensionablePay = 0; // running salary+LW total, for the pension-tier lookup below
     let totalGross=0, totalHrs=0;
 
     // Computed once per entry rather than once per entry PER period — the
@@ -1562,9 +1563,25 @@ export default function App() {
         : daysInclusive(p.start, p.end);
       const yearFraction = Math.max(1/365, Math.min(1, daysForFraction/365));
 
+      // Pension comes off pensionable pay (salary + London Weighting only —
+      // never London Allowance, overtime, or PA) BEFORE income tax is
+      // worked out — a "net pay arrangement", exactly as the Tax & 100K+
+      // Calculator already treats it. The cumulative total below drives
+      // every Net figure in the app (Home, Summary, both exports), so it
+      // needs the same deduction — without it, overtime gets judged
+      // against a taxable total that's higher than it really is. The tier
+      // is read from this period's own annualised-cumulative pensionable
+      // pay, the same "best current estimate" approach
+      // calcPensionContribution already uses everywhere else.
+      const pensionablePayThisPeriod = periodPensionablePay(p, svcData);
+      const cumPensionablePayAfter = (inCurrentTaxYear ? cumPensionablePay : 0) + pensionablePayThisPeriod;
+      const pensionRate = pensionTierRate(cumPensionablePayAfter / yearFraction);
+      const periodPension = pensionablePayThisPeriod * pensionRate;
+      if (inCurrentTaxYear) cumPensionablePay = cumPensionablePayAfter;
+
       let periodCum = inCurrentTaxYear ? cum : 0; // fresh start for a prior-tax-year period
-      periodCum += baseAmt;                        // taxed first, so OT stacks on top of it
-      let pGross = baseAmt;                         // this period's gross so far, for NI (unaffected by the tax-year split — NI has no annual concept)
+      periodCum += baseAmt - periodPension;         // taxed first (net of pension), so OT stacks on top of it
+      let pGross = baseAmt;                         // this period's gross so far, for NI (unaffected by pension — NI never accounts for it — or by the tax-year split — NI has no annual concept)
 
       const otResult    = applyBandTax(periodCum, ot,    yearFraction, pGross); periodCum += ot;    pGross += ot;
       const nightResult = applyBandTax(periodCum, night, yearFraction, pGross); periodCum += night; pGross += night;
@@ -1577,6 +1594,7 @@ export default function App() {
       return {
         month:p.month, start:p.start, end:p.end,
         baseAmt, ot, night, pa,
+        pensionablePayThisPeriod, pensionRate, periodPension,
         otResult, nightResult, paResult,
         combinedGross: ot+night+pa,
         combinedNet: otResult.net+nightResult.net+paResult.net,
@@ -1678,17 +1696,26 @@ export default function App() {
     // would overstate how much of the tax year has elapsed and understate
     // every YTD-based figure below.
     const taxYearFraction = Math.max(1/365, Math.min(1, taxYearDaysElapsed/365));
-    const ytdTax = calcUKIncomeTax(combinedGrossYTD, taxYearFraction);
+    // Pension comes off pensionable pay (salary + London Weighting only)
+    // before income tax is worked out, same as everywhere else pension is
+    // handled in this file — without it, this YTD tax figure (and the Net
+    // YTD it feeds, surfaced on the spreadsheet export's summary row)
+    // would judge earnings against a taxable total that's higher than it
+    // really is, the same gap periodBreakdown's own cumulative used to have.
+    const pensionYTD = calcPensionContribution(salaryYTD + lwYTD, taxYearFraction);
+    const taxableGrossYTD = Math.max(0, combinedGrossYTD - pensionYTD.amount);
+    const ytdTax = calcUKIncomeTax(taxableGrossYTD, taxYearFraction);
     // NI is assessed per pay period in isolation (no annual concept), so sum
     // only the periods that actually fall within the current UK tax year —
     // slicing by pay-period position would pull in periods 1-2 of the pay
     // year, which run 9 Feb – ~5 Apr and belong to the previous tax year.
+    // Unaffected by pension — NI never accounts for it.
     const ytdNI = periodBreakdown
       .filter(pb => pb.end >= taxYearStart && pb.start <= todayStr)
       .reduce((s,pb)=>s + calcNI(pb.baseAmt + pb.ot + pb.night + pb.pa), 0);
-    const combinedNetYTD = combinedGrossYTD - ytdTax - ytdNI;
+    const combinedNetYTD = combinedGrossYTD - pensionYTD.amount - ytdTax - ytdNI;
 
-    const currentBand   = getTaxBand(combinedGrossYTD, taxYearFraction);
+    const currentBand   = getTaxBand(taxableGrossYTD, taxYearFraction);
     const taxBand        = currentBand.name;
     const taxBandRate    = currentBand.rate;
 
@@ -2051,7 +2078,14 @@ export default function App() {
     const pIdx = PAY_PERIODS.findIndex(p=>d>=p.start&&d<=p.end);
     const pb = pIdx>=0 ? totals.periodBreakdown[pIdx] : null;
     const periodGrossBefore = pb ? pb.baseAmt + pb.ot + pb.night + pb.pa : 0;
-    const result = applyBandTax(totals.combinedGrossYTD, gross, taxYearFractionForDate(d), periodGrossBefore);
+    // pb.cumAfter is the correct, sequential, already-pension-adjusted
+    // cumulative through the end of the shift's OWN period — unlike
+    // combinedGrossYTD (bounded by today), it can't leak in money from
+    // later periods when this shift is backdated to an earlier one, e.g.
+    // logging a missed shift from last month after this month's overtime
+    // has already been submitted.
+    const cumulativeBefore = pb ? pb.cumAfter : 0;
+    const result = applyBandTax(cumulativeBefore, gross, taxYearFractionForDate(d), periodGrossBefore);
     return { gross, net:result.net, night, toilBanked, has:gross>0||toilBanked>0 };
   },[form, settings, todayStr, totals.combinedGrossYTD, totals.periodBreakdown, currPeriodIdx]);
 
@@ -3312,10 +3346,12 @@ export default function App() {
 
     // Pension — same principle as the Home £100k Tax Calculator: pensionable
     // pay is basic salary + London Weighting only (overtime/PA/London
-    // Allowance are all non-pensionable), the tier is judged on the
-    // annualised YTD-through-this-report rate, and the contribution comes
-    // off pay BEFORE income tax, which is why it reduces the taxable
-    // cumulative baseline below — but never National Insurance.
+    // Allowance are all non-pensionable), and the tier is judged on the
+    // annualised YTD-through-this-report rate. Kept here purely for the
+    // "Pension Contribution (this period)" line the PDF itself displays —
+    // the tax-banding cumulative below no longer needs a separate pension
+    // subtraction, since periodBreakdown's own cumAfter (used there) is
+    // already pension-net.
     const svcData = settings.rank && settings.service ? PAY_RATES[settings.rank]?.[settings.service] : null;
     const tyFracForEnd = taxYearFractionForDate(end);
     const pensionablePayYTDThroughEnd = svcData
@@ -3325,12 +3361,19 @@ export default function App() {
       ? monthlySteppedSplitBySept(svcData.salary.pre, svcData.salary.post, effectiveStart, end) + monthlySteppedSplitBySept(LONDON_WEIGHTING.pre, LONDON_WEIGHTING.post, effectiveStart, end)
       : 0;
     const pensionRate = pensionTierRate(pensionablePayYTDThroughEnd / tyFracForEnd);
-    const pensionYTDThroughEnd = pensionablePayYTDThroughEnd * pensionRate;
     const pensionForRange = pensionablePayForRange * pensionRate;
 
     const endIdx = PAY_PERIODS.findIndex(p=>end>=p.start&&end<=p.end);
     const pb = endIdx>=0 ? totals.periodBreakdown[endIdx] : null;
-    const cumulativeBefore = Math.max(0, totals.combinedGrossYTD - gross - pensionYTDThroughEnd);
+    // pb.cumAfter is the correct, sequential, already-pension-adjusted
+    // running total through the END of this exact period — built by
+    // walking periods strictly in order, so (unlike combinedGrossYTD,
+    // which is bounded by "today") it never includes money from periods
+    // after this one. Backing out this report's own gross gets to
+    // "cumulative just after this period's own base salary, before its
+    // overtime" — the same anchor point periodBreakdown itself uses
+    // before layering OT/night/PA on top.
+    const cumulativeBefore = pb ? Math.max(0, pb.cumAfter - pb.combinedGross) : 0;
     const periodGrossBefore = pb ? Math.max(0, (pb.baseAmt+pb.ot+pb.night+pb.pa) - gross) : 0; // NI stays on full gross, unaffected by pension
     const result = applyBandTax(cumulativeBefore, gross, tyFracForEnd, periodGrossBefore);
     const r = getRates(settings.rank, settings.service, end);
