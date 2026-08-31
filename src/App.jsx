@@ -1042,6 +1042,16 @@ export default function App() {
       // gone from the server now — genuinely deleted elsewhere, drop it.
     }
     for (const [id, remoteItem] of remoteMap) {
+      // A remote-only row this device's lastSyncedRef already knows about
+      // isn't a new row from elsewhere — it's one THIS device deleted
+      // locally, whose soft-delete push (deliberately no retry queue, see
+      // pushRowChanges above) just hasn't landed on the server yet. Pulling
+      // in that exact gap — a realtime reconnect, or tapping Sync right
+      // after deleting something — used to resurrect it here and re-mark it
+      // synced, undoing the deletion for good. A genuinely new row from
+      // another device was never in this device's lastSyncedRef to begin
+      // with, so this only skips the case it's meant to.
+      if (lastSyncedRef.current.has(id)) continue;
       merged.push(remoteItem);
       lastSyncedRef.current.set(id, JSON.stringify(remoteItem));
     }
@@ -2747,10 +2757,38 @@ export default function App() {
     haptic();
     await supabase.auth.signOut();
     setDataKey(null);
+    // App() never remounts across a sign-out/sign-in — same component
+    // instance, same in-memory state — and entries/toilTaken/settings are
+    // only ever seeded from localStorage once, on that first mount. Without
+    // clearing all of it here, explicitly, this device's next sign-in (same
+    // person or, on a shared device, someone else entirely) would start from
+    // whatever this account left behind rather than a clean pull of their
+    // own data — recent items eventually self-correct once that pull
+    // reconciles against the new account's own cloud copy, but anything
+    // already past the cloud retention window has no cloud copy left to
+    // reconcile against, so it would otherwise linger here permanently,
+    // silently mixed into whoever signs in next. Safe to do unconditionally:
+    // this account's real data was never at risk — Supabase is the actual
+    // source of truth this device re-pulls from on its own next sign-in.
+    setEntries([]);
+    setToilTaken([]);
+    setSettings({ rank:'', service:'' });
+    lastSyncedEntriesRef.current = new Map();
+    lastSyncedToilRef.current = new Map();
+    lastSyncedSettingsRef.current = null;
+    persistLastSyncedEntries();
+    persistLastSyncedToil();
+    persistLastSyncedSettings();
+    dualWrite(KEYS.entries, []);
+    dualWrite(KEYS.toilTaken, []);
+    dualWrite(KEYS.settings, null);
+    dualWrite(KEYS.lastSyncedAt, null);
+    dualWrite(KEYS.lastCloudPruneCheck, null);
+    setLastSyncedAt(null);
     addToast('Signed out', 'success');
-    // No manual state changes needed — onAuthStateChange (in the effect above)
-    // picks this up and clears session automatically, which sends the app
-    // straight back to the sign-in gate.
+    // No further manual state changes needed — onAuthStateChange (in the
+    // effect above) picks up the sign-out and clears session automatically,
+    // which sends the app straight back to the sign-in gate.
   };
 
   // Permanently deletes the Supabase Auth account itself — not just this
