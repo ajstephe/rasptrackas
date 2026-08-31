@@ -51,12 +51,12 @@ export function TabDashboard({
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:'2px'}}>
           <div style={{display:'flex',alignItems:'center',gap:compact?'10px':'12px'}}>
             <div style={{background:'var(--tint-green-2)',padding:compact?'8px':'9px',borderRadius:compact?'10px':'11px',flexShrink:0}}><Ico n="cash" s={compact?16:17} c="#15803d"/></div>
-            {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 ("Black")
-                cut at all, so a 900 request here was silently rendering as
-                700 anyway (confirmed by rasterizing both and diffing pixels:
-                zero difference). This just makes the code say what's
-                actually on screen. */}
-            <span style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'}}>Net pay · this period</span>
+            {/* Matches the plain-text header style every other row in this
+                card uses (Current pay period / TOIL balance / CARMS &
+                MetHR outstanding, below) — this was the one header still
+                set as a small uppercase mono eyebrow instead, which read
+                as a different kind of label sitting in the same list. */}
+            <span style={{fontSize:compact?'12px':'13px',fontWeight:700,color:'var(--ink)'}}>Net pay · this period</span>
           </div>
           <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}</span>
         </div>
