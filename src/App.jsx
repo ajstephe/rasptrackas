@@ -716,7 +716,16 @@ export default function App() {
   // a phone in landscape stays under the 960px desktop threshold and just
   // shows the narrow 430px mobile column centred in a lot of empty grey
   // space either side, rather than actually using the width it has.
-  const computeIsWide = () => window.innerWidth>=960 || (window.innerWidth>window.innerHeight && window.innerWidth>=650);
+  // The landscape carve-out used to fire from 650px — but the wide shell
+  // itself (fixed 250px sidebar + fixed 320px "at a glance" panel, neither
+  // of which shrinks) genuinely needs close to the full 960px before
+  // there's anything usable left for the middle column. Below that, main
+  // content was measured as narrow as 108px wide, with real numbers
+  // clipped mid-figure. 900px is the verified floor — confirmed clean on
+  // Home/Summary/Settings at 900-950px, still visibly cramped at 850px
+  // and clipped outright below that — so the carve-out now only kicks in
+  // where the layout actually has room, rather than 300+px earlier.
+  const computeIsWide = () => window.innerWidth>=960 || (window.innerWidth>window.innerHeight && window.innerWidth>=900);
   const [isWide, setIsWide] = useState(()=>typeof window!=='undefined' && computeIsWide());
   useEffect(()=>{
     const onResize = () => setIsWide(computeIsWide());
@@ -3124,7 +3133,7 @@ export default function App() {
   const S={
     wrap: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'var(--page-bg)',fontFamily:"'DM Sans',system-ui,sans-serif",color:'var(--ink)',position:'relative',boxShadow:'0 0 60px rgba(0,0,0,0.14)',overflow:'hidden'},
     hdr:  {background:'var(--surface)',paddingTop:'calc(13px + env(safe-area-inset-top))',paddingRight:'18px',paddingBottom:'13px',paddingLeft:'18px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,zIndex:10},
-    main: {flex:1,overflowY:'auto',overflowX:'hidden',overscrollBehaviorY:'contain',minWidth:0,scrollbarWidth:prefersCoarsePointer()?'none':'auto',msOverflowStyle:'none'},
+    main: {flex:1,overflowY:'auto',overflowX:'hidden',overscrollBehaviorY:'contain',minWidth:0,scrollbarWidth:prefersCoarsePointer()?'none':'thin',msOverflowStyle:'none'},
     nav:  {background:'rgba(var(--surface-rgb),0.72)',backdropFilter:'blur(20px) saturate(1.5)',WebkitBackdropFilter:'blur(20px) saturate(1.5)',borderTop:'1px solid var(--border-2)',position:'absolute',bottom:0,width:'100%',paddingTop:'7px',paddingRight:'4px',paddingBottom:'calc(12px + env(safe-area-inset-bottom))',paddingLeft:'4px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
     nBtn: (a,add)=>({flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',padding:add?'9px 4px':'6px 4px',background:'transparent',color:add?'#10b981':a?BRASS:'var(--quiet)',borderRadius:add?'13px':'8px',border:'none',cursor:'pointer',transition:'all 0.18s',fontFamily:'inherit',boxShadow:'none'}),
     nLbl: {fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.5px',whiteSpace:'nowrap'},
@@ -3464,6 +3473,22 @@ export default function App() {
            (already thin, already auto-hiding) scrollbar instead. */
         @media (hover:none), (pointer:coarse){
           ::-webkit-scrollbar{display:none}
+        }
+        /* Chromium already dark-themes the OS-default scrollbar for free
+           via the color-scheme meta tag in index.html, so restoring native
+           scrollbars above was never actually broken in dark mode — this
+           is pure polish, not a fix. A thin brass-tinted thumb matching
+           the rest of the navy/brass system reads more deliberate than
+           leaning on the browser's generic (if theme-aware) default.
+           Desktop/mouse only — the coarse-pointer query above already owns
+           touch devices, and Firefox's scrollbar-color property degrades
+           harmlessly to its own default where unsupported. */
+        @media (hover:hover) and (pointer:fine){
+          ::-webkit-scrollbar{width:10px;height:10px}
+          ::-webkit-scrollbar-track{background:transparent}
+          ::-webkit-scrollbar-thumb{background:rgba(184,130,63,0.35);border-radius:20px;border:2px solid transparent;background-clip:padding-box}
+          ::-webkit-scrollbar-thumb:hover{background:rgba(184,130,63,0.55);background-clip:padding-box}
+          *{scrollbar-width:thin;scrollbar-color:rgba(184,130,63,0.35) transparent}
         }
         @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         /* ── directional tab entrance — same fade, sliding in from whichever
