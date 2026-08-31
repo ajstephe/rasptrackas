@@ -266,8 +266,19 @@ export function TabLogOvertime({
             return (
               <div style={{background:'#6d28d9',border:'none',borderRadius:'13px',padding:'14px 13px',marginTop:showTwoCol?0:'13px'}}>
                 <div style={{fontSize:'10px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'13px'}}>Take Overtime As</div>
+                {/* This card and its sliding pill are hardcoded colours
+                    (purple card, white pill) that never move with theme —
+                    a deliberate branded accent, not an oversight. The
+                    three labels need the same treatment: 'toil' was
+                    already a literal, but 'pay' and 'mix' used to read
+                    var(--text-blue-deep)/var(--muted), which are tuned for
+                    text on a page background, not this fixed white pill.
+                    In dark mode that put a pale blue (#a8c5f0) meant for
+                    dark backgrounds directly on white — 1.76:1 contrast,
+                    badly under the 4.5:1 AA floor. Hardcoded now, same as
+                    'toil' already was. */}
                 <SegSlider activeKey={form.takeAs} trackStyle={{display:'flex',gap:'6px',background:'rgba(0,0,0,0.18)',borderRadius:'11px',padding:'3px'}} indicatorStyle={{background:'#fff',borderRadius:'9px',boxShadow:'0 2px 6px rgba(0,0,0,0.25)'}}>
-                  {[['pay','Pay','var(--text-blue-deep)'],['toil','TOIL','#6d28d9'],['mix','Mix','var(--muted)']].map(([m,lbl,col])=>(
+                  {[['pay','Pay','#1e40af'],['toil','TOIL','#6d28d9'],['mix','Mix','#475569']].map(([m,lbl,col])=>(
                     <button key={m} data-seg-key={m} onClick={()=>setForm(f=>{
                       const t = parseFloat(f[tier])||0;
                       const th = m==='pay' ? 0 : m==='toil' ? t : (parseFloat(f.toilHours)||0);
