@@ -2739,6 +2739,87 @@ export default function App() {
     }
   };
 
+  // ── pull-to-refresh ──────────────────────────────────────────────────────
+  // S.main already sets overscrollBehaviorY:'contain' so the browser's own
+  // native pull-to-refresh never fires from inside the app — good (it would
+  // reload the whole page), but it left pulling down from the top as dead
+  // space that did nothing. This wires that same gesture to the existing
+  // manual sync instead, rather than just continuing to eat it silently.
+  // Same non-passive-touchmove + rubber-band technique as the calendar
+  // swipe and swipe-to-delete elsewhere in the app.
+  //
+  // Only meaningful once signed in (there's nothing to pull from
+  // otherwise), so the gesture is simply inert without a session rather
+  // than nagging with a "not signed in" toast on every idle pull. Reads
+  // session/manualSyncing/handleManualSync through refs, kept fresh every
+  // render below, so the listener (attached once, since mainRef's node
+  // itself never remounts between tab switches) never acts on stale
+  // values from whichever render happened to be current when it mounted.
+  const sessionRef = useRef(session);
+  useEffect(()=>{ sessionRef.current = session; },[session]);
+  const manualSyncingRef = useRef(manualSyncing);
+  useEffect(()=>{ manualSyncingRef.current = manualSyncing; },[manualSyncing]);
+  const handleManualSyncRef = useRef(handleManualSync);
+  useEffect(()=>{ handleManualSyncRef.current = handleManualSync; });
+  const [pullY, setPullY] = useState(0);
+  const PULL_TRIGGER = 64, PULL_MAX = 92;
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const state = { active:false, startY:0, armed:false };
+    const onStart = (ev) => {
+      // Only ever starts a pull from already scrolled-to-top — anywhere
+      // else, a downward drag is just an ordinary scroll.
+      if (!sessionRef.current || manualSyncingRef.current || el.scrollTop > 0) { state.active = false; return; }
+      state.active = true; state.startY = ev.touches[0].clientY; state.armed = false;
+    };
+    const onMove = (ev) => {
+      if (!state.active) return;
+      const dy = ev.touches[0].clientY - state.startY;
+      if (dy <= 0 || el.scrollTop > 0) { state.active = false; setPullY(0); return; }
+      ev.preventDefault();
+      const damped = Math.min(PULL_MAX, dy * 0.5);
+      setPullY(damped);
+      // A short tap the instant the pull crosses the trigger distance —
+      // the same "it's armed now" tactile cue iOS gives when a pull-to-
+      // refresh is about to fire, rather than only finding out on release.
+      const nowArmed = damped >= PULL_TRIGGER;
+      if (nowArmed && !state.armed) haptic();
+      state.armed = nowArmed;
+    };
+    const onEnd = () => {
+      if (!state.active) return;
+      state.active = false;
+      if (state.armed) {
+        // Holds the indicator open at the trigger height through the
+        // actual sync (the effect below drops it once manualSyncing
+        // resolves) rather than snapping shut immediately on release and
+        // leaving the sync happen with no visible indicator of its own —
+        // the header/sidebar Sync button also spins throughout, same as
+        // it would for a manual tap, this is just the second cue.
+        setPullY(PULL_TRIGGER);
+        handleManualSyncRef.current();
+      } else {
+        setPullY(0);
+      }
+    };
+    el.addEventListener('touchstart', onStart, { passive:true });
+    el.addEventListener('touchmove', onMove, { passive:false });
+    el.addEventListener('touchend', onEnd, { passive:true });
+    el.addEventListener('touchcancel', onEnd, { passive:true });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
+  }, []);
+  // Drops the held-open indicator once the pull-triggered sync actually
+  // finishes (manualSyncing flips back to false) — see onEnd above. Runs
+  // harmlessly on every other manualSyncing transition too (a plain tap
+  // on the Sync button, mount) since pullY is already 0 in those cases.
+  useEffect(() => { if (!manualSyncing) setPullY(0); }, [manualSyncing]);
+
   // Scrolls the main container so a month card sits just below the sticky
   // header. The header's height is measured live (it changes between views,
   // since the month pills are only present in List View), so the card is
@@ -3504,7 +3585,17 @@ export default function App() {
            viewport, and stay put regardless of main's own internal scroll
            (this row itself never scrolls — only <main> does, internally). ── */}
       <div ref={contentWrapRef} style={{display:'flex',flex:1,overflow:'hidden',position:'relative'}}>
-      <main ref={mainRef} className="no-print" style={S.main}>
+      {/* pull-to-refresh indicator — sits in the gap main's own paddingTop
+           opens up below, rather than needing main itself to be a
+           positioning context. Fades in with the pull, spins throughout
+           (same .tab-spinner used for the tab-chunk loading spinner) —
+           see the gesture handlers above for the actual drag logic. */}
+      {pullY>0&&(
+        <div className="no-print" style={{position:'absolute',top:0,left:0,right:0,height:pullY+'px',display:'flex',alignItems:'flex-end',justifyContent:'center',paddingBottom:'12px',pointerEvents:'none',zIndex:5}}>
+          <div className="tab-spinner" style={{width:'22px',height:'22px',borderWidth:'2.5px',opacity:Math.min(1,pullY/PULL_TRIGGER)}}/>
+        </div>
+      )}
+      <main ref={mainRef} className="no-print" style={{...S.main, paddingTop:pullY||undefined, transition:pullY?'none':'padding-top 0.25s cubic-bezier(.32,.72,0,1)'}}>
       <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'50vh'}}><div className="tab-spinner"/></div>}>
 
         {/* ══════════════════════════════════════════ DASHBOARD */}
