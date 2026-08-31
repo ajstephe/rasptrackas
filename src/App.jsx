@@ -2820,8 +2820,19 @@ export default function App() {
   const [pullArmed, setPullArmed] = useState(false);
   const PULL_TRIGGER = 64, PULL_MAX = 92;
   useEffect(() => {
-    const el = mainRef.current;
-    if (!el) return;
+    // mainRef.current is reliably null on this effect's first (and, with
+    // an empty dep array, ONLY) run: <main> itself only renders once past
+    // the authLoading/AuthScreens gates further down, which resolve
+    // asynchronously (a real network round-trip to Supabase) well after
+    // this component's first commit. Bailing out here unconditionally, as
+    // this used to, meant the listeners were never attached for anyone
+    // going through a real sign-in — it only looked like it worked in
+    // local-only/no-Supabase testing, where <main> happens to already
+    // exist by the time this runs. Same MutationObserver wait-for-mount
+    // technique as useFocusTrap.js, for the identical reason.
+    let cleanedUp = false;
+    let el = null;
+    let observer = null;
     const state = { active:false, startY:0, armed:false };
     const onStart = (ev) => {
       // Only ever starts a pull from already scrolled-to-top — anywhere
@@ -2863,15 +2874,31 @@ export default function App() {
       }
       setPullArmed(false);
     };
-    el.addEventListener('touchstart', onStart, { passive:true });
-    el.addEventListener('touchmove', onMove, { passive:false });
-    el.addEventListener('touchend', onEnd, { passive:true });
-    el.addEventListener('touchcancel', onEnd, { passive:true });
+    const attach = () => {
+      if (cleanedUp || el) return;
+      el = mainRef.current;
+      if (!el) return;
+      if (observer) { observer.disconnect(); observer = null; }
+      el.addEventListener('touchstart', onStart, { passive:true });
+      el.addEventListener('touchmove', onMove, { passive:false });
+      el.addEventListener('touchend', onEnd, { passive:true });
+      el.addEventListener('touchcancel', onEnd, { passive:true });
+    };
+    attach();
+    if (!el) {
+      observer = new MutationObserver(attach);
+      observer.observe(document.body, { childList:true, subtree:true });
+    }
+
     return () => {
-      el.removeEventListener('touchstart', onStart);
-      el.removeEventListener('touchmove', onMove);
-      el.removeEventListener('touchend', onEnd);
-      el.removeEventListener('touchcancel', onEnd);
+      cleanedUp = true;
+      if (observer) observer.disconnect();
+      if (el) {
+        el.removeEventListener('touchstart', onStart);
+        el.removeEventListener('touchmove', onMove);
+        el.removeEventListener('touchend', onEnd);
+        el.removeEventListener('touchcancel', onEnd);
+      }
     };
   }, []);
   // Drops the held-open indicator once the pull-triggered sync actually
