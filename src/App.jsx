@@ -2804,6 +2804,14 @@ export default function App() {
   const handleManualSyncRef = useRef(handleManualSync);
   useEffect(()=>{ handleManualSyncRef.current = handleManualSync; });
   const [pullY, setPullY] = useState(0);
+  // Exposed as real state (rather than only the gesture's own internal
+  // `state.armed`) so the indicator below can actually render the two
+  // phases distinctly — a plain "still pulling" look isn't the same
+  // affordance as "let go now", and the only way to tell those apart
+  // before was a single haptic tap, which iOS Safari can't produce at all
+  // (no Vibration API there — Android Chrome only). The visual state
+  // needs to carry the full story on its own, not lean on that.
+  const [pullArmed, setPullArmed] = useState(false);
   const PULL_TRIGGER = 64, PULL_MAX = 92;
   useEffect(() => {
     const el = mainRef.current;
@@ -2818,15 +2826,18 @@ export default function App() {
     const onMove = (ev) => {
       if (!state.active) return;
       const dy = ev.touches[0].clientY - state.startY;
-      if (dy <= 0 || el.scrollTop > 0) { state.active = false; setPullY(0); return; }
+      if (dy <= 0 || el.scrollTop > 0) { state.active = false; setPullY(0); setPullArmed(false); return; }
       ev.preventDefault();
       const damped = Math.min(PULL_MAX, dy * 0.5);
       setPullY(damped);
       // A short tap the instant the pull crosses the trigger distance —
       // the same "it's armed now" tactile cue iOS gives when a pull-to-
       // refresh is about to fire, rather than only finding out on release.
+      // Silently does nothing on iOS Safari (see haptics.js) — the label/
+      // icon flip below is what actually carries this there.
       const nowArmed = damped >= PULL_TRIGGER;
       if (nowArmed && !state.armed) haptic();
+      if (nowArmed !== state.armed) setPullArmed(nowArmed);
       state.armed = nowArmed;
     };
     const onEnd = () => {
@@ -2844,6 +2855,7 @@ export default function App() {
       } else {
         setPullY(0);
       }
+      setPullArmed(false);
     };
     el.addEventListener('touchstart', onStart, { passive:true });
     el.addEventListener('touchmove', onMove, { passive:false });
@@ -3650,12 +3662,30 @@ export default function App() {
       <div ref={contentWrapRef} style={{display:'flex',flex:1,overflow:'hidden',position:'relative'}}>
       {/* pull-to-refresh indicator — sits in the gap main's own paddingTop
            opens up below, rather than needing main itself to be a
-           positioning context. Fades in with the pull, spins throughout
-           (same .tab-spinner used for the tab-chunk loading spinner) —
-           see the gesture handlers above for the actual drag logic. */}
+           positioning context. Three states, not just a spinner: a
+           chevron + "Pull to sync" while still dragging, the chevron
+           flipped + "Release to sync" (brass, matching the haptic tap
+           that fires at the same instant on Android) once past the
+           trigger distance, then a spinner + "Syncing…" once actually
+           released and the sync itself is running. The label carries the
+           full state on its own since the haptic cue is Android-only —
+           iOS Safari has no Vibration API at all (haptics.js) — so this
+           can't lean on touch alone to say what's happening. Fades in
+           quickly (over the first ~24px) rather than waiting for the full
+           pull, so it doesn't read as "did that even register?" early on. */}
       {pullY>0&&(
-        <div className="no-print" style={{position:'absolute',top:0,left:0,right:0,height:pullY+'px',display:'flex',alignItems:'flex-end',justifyContent:'center',paddingBottom:'12px',pointerEvents:'none',zIndex:5}}>
-          <div className="tab-spinner" style={{width:'22px',height:'22px',borderWidth:'2.5px',opacity:Math.min(1,pullY/PULL_TRIGGER)}}/>
+        <div className="no-print" style={{position:'absolute',top:0,left:0,right:0,height:pullY+'px',display:'flex',alignItems:'flex-end',justifyContent:'center',gap:'7px',paddingBottom:'12px',pointerEvents:'none',zIndex:5,opacity:Math.min(1,pullY/24)}}>
+          {manualSyncing ? (
+            <>
+              <div className="tab-spinner" style={{width:'16px',height:'16px',borderWidth:'2.5px'}}/>
+              <span style={{fontSize:'11px',fontWeight:800,color:'var(--muted)'}}>Syncing…</span>
+            </>
+          ) : (
+            <>
+              <span style={{display:'flex',transition:'transform 0.2s ease',transform:pullArmed?'rotate(180deg)':'rotate(0deg)'}}><Ico n="cD" s={16} c={pullArmed?BRASS:'var(--quiet)'} w={2.5}/></span>
+              <span style={{fontSize:'11px',fontWeight:800,color:pullArmed?BRASS:'var(--muted)'}}>{pullArmed?'Release to sync':'Pull to sync'}</span>
+            </>
+          )}
         </div>
       )}
       <main ref={mainRef} className="no-print" style={{...S.main, paddingTop:pullY||undefined, transition:(pullY||prefersReducedMotion())?'none':'padding-top 0.25s cubic-bezier(.32,.72,0,1)'}}>
