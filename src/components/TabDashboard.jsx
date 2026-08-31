@@ -52,8 +52,8 @@ export function TabDashboard({
           <div style={{display:'flex',alignItems:'center',gap:compact?'10px':'12px'}}>
             <div style={{background:'var(--tint-green-2)',padding:compact?'8px':'9px',borderRadius:compact?'10px':'11px',flexShrink:0}}><Ico n="cash" s={compact?16:17} c="#15803d"/></div>
             {/* Matches the plain-text header style every other row in this
-                card uses (Current pay period / TOIL balance / CARMS &
-                MetHR outstanding, below) — this was the one header still
+                card uses (Current Pay Period / TOIL Balance / CARMS &
+                MetHR Outstanding, below) — this was the one header still
                 set as a small uppercase mono eyebrow instead, which read
                 as a different kind of label sitting in the same list. */}
             <span style={{fontSize:compact?'12px':'13px',fontWeight:700,color:'var(--ink)'}}>Net pay · this period</span>
@@ -320,7 +320,7 @@ export function TabDashboard({
           <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
-              <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Current pay period</div>
+              <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Current Pay Period</div>
             </div>
             <div style={{textAlign:'right'}}>
               <div style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{totals.curr.month}</div>
@@ -332,7 +332,7 @@ export function TabDashboard({
         <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
           <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
-            <div style={{fontSize:'13px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL balance{toilLedger.balance<0?' — overdrawn':''}</div>
+            <div style={{fontSize:'13px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL Balance{toilLedger.balance<0?' — overdrawn':''}</div>
           </div>
           <div style={{textAlign:'right'}}>
             <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>{fmtHM(toilLedger.balance)} h</div>
@@ -344,7 +344,7 @@ export function TabDashboard({
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
               <div>
-                <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR outstanding</div>
+                <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR Outstanding</div>
                 <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             </div>
@@ -403,7 +403,7 @@ export function TabDashboard({
         <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'14px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
           <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="clock" s={16} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
-            <div style={{fontSize:'12px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL balance{toilLedger.balance<0?' — overdrawn':''}</div>
+            <div style={{fontSize:'12px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL Balance{toilLedger.balance<0?' — overdrawn':''}</div>
           </div>
           <div style={{textAlign:'right'}}>
             <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>{fmtHM(toilLedger.balance)} h</div>
@@ -415,7 +415,7 @@ export function TabDashboard({
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
               <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
               <div>
-                <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR outstanding</div>
+                <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR Outstanding</div>
                 <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             </div>
