@@ -27,7 +27,7 @@ export function TabLogOvertime({
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:isWide?'14px':'calc(160px + env(safe-area-inset-bottom))'}}>
       <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'18px'}}>
-        {editing&&<button onClick={()=>{setEditing(null);setTab('months');}} style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="back" s={16}/></button>}
+        {editing&&<button onClick={()=>{setEditing(null);setTab('months');}} aria-label="Cancel editing" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="back" s={16}/></button>}
         <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>{editing?'Edit Record':'Log Overtime'}</h2>
       </div>
 

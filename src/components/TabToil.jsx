@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { fmtHM } from '../lib/format.js';
 import { Ico } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
@@ -10,6 +11,13 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
   // Counts up/down instead of jumping whenever the balance changes —
   // logging a TOIL shift or redeeming hours in the form below.
   const animatedBalance = useCountUp(toilLedger.balance);
+  // Deleting a redemption row used to go straight through on one tap —
+  // every other delete in the app (Summary entries, Wipe Data, Delete
+  // Account) asks first. deleteToilTaken itself still also offers an Undo
+  // toast afterwards (App.jsx), so this is belt-and-braces, not a
+  // replacement for it — just bringing this row in line with how
+  // destructive taps read everywhere else.
+  const [confirmDelId, setConfirmDelId] = useState(null);
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',marginBottom:'14px',letterSpacing:'-0.5px'}}>TOIL</h2>
@@ -96,11 +104,17 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
             <div style={{fontSize:'13.5px',fontWeight:700,color:'var(--muted)'}}>{l.note}</div>
             <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'4px'}}>
               <span style={{fontSize:'11.5px',color:'var(--quiet)'}}>{new Date(l.date+'T12:00:00').toLocaleDateString('en-GB')}</span>
-              {l.type==='taken'&&(
-                <button onClick={()=>deleteToilTaken(l.rawId)} style={{flexShrink:0,display:'flex',alignItems:'center',gap:'3px',background:'var(--surface)',border:'1.5px solid var(--border-2)',borderRadius:'7px',padding:'3px 7px',color:'#dc2626',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>
+              {l.type==='taken'&&(confirmDelId===l.rawId ? (
+                <span style={{display:'flex',alignItems:'center',gap:'5px'}}>
+                  <span style={{fontSize:'10.5px',fontWeight:700,color:'#dc2626'}}>Remove?</span>
+                  <button onClick={()=>{ setConfirmDelId(null); deleteToilTaken(l.rawId); }} aria-label="Confirm remove" style={{flexShrink:0,background:'#dc2626',border:'none',borderRadius:'7px',padding:'3px 8px',color:'#fff',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>Yes</button>
+                  <button onClick={()=>setConfirmDelId(null)} aria-label="Cancel remove" style={{flexShrink:0,background:'var(--surface)',border:'1.5px solid var(--border-2)',borderRadius:'7px',padding:'3px 8px',color:'var(--muted)',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>No</button>
+                </span>
+              ) : (
+                <button onClick={()=>setConfirmDelId(l.rawId)} aria-label="Remove this TOIL redemption" style={{flexShrink:0,display:'flex',alignItems:'center',gap:'3px',background:'var(--surface)',border:'1.5px solid var(--border-2)',borderRadius:'7px',padding:'3px 7px',color:'#dc2626',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>
                   <Ico n="trash" s={10} c="#dc2626"/> Remove
                 </button>
-              )}
+              ))}
             </div>
           </div>
           <div style={{textAlign:'right',flexShrink:0}}>
