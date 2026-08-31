@@ -7,6 +7,7 @@ import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { SegSlider } from './SegSlider.jsx';
 import { useMountTransition } from '../lib/useMountTransition.js';
+import { useFocusTrap } from '../lib/useFocusTrap.js';
 
 // ─── More.. (settings) tab ───────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='settings' block — no behaviour
@@ -78,6 +79,18 @@ export function TabSettings({
   const dataModalMounted = useMountTransition(dataModalOpen, 220);
   const anyModalOpen = configModalOpen || taxModalOpen || fyModalOpen || exportModalOpen || dataModalOpen;
   const anyModalMounted = configModalMounted || taxModalMounted || fyModalMounted || exportModalMounted || dataModalMounted;
+  // Focus management for the five popovers above (see useFocusTrap.js) —
+  // the inline "are you sure" panels further down (Wipe Data, Delete
+  // Account, Change Password) are deliberately left out of this: they're
+  // non-modal expanding panels within an already-open card, same pattern
+  // as Summary's inline delete confirm, not a screen-covering overlay of
+  // their own — trapping Tab inside one nested inside an already-trapped
+  // popover would fight that outer trap rather than layer with it.
+  const configModalTrapRef = useRef(null); useFocusTrap(configModalOpen, configModalTrapRef);
+  const taxModalTrapRef = useRef(null); useFocusTrap(taxModalOpen, taxModalTrapRef);
+  const fyModalTrapRef = useRef(null); useFocusTrap(fyModalOpen, fyModalTrapRef);
+  const exportModalTrapRef = useRef(null); useFocusTrap(exportModalOpen, exportModalTrapRef);
+  const dataModalTrapRef = useRef(null); useFocusTrap(dataModalOpen, dataModalTrapRef);
   // Each card's own cardHeader/cardBody depend on its *Expanded flag, which
   // flips false the instant the card closes — same render the mount stays
   // true for its 220ms exit tail. Without freezing the actual rendered
@@ -280,7 +293,7 @@ export function TabSettings({
               {showInline && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {configModalMounted && contentWrapRef.current && createPortal(
-              <div className={'modal-pop'+(showModal?'':' pop-out')} style={modalBoxStyle(S.card)}>{configModalContentRef.current}</div>,
+              <div ref={configModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Config, Rates & Payscales" className={'modal-pop'+(showModal?'':' pop-out')} style={modalBoxStyle(S.card)}>{configModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
@@ -528,7 +541,7 @@ export function TabSettings({
               {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {taxModalMounted && contentWrapRef.current && createPortal(
-              <div className={'modal-pop'+(taxModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{taxModalContentRef.current}</div>,
+              <div ref={taxModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Tax & 100K+ Calculator" className={'modal-pop'+(taxModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{taxModalContentRef.current}</div>,
               contentWrapRef.current
             )}
             {taxPrintOpen && createPortal(
@@ -601,7 +614,7 @@ export function TabSettings({
               {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {fyModalMounted && contentWrapRef.current && createPortal(
-              <div className={'modal-pop'+(fyModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{fyModalContentRef.current}</div>,
+              <div ref={fyModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Archived Financial Years" className={'modal-pop'+(fyModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{fyModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
@@ -637,7 +650,7 @@ export function TabSettings({
               {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {exportModalMounted && contentWrapRef.current && createPortal(
-              <div className={'modal-pop'+(exportModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{exportModalContentRef.current}</div>,
+              <div ref={exportModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Financial Reports & Export" className={'modal-pop'+(exportModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{exportModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
@@ -751,7 +764,7 @@ export function TabSettings({
               {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {dataModalMounted && contentWrapRef.current && createPortal(
-              <div className={'modal-pop'+(dataModalOpen?'':' pop-out')} style={modalBoxStyle(acctBase)}>{dataModalContentRef.current}</div>,
+              <div ref={dataModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Account & Data Management" className={'modal-pop'+(dataModalOpen?'':' pop-out')} style={modalBoxStyle(acctBase)}>{dataModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
