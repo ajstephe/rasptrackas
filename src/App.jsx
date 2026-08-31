@@ -2796,10 +2796,12 @@ export default function App() {
   // Same non-passive-touchmove + rubber-band technique as the calendar
   // swipe and swipe-to-delete elsewhere in the app.
   //
-  // Only meaningful once signed in (there's nothing to pull from
-  // otherwise), so the gesture is simply inert without a session rather
-  // than nagging with a "not signed in" toast on every idle pull. Reads
-  // session/manualSyncing/handleManualSync through refs, kept fresh every
+  // Mobile only — desktop keeps its own always-visible sidebar Sync
+  // button, so there's nothing this gesture adds there. Only meaningful
+  // once signed in (there's nothing to pull from otherwise), so the
+  // gesture is simply inert without a session rather than nagging with a
+  // "not signed in" toast on every idle pull. Reads isWide/session/
+  // manualSyncing/handleManualSync through refs, kept fresh every
   // render below, so the listener (attached once, since mainRef's node
   // itself never remounts between tab switches) never acts on stale
   // values from whichever render happened to be current when it mounted.
@@ -2809,6 +2811,11 @@ export default function App() {
   useEffect(()=>{ manualSyncingRef.current = manualSyncing; },[manualSyncing]);
   const handleManualSyncRef = useRef(handleManualSync);
   useEffect(()=>{ handleManualSyncRef.current = handleManualSync; });
+  // Mobile-only — desktop's fixed sidebar already carries its own
+  // persistent Sync button at all times, so there's no equivalent "nothing
+  // else on screen says how to sync" gap a pull gesture is filling there.
+  const isWideRef = useRef(isWide);
+  useEffect(()=>{ isWideRef.current = isWide; },[isWide]);
   const [pullY, setPullY] = useState(0);
   // Exposed as real state (rather than only the gesture's own internal
   // `state.armed`) so the indicator below can actually render the two
@@ -2837,7 +2844,7 @@ export default function App() {
     const onStart = (ev) => {
       // Only ever starts a pull from already scrolled-to-top — anywhere
       // else, a downward drag is just an ordinary scroll.
-      if (!sessionRef.current || manualSyncingRef.current || el.scrollTop > 0) { state.active = false; return; }
+      if (isWideRef.current || !sessionRef.current || manualSyncingRef.current || el.scrollTop > 0) { state.active = false; return; }
       state.active = true; state.startY = ev.touches[0].clientY; state.armed = false;
     };
     const onMove = (ev) => {
@@ -3594,7 +3601,10 @@ export default function App() {
           </div>
         </div>
         <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
-          {session&&(
+          {/* Desktop-only, hidden here — the fixed sidebar already carries
+              its own persistent Sync button at all times, so this would
+              just be a second one doing the exact same thing. */}
+          {session&&!isWide&&(
             <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:syncJustSucceeded?'var(--tint-green)':'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',color:syncJustSucceeded?'#059669':'#2563eb',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap',transition:'background 0.3s, color 0.3s'}}>
               <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={13} c={syncJustSucceeded?'#059669':'#2563eb'}/></span> {syncJustSucceeded?'Synced':'Sync'}
             </button>
