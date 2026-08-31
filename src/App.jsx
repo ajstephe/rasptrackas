@@ -2771,7 +2771,13 @@ export default function App() {
         pullAndMergeSettings(),
       ]);
       pruneOldCloudData();
-      addToast('Synced', 'success', null, 2000);
+      // No toast for a routine success \u2014 both Sync buttons already carry
+      // the feedback themselves (icon spins while manualSyncing, then
+      // swaps to a checkmark + "Synced" in green for the same 1400ms
+      // below), so a toast on top would just be saying the same thing
+      // twice. A failure still gets one below \u2014 that's the one case
+      // actually worth interrupting for, since the button alone reverting
+      // to "Sync" doesn't say anything went wrong.
       setSyncJustSucceeded(true);
       setTimeout(()=>setSyncJustSucceeded(false), 1400);
     } catch (e) {
