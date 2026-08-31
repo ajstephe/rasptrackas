@@ -40,15 +40,42 @@ import { haptic } from './lib/haptics.js';
 import { useCountUp } from './lib/useCountUp.js';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
 // Only one of these six is ever on screen at a time (via `tab` state below),
-// so there's no reason all six ship in the initial JS payload. Each becomes
-// its own chunk, fetched the first time its tab is opened and cached by the
-// browser after that — same components, same props, just loaded on demand.
-const TabToil = lazy(() => import('./components/TabToil.jsx').then(m => ({ default: m.TabToil })));
-const TabCarms = lazy(() => import('./components/TabCarms.jsx').then(m => ({ default: m.TabCarms })));
-const TabDashboard = lazy(() => import('./components/TabDashboard.jsx').then(m => ({ default: m.TabDashboard })));
-const TabLogOvertime = lazy(() => import('./components/TabLogOvertime.jsx').then(m => ({ default: m.TabLogOvertime })));
-const TabSummary = lazy(() => import('./components/TabSummary.jsx').then(m => ({ default: m.TabSummary })));
-const TabSettings = lazy(() => import('./components/TabSettings.jsx').then(m => ({ default: m.TabSettings })));
+// so there's no reason all six ship in the initial JS payload — each becomes
+// its own chunk. Left as plain lazy() below, a tab's chunk would only ever
+// fetch the first time that tab is opened, flashing the Suspense spinner
+// mid-session; the idle-time prefetch further down fetches them all
+// shortly after load instead, so by the time anyone actually taps a nav
+// icon the chunk is already cached and the switch is instant.
+const loadTabToil = () => import('./components/TabToil.jsx');
+const loadTabCarms = () => import('./components/TabCarms.jsx');
+const loadTabDashboard = () => import('./components/TabDashboard.jsx');
+const loadTabLogOvertime = () => import('./components/TabLogOvertime.jsx');
+const loadTabSummary = () => import('./components/TabSummary.jsx');
+const loadTabSettings = () => import('./components/TabSettings.jsx');
+const TabToil = lazy(() => loadTabToil().then(m => ({ default: m.TabToil })));
+const TabCarms = lazy(() => loadTabCarms().then(m => ({ default: m.TabCarms })));
+const TabDashboard = lazy(() => loadTabDashboard().then(m => ({ default: m.TabDashboard })));
+const TabLogOvertime = lazy(() => loadTabLogOvertime().then(m => ({ default: m.TabLogOvertime })));
+const TabSummary = lazy(() => loadTabSummary().then(m => ({ default: m.TabSummary })));
+const TabSettings = lazy(() => loadTabSettings().then(m => ({ default: m.TabSettings })));
+
+// ── warm every tab chunk in the background ──────────────────────────────────
+// The split above keeps first load small (only the tab you land on ships),
+// but it means the FIRST visit to each of the other five tabs, every
+// session, has to round-trip the network before it can render — that's the
+// Suspense spinner flashing on every new tab you try. Once the app has had a
+// moment to breathe, quietly fetch the rest so they're already sitting in
+// the browser's cache by the time anyone taps a nav icon; nothing here
+// blocks first paint or competes with it. requestIdleCallback isn't in
+// Safari (so not on iOS, where this app mostly lives as a PWA) — the
+// setTimeout fallback just waits a beat instead.
+const idle = typeof window!=='undefined' && window.requestIdleCallback
+  ? window.requestIdleCallback
+  : (cb) => setTimeout(cb, 300);
+idle(() => {
+  loadTabDashboard(); loadTabLogOvertime(); loadTabSummary();
+  loadTabCarms(); loadTabToil(); loadTabSettings();
+});
 
 // ─── ledger redesign tokens ────────────────────────────────────────────────
 // The "one statement, not six boxes" visual direction: a single brass accent
