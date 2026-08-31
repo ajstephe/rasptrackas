@@ -56,7 +56,7 @@ export function TabDashboard({
                 MetHR Outstanding, below) — this was the one header still
                 set as a small uppercase mono eyebrow instead, which read
                 as a different kind of label sitting in the same list. */}
-            <span style={{fontSize:compact?'12px':'13px',fontWeight:700,color:'var(--ink)'}}>Net pay · this period</span>
+            <span style={{fontSize:compact?'12px':'13px',fontWeight:700,color:'var(--ink)'}}>Net Pay · This Period</span>
           </div>
           <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}</span>
         </div>
@@ -294,7 +294,11 @@ export function TabDashboard({
       <div style={{background:'var(--navy)',padding:'22px 26px',position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'14px'}}>
-          {/* fontWeight:700 — see the "Net pay" eyebrow above for why. */}
+          {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 ("Black")
+              cut at all, so a 900 request here was silently rendering as
+              700 anyway (confirmed by rasterizing both and diffing pixels:
+              zero difference). This just makes the code say what is
+              actually on screen. */}
           <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
           {totals.curr&&<div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month} · {fmtD(totals.curr.start)}–{fmtD(totals.curr.end)}</div>}
         </div>
@@ -365,7 +369,11 @@ export function TabDashboard({
       <div style={{background:'var(--navy)',padding:'20px 18px',position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'12px'}}>
-          {/* fontWeight:700 — see the "Net pay" eyebrow above for why. */}
+          {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 ("Black")
+              cut at all, so a 900 request here was silently rendering as
+              700 anyway (confirmed by rasterizing both and diffing pixels:
+              zero difference). This just makes the code say what is
+              actually on screen. */}
           <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
           {totals.curr&&<div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month}</div>}
         </div>
