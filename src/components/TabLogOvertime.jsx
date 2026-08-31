@@ -123,10 +123,10 @@ export function TabLogOvertime({
                       </div>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px',marginBottom:'5px'}}>
                         <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
-                          <TimeSelect value={form.rosteredStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredStart:v}))} label="Rostered Start" BRASS={BRASS}/>
+                          <TimeSelect value={form.rosteredStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredStart:v}))} label="Rostered Start" BRASS={BRASS} MONO={MONO}/>
                         </div>
                         <div><label style={{...S.lbl,marginBottom:'5px'}}>End</label>
-                          <TimeSelect value={form.rosteredEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredEnd:v}))} label="Rostered End" BRASS={BRASS}/>
+                          <TimeSelect value={form.rosteredEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredEnd:v}))} label="Rostered End" BRASS={BRASS} MONO={MONO}/>
                         </div>
                       </div>
                       {form.rosteredStart&&form.rosteredEnd&&toMinutesOfDay(form.rosteredEnd)<=toMinutesOfDay(form.rosteredStart)&&(
@@ -145,10 +145,10 @@ export function TabLogOvertime({
                   </div>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px'}}>
                     <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
-                      <TimeSelect value={form.actualStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualStart:v}))} label="Actual Start" BRASS={BRASS}/>
+                      <TimeSelect value={form.actualStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualStart:v}))} label="Actual Start" BRASS={BRASS} MONO={MONO}/>
                     </div>
                     <div><label style={{...S.lbl,marginBottom:'5px'}}>End</label>
-                      <TimeSelect value={form.actualEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualEnd:v}))} label="Actual End" BRASS={BRASS}/>
+                      <TimeSelect value={form.actualEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualEnd:v}))} label="Actual End" BRASS={BRASS} MONO={MONO}/>
                     </div>
                   </div>
                   {form.actualStart&&form.actualEnd&&toMinutesOfDay(form.actualEnd)<=toMinutesOfDay(form.actualStart)&&(
@@ -405,7 +405,13 @@ export function TabLogOvertime({
                   {new Date((form.otSubmittedDate||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
                 </button>
               ) : (
-                <input type="date" value={form.otSubmittedDate||todayStr} onChange={e=>setForm({...form,otSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)'}}/>
+                // 16px, not 13px like its desktop <button> sibling above — this
+                // is a real, focusable form control, and iOS Safari auto-zooms
+                // the whole page in whenever a focused input's computed font
+                // size is under 16px. Buttons aren't subject to that rule, so
+                // the sibling stays at 13px; this one needs to be the app's
+                // usual zoom-safe input size instead (matches S.inp elsewhere).
+                <input type="date" value={form.otSubmittedDate||todayStr} onChange={e=>setForm({...form,otSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
               )}
             </div>
           )}
@@ -434,7 +440,9 @@ export function TabLogOvertime({
                   {new Date((form.paSubmittedDate||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
                 </button>
               ) : (
-                <input type="date" value={form.paSubmittedDate||todayStr} onChange={e=>setForm({...form,paSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)'}}/>
+                // Same fix as the OT field above — 16px, zoom-safe, unlike its
+                // desktop <button> sibling.
+                <input type="date" value={form.paSubmittedDate||todayStr} onChange={e=>setForm({...form,paSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
               )}
             </div>
           )}

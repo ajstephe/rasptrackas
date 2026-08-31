@@ -51,7 +51,12 @@ export function TabDashboard({
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:'2px'}}>
           <div style={{display:'flex',alignItems:'center',gap:compact?'10px':'12px'}}>
             <div style={{background:'var(--tint-green-2)',padding:compact?'8px':'9px',borderRadius:compact?'10px':'11px',flexShrink:0}}><Ico n="cash" s={compact?16:17} c="#15803d"/></div>
-            <span style={{fontFamily:MONO,fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'}}>Net pay · this period</span>
+            {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 ("Black")
+                cut at all, so a 900 request here was silently rendering as
+                700 anyway (confirmed by rasterizing both and diffing pixels:
+                zero difference). This just makes the code say what's
+                actually on screen. */}
+            <span style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'}}>Net pay · this period</span>
           </div>
           <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}</span>
         </div>
@@ -289,7 +294,8 @@ export function TabDashboard({
       <div style={{background:'var(--navy)',padding:'22px 26px',position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'14px'}}>
-          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
+          {/* fontWeight:700 — see the "Net pay" eyebrow above for why. */}
+          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
           {totals.curr&&<div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month} · {fmtD(totals.curr.start)}–{fmtD(totals.curr.end)}</div>}
         </div>
         <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Total Gross YTD</div>
@@ -359,7 +365,8 @@ export function TabDashboard({
       <div style={{background:'var(--navy)',padding:'20px 18px',position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'12px'}}>
-          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
+          {/* fontWeight:700 — see the "Net pay" eyebrow above for why. */}
+          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
           {totals.curr&&<div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month}</div>}
         </div>
         <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'}}>Total Gross YTD</div>

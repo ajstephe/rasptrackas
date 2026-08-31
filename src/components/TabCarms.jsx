@@ -72,7 +72,10 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
 
         {/* ── navy statement header ── */}
         <div style={{background:'var(--navy)',padding:'22px 20px',position:'relative',overflow:'hidden'}}>
-          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f',marginBottom:'10px'}}>Outstanding</div>
+          {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 cut; this
+              was silently rendering as 700 already (confirmed by pixel
+              diff), so the code now says what's actually on screen. */}
+          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f',marginBottom:'10px'}}>Outstanding</div>
           <div style={{fontFamily:MONO,fontSize:'28px',fontWeight:600,color:'#fff',letterSpacing:'-0.02em',marginBottom:'9px'}}>{fmtGBP(animatedTotal)}</div>
           <div style={{width:'38px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'12px'}}/>
           <div style={{fontSize:'11px',color:'#93c5fd',fontWeight:600,lineHeight:1.5}}>Spacing out your overtime for a steadier payday, or quietly dodging the taxman as £100k creeps closer — either way, good thinking. This is everything still sitting unclaimed in CARMS and PA, so nothing gets left behind.</div>

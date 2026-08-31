@@ -15,9 +15,8 @@ const MINUTES = ['00','15','30','45'];
 const ITEM_H = 44;
 const VISIBLE = 5;
 const PAD_H = ITEM_H * Math.floor(VISIBLE/2);
-const MONO = "'IBM Plex Mono',monospace";
 
-function WheelColumn({ values, selected, onSettle, brass }) {
+function WheelColumn({ values, selected, onSettle, brass, mono }) {
   const colRef = useRef(null);
   const [centerIdx, setCenterIdx] = useState(Math.max(0, values.indexOf(selected)));
   const settleTimer = useRef(null);
@@ -79,7 +78,7 @@ function WheelColumn({ values, selected, onSettle, brass }) {
           // long transition was permanently chasing a moving target
           // instead of ever catching up; short enough to still soften the
           // very final settle, without visibly lagging behind a flick.
-          <div key={v} onClick={()=>jumpTo(i)} style={{height:ITEM_H+'px',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:MONO,fontSize:'19px',cursor:'pointer',userSelect:'none',transition:'opacity 0.08s,font-weight 0.08s,color 0.08s',opacity:dist===0?1:dist===1?0.7:0.35,fontWeight:dist===0?800:600,color:dist===0?brass:'var(--quiet)'}}>{v}</div>
+          <div key={v} onClick={()=>jumpTo(i)} style={{height:ITEM_H+'px',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:mono,fontSize:'19px',cursor:'pointer',userSelect:'none',transition:'opacity 0.08s,font-weight 0.08s,color 0.08s',opacity:dist===0?1:dist===1?0.7:0.35,fontWeight:dist===0?800:600,color:dist===0?brass:'var(--quiet)'}}>{v}</div>
         );
       })}
       <div style={{height:PAD_H+'px'}}/>
@@ -87,7 +86,12 @@ function WheelColumn({ values, selected, onSettle, brass }) {
   );
 }
 
-export function TimeSelect({ value, onChange, label, BRASS='#b8823f' }) {
+// MONO defaults to the app's own mono stack (matches App.jsx's own constant)
+// rather than requiring every caller to pass it — same shape as the BRASS
+// default just below. TabLogOvertime, the only current caller, does pass its
+// own MONO prop through, so this default only matters for a future caller
+// that doesn't.
+export function TimeSelect({ value, onChange, label, BRASS='#b8823f', MONO="'IBM Plex Mono',monospace" }) {
   const [open, setOpen] = useState(false);
   const [h,m] = value ? value.split(':') : ['',''];
 
@@ -115,9 +119,9 @@ export function TimeSelect({ value, onChange, label, BRASS='#b8823f' }) {
             <div style={{fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--muted)',textAlign:'center',marginBottom:'14px'}}>{label ? `Set ${label} Time` : 'Set Time'}</div>
             <div style={{position:'relative',display:'flex',justifyContent:'center',alignItems:'center',gap:'8px'}}>
               <div style={{position:'absolute',left:0,right:0,top:ITEM_H*2+'px',height:ITEM_H+'px',background:'rgba(184,130,63,0.16)',borderTop:`1.5px solid ${BRASS}`,borderBottom:`1.5px solid ${BRASS}`,borderRadius:'8px',pointerEvents:'none'}}/>
-              <WheelColumn values={HOURS} selected={h||'00'} onSettle={nh=>onChange(`${nh}:${m||'00'}`)} brass={BRASS}/>
+              <WheelColumn values={HOURS} selected={h||'00'} onSettle={nh=>onChange(`${nh}:${m||'00'}`)} brass={BRASS} mono={MONO}/>
               <span style={{fontWeight:900,fontSize:'19px',color:'var(--quiet)'}}>:</span>
-              <WheelColumn values={MINUTES} selected={MINUTES.includes(m)?m:'00'} onSettle={nm=>onChange(`${h||'00'}:${nm}`)} brass={BRASS}/>
+              <WheelColumn values={MINUTES} selected={MINUTES.includes(m)?m:'00'} onSettle={nm=>onChange(`${h||'00'}:${nm}`)} brass={BRASS} mono={MONO}/>
             </div>
             <button type="button" onClick={()=>setOpen(false)} style={{marginTop:'14px',width:'100%',background:'var(--chip-bg)',border:'none',borderRadius:'10px',padding:'10px',fontWeight:800,fontSize:'12.5px',color:'var(--ink)',cursor:'pointer',fontFamily:'inherit'}}>Done</button>
           </div>

@@ -113,11 +113,15 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
             <div style={{fontSize:'13.5px',fontWeight:700,color:'var(--muted)'}}>{l.note}</div>
             <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'4px'}}>
               <span style={{fontSize:'11.5px',color:'var(--quiet)'}}>{new Date(l.date+'T12:00:00').toLocaleDateString('en-GB')}</span>
+              {/* Yes/No sized and weighted to match Summary's per-entry
+                  "Delete this record?" confirm (13px/900) — the same inline
+                  destructive-confirm pattern used two different ways before
+                  this, for no functional reason. */}
               {l.type==='taken'&&(confirmDelId===l.rawId ? (
                 <span style={{display:'flex',alignItems:'center',gap:'5px'}}>
                   <span style={{fontSize:'10.5px',fontWeight:700,color:'#dc2626'}}>Remove?</span>
-                  <button onClick={()=>{ setConfirmDelId(null); deleteToilTaken(l.rawId); }} aria-label="Confirm remove" style={{flexShrink:0,background:'#dc2626',border:'none',borderRadius:'7px',padding:'3px 8px',color:'#fff',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>Yes</button>
-                  <button onClick={()=>setConfirmDelId(null)} aria-label="Cancel remove" style={{flexShrink:0,background:'var(--surface)',border:'1.5px solid var(--border-2)',borderRadius:'7px',padding:'3px 8px',color:'var(--muted)',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>No</button>
+                  <button onClick={()=>{ setConfirmDelId(null); deleteToilTaken(l.rawId); }} aria-label="Confirm remove" style={{flexShrink:0,background:'#dc2626',border:'none',borderRadius:'7px',padding:'3px 8px',color:'#fff',fontWeight:900,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Yes</button>
+                  <button onClick={()=>setConfirmDelId(null)} aria-label="Cancel remove" style={{flexShrink:0,background:'var(--surface)',border:'1.5px solid var(--border-2)',borderRadius:'7px',padding:'3px 8px',color:'var(--muted)',fontWeight:900,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>No</button>
                 </span>
               ) : (
                 <button onClick={()=>setConfirmDelId(l.rawId)} aria-label="Remove this TOIL redemption" style={{flexShrink:0,display:'flex',alignItems:'center',gap:'3px',background:'var(--surface)',border:'1.5px solid var(--border-2)',borderRadius:'7px',padding:'3px 7px',color:'#dc2626',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>
