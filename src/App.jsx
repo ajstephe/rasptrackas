@@ -1733,6 +1733,15 @@ export default function App() {
       salaryYTD, lwYTD, laYTD, lwAnnualTotal, laAnnualTotal, salaryAnnualTotal, combinedGrossYTD, combinedNetYTD,
       ytdTax, ytdNI, taxBand, taxBandRate, daysElapsed, taxYearDaysElapsed, taxYearStart, hoursByBand,
       projectedAnnualGross, taperExtraTax,
+      // Pension-adjusted YTD figure — gross minus this year's pension
+      // contribution so far — the same "taxable" total the £100k/Personal
+      // Allowance taper is actually assessed against (a net pay arrangement
+      // takes pension off before tax). Exposed here so anything else that
+      // needs to judge someone's position against that threshold (the
+      // Dashboard's own gauge, currently) reads the same figure the Tax &
+      // 100K+ Calculator already does, rather than recomputing it a third
+      // time or judging the threshold against raw, un-deducted gross.
+      taxableGrossYTD,
     };
   },[fyEntries,calcEntry,settings,currPeriodIdx,todayStr]);
 
@@ -2253,21 +2262,28 @@ export default function App() {
     markSaved();
   }
 
-  // ExcelJS is loaded from a CDN at the moment it's actually needed, rather
-  // than as an npm dependency — keeps the deploy to just this one file,
-  // same as everything else here, no package.json/build step involved.
-  // Using ExcelJS specifically rather than the more common SheetJS here,
-  // because SheetJS's free tier doesn't reliably write cell styling (fills,
-  // fonts) into the file — confirmed by testing it directly — whereas
-  // ExcelJS's free/open-source build genuinely supports it.
-  const loadExcelJSLib = () => new Promise((resolve, reject) => {
-    if (window.ExcelJS) { resolve(window.ExcelJS); return; }
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
-    script.onload = () => resolve(window.ExcelJS);
-    script.onerror = () => reject(new Error('load failed'));
-    document.head.appendChild(script);
-  });
+  // ExcelJS is a real npm dependency now (package.json), loaded via a
+  // dynamic import rather than up front — Vite code-splits it into its own
+  // chunk that's only fetched the first time someone actually exports a
+  // spreadsheet, so its weight never lands on the main bundle. This used to
+  // be a CDN <script> tag instead, from back when this app had no build
+  // step at all — that stopped being true once Vite/npm came in, but left
+  // this one feature needing a live internet connection in an otherwise
+  // fully offline-capable PWA (everything else, including the PDF export,
+  // works from what's already cached). A dynamic import's chunk is just
+  // another built asset, so it's precached by the service worker
+  // (vite.config.js's globPatterns already covers every built .js file)
+  // exactly like the rest of the app, closing that gap. Using ExcelJS
+  // specifically rather than the more common SheetJS here, because
+  // SheetJS's free tier doesn't reliably write cell styling (fills, fonts)
+  // into the file — confirmed by testing it directly — whereas ExcelJS's
+  // free/open-source build genuinely supports it. import() itself caches
+  // the resolved module after the first call, so no separate cache is
+  // needed here.
+  const loadExcelJSLib = async () => {
+    const mod = await import('exceljs');
+    return mod.default || mod;
+  };
 
   // Exports all logged shifts as an .xlsx workbook — opens directly in
   // Excel/Google Sheets/Numbers. Gross/Net are real numeric cells here
@@ -3947,7 +3963,7 @@ export default function App() {
         {tab==='dashboard'&&(
           <TabDashboard
             animClass={tabAnimClass}
-            isWide={isWide} settings={settings} setTab={setTab} totals={totals}
+            isWide={isWide} settings={settings} setTab={setTab} totals={totals} taxForecast={taxForecast}
             currPeriodIdx={currPeriodIdx} toilLedger={toilLedger} carmsOutstanding={carmsOutstanding}
             salaryBreakdownExpanded={salaryBreakdownExpanded} setSalaryBreakdownExpanded={setSalaryBreakdownExpanded}
             scrollToTaxImpact={scrollToTaxImpact} setTaxImpactExpanded={setTaxImpactExpanded}
