@@ -112,14 +112,14 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
               This {fmtGBP(carmsOutstanding.totalAmount)} isn't in your Total Gross YTD yet — it only counts once it's been marked as submitted on the Log Overtime screen.
             </div>
 
-            <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',marginBottom:'8px'}}>
-              <button onClick={toggleCarmsSelectMode} className="tap-row" style={{fontSize:'11.5px',fontWeight:800,color:'#2563eb',cursor:'pointer',padding:'4px',background:'none',border:'none',fontFamily:'inherit'}}>{carmsSelectMode?'Cancel':'Select Multiple Entries'}</button>
-            </div>
-            <SegSlider activeKey={carmsFilter} trackStyle={{display:'flex',gap:'6px',marginBottom:'14px'}} indicatorStyle={{background:BRASS,borderRadius:'10px'}}>
+            <SegSlider activeKey={carmsFilter} trackStyle={{display:'flex',gap:'6px',marginBottom:'10px'}} indicatorStyle={{background:BRASS,borderRadius:'10px'}}>
               {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'},{id:'toil',lbl:'TOIL'}].map(f=>(
                 <div key={f.id} data-seg-key={f.id} onClick={()=>setCarmsFilter(f.id)} className="tap-row" style={{position:'relative',zIndex:1,flex:1,textAlign:'center',padding:'8px 4px',borderRadius:'10px',fontSize:'11px',fontWeight:800,cursor:'pointer',background:'transparent',color:carmsFilter===f.id?'#fff':'var(--muted)',border:carmsFilter===f.id?'none':'1px solid var(--border-2)'}}>{f.lbl}</div>
               ))}
             </SegSlider>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'flex-start',marginBottom:'14px'}}>
+              <button onClick={toggleCarmsSelectMode} className="tap-row" style={{fontSize:'13px',fontWeight:900,color:'#2563eb',cursor:'pointer',padding:'9px 16px',background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',fontFamily:'inherit'}}>{carmsSelectMode?'Cancel':'Select Multiple Entries'}</button>
+            </div>
 
             {(()=>{
               const matchesFilter = it => {

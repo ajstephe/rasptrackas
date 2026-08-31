@@ -105,7 +105,7 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
         // Goes straight through to deleteToilTaken on tap, same as the
         // inline Remove button above; both rely on its Undo toast rather
         // than a second confirm.
-        <SwipeToDelete key={l.id} id={l.rawId} onDelete={deleteToilTaken} deleteLabel="Remove" disabled={isWide||l.type!=='taken'} style={{marginBottom:isWide?0:'8px'}}>
+        <SwipeToDelete key={l.id} id={l.rawId} onDelete={deleteToilTaken} deleteLabel="Remove" disabled={isWide||l.type!=='taken'} radius={11} style={{marginBottom:isWide?0:'8px'}}>
         <div className="claim-in" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'11px 12px',marginBottom:0,borderRadius:'11px',gap:'10px',background:l.type==='earned'?'var(--tint-green)':'var(--tint-red)',border:l.type==='earned'?'1px solid var(--border-2)':'1px solid var(--border-2)',animationDelay:(Math.min(i,6)*55)+'ms'}}>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:'13.5px',fontWeight:700,color:'var(--muted)'}}>{l.note}</div>

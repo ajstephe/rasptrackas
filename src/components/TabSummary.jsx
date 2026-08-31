@@ -382,7 +382,7 @@ export function TabSummary({
                       // only path there); goes straight to delEntry on tap,
                       // same as the trash button, relying on its Undo toast
                       // rather than a second confirm step.
-                      <SwipeToDelete key={e.id} id={e.id} onDelete={delEntry} disabled={isWide} style={{marginBottom:'7px'}}>
+                      <SwipeToDelete key={e.id} id={e.id} onDelete={delEntry} disabled={isWide} radius={13} style={{marginBottom:'7px'}}>
                       <div ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:'13px',marginBottom:0,position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
                         {isFut&&<div style={{position:'absolute',top:'-6px',right:'9px',background:'#2563eb',color:'#fff',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Planned</div>}
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'7px'}}>

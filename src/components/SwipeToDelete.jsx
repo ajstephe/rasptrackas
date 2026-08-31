@@ -30,7 +30,7 @@ const OPEN_THRESHOLD = REVEAL * 0.4; // drag past this far to snap open on relea
 // to its resting position rather than spring there.
 const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export function SwipeToDelete({ id, onDelete, deleteLabel='Delete', disabled=false, style, children }) {
+export function SwipeToDelete({ id, onDelete, deleteLabel='Delete', disabled=false, radius=13, style, children }) {
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const elRef = useRef(null);
@@ -93,13 +93,20 @@ export function SwipeToDelete({ id, onDelete, deleteLabel='Delete', disabled=fal
   // every tab (S.main in App.jsx). Clipping it again here would also cut
   // off anything a row draws outside its own box on purpose — e.g.
   // Summary's "Planned" ribbon, which pokes a few px above the row.
+  //
+  // The button's own right corners are rounded to match the row's radius
+  // (passed in via `radius`, since the row's own corner radius lives in
+  // each caller's own styling, not here) — at rest, this button fills the
+  // exact same box as the row sitting on top of it, so a square button
+  // under a rounded row would poke a small square corner out from behind
+  // it at the top-right/bottom-right, even with nothing being dragged.
   return (
     <div style={{ position: 'relative', ...style }}>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', justifyContent: 'flex-end', borderRadius: radius+'px' }}>
         <button
           onClick={() => { gestureRef.current.live = 0; setDragX(0); onDelete(id); }}
           aria-label={deleteLabel}
-          style={{ width: REVEAL + 'px', border: 'none', background: '#dc2626', color: '#fff', fontWeight: 800, fontSize: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ width: REVEAL + 'px', border: 'none', borderTopRightRadius: radius+'px', borderBottomRightRadius: radius+'px', background: '#dc2626', color: '#fff', fontWeight: 800, fontSize: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', fontFamily: 'inherit' }}
         >
           <Ico n="trash" s={16} c="#fff"/>
           {deleteLabel}
