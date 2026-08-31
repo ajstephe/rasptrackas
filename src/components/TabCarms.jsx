@@ -306,7 +306,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                             {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
                           </div>
                           {mergeOtToil&&(()=>{ const Row = carmsSelectMode?'button':'div'; return (
-                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
+                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
                               {ring(otSelected)}
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
                               <div style={{display:'flex',alignItems:'center',gap:'4px',flexShrink:0}}>
@@ -321,7 +321,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                             </Row>
                           ); })()}
                           {showOt&&!mergeOtToil&&(()=>{ const Row = carmsSelectMode?'button':'div'; return (
-                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
+                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
                               {ring(otSelected)}
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
                               {catChip('ot')}
@@ -330,7 +330,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                             </Row>
                           ); })()}
                           {showPa&&(()=>{ const Row = carmsSelectMode?'button':'div'; return (
-                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'pa'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
+                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'pa'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
                               {ring(paSelected)}
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-pa')}</span>
                               {catChip('pa')}
@@ -339,7 +339,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                             </Row>
                           ); })()}
                           {showToil&&!mergeOtToil&&(()=>{ const Row = carmsSelectMode?'button':'div'; return (
-                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
+                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
                               {ring(otSelected)}
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-toil')}</span>
                               {catChip('toil')}
