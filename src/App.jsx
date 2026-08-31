@@ -2764,23 +2764,34 @@ export default function App() {
   const handleManualSync = async () => {
     if (!supabase || !session || !dataKey) { addToast('Not signed in \u2014 nothing to sync', 'warn'); return; }
     setManualSyncing(true);
+    // A real sync can round-trip fast enough on a good connection that the
+    // spinner is barely on screen before it's gone \u2014 easy to miss the
+    // whole thing happened at all, especially right after a pull-to-
+    // refresh, which used to hold its own indicator open through the sync
+    // and no longer does (see the pull-to-refresh comment above). Floors
+    // the spinning phase at a beat of its own regardless of how fast the
+    // real work actually finishes, so it always reads as a deliberate,
+    // visible action rather than a flicker.
+    const minSpin = new Promise(r=>setTimeout(r, 700));
     try {
       await Promise.all([
         pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries),
         pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil),
         pullAndMergeSettings(),
+        minSpin,
       ]);
       pruneOldCloudData();
       // No toast for a routine success \u2014 both Sync buttons already carry
       // the feedback themselves (icon spins while manualSyncing, then
-      // swaps to a checkmark + "Synced" in green for the same 1400ms
+      // swaps to a checkmark + "Synced" in green for a couple of seconds
       // below), so a toast on top would just be saying the same thing
       // twice. A failure still gets one below \u2014 that's the one case
       // actually worth interrupting for, since the button alone reverting
       // to "Sync" doesn't say anything went wrong.
       setSyncJustSucceeded(true);
-      setTimeout(()=>setSyncJustSucceeded(false), 1400);
+      setTimeout(()=>setSyncJustSucceeded(false), 2200);
     } catch (e) {
+      await minSpin; // same floor on a fast failure \u2014 Promise.all above rejects the instant one call fails, without waiting for this
       addToast('Sync failed \u2014 check your connection', 'warn');
     } finally {
       setManualSyncing(false);
