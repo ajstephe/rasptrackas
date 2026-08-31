@@ -60,7 +60,17 @@
     <title>Overtime and Shift Tracker by Adam Stephens</title>
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+    <!-- DM Sans now includes 800 alongside the weights already here —
+         fontWeight:800 is used on buttons/labels throughout the app, but that
+         cut was never actually being requested, so browsers were silently
+         substituting the nearest loaded weight (900) instead. IBM Plex Mono
+         stays at 500/600/700 deliberately: Google Fonts doesn't offer a 900
+         ("Black") cut of it at all (confirmed directly against the API — a
+         900 request is just dropped, not served as anything), so the fix for
+         MONO+fontWeight:900 usages is at each of those call sites instead,
+         switched to the real 700 they were already silently rendering as.
+         See the round-7 audit for how both were confirmed. -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
