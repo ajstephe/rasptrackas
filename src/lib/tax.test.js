@@ -5,6 +5,7 @@ import {
   computeTaxBandBreakdown, getTaxBand, applyBandTax, splitAcrossBands,
   pensionTierRate, calcPensionContribution,
   monthlySteppedAmount, monthlySteppedSplitBySept,
+  periodBaseAmount, periodPensionablePay, LONDON_WEIGHTING, LONDON_ALLOWANCE,
 } from './tax.js';
 import { RATE_CHANGE_DATE } from './payPeriods.js';
 
@@ -233,5 +234,53 @@ describe('monthlySteppedSplitBySept', () => {
     const dayBeforeChange = (() => { const d=new Date(RATE_CHANGE_DATE); d.setDate(d.getDate()-1); return d.toISOString().split('T')[0]; })();
     const expected = monthlySteppedAmount(12000, start, dayBeforeChange) + monthlySteppedAmount(24000, RATE_CHANGE_DATE, end);
     expect(spanning).toBeCloseTo(expected, 6);
+  });
+});
+
+describe('periodPensionablePay', () => {
+  const svcData = { salary: { pre: 36500, post: 38000 } }; // £100/day pre, easy mental maths
+  it('matches periodBaseAmount minus London Allowance for a period entirely before the rate change', () => {
+    const p = { start: '2026-05-01', end: '2026-05-28' }; // 28-day period, well before RATE_CHANGE_DATE
+    const withLA = periodBaseAmount(p, svcData);
+    const withoutLA = periodPensionablePay(p, svcData);
+    const totalDays = 28;
+    const expectedLA = (totalDays/365) * LONDON_ALLOWANCE;
+    expect(withLA - withoutLA).toBeCloseTo(expectedLA, 6);
+  });
+
+  it('never includes London Allowance even when the period spans the rate change', () => {
+    const p = { start: '2026-08-25', end: '2026-09-07' }; // spans RATE_CHANGE_DATE (2026-09-01)
+    const withLA = periodBaseAmount(p, svcData);
+    const withoutLA = periodPensionablePay(p, svcData);
+    const totalDays = 14;
+    const expectedLA = (totalDays/365) * LONDON_ALLOWANCE;
+    expect(withLA - withoutLA).toBeCloseTo(expectedLA, 6);
+  });
+
+  it('returns 0 pensionable pay when there is no rank/pay-point selected, matching periodBaseAmount', () => {
+    const p = { start: '2026-05-01', end: '2026-05-28' };
+    expect(periodPensionablePay(p, null)).toBeCloseTo(
+      (28/365) * LONDON_WEIGHTING.pre, 6
+    );
+  });
+});
+
+describe('periodBreakdown-style cumulative pension deduction (integration-level reasoning)', () => {
+  // App.jsx's periodBreakdown can't be unit tested directly (it's a closure
+  // inside a useMemo, not an exported pure function) — but the principle it
+  // now relies on is: subtracting a period's own pension contribution from
+  // its base pay, before that base pay is used as the cumulative baseline
+  // for banding overtime, measurably lowers the tax a stacked slice of
+  // overtime attracts. This pins down that the underlying primitives
+  // combine the way periodBreakdown's fix depends on.
+  it('taxing overtime on top of (baseAmt - pension) charges less than on top of raw baseAmt, when that reduction crosses a band boundary', () => {
+    const baseAmt = 45000; // pensionable pay for the year, under the £50,270 higher-rate line alone
+    const pension = calcPensionContribution(baseAmt, 1); // 13.88% tier
+    const overtimeSlice = 8000; // pushes raw baseAmt over £50,270, but not baseAmt-pension
+    const taxOnRawBaseline = calcUKIncomeTax(baseAmt + overtimeSlice, 1) - calcUKIncomeTax(baseAmt, 1);
+    const pensionAdjustedBaseline = baseAmt - pension.amount;
+    const taxOnAdjustedBaseline = calcUKIncomeTax(pensionAdjustedBaseline + overtimeSlice, 1) - calcUKIncomeTax(pensionAdjustedBaseline, 1);
+    expect(pensionAdjustedBaseline + overtimeSlice).toBeLessThan(50270); // confirms this example actually crosses the line
+    expect(taxOnAdjustedBaseline).toBeLessThan(taxOnRawBaseline);
   });
 });

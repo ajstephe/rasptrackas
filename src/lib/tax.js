@@ -239,3 +239,23 @@ export const periodBaseAmount = (p, svcData) => {
   const la     = (totalDays/365)*LONDON_ALLOWANCE;
   return salary + lw + la;
 };
+
+// Same period pro-rating as periodBaseAmount, but salary + London Weighting
+// ONLY — the actual pensionable-pay definition (London Allowance, like
+// overtime and PA, is never pensionable). periodBaseAmount's combined
+// figure can't be reused here without wrongly pulling London Allowance
+// into the pension calculation.
+export const periodPensionablePay = (p, svcData) => {
+  const totalDays = daysInclusive(p.start, p.end);
+  let preDays, postDays;
+  if (p.end < RATE_CHANGE_DATE) { preDays = totalDays; postDays = 0; }
+  else if (p.start >= RATE_CHANGE_DATE) { preDays = 0; postDays = totalDays; }
+  else {
+    const d = new Date(RATE_CHANGE_DATE); d.setDate(d.getDate() - 1);
+    preDays  = daysInclusive(p.start, d.toISOString().split('T')[0]);
+    postDays = totalDays - preDays;
+  }
+  const salary = svcData ? (preDays/365)*svcData.salary.pre + (postDays/365)*svcData.salary.post : 0;
+  const lw     = (preDays/365)*LONDON_WEIGHTING.pre + (postDays/365)*LONDON_WEIGHTING.post;
+  return salary + lw;
+};
