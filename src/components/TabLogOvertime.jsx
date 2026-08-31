@@ -82,15 +82,15 @@ export function TabLogOvertime({
             <div style={{marginBottom:showTwoCol?0:'13px',display:'flex',flexDirection:'column',flex:showTwoCol?1:'none'}}>
               <div style={{display:'flex',flexDirection:showTwoCol?'column':'row',alignItems:showTwoCol?'flex-start':'center',justifyContent:showTwoCol?'flex-start':'space-between',gap:showTwoCol?'8px':0,background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'12px 13px'}}>
                 <div style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>Rostered CARM Shift / Actual Shift</div>
-                <div onClick={()=>{
+                <button role="switch" aria-checked={!form.recordShiftTimes} onClick={()=>{
                     const switchingToManual = form.recordShiftTimes; // currently auto → about to go manual
                     setForm(f=>syncShiftTimesIntoForm({...f, recordShiftTimes:!switchingToManual, otRateTier: !switchingToManual && !f.otRateTier ? 'hours133' : f.otRateTier}));
-                  }} style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',flexShrink:0}}>
+                  }} style={{display:'flex',alignItems:'center',gap:'6px',background:'none',border:'none',padding:0,fontFamily:'inherit',cursor:'pointer',flexShrink:0}}>
                   <span style={{fontSize:'9px',fontWeight:600,color:'var(--muted)'}}>Input Hours Manually</span>
                   <div style={{width:'32px',height:'18px',borderRadius:'10px',position:'relative',flexShrink:0,transition:'background 0.2s cubic-bezier(.4,0,.2,1)',background:!form.recordShiftTimes?'#2563eb':'var(--border)'}}>
                     <div style={{width:'14px',height:'14px',borderRadius:'50%',background:'#fff',position:'absolute',top:'2px',transition:'left 0.2s cubic-bezier(.4,0,.2,1)',left:!form.recordShiftTimes?'16px':'2px',boxShadow:'0 1px 2px rgba(0,0,0,0.3)'}}/>
                   </div>
-                </div>
+                </button>
               </div>
 
               {form.recordShiftTimes&&(
@@ -378,14 +378,13 @@ export function TabLogOvertime({
             <div>
               <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Overtime submitted on CARMS</div>
             </div>
-                <div onClick={()=>{
-                  if (!hasOTHours) return;
+                <button role="switch" aria-checked={hasOTHours&&form.otSubmitted} disabled={!hasOTHours} onClick={()=>{
                   if (form.otSubmitted) { setForm({...form,otSubmitted:false}); return; }
                   setDatePickerMonth(todayStr.slice(0,7));
                   setDatePickerFor('ot');
-                }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:hasOTHours?'pointer':'default',flexShrink:0,background:(hasOTHours&&form.otSubmitted)?'#059669':'var(--border)',transition:'background 0.15s cubic-bezier(.4,0,.2,1)'}}>
+                }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',border:'none',padding:0,cursor:hasOTHours?'pointer':'default',flexShrink:0,background:(hasOTHours&&form.otSubmitted)?'#059669':'var(--border)',transition:'background 0.15s cubic-bezier(.4,0,.2,1)'}}>
                   <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(hasOTHours&&form.otSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s cubic-bezier(.4,0,.2,1)'}}/>
-                </div>
+                </button>
           </div>
           {form.otSubmitted&&(
             <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'10px',marginTop:'9px'}}>
@@ -408,14 +407,13 @@ export function TabLogOvertime({
               <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>PA Submitted on MetHR</div>
               <div style={{fontFamily:MONO,fontSize:'10px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{form.paRate==='None' ? 'No PA rate selected for this shift' : `${form.paRate} — ${fmtGBP(PA_RATES[form.paRate]||0)}`}</div>
             </div>
-            <div onClick={()=>{
-              if (form.paRate==='None') return;
+            <button role="switch" aria-checked={form.paRate!=='None'&&form.paSubmitted} disabled={form.paRate==='None'} onClick={()=>{
               if (form.paSubmitted) { setForm({...form,paSubmitted:false}); return; }
               setDatePickerMonth(todayStr.slice(0,7));
               setDatePickerFor('pa');
-            }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',cursor:form.paRate==='None'?'default':'pointer',flexShrink:0,background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'var(--border)',transition:'background 0.15s cubic-bezier(.4,0,.2,1)'}}>
+            }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',border:'none',padding:0,cursor:form.paRate==='None'?'default':'pointer',flexShrink:0,background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'var(--border)',transition:'background 0.15s cubic-bezier(.4,0,.2,1)'}}>
               <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(form.paRate!=='None'&&form.paSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s cubic-bezier(.4,0,.2,1)'}}/>
-            </div>
+            </button>
           </div>
           {form.paRate!=='None'&&form.paSubmitted&&(
             <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'10px',marginTop:'9px'}}>

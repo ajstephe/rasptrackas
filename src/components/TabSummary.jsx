@@ -283,7 +283,13 @@ export function TabSummary({
 
         return(
           <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:'var(--surface)',borderRadius:'16px',border:'1px solid var(--border-2)',borderLeft:isCurr?`3px solid ${BRASS}`:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',marginBottom:'9px',overflow:'hidden',...(isWide&&isExp?{gridColumn:'1 / -1'}:{})}}>
-            <button onClick={()=>setExpanded(isExp?null:p.month)} style={{width:'100%',textAlign:'left',padding:'16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+            {/* role="button" rather than a real <button> — it contains the
+                "Awaiting submission" teaser below as a genuine nested
+                <button> of its own (jumping to CARMS is a different action
+                from expanding this card), and a real <button> may not
+                contain other interactive content per HTML5. Enter/Space
+                below reproduces what a real button gets for free. */}
+            <div role="button" tabIndex={0} onClick={()=>setExpanded(isExp?null:p.month)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setExpanded(isExp?null:p.month); } }} style={{width:'100%',textAlign:'left',padding:'16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
               {isCurr&&<div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:BRASS,color:'#fff',fontSize:'10px',fontWeight:900,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}><span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Active Month</div>}
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'2px'}}>
                 <div style={{fontWeight:900,fontSize:'18px',color:'var(--ink)',letterSpacing:'-0.3px'}}>{p.month}</div>
@@ -310,21 +316,21 @@ export function TabSummary({
                 const g = carmsOutstanding.groups.find(g=>g.periodIdx===idx);
                 if (!g) return null;
                 return (
-                  <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{display:'flex',alignItems:'center',gap:'11px',background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginTop:'11px',cursor:'pointer'}}>
+                  <button onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{display:'flex',alignItems:'center',gap:'11px',width:'100%',background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginTop:'11px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
                     <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="checklist" s={15} c={BRASS}/></div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Awaiting submission</div>
                       <div style={{fontSize:'10px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>CARMS &amp; MetHR</div>
                     </div>
                     <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(g.periodTotal)}</div>
-                  </div>
+                  </button>
                 );
               })()}
               <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'4px',fontSize:'11.5px',fontWeight:700,color:BRASS,marginTop:'11px'}}>
                 {isExp?'Tap to collapse':'Tap to see more'}
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={BRASS} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:isExp?'rotate(180deg)':'rotate(0deg)',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
               </div>
-            </button>
+            </div>
 
             {isExp&&(
               <div className="accordion-in" style={{background:'var(--surface-2)',borderTop:'1px solid var(--border-2)',padding:'13px'}}>
@@ -339,11 +345,11 @@ export function TabSummary({
                       <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid var(--border-2)'}}>{otPayInner}</div>
                       <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid var(--border-2)'}}>{paInner}</div>
                     </div>
-                    <div onClick={()=>setTab('graph')} style={{background:'var(--tint-purple)',borderRadius:'13px',padding:'11px',border:'1px solid var(--border-2)',cursor:'pointer',marginBottom:'9px'}}>
+                    <button onClick={()=>setTab('graph')} style={{background:'var(--tint-purple)',borderRadius:'13px',padding:'11px',width:'100%',border:'1px solid var(--border-2)',textAlign:'left',fontFamily:'inherit',cursor:'pointer',marginBottom:'9px'}}>
                       <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'10px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em'}}>TOIL</div></div>
                       <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)',marginBottom:'6px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
                       <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
-                    </div>
+                    </button>
                   </>
                 ) : (
                   <div style={{background:'var(--surface)',borderRadius:'13px',border:'1px solid var(--border-2)',padding:'13px',marginBottom:'9px'}}>
@@ -351,11 +357,11 @@ export function TabSummary({
                       <div>{otPayInner}</div>
                       <div style={{borderLeft:'1px solid var(--border-2)',paddingLeft:'13px'}}>{paInner}</div>
                     </div>
-                    <div onClick={()=>setTab('graph')} style={{borderTop:'1px solid var(--border-2)',marginTop:'13px',paddingTop:'12px',cursor:'pointer'}}>
+                    <button onClick={()=>setTab('graph')} style={{marginTop:'13px',paddingTop:'12px',width:'100%',background:'none',border:'none',borderTopWidth:'1px',borderTopStyle:'solid',borderTopColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
                       <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'10px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em'}}>TOIL</div></div>
                       <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)',marginBottom:'2px'}}>{fmtHM(totalToilWorked)}h worked → {fmtHM(totalToilBanked)}h banked</div>
                       <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
-                    </div>
+                    </button>
                   </div>
                 )}
 
@@ -810,23 +816,23 @@ export function TabSummary({
                 </div>
               </div>
             </div>
-            <div onClick={()=>setTab('graph')} style={{background:'var(--tint-purple)',borderRadius:'13px',padding:'11px',border:'1px solid var(--border-2)',cursor:'pointer',marginTop:'9px'}}>
+            <button onClick={()=>setTab('graph')} style={{background:'var(--tint-purple)',borderRadius:'13px',padding:'11px',width:'100%',border:'1px solid var(--border-2)',textAlign:'left',fontFamily:'inherit',cursor:'pointer',marginTop:'9px'}}>
               <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'10px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em'}}>TOIL</div></div>
               <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)',marginBottom:'6px'}}>{fmtHM(pToilWorked)}h worked → {fmtHM(pToilBanked)}h banked</div>
               <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
-            </div>
+            </button>
 
             {(() => {
               const g = carmsOutstanding.groups.find(g=>g.periodIdx===cIdx);
               if (!g) return null;
               return (
-                <div onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} className="nav-add-pulse" style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'18px',marginTop:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
+                <button onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} className="nav-add-pulse" style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'18px',marginTop:'9px',width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
                   <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                     <Ico n="clock" s={14} c="#d97706"/>
                     <span style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>CARMS &amp; MetHR Awaiting Submission</span>
                   </div>
                   <span style={{fontFamily:MONO,fontSize:'19px',fontWeight:600,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</span>
-                </div>
+                </button>
               );
             })()}
 

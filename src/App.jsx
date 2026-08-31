@@ -89,6 +89,12 @@ idle(() => {
 // see the ledger-redesign branch notes for what's in vs. out of scope.
 const MONO  = "'IBM Plex Mono',monospace";
 const BRASS = '#b8823f';
+// Same check TabSummary's calendar swipe already makes before its own
+// snap-back — used by the pull-to-refresh indicator's settle transition
+// below for the same reason: the live drag tracks the finger regardless
+// (direct manipulation, not a decorative animation), only the spring-back
+// afterwards should respect it.
+const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Shared by both the mobile bottom nav and the wide-screen sidebar — one
 // list, so the two can never disagree about what the tabs are.
@@ -667,6 +673,26 @@ export default function App() {
   // so .banner-collapsing can play instead of the row's height (and
   // everything below it) just snapping away.
   const [bannerClosing, setBannerClosing] = useState(null);
+  // ── offline indicator ────────────────────────────────────────────────────
+  // Local-first architecture already means the app keeps working fully with
+  // no connection — this is purely informational, so someone doesn't mistake
+  // "no signal" for something being broken. window.onLine can be wrong at
+  // the very first render in some browsers (defaults true before the network
+  // stack's actually checked in), but the online/offline events themselves
+  // are reliable from here on, so it self-corrects within a moment either way.
+  const [isOffline, setIsOffline] = useState(typeof navigator!=='undefined' ? !navigator.onLine : false);
+  useEffect(() => {
+    const onOnline = () => setIsOffline(false);
+    const onOffline = () => setIsOffline(true);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => { window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline); };
+  }, []);
+  // Mirrors the exact banner-collapsing pattern the backup/FY banners below
+  // use — kept mounted for one more beat after going back online so that
+  // exit plays instead of the banner (and everything below it) just
+  // snapping away the instant connectivity returns.
+  const offlineMounted = useMountTransition(isOffline, 340);
   const [fySummaryYear, setFySummaryYear] = useState(null); // calendar FY-start-year of the archived year being viewed, or null
   const [fySummaryPrintMode, setFySummaryPrintMode] = useState(false); // true when opened via Financial Year export (all periods expanded, Print button shown)
   const [archiveExpandedPeriod, setArchiveExpandedPeriod] = useState(null); // short label of the expanded period within that year, or null
@@ -1290,10 +1316,10 @@ export default function App() {
       return <div style={{...style,background:'var(--tint-green)',color:'#059669'}}>✓ Submitted</div>;
     }
     const goToEntry = (ev) => { ev.stopPropagation(); setSelectedCalDay(null); setConfirmDel(null); startEdit(e); setFocusCarmsToggle(true); };
-    const clickable = {...style,border:'1px solid var(--border-2)',background:'var(--tint-red)',color:'var(--text-red-deep)',cursor:'pointer'};
-    if (otOK && !paOK) return <div onClick={goToEntry} style={clickable}>✗ PA not submitted</div>;
-    if (!otOK && paOK) return <div onClick={goToEntry} style={clickable}>✗ Overtime not submitted</div>;
-    return <div onClick={goToEntry} style={clickable}>✗ Overtime &amp; PA not submitted</div>;
+    const clickable = {...style,border:'1px solid var(--border-2)',background:'var(--tint-red)',color:'var(--text-red-deep)',cursor:'pointer',fontFamily:'inherit'};
+    if (otOK && !paOK) return <button onClick={goToEntry} style={clickable}>✗ PA not submitted</button>;
+    if (!otOK && paOK) return <button onClick={goToEntry} style={clickable}>✗ Overtime not submitted</button>;
+    return <button onClick={goToEntry} style={clickable}>✗ Overtime &amp; PA not submitted</button>;
   };
 
   // Desktop-only custom calendar picker for the CARMS submission-date
@@ -3552,6 +3578,18 @@ export default function App() {
         </div>
       )}
 
+      {/* ── offline indicator — purely informational, never dismissible by
+           hand (it reflects real connectivity, not a choice), and not the
+           amber/blue "something to act on" tone the two banners below use —
+           local-first means nothing actually breaks with no signal, so this
+           just says so rather than reading like a warning. ── */}
+      {offlineMounted&&(
+        <div className={"fi no-print"+(!isOffline?' banner-collapsing':'')} style={{background:'var(--chip-bg)',borderBottom:'1px solid var(--border-2)',padding:'10px 14px',display:'flex',alignItems:'center',gap:'9px',flexShrink:0,zIndex:15,overflow:'hidden'}}>
+          <Ico n="wifiOff" s={14} c="var(--quiet)"/>
+          <div style={{fontSize:'11px',fontWeight:700,color:'var(--muted)',lineHeight:1.4}}>No connection — you're working from your last saved data on this device.</div>
+        </div>
+      )}
+
       {/* ── monthly backup reminder — optional, dismissible, never blocks the app ──
            dismissBackupReminder/dismissFYRollover below play the collapse-and-
            fade exit (see .banner-collapsing) before actually clearing the
@@ -3604,7 +3642,7 @@ export default function App() {
           <div className="tab-spinner" style={{width:'22px',height:'22px',borderWidth:'2.5px',opacity:Math.min(1,pullY/PULL_TRIGGER)}}/>
         </div>
       )}
-      <main ref={mainRef} className="no-print" style={{...S.main, paddingTop:pullY||undefined, transition:pullY?'none':'padding-top 0.25s cubic-bezier(.32,.72,0,1)'}}>
+      <main ref={mainRef} className="no-print" style={{...S.main, paddingTop:pullY||undefined, transition:(pullY||prefersReducedMotion())?'none':'padding-top 0.25s cubic-bezier(.32,.72,0,1)'}}>
       <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'50vh'}}><div className="tab-spinner"/></div>}>
 
         {/* ══════════════════════════════════════════ DASHBOARD */}
@@ -3756,9 +3794,9 @@ export default function App() {
                         </div>
                       ))}
                       {hidden>0&&(
-                        <div onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:700,color:BRASS,padding:'8px 0 0',cursor:'pointer',borderTop:'1px solid var(--border-2)',marginTop:'2px'}}>
+                        <button onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:700,color:BRASS,padding:'8px 0 0',width:'100%',background:'none',border:'none',borderTopWidth:'1px',borderTopStyle:'solid',borderTopColor:'var(--border-2)',marginTop:'2px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
                           +{hidden} more claim{hidden!==1?'s':''} →
-                        </div>
+                        </button>
                       )}
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'var(--tint-brass)',borderRadius:'13px',padding:'9px 11px',marginTop:'8px'}}>
                         <span style={{fontSize:'10px',fontWeight:700,color:'var(--text-amber-deep)'}}>{carmsOutstanding.totalClaims} CLAIM{carmsOutstanding.totalClaims!==1?'S':''} TO SUBMIT</span>
@@ -3825,7 +3863,7 @@ export default function App() {
                 <button onClick={()=>setPayslipMode('financialYear')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='financialYear'?'#fff':'transparent',color:payslipMode==='financialYear'?'#2563eb':'var(--muted)',boxShadow:payslipMode==='financialYear'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Financial Year</button>
               </div>
 
-              <div onClick={()=>setSanitiseNotes(v=>!v)} style={{display:'flex',alignItems:'flex-start',gap:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px 14px',marginBottom:'16px',cursor:'pointer'}}>
+              <button role="checkbox" aria-checked={sanitiseNotes} onClick={()=>setSanitiseNotes(v=>!v)} style={{display:'flex',alignItems:'flex-start',gap:'10px',width:'100%',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px 14px',marginBottom:'16px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
                 <div style={{width:'20px',height:'20px',borderRadius:'6px',border:`2px solid ${sanitiseNotes?'#dc2626':'#cbd5e1'}`,background:sanitiseNotes?'#dc2626':'var(--surface)',flexShrink:0,marginTop:'1px',display:'flex',alignItems:'center',justifyContent:'center'}}>
                   {sanitiseNotes&&<Ico n="check" s={12} c="#fff" w={3}/>}
                 </div>
@@ -3833,7 +3871,7 @@ export default function App() {
                   <div style={{fontSize:'12px',fontWeight:800,color:'var(--text-red-deep)'}}>Sanitise Notes Field</div>
                   <div style={{fontSize:'10.5px',color:'var(--text-red-deep)',marginTop:'2px',lineHeight:1.5}}>Recommended — shift notes may hold operationally sensitive detail.</div>
                 </div>
-              </div>
+              </button>
 
               {payslipMode==='period' ? (
                 <>
@@ -4069,7 +4107,7 @@ export default function App() {
                 const expanded = fySummaryPrintMode || archiveExpandedPeriod===p.short+fySummaryYear;
                 return (
                   <div key={p.short} style={{background:'var(--surface)',borderRadius:'14px',padding:'13px',border:'1px solid var(--border-2)',marginBottom:'9px'}}>
-                    <div onClick={()=>{ if(!fySummaryPrintMode) setArchiveExpandedPeriod(expanded?null:p.short+fySummaryYear); }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',cursor:fySummaryPrintMode?'default':'pointer'}}>
+                    <button disabled={fySummaryPrintMode} onClick={()=>setArchiveExpandedPeriod(expanded?null:p.short+fySummaryYear)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:fySummaryPrintMode?'default':'pointer'}}>
                       <div>
                         <div style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>{p.month}</div>
                         <div style={{fontFamily:MONO,fontSize:'9.5px',color:'var(--quiet)',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)} · {p.entries.length} shift{p.entries.length===1?'':'s'}</div>
@@ -4078,7 +4116,7 @@ export default function App() {
                         <div style={{fontFamily:MONO,fontWeight:600,fontSize:'12.5px',color:'var(--text-navy)'}}>{fmtGBP(p.gross)}</div>
                         {!fySummaryPrintMode&&<Ico n={expanded?'cU':'cD'} s={14} c="#94a3b8"/>}
                       </div>
-                    </div>
+                    </button>
                     {expanded&&(
                       <div>
                         {p.entries.map(e=>(
