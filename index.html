@@ -26,6 +26,31 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
     <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png"/>
 
+    <!-- iOS launch screens — without these, opening the installed app shows
+         a plain white flash (regardless of theme) for the beat before the
+         app's own first paint, which stands out badly against the navy/
+         black-translucent status bar treatment above. Each is the app icon
+         centred on a flat fill matching --page-bg for that theme exactly
+         (see public/splash — generated from pwa-512x512.png), targeted at
+         one current iPhone screen size via its exact device-width/height/
+         pixel-ratio combination, the only way Safari's launch-screen
+         matching works. Portrait only — orientation is locked to portrait
+         in manifest.json, so there's no landscape case to cover. Devices
+         older/newer than this list just fall back to the plain white
+         flash, same as before. -->
+    <link rel="apple-touch-startup-image" href="/splash/se-light.png" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)"/>
+    <link rel="apple-touch-startup-image" href="/splash/se-dark.png" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)"/>
+    <link rel="apple-touch-startup-image" href="/splash/mini-light.png" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)"/>
+    <link rel="apple-touch-startup-image" href="/splash/mini-dark.png" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)"/>
+    <link rel="apple-touch-startup-image" href="/splash/standard-light.png" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)"/>
+    <link rel="apple-touch-startup-image" href="/splash/standard-dark.png" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)"/>
+    <link rel="apple-touch-startup-image" href="/splash/pro-light.png" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)"/>
+    <link rel="apple-touch-startup-image" href="/splash/pro-dark.png" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)"/>
+    <link rel="apple-touch-startup-image" href="/splash/plus-light.png" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)"/>
+    <link rel="apple-touch-startup-image" href="/splash/plus-dark.png" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)"/>
+    <link rel="apple-touch-startup-image" href="/splash/promax-light.png" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)"/>
+    <link rel="apple-touch-startup-image" href="/splash/promax-dark.png" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)"/>
+
     <title>Overtime and Shift Tracker by Adam Stephens</title>
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>

@@ -6,6 +6,7 @@ import { isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate, periodI
 import { RATE_TIER_MULT } from '../lib/payRates.js';
 import { Ico } from './Icons.jsx';
 import { SegSlider } from './SegSlider.jsx';
+import { SwipeToDelete } from './SwipeToDelete.jsx';
 
 // ─── Summary tab (List View + Calendar View) ────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='months' block — no behaviour
@@ -370,7 +371,13 @@ export function TabSummary({
                     const ePANet    = c.pa>0    ? c.pa*(1-pb.paResult.rate/100)       : 0;
                     const eNet = eOTNet+ePANet;
                     return(
-                      <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:'13px',marginBottom:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
+                      // Swipe left to reveal Delete — mobile only (isWide
+                      // keeps the always-visible edit/trash buttons as the
+                      // only path there); goes straight to delEntry on tap,
+                      // same as the trash button, relying on its Undo toast
+                      // rather than a second confirm step.
+                      <SwipeToDelete key={e.id} id={e.id} onDelete={delEntry} disabled={isWide} style={{marginBottom:'7px'}}>
+                      <div ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:'13px',marginBottom:0,position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
                         {isFut&&<div style={{position:'absolute',top:'-6px',right:'9px',background:'#2563eb',color:'#fff',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Planned</div>}
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'7px'}}>
                           <div>
@@ -391,8 +398,8 @@ export function TabSummary({
                             ); })()}
                           </div>
                           <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
-                            <button onClick={()=>{setConfirmDel(null);startEdit(e);}} style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
-                            <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} style={{background:confirmDel===e.id?'var(--tint-red)':'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={14} c="#ef4444"/></button>
+                            <button onClick={()=>{setConfirmDel(null);startEdit(e);}} aria-label="Edit this record" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
+                            <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this record" style={{background:confirmDel===e.id?'var(--tint-red)':'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={14} c="#ef4444"/></button>
                           </div>
                         </div>
 
@@ -454,6 +461,7 @@ export function TabSummary({
                           </div>
                         </div>
                       </div>
+                      </SwipeToDelete>
                     );
                   })
                 }
@@ -567,7 +575,7 @@ export function TabSummary({
           <>
             {/* period navigator */}
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'14px'}}>
-              <button onClick={()=>setCalPeriodIdx(i=>Math.max(0,(i===null?currPeriodIdx:i)-1))} disabled={cIdx===0} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===0?'default':'pointer',opacity:cIdx===0?0.3:1}}><Ico n="cL" s={18} c={BRASS}/></button>
+              <button onClick={()=>setCalPeriodIdx(i=>Math.max(0,(i===null?currPeriodIdx:i)-1))} disabled={cIdx===0} aria-label="Previous period" style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===0?'default':'pointer',opacity:cIdx===0?0.3:1}}><Ico n="cL" s={18} c={BRASS}/></button>
               <div style={{textAlign:'center'}}>
                 {cIdx===currPeriodIdx&&(
                   <div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:BRASS,color:'#fff',fontSize:'10px',fontWeight:900,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>
@@ -577,7 +585,7 @@ export function TabSummary({
                 <div style={{fontWeight:900,fontSize:'22px',color:cIdx===currPeriodIdx?BRASS:'var(--ink)'}}>{cPeriod.month}</div>
                 <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--quiet)'}}>{fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
               </div>
-              <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c={BRASS}/></button>
+              <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} aria-label="Next period" style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c={BRASS}/></button>
             </div>
 
             {/* stats strip — Shifts and Total O/T Hours. Desktop:

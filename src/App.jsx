@@ -1315,9 +1315,9 @@ export default function App() {
     return (
       <div onClick={ev=>ev.stopPropagation()} className={'alert-pop'+(closing?' pop-out':'')} style={{background:'var(--surface)',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid var(--border)',padding:'22px',width:'360px',maxWidth:'calc(100vw - 32px)',boxSizing:'border-box'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'18px'}}>
-          <button onClick={()=>changeMonth(-1)} style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cL" s={18} c="#475569"/></button>
+          <button onClick={()=>changeMonth(-1)} aria-label="Previous month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cL" s={18} c="#475569"/></button>
           <div style={{fontWeight:900,fontSize:'17px',color:'var(--ink)'}}>{monthLabel}</div>
-          <button onClick={()=>changeMonth(1)} style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
+          <button onClick={()=>changeMonth(1)} aria-label="Next month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
         </div>
         <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:'14px'}}>
           {datePickerForV==='ot' ? 'Select the date you submitted this OT to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this PA claim to MetHR' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${Object.keys(carmsSelected).length} claim${Object.keys(carmsSelected).length!==1?'s':''}` : 'Select the date of this shift'}
@@ -2018,6 +2018,7 @@ export default function App() {
     const d=entries.find(e=>e.id===id);
     setEntries(prev=>prev.filter(x=>x.id!==id));
     setConfirmDel(null);
+    haptic();
     addToast('Record deleted','undo',{label:'Undo',fn:()=>setEntries(prev=>[...prev,d])},7000);
   };
 
@@ -2030,6 +2031,7 @@ export default function App() {
     const resultingBalance = toilLedger.balance - hrs;
     setToilTaken(prev=>[...prev, { id:Date.now().toString(), date:toilTakenForm.date, hours:hrs, note:toilTakenForm.note||'' }]);
     setToilTakenForm({date:todayStr, hours:'', minutes:'00', note:''});
+    haptic();
     if (resultingBalance < 0) {
       addToast(`Logged — balance is now ${fmtHM(resultingBalance)} h (more taken than earned)`,'warn');
     } else {
@@ -2039,6 +2041,7 @@ export default function App() {
   const deleteToilTaken = id => {
     const d = toilTaken.find(t=>t.id===id);
     setToilTaken(prev=>prev.filter(t=>t.id!==id));
+    haptic();
     addToast('Entry removed','undo',{label:'Undo',fn:()=>setToilTaken(prev=>[...prev,d])},7000);
   };
 
@@ -2567,6 +2570,7 @@ export default function App() {
   };
   const handleSignOut = async () => {
     if (!supabase) return;
+    haptic();
     await supabase.auth.signOut();
     setDataKey(null);
     addToast('Signed out', 'success');
@@ -2734,6 +2738,87 @@ export default function App() {
       setManualSyncing(false);
     }
   };
+
+  // ── pull-to-refresh ──────────────────────────────────────────────────────
+  // S.main already sets overscrollBehaviorY:'contain' so the browser's own
+  // native pull-to-refresh never fires from inside the app — good (it would
+  // reload the whole page), but it left pulling down from the top as dead
+  // space that did nothing. This wires that same gesture to the existing
+  // manual sync instead, rather than just continuing to eat it silently.
+  // Same non-passive-touchmove + rubber-band technique as the calendar
+  // swipe and swipe-to-delete elsewhere in the app.
+  //
+  // Only meaningful once signed in (there's nothing to pull from
+  // otherwise), so the gesture is simply inert without a session rather
+  // than nagging with a "not signed in" toast on every idle pull. Reads
+  // session/manualSyncing/handleManualSync through refs, kept fresh every
+  // render below, so the listener (attached once, since mainRef's node
+  // itself never remounts between tab switches) never acts on stale
+  // values from whichever render happened to be current when it mounted.
+  const sessionRef = useRef(session);
+  useEffect(()=>{ sessionRef.current = session; },[session]);
+  const manualSyncingRef = useRef(manualSyncing);
+  useEffect(()=>{ manualSyncingRef.current = manualSyncing; },[manualSyncing]);
+  const handleManualSyncRef = useRef(handleManualSync);
+  useEffect(()=>{ handleManualSyncRef.current = handleManualSync; });
+  const [pullY, setPullY] = useState(0);
+  const PULL_TRIGGER = 64, PULL_MAX = 92;
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const state = { active:false, startY:0, armed:false };
+    const onStart = (ev) => {
+      // Only ever starts a pull from already scrolled-to-top — anywhere
+      // else, a downward drag is just an ordinary scroll.
+      if (!sessionRef.current || manualSyncingRef.current || el.scrollTop > 0) { state.active = false; return; }
+      state.active = true; state.startY = ev.touches[0].clientY; state.armed = false;
+    };
+    const onMove = (ev) => {
+      if (!state.active) return;
+      const dy = ev.touches[0].clientY - state.startY;
+      if (dy <= 0 || el.scrollTop > 0) { state.active = false; setPullY(0); return; }
+      ev.preventDefault();
+      const damped = Math.min(PULL_MAX, dy * 0.5);
+      setPullY(damped);
+      // A short tap the instant the pull crosses the trigger distance —
+      // the same "it's armed now" tactile cue iOS gives when a pull-to-
+      // refresh is about to fire, rather than only finding out on release.
+      const nowArmed = damped >= PULL_TRIGGER;
+      if (nowArmed && !state.armed) haptic();
+      state.armed = nowArmed;
+    };
+    const onEnd = () => {
+      if (!state.active) return;
+      state.active = false;
+      if (state.armed) {
+        // Holds the indicator open at the trigger height through the
+        // actual sync (the effect below drops it once manualSyncing
+        // resolves) rather than snapping shut immediately on release and
+        // leaving the sync happen with no visible indicator of its own —
+        // the header/sidebar Sync button also spins throughout, same as
+        // it would for a manual tap, this is just the second cue.
+        setPullY(PULL_TRIGGER);
+        handleManualSyncRef.current();
+      } else {
+        setPullY(0);
+      }
+    };
+    el.addEventListener('touchstart', onStart, { passive:true });
+    el.addEventListener('touchmove', onMove, { passive:false });
+    el.addEventListener('touchend', onEnd, { passive:true });
+    el.addEventListener('touchcancel', onEnd, { passive:true });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
+  }, []);
+  // Drops the held-open indicator once the pull-triggered sync actually
+  // finishes (manualSyncing flips back to false) — see onEnd above. Runs
+  // harmlessly on every other manualSyncing transition too (a plain tap
+  // on the Sync button, mount) since pullY is already 0 in those cases.
+  useEffect(() => { if (!manualSyncing) setPullY(0); }, [manualSyncing]);
 
   // Scrolls the main container so a month card sits just below the sticky
   // header. The header's height is measured live (it changes between views,
@@ -3381,6 +3466,15 @@ export default function App() {
         input,select,textarea{font-size:16px}
         button:active{opacity:0.8;transform:scale(0.96)}
         button{transition:filter 0.15s ease}
+        /* Keyboard-focus ring for buttons — inputs already get one above,
+           buttons never did, so tabbing through the app on a keyboard/
+           trackpad (or a screen reader's own focus cursor) left no visible
+           indication of which control was focused. :focus-visible (not
+           plain :focus) means this only shows for keyboard/assistive-tech
+           focus, never as a lingering ring after an ordinary tap or click —
+           the one thing that would have made this look like a regression
+           on every existing touch interaction in the app. */
+        button:focus-visible,[role="button"]:focus-visible{outline:2px solid #2563eb;outline-offset:2px;border-radius:6px}
         input[type=date]{-webkit-appearance:none;appearance:none;color-scheme:light;line-height:1.2}
         /* Same theme-detection pattern as every custom property in
            index.html — without this, the OS's native date-picker icon and
@@ -3474,7 +3568,7 @@ export default function App() {
               <button onClick={dismissBackupReminder} style={{background:'none',border:'none',padding:'6px 4px',fontWeight:700,fontSize:'10px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Not now</button>
             </div>
           </div>
-          <button onClick={dismissBackupReminder} style={{background:'none',border:'none',cursor:'pointer',padding:'2px',flexShrink:0}}><Ico n="x" s={15} c="#94a3b8"/></button>
+          <button onClick={dismissBackupReminder} aria-label="Dismiss" style={{background:'none',border:'none',cursor:'pointer',padding:'2px',flexShrink:0}}><Ico n="x" s={15} c="#94a3b8"/></button>
         </div>
       )}
 
@@ -3490,7 +3584,7 @@ export default function App() {
               <button onClick={dismissFYRollover} style={{background:'none',border:'none',padding:'6px 4px',fontWeight:700,fontSize:'10px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Got it</button>
             </div>
           </div>
-          <button onClick={dismissFYRollover} style={{background:'none',border:'none',cursor:'pointer',padding:'2px',flexShrink:0}}><Ico n="x" s={15} c="#94a3b8"/></button>
+          <button onClick={dismissFYRollover} aria-label="Dismiss" style={{background:'none',border:'none',cursor:'pointer',padding:'2px',flexShrink:0}}><Ico n="x" s={15} c="#94a3b8"/></button>
         </div>
       )}
 
@@ -3500,7 +3594,17 @@ export default function App() {
            viewport, and stay put regardless of main's own internal scroll
            (this row itself never scrolls — only <main> does, internally). ── */}
       <div ref={contentWrapRef} style={{display:'flex',flex:1,overflow:'hidden',position:'relative'}}>
-      <main ref={mainRef} className="no-print" style={S.main}>
+      {/* pull-to-refresh indicator — sits in the gap main's own paddingTop
+           opens up below, rather than needing main itself to be a
+           positioning context. Fades in with the pull, spins throughout
+           (same .tab-spinner used for the tab-chunk loading spinner) —
+           see the gesture handlers above for the actual drag logic. */}
+      {pullY>0&&(
+        <div className="no-print" style={{position:'absolute',top:0,left:0,right:0,height:pullY+'px',display:'flex',alignItems:'flex-end',justifyContent:'center',paddingBottom:'12px',pointerEvents:'none',zIndex:5}}>
+          <div className="tab-spinner" style={{width:'22px',height:'22px',borderWidth:'2.5px',opacity:Math.min(1,pullY/PULL_TRIGGER)}}/>
+        </div>
+      )}
+      <main ref={mainRef} className="no-print" style={{...S.main, paddingTop:pullY||undefined, transition:pullY?'none':'padding-top 0.25s cubic-bezier(.32,.72,0,1)'}}>
       <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'50vh'}}><div className="tab-spinner"/></div>}>
 
         {/* ══════════════════════════════════════════ DASHBOARD */}
@@ -3939,7 +4043,7 @@ export default function App() {
               </div>
             )}
             <div className={fySummaryPrintMode?'payslip-print-doc':''} style={{background:'var(--navy)',color:'#fff',padding:'16px',margin:fySummaryPrintMode?'12px':0,borderRadius:fySummaryPrintMode?'12px':0}}>
-              <button className="no-print" onClick={()=>{ if(fySummaryPrintMode){ setFySummaryPrintMode(false); } else { setFySummaryYear(null); } }} style={{background:'rgba(255,255,255,0.12)',border:'none',borderRadius:'9px',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',cursor:'pointer',marginBottom:'12px'}}><Ico n="back" s={16} c="#fff"/></button>
+              <button className="no-print" onClick={()=>{ if(fySummaryPrintMode){ setFySummaryPrintMode(false); } else { setFySummaryYear(null); } }} aria-label="Back" style={{background:'rgba(255,255,255,0.12)',border:'none',borderRadius:'9px',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',cursor:'pointer',marginBottom:'12px'}}><Ico n="back" s={16} c="#fff"/></button>
               <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Financial Year</div>
               <div style={{fontSize:'19px',fontWeight:900}}>{label}</div>
               <div style={{fontFamily:MONO,fontSize:'9.5px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
@@ -4038,7 +4142,7 @@ export default function App() {
           <div onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(selectedCalDay?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
               <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{new Date(selectedCalDayV.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
-              <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={isWide?20:16} c="#64748b"/></button>
+              <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} aria-label="Close" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={isWide?20:16} c="#64748b"/></button>
             </div>
             {selectedCalDayV.dEntries.map(e=>{
               const c = calcEntry(e);
@@ -4068,8 +4172,8 @@ export default function App() {
                       ); })()}
                     </div>
                     <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
-                      <button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button>
-                      <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} style={{background:confirmDel===e.id?'var(--tint-red)':'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button>
+                      <button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} aria-label="Edit this record" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button>
+                      <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this record" style={{background:confirmDel===e.id?'var(--tint-red)':'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button>
                     </div>
                   </div>
 
@@ -4169,6 +4273,13 @@ export default function App() {
         </div>
       )}
 
+      {/* Log Overtime's nudge pulse (below) is meant to point a first-time
+           user at the one thing this app is for — it's meaningless (and,
+           left running forever, just naggy) once they've actually logged a
+           shift, so it retires permanently the moment entries stops being
+           empty rather than pulsing on every visit to every other tab for
+           the life of the app. */}
+      {(()=>{ const showAddNudge = entries.length===0; return (
       <nav ref={setNavEl} className="no-print" style={{...S.nav, display:isWide?'none':'flex'}}>
         <div className="nav-pill" style={{left:navPillRect.left+'px', width:navPillRect.width+'px'}}/>
         {NAV_TABS.map(t=>(
@@ -4177,17 +4288,18 @@ export default function App() {
               <div className="badge-pop" style={{position:'absolute',top:'2px',right:'calc(50% - 16px)',background:'#d97706',color:'#fff',fontSize:'8px',fontWeight:900,width:'14px',height:'14px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>{carmsOutstanding.totalClaims>9?'9+':carmsOutstanding.totalClaims}</div>
             )}
             {t.id==='add' ? (
-              <span className={`nav-ico-add${tab!==t.id?' nav-add-pulse':''}`} style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
+              <span className={`nav-ico-add${showAddNudge&&tab!==t.id?' nav-add-pulse':''}`} style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
             ) : (
               <span className={`nav-ico${tab===t.id?' active':''}`} style={{display:'flex'}}><Ico n={t.n} s={18} c={tab===t.id?BRASS:'var(--quiet)'} w={tab===t.id?2.5:2}/></span>
             )}
             {/* the pulse is a "come tap this" nudge — it stops once you're
                 actually on the tab it's pointing at, rather than nagging
                 the whole time you're using it */}
-            <span style={S.nLbl} className={`nav-lbl${t.id==='add'&&tab!==t.id?' nav-add-pulse':''}`}>{t.lbl}</span>
+            <span style={S.nLbl} className={`nav-lbl${showAddNudge&&t.id==='add'&&tab!==t.id?' nav-add-pulse':''}`}>{t.lbl}</span>
           </button>
         ))}
       </nav>
+      );})()}
 
       {/* ── wide-screen sidebar — replaces the bottom nav entirely above the
            960px breakpoint; reuses the exact same NAV_TABS array and the
@@ -4220,13 +4332,14 @@ export default function App() {
             return (
               <button key={t.id} data-seg-key={t.id} onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'transparent',color:isAdd?'#10b981':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
                 {isAdd ? (
-                  <span className={isActive?'':'nav-add-pulse'} style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
+                  <span className={(entries.length===0&&!isActive)?'nav-add-pulse':''} style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
                 ) : (
                   <Ico n={t.n} s={20} c={isActive?'#e3bd85':'#93c5fd'} w={isActive?2.5:2}/>
                 )}
-                {/* stops nudging once you're actually on this tab — see the
-                    matching comment on the mobile bottom nav below */}
-                <span className={(isAdd&&!isActive)?'nav-add-pulse':''}>{t.lbl}</span>
+                {/* stops nudging once you're actually on this tab, and
+                    retires for good once a shift's ever been logged — see
+                    the matching comment on the mobile bottom nav above */}
+                <span className={(isAdd&&entries.length===0&&!isActive)?'nav-add-pulse':''}>{t.lbl}</span>
                 {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
                   <span className="badge-pop" style={{marginLeft:'auto',background:'#d97706',color:'#fff',fontSize:'10px',fontWeight:900,padding:'1px 7px',borderRadius:'10px',display:'inline-block'}}>{carmsOutstanding.totalClaims>99?'99+':carmsOutstanding.totalClaims}</span>
                 )}
