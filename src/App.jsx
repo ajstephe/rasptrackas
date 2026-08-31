@@ -4208,18 +4208,25 @@ export default function App() {
         const d = payslipPreview.data;
         const hasOT = d.rateHrs.hours133>0 || d.rateHrs.hours150>0 || d.rateHrs.hours200>0;
         const hasPA = d.paCounts.PA1>0 || d.paCounts.PA2>0 || d.paCounts.PA3>0;
-        const rowStyle = {padding:'7px 0',borderBottom:'1px solid var(--border-2)'};
-        const thStyle = {textAlign:'left',fontSize:'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.8px',padding:'4px 0',borderBottom:'1px solid var(--border-2)'};
-        const sectionTitle = {fontSize:'10.5px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'1.2px',margin:'20px 0 8px',paddingTop:'14px',borderTop:'1px solid var(--border-2)'};
+        // Hardcoded light literals throughout this preview/print doc, not
+        // theme CSS variables — someone printing this to hand over or file
+        // wants a plain light page regardless of whether they've got the
+        // app itself in dark mode, same call already made (correctly) for
+        // the Tax & 100K+ Calculator's print view below. The on-screen
+        // preview matches what actually prints for exactly that reason —
+        // no surprise between what you see and what comes out on paper.
+        const rowStyle = {padding:'7px 0',borderBottom:'1px solid #f1f5f9'};
+        const thStyle = {textAlign:'left',fontSize:'9px',fontWeight:900,color:'#78849b',textTransform:'uppercase',letterSpacing:'0.8px',padding:'4px 0',borderBottom:'1px solid #f1f5f9'};
+        const sectionTitle = {fontSize:'10.5px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.2px',margin:'20px 0 8px',paddingTop:'14px',borderTop:'1px solid #f1f5f9'};
         return (
-          <div className="payslip-print-area" style={{position:'absolute',inset:0,background:'var(--page-bg)',zIndex:70,overflowY:'auto',overscrollBehavior:'contain',padding:'16px'}}>
+          <div className="payslip-print-area" style={{position:'absolute',inset:0,background:'#e2e8f0',zIndex:70,overflowY:'auto',overscrollBehavior:'contain',padding:'16px'}}>
             <div className="no-print" style={{display:'flex',gap:'8px',marginBottom:'14px',maxWidth:'560px',margin:'0 auto 14px'}}>
               <button onClick={()=>window.print()} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
-              <button onClick={()=>setPayslipPreview(null)} style={{background:'var(--surface)',color:'var(--muted)',border:'1px solid var(--border)',borderRadius:'11px',padding:'12px 18px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit'}}>Close</button>
+              <button onClick={()=>setPayslipPreview(null)} style={{background:'#ffffff',color:'#64748b',border:'1px solid #e2e8f0',borderRadius:'11px',padding:'12px 18px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit'}}>Close</button>
             </div>
 
-            <div className="payslip-print-doc" style={{maxWidth:'560px',margin:'0 auto',background:'var(--surface)',borderRadius:'6px',boxShadow:'0 4px 24px rgba(0,0,0,0.12)',overflow:'hidden'}}>
-              <div style={{background:'var(--navy)',color:'#fff',padding:'26px 26px 20px'}}>
+            <div className="payslip-print-doc" style={{maxWidth:'560px',margin:'0 auto',background:'#ffffff',borderRadius:'6px',boxShadow:'0 4px 24px rgba(0,0,0,0.12)',overflow:'hidden'}}>
+              <div style={{background:'#0f2744',color:'#fff',padding:'26px 26px 20px'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'18px'}}>
                   <div>
                     <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Overtime &amp; Shift Tracker</div>
@@ -4243,9 +4250,9 @@ export default function App() {
               </div>
 
               <div style={{padding:'22px 26px 10px'}}>
-                {d.clippedFrom&&<div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'var(--text-blue-deep)',lineHeight:1.5}}>The tax year restarts on 6 April, so this summary only covers {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)} — the part that falls in the current tax year. That's what keeps the figures accurate.</div>}
+                {d.clippedFrom&&<div style={{background:'#eff6ff',border:'1px solid #f1f5f9',borderRadius:'13px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'#1e40af',lineHeight:1.5}}>The tax year restarts on 6 April, so this summary only covers {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)} — the part that falls in the current tax year. That's what keeps the figures accurate.</div>}
                 {d.rangeEntries.length===0 ? (
-                  <div style={{textAlign:'center',padding:'30px 10px',color:'var(--quiet)',fontSize:'13px',fontWeight:600}}>No shifts recorded in this range.</div>
+                  <div style={{textAlign:'center',padding:'30px 10px',color:'#78849b',fontSize:'13px',fontWeight:600}}>No shifts recorded in this range.</div>
                 ) : (
                   <>
                     {hasOT&&(
@@ -4254,9 +4261,9 @@ export default function App() {
                         <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12.5px'}}>
                           <thead><tr><th style={thStyle}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Hours</th><th style={{...thStyle,textAlign:'right'}}>Rate/hr</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
                           <tbody>
-                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'var(--muted)'}}>Standard (1.33x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours133.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours133*d.rates.r133)}</td></tr>}
-                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'var(--muted)'}}>Elevated (1.5x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours150.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours150*d.rates.r150)}</td></tr>}
-                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'var(--muted)'}}>Rest Day (2.0x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours200.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours200*d.rates.r200)}</td></tr>}
+                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Standard (1.33x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours133.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours133*d.rates.r133)}</td></tr>}
+                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Elevated (1.5x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours150.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours150*d.rates.r150)}</td></tr>}
+                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Rest Day (2.0x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours200.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours200*d.rates.r200)}</td></tr>}
                           </tbody>
                         </table>
                       </>
@@ -4269,7 +4276,7 @@ export default function App() {
                           <thead><tr><th style={thStyle}>Type</th><th style={{...thStyle,textAlign:'right'}}>Count</th><th style={{...thStyle,textAlign:'right'}}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
                           <tbody>
                             {['PA1','PA2','PA3'].filter(k=>d.paCounts[k]>0).map(k=>(
-                              <tr key={k}><td style={{...rowStyle,fontWeight:700,color:'var(--muted)'}}>{k}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.paCounts[k]}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(PA_RATES[k])}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(PA_RATES[k]*d.paCounts[k])}</td></tr>
+                              <tr key={k}><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>{k}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.paCounts[k]}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(PA_RATES[k])}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(PA_RATES[k]*d.paCounts[k])}</td></tr>
                             ))}
                           </tbody>
                         </table>
@@ -4279,7 +4286,7 @@ export default function App() {
                     {d.toilBanked>0&&(
                       <>
                         <div style={sectionTitle}>TOIL Banked This Period</div>
-                        <div style={{background:'var(--tint-purple)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#6d28d9'}}>
+                        <div style={{background:'#f5f3ff',border:'1px solid #f1f5f9',borderRadius:'13px',padding:'11px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#6d28d9'}}>
                           <span>Not included in the totals below</span>
                           <strong style={{fontFamily:MONO,fontWeight:600}}>+{fmtHM(d.toilBanked)}h</strong>
                         </div>
@@ -4289,8 +4296,8 @@ export default function App() {
                     {d.pensionForRange>0&&(
                       <>
                         <div style={sectionTitle}>Pension Contribution (this period)</div>
-                        <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',marginBottom:'8px'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'var(--text-blue-deep)'}}>
+                        <div style={{background:'#eff6ff',border:'1px solid #f1f5f9',borderRadius:'13px',padding:'11px 14px',marginBottom:'8px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#1e40af'}}>
                             <span>{(d.pensionRate*100).toFixed(2)}% of {fmtGBP(d.pensionablePayForRange)} pensionable pay</span>
                             <strong style={{fontFamily:MONO,fontWeight:600}}>−{fmtGBP(d.pensionForRange)}</strong>
                           </div>
@@ -4299,18 +4306,18 @@ export default function App() {
                       </>
                     )}
 
-                    <div style={{background:'var(--surface-2)',borderRadius:'12px',padding:'16px 18px',margin:'22px 0'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}><span>Gross Overtime &amp; PA</span><span style={{fontFamily:MONO,fontWeight:600}}>{fmtGBP(d.gross)}</span></div>
+                    <div style={{background:'#f8fafc',borderRadius:'12px',padding:'16px 18px',margin:'22px 0'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',fontWeight:800,color:'#0f172a'}}><span>Gross Overtime &amp; PA</span><span style={{fontFamily:MONO,fontWeight:600}}>{fmtGBP(d.gross)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. Income Tax{d.bandName?` (${d.bandName})`:''}</span><span style={{fontFamily:MONO}}>−{fmtGBP(d.tax)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. National Insurance</span><span style={{fontFamily:MONO}}>−{fmtGBP(d.ni)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0 0',marginTop:'6px',borderTop:'1px solid var(--border-2)',fontSize:'16px',fontWeight:600,color:'#059669'}}><span>Estimated Net</span><span style={{fontFamily:MONO}}>{fmtGBP(d.net)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0 0',marginTop:'6px',borderTop:'1px solid #f1f5f9',fontSize:'16px',fontWeight:600,color:'#059669'}}><span>Estimated Net</span><span style={{fontFamily:MONO}}>{fmtGBP(d.net)}</span></div>
                     </div>
                   </>
                 )}
               </div>
 
-              <div style={{fontSize:'9.5px',color:'var(--quiet)',lineHeight:1.6,padding:'16px 26px 26px',borderTop:'1px solid var(--border-2)',marginTop:'6px'}}>
-                <strong style={{color:'var(--muted)'}}>A note on these figures.</strong> This summary is generated from what you've logged in the app, for your own reference — it isn't an official payslip. Tax and National Insurance are estimated using cumulative marginal rates for the tax year, so they can differ slightly from your actual payslip, especially across date ranges spanning more than one pay period. Worth cross-checking against your payslip if the figures matter to you.
+              <div style={{fontSize:'9.5px',color:'#78849b',lineHeight:1.6,padding:'16px 26px 26px',borderTop:'1px solid #f1f5f9',marginTop:'6px'}}>
+                <strong style={{color:'#64748b'}}>A note on these figures.</strong> This summary is generated from what you've logged in the app, for your own reference — it isn't an official payslip. Tax and National Insurance are estimated using cumulative marginal rates for the tax year, so they can differ slightly from your actual payslip, especially across date ranges spanning more than one pay period. Worth cross-checking against your payslip if the figures matter to you.
               </div>
             </div>
           </div>
@@ -4321,8 +4328,16 @@ export default function App() {
       {fySummaryYear!=null&&(()=>{
         const y = computeArchivedYear(fySummaryYear);
         const label = `${fySummaryYear} / ${(fySummaryYear+1).toString().slice(-2)}`;
+        // This same tree renders both the normal (themed) archive-browsing
+        // screen and, once Print is tapped, the print/PDF output — only
+        // fySummaryPrintMode's classes and disabled interactions used to
+        // change between them, not the colours, so printing in dark mode
+        // produced a page still styled with dark-mode CSS variables. c()
+        // swaps to a hardcoded light literal only in print mode; normal
+        // browsing keeps the app's own theme untouched.
+        const c = (light, themed) => fySummaryPrintMode ? light : themed;
         return (
-          <div className={fySummaryPrintMode?'payslip-print-area':''} style={{position:'absolute',inset:0,background:'var(--surface-2)',zIndex:65,overflowY:'auto',overscrollBehavior:'contain'}}>
+          <div className={fySummaryPrintMode?'payslip-print-area':''} style={{position:'absolute',inset:0,background:c('#f8fafc','var(--surface-2)'),zIndex:65,overflowY:'auto',overscrollBehavior:'contain'}}>
             <div className="no-print" style={{background:'var(--tint-amber-2)',padding:'8px',fontSize:'10px',fontWeight:800,color:'var(--text-amber-deep)',textAlign:'center'}}>📁 Archived — {label} is read-only</div>
             {!fySummaryPrintMode&&(
               <div className="no-print" style={{display:'flex',gap:'8px',padding:'12px 12px 0'}}>
@@ -4335,12 +4350,12 @@ export default function App() {
                 <button onClick={()=>window.print()} style={{width:'100%',background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
               </div>
             )}
-            <div className={fySummaryPrintMode?'payslip-print-doc':''} style={{background:'var(--navy)',color:'#fff',padding:'16px',margin:fySummaryPrintMode?'12px':0,borderRadius:fySummaryPrintMode?'12px':0}}>
+            <div className={fySummaryPrintMode?'payslip-print-doc':''} style={{background:c('#0f2744','var(--navy)'),color:'#fff',padding:'16px',margin:fySummaryPrintMode?'12px':0,borderRadius:fySummaryPrintMode?'12px':0}}>
               <button className="no-print" onClick={()=>{ if(fySummaryPrintMode){ setFySummaryPrintMode(false); } else { setFySummaryYear(null); } }} aria-label="Back" style={{background:'rgba(255,255,255,0.12)',border:'none',borderRadius:'9px',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',cursor:'pointer',marginBottom:'12px'}}><Ico n="back" s={16} c="#fff"/></button>
               <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Financial Year</div>
               <div style={{fontSize:'19px',fontWeight:900}}>{label}</div>
               <div style={{fontFamily:MONO,fontSize:'9.5px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
-              <div style={{background:'var(--text-navy)',borderRadius:'14px',padding:'14px',display:'flex',marginTop:'12px'}}>
+              <div style={{background:c('#1e3a5f','var(--text-navy)'),borderRadius:'14px',padding:'14px',display:'flex',marginTop:'12px'}}>
                 <div style={{flex:1,textAlign:'center'}}>
                   <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Shifts Logged</div>
                   <div style={{fontSize:'20px',fontWeight:900}}>{y.totalShifts}</div>
@@ -4354,33 +4369,33 @@ export default function App() {
             </div>
 
             <div style={{padding:'14px',paddingBottom:'40px'}}>
-              <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'10px 12px',marginBottom:'12px',fontSize:'10.5px',color:'var(--text-blue-deep)',lineHeight:1.5}}>{fySummaryPrintMode ? 'Grouped by pay period. Gross figures only — no tax or NI estimate, since that math needs the current year\'s context to be accurate.' : 'Tap a period to see individual shifts, this is a record not a working copy. Gross figures only'}</div>
+              <div style={{background:c('#eff6ff','var(--tint-blue)'),border:`1px solid ${c('#f1f5f9','var(--border-2)')}`,borderRadius:'13px',padding:'10px 12px',marginBottom:'12px',fontSize:'10.5px',color:c('#1e40af','var(--text-blue-deep)'),lineHeight:1.5}}>{fySummaryPrintMode ? 'Grouped by pay period. Gross figures only — no tax or NI estimate, since that math needs the current year\'s context to be accurate.' : 'Tap a period to see individual shifts, this is a record not a working copy. Gross figures only'}</div>
 
               {y.periods.length===0 ? (
-                <div style={{textAlign:'center',padding:'30px 10px',color:'var(--quiet)',fontSize:'13px',fontWeight:600}}>No entries recorded in this year.</div>
+                <div style={{textAlign:'center',padding:'30px 10px',color:c('#78849b','var(--quiet)'),fontSize:'13px',fontWeight:600}}>No entries recorded in this year.</div>
               ) : y.periods.map(p=>{
                 const expanded = fySummaryPrintMode || archiveExpandedPeriod===p.short+fySummaryYear;
                 return (
-                  <div key={p.short} style={{background:'var(--surface)',borderRadius:'14px',padding:'13px',border:'1px solid var(--border-2)',marginBottom:'9px'}}>
+                  <div key={p.short} style={{background:c('#ffffff','var(--surface)'),borderRadius:'14px',padding:'13px',border:`1px solid ${c('#f1f5f9','var(--border-2)')}`,marginBottom:'9px'}}>
                     <button disabled={fySummaryPrintMode} onClick={()=>setArchiveExpandedPeriod(expanded?null:p.short+fySummaryYear)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:fySummaryPrintMode?'default':'pointer'}}>
                       <div>
-                        <div style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>{p.month}</div>
-                        <div style={{fontFamily:MONO,fontSize:'9.5px',color:'var(--quiet)',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)} · {p.entries.length} shift{p.entries.length===1?'':'s'}</div>
+                        <div style={{fontWeight:900,fontSize:'13px',color:c('#0f172a','var(--ink)')}}>{p.month}</div>
+                        <div style={{fontFamily:MONO,fontSize:'9.5px',color:c('#78849b','var(--quiet)'),marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)} · {p.entries.length} shift{p.entries.length===1?'':'s'}</div>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                        <div style={{fontFamily:MONO,fontWeight:600,fontSize:'12.5px',color:'var(--text-navy)'}}>{fmtGBP(p.gross)}</div>
+                        <div style={{fontFamily:MONO,fontWeight:600,fontSize:'12.5px',color:c('#1e3a5f','var(--text-navy)')}}>{fmtGBP(p.gross)}</div>
                         {!fySummaryPrintMode&&<Ico n={expanded?'cU':'cD'} s={14} c="#94a3b8"/>}
                       </div>
                     </button>
                     {expanded&&(
                       <div>
                         {p.entries.map(e=>(
-                          <div key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderTop:'1px solid var(--border-2)',marginTop:'9px'}}>
+                          <div key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderTop:`1px solid ${c('#f1f5f9','var(--border-2)')}`,marginTop:'9px'}}>
                             <div>
-                              <div style={{fontWeight:800,fontSize:'11.5px',color:'var(--ink)'}}>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB')}</div>
-                              <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px',textTransform:'uppercase'}}>{e.reason||'—'}</div>
+                              <div style={{fontWeight:800,fontSize:'11.5px',color:c('#0f172a','var(--ink)')}}>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB')}</div>
+                              <div style={{fontSize:'10px',color:c('#78849b','var(--quiet)'),marginTop:'1px',textTransform:'uppercase'}}>{e.reason||'—'}</div>
                             </div>
-                            <div style={{fontFamily:MONO,fontWeight:600,fontSize:'11px',color:'var(--text-navy)'}}>{fmtGBP(e.gross)}</div>
+                            <div style={{fontFamily:MONO,fontWeight:600,fontSize:'11px',color:c('#1e3a5f','var(--text-navy)')}}>{fmtGBP(e.gross)}</div>
                           </div>
                         ))}
                       </div>
