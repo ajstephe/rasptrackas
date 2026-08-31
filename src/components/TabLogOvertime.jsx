@@ -466,7 +466,10 @@ export function TabLogOvertime({
            always shows once rank/pay point are set, whether or not
            a preview happens to be showing. */}
       {isWide&&(
-        <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':''} style={{width:'100%',background:justSaved?'#059669':'#dc2626',color:'#fff',boxShadow:justSaved?'0 4px 20px rgba(5,150,105,0.5)':'0 4px 20px rgba(220,38,38,0.5)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',marginTop:'18px',transition:'background 0.3s'}}>
+        // Blue, not red — matches the floating mobile button above; red
+        // stays reserved for destructive/error states (delete, validation,
+        // tax deductions) elsewhere in the app.
+        <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':''} style={{width:'100%',background:justSaved?'#059669':'#2563eb',color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':'0 3px 14px rgba(37,99,235,0.4)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',marginTop:'18px',transition:'background 0.3s'}}>
           <Ico n={justSaved?'check':'save'} s={18} c="#fff"/>
           {justSaved?'Saved':(editing?'Update Record':'Save Record')}
         </button>

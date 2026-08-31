@@ -80,7 +80,14 @@
         --border-2:#f1f5f9;
         --ink:#0f172a;
         --muted:#64748b;
-        --quiet:#94a3b8;
+        /* --quiet is deliberately quieter than --muted (tertiary vs.
+           secondary label, in Apple's terms) so it's never going to hit
+           full 4.5:1 AA on its own — Apple's own tertiaryLabel doesn't
+           either, by design. #94a3b8 measured ~2.1:1 on the page
+           background though, well below even that tier's usual ~3:1;
+           nudged one step darker to land there without erasing the
+           distinction from --muted. */
+        --quiet:#78849b;
         --navy:#0f2744;
         --tint-blue:#eff6ff;
         --tint-red:#fef2f2;
