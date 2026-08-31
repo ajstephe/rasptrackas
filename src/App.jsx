@@ -3594,6 +3594,19 @@ export default function App() {
         input:focus,select:focus,textarea:focus{outline:2px solid #2563eb;outline-offset:-2px}
         input,select,textarea{font-size:16px}
         button:active{opacity:0.8;transform:scale(0.96)}
+        /* Opt-out of the scale half of that press feedback for a real
+           <button> that is both wide and has its actual tap target (a
+           checkbox-style ring, usually) sitting near one edge rather than
+           centered — CARMS's select-mode toggles are the case that
+           surfaced this. Scaling a 600px-wide button 4% toward its own
+           center moves a ring 12px from that edge by several px, which is
+           nothing for a finger's contact area but enough that a real
+           mouse — stationary between mousedown and mouseup — ends up
+           released over the row that's now revealed beside the shrunk
+           button instead of over the button itself, so the click is lost
+           even though the button visibly took focus. Keeps the opacity
+           dim from the rule above; only cancels the transform. */
+        .tap-anchor:active{transform:none}
         button{transition:filter 0.15s ease}
         /* Keyboard-focus ring for buttons — inputs already get one above,
            buttons never did, so tabbing through the app on a keyboard/
