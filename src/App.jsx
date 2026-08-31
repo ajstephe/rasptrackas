@@ -2825,7 +2825,18 @@ export default function App() {
   // (no Vibration API there — Android Chrome only). The visual state
   // needs to carry the full story on its own, not lean on that.
   const [pullArmed, setPullArmed] = useState(false);
+  // True only while a finger is actually down and dragging — as opposed
+  // to "pullY is non-zero", which used to gate the settle transition
+  // below and was wrong: pullY is *also* non-zero during the two
+  // programmatic snaps (armed-release settling to PULL_TRIGGER, and the
+  // final close), which is exactly when a transition should play, not
+  // when it should be suppressed. That bug meant those two snaps jumped
+  // instantly with no animation at all instead of settling smoothly.
+  const [pullDragging, setPullDragging] = useState(false);
   const PULL_TRIGGER = 64, PULL_MAX = 92;
+  // How far a raw finger movement has to travel before the resistance
+  // curve below reports 1 pull-unit — tunable feel, not a hard distance.
+  const PULL_RESISTANCE = 80;
   useEffect(() => {
     // mainRef.current is reliably null on this effect's first (and, with
     // an empty dep array, ONLY) run: <main> itself only renders once past
@@ -2840,7 +2851,7 @@ export default function App() {
     let cleanedUp = false;
     let el = null;
     let observer = null;
-    const state = { active:false, startY:0, armed:false };
+    const state = { active:false, dragging:false, startY:0, armed:false };
     const onStart = (ev) => {
       // Only ever starts a pull from already scrolled-to-top — anywhere
       // else, a downward drag is just an ordinary scroll.
@@ -2850,9 +2861,17 @@ export default function App() {
     const onMove = (ev) => {
       if (!state.active) return;
       const dy = ev.touches[0].clientY - state.startY;
-      if (dy <= 0 || el.scrollTop > 0) { state.active = false; setPullY(0); setPullArmed(false); return; }
+      if (dy <= 0 || el.scrollTop > 0) { state.active = false; setPullDragging(false); setPullY(0); setPullArmed(false); return; }
       ev.preventDefault();
-      const damped = Math.min(PULL_MAX, dy * 0.5);
+      if (!state.dragging) { state.dragging = true; setPullDragging(true); }
+      // Elastic resistance, not a flat multiplier with a hard cap — the
+      // same shape UIScrollView's own rubber-band uses: quick to respond
+      // at first, then increasingly reluctant the further past comfortable
+      // it goes, easing toward PULL_MAX rather than ever slamming into it.
+      // A flat clamp (the old `Math.min(PULL_MAX, dy*0.5)`) feels fine
+      // right up until it hits that ceiling, then dead-stops — the one
+      // moment an elastic gesture should least feel rigid.
+      const damped = PULL_MAX * (1 - Math.exp(-dy / PULL_RESISTANCE));
       setPullY(damped);
       // A short tap the instant the pull crosses the trigger distance —
       // the same "it's armed now" tactile cue iOS gives when a pull-to-
@@ -2867,13 +2886,17 @@ export default function App() {
     const onEnd = () => {
       if (!state.active) return;
       state.active = false;
+      state.dragging = false;
+      setPullDragging(false);
       if (state.armed) {
         // Holds the indicator open at the trigger height through the
         // actual sync (the effect below drops it once manualSyncing
         // resolves) rather than snapping shut immediately on release and
         // leaving the sync happen with no visible indicator of its own —
         // the header/sidebar Sync button also spins throughout, same as
-        // it would for a manual tap, this is just the second cue.
+        // it would for a manual tap, this is just the second cue. Now
+        // that pullDragging (not pullY) gates the transition, this settle
+        // actually animates instead of jumping straight to PULL_TRIGGER.
         setPullY(PULL_TRIGGER);
         handleManualSyncRef.current();
       } else {
@@ -2908,6 +2931,15 @@ export default function App() {
       }
     };
   }, []);
+  // Only the two *settle* moments (armed-release snapping open, the final
+  // close) animate — 'none' for every frame of an actual drag, so the
+  // indicator/padding never lag a single pixel behind the finger while
+  // it's moving. The overshoot curve (already used for alert-pop
+  // elsewhere in the app) gives the settle a touch of spring rather than
+  // a flat ease-out — the difference between "stopping" and "landing".
+  const pullSettling = !pullDragging && !prefersReducedMotion();
+  const pullPaddingTransition = pullSettling ? 'padding-top 0.32s cubic-bezier(.34,1.42,.64,1)' : 'none';
+  const pullIndicatorTransition = pullSettling ? 'transform 0.32s cubic-bezier(.34,1.42,.64,1), opacity 0.32s cubic-bezier(.34,1.42,.64,1), color 0.2s ease' : 'none';
   // Drops the held-open indicator once the pull-triggered sync actually
   // finishes (manualSyncing flips back to false) — see onEnd above. Runs
   // harmlessly on every other manualSyncing transition too (a plain tap
@@ -3715,9 +3747,18 @@ export default function App() {
            iOS Safari has no Vibration API at all (haptics.js) — so this
            can't lean on touch alone to say what's happening. Fades in
            quickly (over the first ~24px) rather than waiting for the full
-           pull, so it doesn't read as "did that even register?" early on. */}
+           pull, so it doesn't read as "did that even register?" early on.
+           The chevron's rotation tracks pull progress continuously (0°
+           at the start, a full 180° right at the trigger) instead of
+           snapping between two fixed angles — it should turn with your
+           finger, the same way a real UIRefreshControl's spinner tracks
+           the drag, not flip once you cross an invisible line. Only the
+           two *settle* moments (armed-release snapping open, and the
+           final close) actually transition — see pullSettling above,
+           'none' for every frame of a live drag, so nothing here ever
+           fights or lags behind the finger while it's actually moving. */}
       {pullY>0&&(
-        <div className="no-print" style={{position:'absolute',top:0,left:0,right:0,height:pullY+'px',display:'flex',alignItems:'flex-end',justifyContent:'center',gap:'7px',paddingBottom:'12px',pointerEvents:'none',zIndex:5,opacity:Math.min(1,pullY/24)}}>
+        <div className="no-print" style={{position:'absolute',top:0,left:0,right:0,height:pullY+'px',display:'flex',alignItems:'flex-end',justifyContent:'center',gap:'7px',paddingBottom:'12px',pointerEvents:'none',zIndex:5,opacity:Math.min(1,pullY/24),transition:pullIndicatorTransition}}>
           {manualSyncing ? (
             <>
               <div className="tab-spinner" style={{width:'16px',height:'16px',borderWidth:'2.5px'}}/>
@@ -3725,13 +3766,13 @@ export default function App() {
             </>
           ) : (
             <>
-              <span style={{display:'flex',transition:'transform 0.2s ease',transform:pullArmed?'rotate(180deg)':'rotate(0deg)'}}><Ico n="cD" s={16} c={pullArmed?BRASS:'var(--quiet)'} w={2.5}/></span>
-              <span style={{fontSize:'11px',fontWeight:800,color:pullArmed?BRASS:'var(--muted)'}}>{pullArmed?'Release to sync':'Pull to sync'}</span>
+              <span style={{display:'flex',transition:pullIndicatorTransition,transform:`rotate(${Math.min(180,(pullY/PULL_TRIGGER)*180)}deg) scale(${pullArmed?1.1:1})`}}><Ico n="cD" s={16} c={pullArmed?BRASS:'var(--quiet)'} w={2.5}/></span>
+              <span style={{fontSize:'11px',fontWeight:800,color:pullArmed?BRASS:'var(--muted)',transition:pullIndicatorTransition}}>{pullArmed?'Release to sync':'Pull to sync'}</span>
             </>
           )}
         </div>
       )}
-      <main ref={mainRef} className="no-print" style={{...S.main, paddingTop:pullY||undefined, transition:(pullY||prefersReducedMotion())?'none':'padding-top 0.25s cubic-bezier(.32,.72,0,1)'}}>
+      <main ref={mainRef} className="no-print" style={{...S.main, paddingTop:pullY||undefined, transition:pullPaddingTransition}}>
       <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'50vh'}}><div className="tab-spinner"/></div>}>
 
         {/* ══════════════════════════════════════════ DASHBOARD */}
