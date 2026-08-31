@@ -94,7 +94,16 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
             <Ico n="moon" s={19} c="#7c3aed" w={2}/>
           </div>
           <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No TOIL activity yet</div>
-          <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log a TOIL shift or redeem hours above</div>
+          <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600,marginBottom:'14px'}}>Log a TOIL shift or redeem hours above</div>
+          {/* The colour legend above (green earns, red redeems) means
+              nothing until there's at least one row of each to see it on —
+              spelling it out here up front means someone's first-ever
+              ledger row doesn't have to be the thing that teaches them
+              what colour it is. */}
+          <div style={{display:'inline-flex',gap:'16px',fontSize:'10.5px',color:'var(--quiet)',fontWeight:700}}>
+            <span style={{display:'flex',alignItems:'center',gap:'5px'}}><span style={{width:'7px',height:'7px',borderRadius:'50%',background:'#059669',flexShrink:0}}/>Banked</span>
+            <span style={{display:'flex',alignItems:'center',gap:'5px'}}><span style={{width:'7px',height:'7px',borderRadius:'50%',background:'#dc2626',flexShrink:0}}/>Redeemed</span>
+          </div>
         </div>
       ) : (
       <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}:undefined}>

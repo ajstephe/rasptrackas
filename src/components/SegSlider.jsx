@@ -29,6 +29,20 @@ export function SegSlider({ activeKey, indicatorStyle, trackStyle, className, or
         : { start: btn.offsetLeft, size: btn.offsetWidth });
     };
     place();
+    // A tab's SegSlider mounts fresh the first time that tab is opened in a
+    // session (lazy-loaded chunk), and on that very first mount `place()`
+    // can measure button widths against the fallback font — DM Sans loads
+    // via `&display=swap`, so if this exact weight/text hasn't rendered
+    // anywhere yet this session, the browser paints once with the fallback
+    // before swapping in the real font a moment later. That swap reflows
+    // the buttons out from under the already-placed indicator, which is
+    // what shows up as the pill briefly sitting at the wrong (usually
+    // zero/leftmost) spot before snapping into place. The ResizeObserver
+    // below does eventually catch that reflow, but only after it's already
+    // visible; re-placing once fonts are actually ready closes the gap.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { if (containerEl) place(); });
+    }
     const ro = new ResizeObserver(place);
     ro.observe(containerEl);
     return () => ro.disconnect();

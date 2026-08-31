@@ -1,5 +1,11 @@
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback, lazy, Suspense } from "react";
-import { createClient } from "@supabase/supabase-js";
+// @supabase/supabase-js is dynamically imported inside App() itself (see
+// hasSupabaseConfig / the supabase state below) rather than statically here.
+// Sign-in is mandatory in this build (no local-only bypass — see the
+// comment on the auth-session effect), so this doesn't save anyone from
+// ever loading it; what it does buy is a separate chunk the browser can
+// fetch in parallel with, rather than bundled into, the main chunk every
+// visitor's JS engine has to parse and evaluate before first paint.
 
 import {
   CURRENT_FY_YEAR, PAY_PERIODS, FY_START, FY_END, getFYStartYearFor, generateFYPeriods,
@@ -18,7 +24,7 @@ import {
   getTaxBand, applyBandTax, splitAcrossBands,
   monthlySteppedAmount, monthlySteppedSplitBySept, periodBaseAmount,
 } from './lib/tax.js';
-import { fmt, fmtHM, fmtGBP, fmtD } from './lib/format.js';
+import { fmt, fmtHM, fmtGBP, fmtD, fmtRelTime } from './lib/format.js';
 import {
   calcAutoOTHours, syncShiftTimesIntoForm,
 } from './lib/shiftTimes.js';
@@ -96,6 +102,13 @@ const BRASS = '#b8823f';
 // (direct manipulation, not a decorative animation), only the spring-back
 // afterwards should respect it.
 const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Same "hide scrollbars on touch, keep them on desktop" call as the
+// ::-webkit-scrollbar media query below — Firefox's equivalent
+// (scrollbar-width) has to be set inline rather than in that same media
+// query, since it lives on an inline style object (S.main) rather than a
+// CSS class. Evaluated fresh each render, same as prefersReducedMotion —
+// pointer capability doesn't change mid-session, so no listener needed.
+const prefersCoarsePointer = () => typeof window !== 'undefined' && window.matchMedia && (window.matchMedia('(pointer:coarse)').matches || window.matchMedia('(hover:none)').matches);
 
 // Shared by both the mobile bottom nav and the wide-screen sidebar — one
 // list, so the two can never disagree about what the tabs are.
@@ -122,7 +135,9 @@ try {
 // If the environment variables are missing or malformed, supabase stays null
 // rather than throwing — the app falls back to local-only behaviour instead
 // of a blank white screen. Every call site below checks for this.
-const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
+// Config presence only (no import needed to know this) — decides whether
+// App() should even bother dynamically importing the client below.
+const hasSupabaseConfig = !!(supabaseUrl && supabaseAnonKey);
 
 // ─── crypto: data key wrap/unwrap ──────────────────────────────────────────
 // Every user's shift data is encrypted with a single random "data key" (DEK),
@@ -638,9 +653,54 @@ export default function App() {
   const [savedBadge,   setSavedBadge]   = useState(false);
   const [session,      setSession]      = useState(null);
   const [authLoading,  setAuthLoading]  = useState(true);
+  // The actual Supabase client — null until the dynamically-imported
+  // module resolves and creates it (or forever, if hasSupabaseConfig is
+  // false). Kept as state rather than a module-level constant so the
+  // ~large @supabase/supabase-js package becomes its own chunk instead of
+  // bundled into the one every visitor's JS engine parses before first
+  // paint. The auth-session effect below is the only thing that needs to
+  // know the difference between "still loading" and "not configured" —
+  // everywhere else already treats a null supabase as "nothing to do
+  // here yet", which holds either way.
+  const [supabase, setSupabase] = useState(null);
+  useEffect(() => {
+    if (!hasSupabaseConfig) return;
+    let cancelled = false;
+    import('@supabase/supabase-js').then(({ createClient }) => {
+      if (cancelled) return;
+      setSupabase(createClient(supabaseUrl, supabaseAnonKey));
+    });
+    return () => { cancelled = true; };
+  }, []);
   const [dataKey,      setDataKey]      = useState(null); // unwrapped CryptoKey, in memory only, never persisted
   const [manualSyncing, setManualSyncing] = useState(false);
   const [syncJustSucceeded, setSyncJustSucceeded] = useState(false);
+  // Epoch ms of the last successful sync of any kind — manual, initial
+  // catch-up pull, realtime reconnect, or a routine background push
+  // triggered by editing an entry. Persisted so "Synced 4 minutes ago"
+  // survives a reload rather than reverting to "never" every time the app
+  // opens. Deliberately a plain timestamp rather than trying to track
+  // "fully in sync" as a boolean — a background push succeeding is a real,
+  // true fact worth showing even while another table's pull is mid-flight.
+  const [lastSyncedAt, setLastSyncedAt] = useState(()=>dualRead(KEYS.lastSyncedAt, null));
+  const markSynced = useCallback(() => {
+    const now = Date.now();
+    setLastSyncedAt(now);
+    dualWrite(KEYS.lastSyncedAt, now);
+  }, []);
+  // Ticks once a minute purely so "4 minutes ago" keeps counting up on
+  // screen without needing anything else to re-render this component in
+  // the meantime — a plain setInterval rather than piggybacking on
+  // whatever else happens to trigger a render, which could otherwise leave
+  // the label stuck reading "1 minute ago" for far longer than a minute on
+  // a quiet screen. Only runs while actually signed in; nothing reads it
+  // otherwise.
+  const [syncClockTick, setSyncClockTick] = useState(0);
+  useEffect(() => {
+    if (!session) return;
+    const id = setInterval(()=>setSyncClockTick(t=>t+1), 60000);
+    return () => clearInterval(id);
+  }, [session]);
   // Briefly shows the Save button as a checkmark before handing off to
   // handleSave's own navigation (which switches tabs immediately) — the
   // navigation is delayed by the same amount so the confirmation is
@@ -896,13 +956,13 @@ export default function App() {
       try {
         const ciphertext = await encryptWithDataKey(dataKey, item);
         const { error } = await supabase.from(table).upsert({ id: item.id, user_id: uid, ciphertext, updated_at: now, deleted_at: null });
-        if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); console.log(`[sync] pushed ${table} id=${item.id}`); }
+        if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); markSynced(); console.log(`[sync] pushed ${table} id=${item.id}`); }
         else console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error);
       } catch (e) { console.error(`[sync] push threw for ${table} id=${item.id}:`, e.message || e); }
     }
     for (const id of toDelete) {
       const { error } = await supabase.from(table).update({ deleted_at: now, updated_at: now }).eq('id', id).eq('user_id', uid);
-      if (!error) { lastSyncedRef.current.delete(id); persistFn(); }
+      if (!error) { lastSyncedRef.current.delete(id); persistFn(); markSynced(); }
       else console.error(`[sync] soft-delete failed for ${table} id=${id}:`, error.message || error);
     }
   }
@@ -914,7 +974,7 @@ export default function App() {
     try {
       const ciphertext = await encryptWithDataKey(dataKey, settingsObj);
       const { error } = await supabase.from('settings').upsert({ user_id: session.user.id, ciphertext, updated_at: new Date().toISOString() });
-      if (!error) { lastSyncedSettingsRef.current = json; persistLastSyncedSettings(); console.log('[sync] pushed settings'); }
+      if (!error) { lastSyncedSettingsRef.current = json; persistLastSyncedSettings(); markSynced(); console.log('[sync] pushed settings'); }
       else console.error('[sync] push failed for settings:', error.message || error);
     } catch (e) { console.error('[sync] push threw for settings:', e.message || e); }
   }
@@ -978,6 +1038,7 @@ export default function App() {
     }
     persistFn();
     setLocalItems(merged);
+    markSynced();
   }
 
   async function pullAndMergeSettings() {
@@ -997,6 +1058,7 @@ export default function App() {
         lastSyncedSettingsRef.current = JSON.stringify(remoteSettings);
         persistLastSyncedSettings();
       }
+      markSynced();
     } catch (e) { /* undecryptable — skip */ }
   }
 
@@ -1038,6 +1100,7 @@ export default function App() {
         setLocalItems(prev => prev.filter(it => it.id !== row.id));
         lastSyncedRef.current.delete(row.id);
         persistFn();
+        markSynced();
         return;
       }
       try {
@@ -1049,6 +1112,7 @@ export default function App() {
           if (idx === -1) return [...prev, decrypted];
           const copy = [...prev]; copy[idx] = decrypted; return copy;
         });
+        markSynced();
       } catch (e) { /* undecryptable — skip */ }
     };
 
@@ -1062,6 +1126,7 @@ export default function App() {
           lastSyncedSettingsRef.current = JSON.stringify(decrypted);
           persistLastSyncedSettings();
           saveSett(decrypted);
+          markSynced();
         } catch (e) { /* undecryptable — skip */ }
       })
       .subscribe((status)=>{
@@ -1090,8 +1155,16 @@ export default function App() {
   // Checks for an existing session once on mount, then stays subscribed for
   // sign-in/sign-out events for the lifetime of the app. A signed-in session
   // is now required — there's no local-only bypass.
+  // Re-runs when `supabase` itself changes (null → the real client, once the
+  // dynamic import above resolves) rather than only on mount — otherwise
+  // this fires once while supabase is still mid-import, reads it as "not
+  // configured" via the guard below, and permanently skips the entire auth
+  // flow for every real user. hasSupabaseConfig (known synchronously, no
+  // import needed) is what actually distinguishes "still loading" from
+  // "genuinely unconfigured" here.
   useEffect(()=>{
-    if (!supabase) { setAuthLoading(false); return; }
+    if (!hasSupabaseConfig) { setAuthLoading(false); return; }
+    if (!supabase) return; // still importing — keep the loading state up
     let cancelled = false;
     supabase.auth.getSession().then(({data})=>{
       if (cancelled) return;
@@ -1115,7 +1188,7 @@ export default function App() {
       setSession(newSession);
     });
     return ()=>{ cancelled = true; listener.subscription.unsubscribe(); };
-  },[]);
+  },[supabase]);
   useEffect(()=>{ if(mainRef.current) mainRef.current.scrollTop=0; },[tab]);
 
   // Opening the Breakdown tab always returns to the starred default view.
@@ -3051,7 +3124,7 @@ export default function App() {
   const S={
     wrap: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'var(--page-bg)',fontFamily:"'DM Sans',system-ui,sans-serif",color:'var(--ink)',position:'relative',boxShadow:'0 0 60px rgba(0,0,0,0.14)',overflow:'hidden'},
     hdr:  {background:'var(--surface)',paddingTop:'calc(13px + env(safe-area-inset-top))',paddingRight:'18px',paddingBottom:'13px',paddingLeft:'18px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,zIndex:10},
-    main: {flex:1,overflowY:'auto',overflowX:'hidden',overscrollBehaviorY:'contain',minWidth:0,scrollbarWidth:'none',msOverflowStyle:'none'},
+    main: {flex:1,overflowY:'auto',overflowX:'hidden',overscrollBehaviorY:'contain',minWidth:0,scrollbarWidth:prefersCoarsePointer()?'none':'auto',msOverflowStyle:'none'},
     nav:  {background:'rgba(var(--surface-rgb),0.72)',backdropFilter:'blur(20px) saturate(1.5)',WebkitBackdropFilter:'blur(20px) saturate(1.5)',borderTop:'1px solid var(--border-2)',position:'absolute',bottom:0,width:'100%',paddingTop:'7px',paddingRight:'4px',paddingBottom:'calc(12px + env(safe-area-inset-bottom))',paddingLeft:'4px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
     nBtn: (a,add)=>({flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',padding:add?'9px 4px':'6px 4px',background:'transparent',color:add?'#10b981':a?BRASS:'var(--quiet)',borderRadius:add?'13px':'8px',border:'none',cursor:'pointer',transition:'all 0.18s',fontFamily:'inherit',boxShadow:'none'}),
     nLbl: {fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.5px',whiteSpace:'nowrap'},
@@ -3381,7 +3454,17 @@ export default function App() {
     <div style={isWide ? {...S.wrap, maxWidth:'1180px', margin:'0 auto 0 250px'} : S.wrap}>
       <style>{`
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-        ::-webkit-scrollbar{display:none}
+        /* Hiding the scrollbar app-wide is right for the touch/mobile
+           shell this app mostly lives in (iOS/Android already auto-hide
+           theirs), but this rule used to apply unconditionally — including
+           to mouse/trackpad desktop sessions on Windows and Mac, where a
+           visible, draggable scrollbar is still the expected affordance
+           for the sidebar, Settings, and Summary panels. Scoping it to
+           coarse-pointer/no-hover devices lets desktop keep its native
+           (already thin, already auto-hiding) scrollbar instead. */
+        @media (hover:none), (pointer:coarse){
+          ::-webkit-scrollbar{display:none}
+        }
         @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         /* ── directional tab entrance — same fade, sliding in from whichever
              side of the nav order the tab you left sits on, instead of
@@ -3653,7 +3736,11 @@ export default function App() {
               its own persistent Sync button at all times, so this would
               just be a second one doing the exact same thing. */}
           {session&&!isWide&&(
-            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:syncJustSucceeded?'var(--tint-green)':'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',color:syncJustSucceeded?'#059669':'#2563eb',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap',transition:'background 0.3s, color 0.3s'}}>
+            // No room for a visible "Synced Xm ago" line in this compact
+            // header pill (the sidebar's equivalent button has it, below)
+            // — a title attribute at least surfaces it on hover for anyone
+            // on a mouse, at zero layout cost.
+            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" title={lastSyncedAt?`Last synced ${fmtRelTime(lastSyncedAt)}`:undefined} style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:syncJustSucceeded?'var(--tint-green)':'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',color:syncJustSucceeded?'#059669':'#2563eb',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap',transition:'background 0.3s, color 0.3s'}}>
               <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={13} c={syncJustSucceeded?'#059669':'#2563eb'}/></span> {syncJustSucceeded?'Synced':'Sync'}
             </button>
           )}
@@ -4444,10 +4531,17 @@ export default function App() {
 
       {/* floating save button — mobile only (Log Shift, once rank/pay point
            are set). Desktop uses the in-flow button at the end of the form
-           instead. */}
+           instead. Blue (matching the Sign In / primary-action blue used
+           on the auth screens), not red — red stays reserved for
+           destructive/error states elsewhere (delete, validation, tax
+           deductions) so the single most-pressed button in the app stops
+           sharing a colour with "you're about to lose your data". Shadow
+           blur also tightened (20px→14px, alpha 0.5→0.4) so it reads as a
+           button glow rather than bleeding colour onto the bottom nav
+           docked just underneath it. */}
       {tab==='add'&&!isWide&&settings.rank&&settings.service&&(
         <div style={{position:'absolute',bottom:'72px',left:'14px',right:'14px',zIndex:25}}>
-          <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':''} style={{width:'100%',background:justSaved?'#059669':'#dc2626',color:'#fff',boxShadow:justSaved?'0 4px 20px rgba(5,150,105,0.5)':'0 4px 20px rgba(220,38,38,0.5)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',transition:'background 0.3s'}}>
+          <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':''} style={{width:'100%',background:justSaved?'#059669':'#2563eb',color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':'0 3px 14px rgba(37,99,235,0.4)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',transition:'background 0.3s'}}>
             <Ico n={justSaved?'check':'save'} s={18} c="#fff"/>
             {justSaved?'Saved':(editing?'Update Record':'Save Record')}
           </button>
@@ -4506,7 +4600,14 @@ export default function App() {
               </div>
             );
           })()}
-          <SegSlider activeKey={tab} orientation="vertical" trackStyle={{display:'flex',flexDirection:'column'}} indicatorStyle={{background:'rgba(184,130,63,0.18)',borderRadius:'11px',opacity:tab==='add'?0:1}}>
+          {/* Log Overtime keeps its own permanent green branding (the CTA
+              colour, matching the bottom nav) whether or not it's the
+              active tab — so the active-pill itself needs a distinct dim
+              green wash when tab==='add' rather than being hidden outright
+              (opacity:0), which used to leave "selected" and "always
+              highlighted" looking identical in this sidebar. Every other
+              tab keeps the brass wash it always had. */}
+          <SegSlider activeKey={tab} orientation="vertical" trackStyle={{display:'flex',flexDirection:'column'}} indicatorStyle={{background:tab==='add'?'rgba(16,185,129,0.16)':'rgba(184,130,63,0.18)',borderRadius:'11px'}}>
           {NAV_TABS.map(t=>{
             const isAdd = t.id==='add';
             const isActive = tab===t.id;
@@ -4529,13 +4630,26 @@ export default function App() {
           })}
           </SegSlider>
           {session&&(
-            <button onClick={handleManualSync} disabled={manualSyncing} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:syncJustSucceeded?'rgba(5,150,105,0.35)':'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'auto',transition:'background 0.3s'}}>
-              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={14} c="#fff"/></span> {syncJustSucceeded?'Synced':'Sync'}
+            // "Synced Xm ago" underneath is the one thing people actually
+            // want from a sync button on a device that goes on/off signal
+            // all shift — reassurance the data on screen isn't stale,
+            // without having to press Sync just to check. Only markSynced
+            // callers set lastSyncedAt, so this reflects any successful
+            // sync (manual, background push, or realtime), not only a
+            // press of this exact button.
+            // Brass — matching the wayfinding accent used everywhere else
+            // in this column — rather than the flat white-on-navy these
+            // two buttons used to share with nothing else nearby.
+            <button onClick={handleManualSync} disabled={manualSyncing} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'2px',background:syncJustSucceeded?'rgba(5,150,105,0.35)':'rgba(184,130,63,0.16)',border:syncJustSucceeded?'1px solid transparent':'1px solid rgba(184,130,63,0.4)',borderRadius:'10px',padding:lastSyncedAt?'9px 11px':'11px',fontSize:'12.5px',fontWeight:800,color:syncJustSucceeded?'#fff':'#e3bd85',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'auto',transition:'background 0.3s'}}>
+              <span style={{display:'flex',alignItems:'center',gap:'7px'}}>
+                <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={14} c={syncJustSucceeded?'#fff':'#e3bd85'}/></span> {syncJustSucceeded?'Synced':'Sync'}
+              </span>
+              {lastSyncedAt&&<span style={{fontSize:'10px',fontWeight:600,color:syncJustSucceeded?'rgba(255,255,255,0.7)':'rgba(227,189,133,0.65)'}}>Synced {fmtRelTime(lastSyncedAt)}</span>}
             </button>
           )}
           {session&&(
-            <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',marginTop:'10px'}}>
-              <FireExitIcon size={14}/> Sign Out
+            <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(184,130,63,0.16)',border:'1px solid rgba(184,130,63,0.4)',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#e3bd85',cursor:'pointer',fontFamily:'inherit',marginTop:'10px'}}>
+              <FireExitIcon size={14} color="#e3bd85"/> Sign Out
             </button>
           )}
         </div>
