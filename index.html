@@ -25,6 +25,12 @@
     <link rel="manifest" href="/manifest.json"/>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
     <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png"/>
+    <!-- Classic favicon.ico, generated from the same 192px source. Most
+         browsers resolve the PNG above fine, but pinning to the Windows
+         taskbar (and some older Edge/compat contexts) still goes looking
+         for /favicon.ico specifically and falls back to a blank page icon
+         without one. -->
+    <link rel="icon" href="/favicon.ico" sizes="any"/>
 
     <!-- iOS launch screens — without these, opening the installed app shows
          a plain white flash (regardless of theme) for the beat before the

@@ -24,7 +24,7 @@ import {
   getTaxBand, applyBandTax, splitAcrossBands,
   monthlySteppedAmount, monthlySteppedSplitBySept, periodBaseAmount,
 } from './lib/tax.js';
-import { fmt, fmtHM, fmtGBP, fmtD } from './lib/format.js';
+import { fmt, fmtHM, fmtGBP, fmtD, fmtRelTime } from './lib/format.js';
 import {
   calcAutoOTHours, syncShiftTimesIntoForm,
 } from './lib/shiftTimes.js';
@@ -675,6 +675,32 @@ export default function App() {
   const [dataKey,      setDataKey]      = useState(null); // unwrapped CryptoKey, in memory only, never persisted
   const [manualSyncing, setManualSyncing] = useState(false);
   const [syncJustSucceeded, setSyncJustSucceeded] = useState(false);
+  // Epoch ms of the last successful sync of any kind — manual, initial
+  // catch-up pull, realtime reconnect, or a routine background push
+  // triggered by editing an entry. Persisted so "Synced 4 minutes ago"
+  // survives a reload rather than reverting to "never" every time the app
+  // opens. Deliberately a plain timestamp rather than trying to track
+  // "fully in sync" as a boolean — a background push succeeding is a real,
+  // true fact worth showing even while another table's pull is mid-flight.
+  const [lastSyncedAt, setLastSyncedAt] = useState(()=>dualRead(KEYS.lastSyncedAt, null));
+  const markSynced = useCallback(() => {
+    const now = Date.now();
+    setLastSyncedAt(now);
+    dualWrite(KEYS.lastSyncedAt, now);
+  }, []);
+  // Ticks once a minute purely so "4 minutes ago" keeps counting up on
+  // screen without needing anything else to re-render this component in
+  // the meantime — a plain setInterval rather than piggybacking on
+  // whatever else happens to trigger a render, which could otherwise leave
+  // the label stuck reading "1 minute ago" for far longer than a minute on
+  // a quiet screen. Only runs while actually signed in; nothing reads it
+  // otherwise.
+  const [syncClockTick, setSyncClockTick] = useState(0);
+  useEffect(() => {
+    if (!session) return;
+    const id = setInterval(()=>setSyncClockTick(t=>t+1), 60000);
+    return () => clearInterval(id);
+  }, [session]);
   // Briefly shows the Save button as a checkmark before handing off to
   // handleSave's own navigation (which switches tabs immediately) — the
   // navigation is delayed by the same amount so the confirmation is
@@ -930,13 +956,13 @@ export default function App() {
       try {
         const ciphertext = await encryptWithDataKey(dataKey, item);
         const { error } = await supabase.from(table).upsert({ id: item.id, user_id: uid, ciphertext, updated_at: now, deleted_at: null });
-        if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); console.log(`[sync] pushed ${table} id=${item.id}`); }
+        if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); markSynced(); console.log(`[sync] pushed ${table} id=${item.id}`); }
         else console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error);
       } catch (e) { console.error(`[sync] push threw for ${table} id=${item.id}:`, e.message || e); }
     }
     for (const id of toDelete) {
       const { error } = await supabase.from(table).update({ deleted_at: now, updated_at: now }).eq('id', id).eq('user_id', uid);
-      if (!error) { lastSyncedRef.current.delete(id); persistFn(); }
+      if (!error) { lastSyncedRef.current.delete(id); persistFn(); markSynced(); }
       else console.error(`[sync] soft-delete failed for ${table} id=${id}:`, error.message || error);
     }
   }
@@ -948,7 +974,7 @@ export default function App() {
     try {
       const ciphertext = await encryptWithDataKey(dataKey, settingsObj);
       const { error } = await supabase.from('settings').upsert({ user_id: session.user.id, ciphertext, updated_at: new Date().toISOString() });
-      if (!error) { lastSyncedSettingsRef.current = json; persistLastSyncedSettings(); console.log('[sync] pushed settings'); }
+      if (!error) { lastSyncedSettingsRef.current = json; persistLastSyncedSettings(); markSynced(); console.log('[sync] pushed settings'); }
       else console.error('[sync] push failed for settings:', error.message || error);
     } catch (e) { console.error('[sync] push threw for settings:', e.message || e); }
   }
@@ -1012,6 +1038,7 @@ export default function App() {
     }
     persistFn();
     setLocalItems(merged);
+    markSynced();
   }
 
   async function pullAndMergeSettings() {
@@ -1031,6 +1058,7 @@ export default function App() {
         lastSyncedSettingsRef.current = JSON.stringify(remoteSettings);
         persistLastSyncedSettings();
       }
+      markSynced();
     } catch (e) { /* undecryptable — skip */ }
   }
 
@@ -1072,6 +1100,7 @@ export default function App() {
         setLocalItems(prev => prev.filter(it => it.id !== row.id));
         lastSyncedRef.current.delete(row.id);
         persistFn();
+        markSynced();
         return;
       }
       try {
@@ -1083,6 +1112,7 @@ export default function App() {
           if (idx === -1) return [...prev, decrypted];
           const copy = [...prev]; copy[idx] = decrypted; return copy;
         });
+        markSynced();
       } catch (e) { /* undecryptable — skip */ }
     };
 
@@ -1096,6 +1126,7 @@ export default function App() {
           lastSyncedSettingsRef.current = JSON.stringify(decrypted);
           persistLastSyncedSettings();
           saveSett(decrypted);
+          markSynced();
         } catch (e) { /* undecryptable — skip */ }
       })
       .subscribe((status)=>{
@@ -3705,7 +3736,11 @@ export default function App() {
               its own persistent Sync button at all times, so this would
               just be a second one doing the exact same thing. */}
           {session&&!isWide&&(
-            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:syncJustSucceeded?'var(--tint-green)':'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',color:syncJustSucceeded?'#059669':'#2563eb',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap',transition:'background 0.3s, color 0.3s'}}>
+            // No room for a visible "Synced Xm ago" line in this compact
+            // header pill (the sidebar's equivalent button has it, below)
+            // — a title attribute at least surfaces it on hover for anyone
+            // on a mouse, at zero layout cost.
+            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" title={lastSyncedAt?`Last synced ${fmtRelTime(lastSyncedAt)}`:undefined} style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:syncJustSucceeded?'var(--tint-green)':'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',color:syncJustSucceeded?'#059669':'#2563eb',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap',transition:'background 0.3s, color 0.3s'}}>
               <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={13} c={syncJustSucceeded?'#059669':'#2563eb'}/></span> {syncJustSucceeded?'Synced':'Sync'}
             </button>
           )}
@@ -4595,13 +4630,26 @@ export default function App() {
           })}
           </SegSlider>
           {session&&(
-            <button onClick={handleManualSync} disabled={manualSyncing} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:syncJustSucceeded?'rgba(5,150,105,0.35)':'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'auto',transition:'background 0.3s'}}>
-              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={14} c="#fff"/></span> {syncJustSucceeded?'Synced':'Sync'}
+            // "Synced Xm ago" underneath is the one thing people actually
+            // want from a sync button on a device that goes on/off signal
+            // all shift — reassurance the data on screen isn't stale,
+            // without having to press Sync just to check. Only markSynced
+            // callers set lastSyncedAt, so this reflects any successful
+            // sync (manual, background push, or realtime), not only a
+            // press of this exact button.
+            // Brass — matching the wayfinding accent used everywhere else
+            // in this column — rather than the flat white-on-navy these
+            // two buttons used to share with nothing else nearby.
+            <button onClick={handleManualSync} disabled={manualSyncing} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'2px',background:syncJustSucceeded?'rgba(5,150,105,0.35)':'rgba(184,130,63,0.16)',border:syncJustSucceeded?'1px solid transparent':'1px solid rgba(184,130,63,0.4)',borderRadius:'10px',padding:lastSyncedAt?'9px 11px':'11px',fontSize:'12.5px',fontWeight:800,color:syncJustSucceeded?'#fff':'#e3bd85',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'auto',transition:'background 0.3s'}}>
+              <span style={{display:'flex',alignItems:'center',gap:'7px'}}>
+                <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={14} c={syncJustSucceeded?'#fff':'#e3bd85'}/></span> {syncJustSucceeded?'Synced':'Sync'}
+              </span>
+              {lastSyncedAt&&<span style={{fontSize:'10px',fontWeight:600,color:syncJustSucceeded?'rgba(255,255,255,0.7)':'rgba(227,189,133,0.65)'}}>Synced {fmtRelTime(lastSyncedAt)}</span>}
             </button>
           )}
           {session&&(
-            <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(255,255,255,0.1)',border:'none',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',marginTop:'10px'}}>
-              <FireExitIcon size={14}/> Sign Out
+            <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(184,130,63,0.16)',border:'1px solid rgba(184,130,63,0.4)',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#e3bd85',cursor:'pointer',fontFamily:'inherit',marginTop:'10px'}}>
+              <FireExitIcon size={14} color="#e3bd85"/> Sign Out
             </button>
           )}
         </div>

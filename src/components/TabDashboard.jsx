@@ -58,10 +58,16 @@ export function TabDashboard({
         <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'12px',paddingLeft:compact?'42px':'46px'}}>
           <div>
             <div style={{fontFamily:MONO,fontSize:compact?'22px':'25px',fontWeight:700,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.1}}>{fmtGBP(animatedNet)}</div>
+            {/* Tapping the trend pill jumps straight to the period it's
+                actually comparing against (currPeriodIdx-1, not the
+                current one) — same drill-down instinct as every other
+                tap-to-go-deeper spot on this tab, applied to the one
+                figure here that was previously just decorative. */}
             {delta!=null&&(
-              <span style={{display:'inline-flex',alignItems:'center',gap:'3px',fontFamily:MONO,fontSize:'10px',fontWeight:600,color:delta>=0?'#059669':'var(--text-red-deep)',background:delta>=0?'var(--tint-green)':'var(--tint-red)',padding:'2px 8px',borderRadius:'20px',marginTop:'4px'}}>
-                {delta>=0?'▲':'▼'} {fmtGBP(Math.abs(delta))} vs last period
-              </span>
+              <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx-1); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:600,color:delta>=0?'#059669':'var(--text-red-deep)',background:delta>=0?'var(--tint-green)':'var(--tint-red)',padding:'2px 6px 2px 8px',borderRadius:'20px',marginTop:'4px',border:'none',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
+                <span style={{fontFamily:MONO}}>{delta>=0?'▲':'▼'} {fmtGBP(Math.abs(delta))} vs last period</span>
+                <Ico n="cR" s={9} c="currentColor" w={2.5}/>
+              </button>
             )}
           </div>
           {pts.length>1&&(

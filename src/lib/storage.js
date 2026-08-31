@@ -11,6 +11,11 @@ export const KEYS = {
   lastSyncedToilTaken:'ajs_ot_lastSyncedToilTaken',
   lastSyncedSettings:'ajs_ot_lastSyncedSettings',
   lastCloudPruneCheck:'ajs_ot_lastCloudPruneCheck',
+  // Distinct from the three lastSynced* keys above, which store per-row
+  // sync bookkeeping (snapshots used to detect pending local edits) — this
+  // is just a plain timestamp of the last successful sync of any kind, for
+  // the "Synced 4 minutes ago" display under the Sync button.
+  lastSyncedAt:'ajs_ot_lastSyncedAt',
 };
 export const dualWrite = (key, val) => {
   const s = JSON.stringify(val);
