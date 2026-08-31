@@ -2794,7 +2794,7 @@ export default function App() {
   // space that did nothing. This wires that same gesture to the existing
   // manual sync instead, rather than just continuing to eat it silently.
   // Same non-passive-touchmove + rubber-band technique as the calendar
-  // swipe and swipe-to-delete elsewhere in the app.
+  // swipe elsewhere in the app.
   //
   // Mobile only — desktop keeps its own always-visible sidebar Sync
   // button, so there's nothing this gesture adds there. Only meaningful
@@ -2888,20 +2888,17 @@ export default function App() {
       state.active = false;
       state.dragging = false;
       setPullDragging(false);
-      if (state.armed) {
-        // Holds the indicator open at the trigger height through the
-        // actual sync (the effect below drops it once manualSyncing
-        // resolves) rather than snapping shut immediately on release and
-        // leaving the sync happen with no visible indicator of its own —
-        // the header/sidebar Sync button also spins throughout, same as
-        // it would for a manual tap, this is just the second cue. Now
-        // that pullDragging (not pullY) gates the transition, this settle
-        // actually animates instead of jumping straight to PULL_TRIGGER.
-        setPullY(PULL_TRIGGER);
-        handleManualSyncRef.current();
-      } else {
-        setPullY(0);
-      }
+      // Springs shut immediately either way, rather than holding open at
+      // PULL_TRIGGER through the sync itself — that used to mean the
+      // spring-close animation and the chevron/text swapping to a spinner
+      // + "Syncing…" were both happening at once, two different kinds of
+      // motion competing in the same beat, which read as stutter rather
+      // than a single clean settle. The header Sync icon already spins
+      // for the whole sync regardless of what triggered it (a tap or a
+      // pull) — that's the one place "it's syncing" needs to live, so
+      // the pull indicator's own job is done the moment you let go.
+      setPullY(0);
+      if (state.armed) handleManualSyncRef.current();
       setPullArmed(false);
     };
     const attach = () => {
@@ -2940,11 +2937,6 @@ export default function App() {
   const pullSettling = !pullDragging && !prefersReducedMotion();
   const pullPaddingTransition = pullSettling ? 'padding-top 0.32s cubic-bezier(.34,1.42,.64,1)' : 'none';
   const pullIndicatorTransition = pullSettling ? 'transform 0.32s cubic-bezier(.34,1.42,.64,1), opacity 0.32s cubic-bezier(.34,1.42,.64,1), color 0.2s ease' : 'none';
-  // Drops the held-open indicator once the pull-triggered sync actually
-  // finishes (manualSyncing flips back to false) — see onEnd above. Runs
-  // harmlessly on every other manualSyncing transition too (a plain tap
-  // on the Sync button, mount) since pullY is already 0 in those cases.
-  useEffect(() => { if (!manualSyncing) setPullY(0); }, [manualSyncing]);
 
   // Scrolls the main container so a month card sits just below the sticky
   // header. The header's height is measured live (it changes between views,
@@ -3737,15 +3729,21 @@ export default function App() {
       <div ref={contentWrapRef} style={{display:'flex',flex:1,overflow:'hidden',position:'relative'}}>
       {/* pull-to-refresh indicator — sits in the gap main's own paddingTop
            opens up below, rather than needing main itself to be a
-           positioning context. Three states, not just a spinner: a
+           positioning context. Just the pull/armed states now — a
            chevron + "Pull to sync" while still dragging, the chevron
            flipped + "Release to sync" (brass, matching the haptic tap
            that fires at the same instant on Android) once past the
-           trigger distance, then a spinner + "Syncing…" once actually
-           released and the sync itself is running. The label carries the
-           full state on its own since the haptic cue is Android-only —
-           iOS Safari has no Vibration API at all (haptics.js) — so this
-           can't lean on touch alone to say what's happening. Fades in
+           trigger distance. It used to hold open through the sync itself
+           with a third spinner + "Syncing…" state, but that meant the
+           spring-close animation and that content swap were both
+           happening at once — two different kinds of motion competing
+           in the same beat, which read as stutter rather than one clean
+           settle. It now springs shut the instant you let go regardless
+           of outcome; "it's syncing" is the header Sync icon's job (it
+           already spins for the whole sync, whatever triggered it), not
+           this indicator's. The label still carries the pull/armed
+           distinction on its own since the haptic cue is Android-only —
+           iOS Safari has no Vibration API at all (haptics.js). Fades in
            quickly (over the first ~24px) rather than waiting for the full
            pull, so it doesn't read as "did that even register?" early on.
            The chevron's rotation tracks pull progress continuously (0°
@@ -3753,23 +3751,14 @@ export default function App() {
            snapping between two fixed angles — it should turn with your
            finger, the same way a real UIRefreshControl's spinner tracks
            the drag, not flip once you cross an invisible line. Only the
-           two *settle* moments (armed-release snapping open, and the
-           final close) actually transition — see pullSettling above,
-           'none' for every frame of a live drag, so nothing here ever
-           fights or lags behind the finger while it's actually moving. */}
+           settle-shut moment on release actually transitions — see
+           pullSettling above, 'none' for every frame of a live drag, so
+           nothing here ever fights or lags behind the finger while it's
+           actually moving. */}
       {pullY>0&&(
         <div className="no-print" style={{position:'absolute',top:0,left:0,right:0,height:pullY+'px',display:'flex',alignItems:'flex-end',justifyContent:'center',gap:'7px',paddingBottom:'12px',pointerEvents:'none',zIndex:5,opacity:Math.min(1,pullY/24),transition:pullIndicatorTransition}}>
-          {manualSyncing ? (
-            <>
-              <div className="tab-spinner" style={{width:'16px',height:'16px',borderWidth:'2.5px'}}/>
-              <span style={{fontSize:'11px',fontWeight:800,color:'var(--muted)'}}>Syncing…</span>
-            </>
-          ) : (
-            <>
-              <span style={{display:'flex',transition:pullIndicatorTransition,transform:`rotate(${Math.min(180,(pullY/PULL_TRIGGER)*180)}deg) scale(${pullArmed?1.1:1})`}}><Ico n="cD" s={16} c={pullArmed?BRASS:'var(--quiet)'} w={2.5}/></span>
-              <span style={{fontSize:'11px',fontWeight:800,color:pullArmed?BRASS:'var(--muted)',transition:pullIndicatorTransition}}>{pullArmed?'Release to sync':'Pull to sync'}</span>
-            </>
-          )}
+          <span style={{display:'flex',transition:pullIndicatorTransition,transform:`rotate(${Math.min(180,(pullY/PULL_TRIGGER)*180)}deg) scale(${pullArmed?1.1:1})`}}><Ico n="cD" s={16} c={pullArmed?BRASS:'var(--quiet)'} w={2.5}/></span>
+          <span style={{fontSize:'11px',fontWeight:800,color:pullArmed?BRASS:'var(--muted)',transition:pullIndicatorTransition}}>{pullArmed?'Release to sync':'Pull to sync'}</span>
         </div>
       )}
       <main ref={mainRef} className="no-print" style={{...S.main, paddingTop:pullY||undefined, transition:pullPaddingTransition}}>
