@@ -23,6 +23,12 @@ import { Ico } from './Icons.jsx';
 // so a normal vertical scroll starting on a row never gets hijacked.
 const REVEAL = 76; // px — width of the revealed Delete action
 const OPEN_THRESHOLD = REVEAL * 0.4; // drag past this far to snap open on release
+// Same check the calendar-view swipe (TabSummary.jsx) already makes before
+// its own snap-back transition — missed here originally. The live drag
+// itself tracks the finger 1:1 regardless (that's direct manipulation, not
+// a decorative animation), but the settle afterwards should jump straight
+// to its resting position rather than spring there.
+const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function SwipeToDelete({ id, onDelete, deleteLabel='Delete', disabled=false, style, children }) {
   const [dragX, setDragX] = useState(0);
@@ -99,7 +105,7 @@ export function SwipeToDelete({ id, onDelete, deleteLabel='Delete', disabled=fal
           {deleteLabel}
         </button>
       </div>
-      <div ref={elRef} style={{ transform: `translateX(${dragX}px)`, transition: dragging ? 'none' : 'transform 0.22s cubic-bezier(.32,.72,0,1)', position: 'relative' }}>
+      <div ref={elRef} style={{ transform: `translateX(${dragX}px)`, transition: (dragging || prefersReducedMotion()) ? 'none' : 'transform 0.22s cubic-bezier(.32,.72,0,1)', position: 'relative' }}>
         {children}
       </div>
     </div>

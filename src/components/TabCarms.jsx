@@ -245,14 +245,22 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                           {on&&<Ico n="check" s={11} c="#fff" w={3}/>}
                         </span>
                       );
+                      // Can't be a real <button> — it contains the four
+                      // toggle buttons above whenever select mode is active
+                      // (a <button> may not itself contain other
+                      // interactive content per HTML5). role="button" +
+                      // tabIndex + Enter/Space is the standard alternative;
+                      // both drop away entirely in select mode, when this
+                      // row's own click handler is disabled anyway and the
+                      // toggles above are the real interactive elements.
                       return (
-                        <div key={it.entry.id} onClick={carmsSelectMode?undefined:goToEntry} className="claim-in tap-row" style={{display:'flex',alignItems:'flex-start',gap:'10px',paddingTop:isWide?'12px':'10px',paddingBottom:isWide?'12px':'10px',borderBottom:'1px solid var(--border-2)',cursor:carmsSelectMode?'default':'pointer',animationDelay:(Math.min(i,6)*55)+'ms',background:anySelected?'rgba(184,130,63,0.07)':'transparent',margin:anySelected?'0 -10px':0,paddingLeft:anySelected?'10px':0,paddingRight:anySelected?'10px':0,borderRadius:anySelected?'8px':0}}>
+                        <div key={it.entry.id} role={carmsSelectMode?undefined:'button'} tabIndex={carmsSelectMode?undefined:0} onClick={carmsSelectMode?undefined:goToEntry} onKeyDown={carmsSelectMode?undefined:(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goToEntry(); } }} className="claim-in tap-row" style={{display:'flex',alignItems:'flex-start',gap:'10px',paddingTop:isWide?'12px':'10px',paddingBottom:isWide?'12px':'10px',borderBottom:'1px solid var(--border-2)',cursor:carmsSelectMode?'default':'pointer',animationDelay:(Math.min(i,6)*55)+'ms',background:anySelected?'rgba(184,130,63,0.07)':'transparent',margin:anySelected?'0 -10px':0,paddingLeft:anySelected?'10px':0,paddingRight:anySelected?'10px':0,borderRadius:anySelected?'8px':0}}>
                           <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',marginBottom:'6px'}}>
                             {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
                           </div>
                           {mergeOtToil&&(
-                            <div onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'4px 0',cursor:carmsSelectMode?'pointer':'default'}}>
+                            <button disabled={!carmsSelectMode} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'4px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default'}}>
                               {ring(otSelected)}
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
                               <div style={{display:'flex',alignItems:'center',gap:'4px',flexShrink:0}}>
@@ -264,34 +272,34 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                                 <div style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706'}}>{fmtGBP(it.otAmt)}</div>
                                 <div style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:700,color:'#7c3aed'}}>+ {it.toilHrs.toFixed(1)}h TOIL</div>
                               </div>
-                            </div>
+                            </button>
                           )}
                           {showOt&&!mergeOtToil&&(
-                            <div onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'4px 0',cursor:carmsSelectMode?'pointer':'default'}}>
+                            <button disabled={!carmsSelectMode} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'4px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default'}}>
                               {ring(otSelected)}
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
                               {catChip('ot')}
                               <span style={{fontSize:isWide?'13px':'11.5px',fontWeight:700,color:'var(--ink)'}}>Overtime</span>
                               <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
-                            </div>
+                            </button>
                           )}
                           {showPa&&(
-                            <div onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'pa'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'4px 0',cursor:carmsSelectMode?'pointer':'default'}}>
+                            <button disabled={!carmsSelectMode} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'pa'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'4px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default'}}>
                               {ring(paSelected)}
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-pa')}</span>
                               {catChip('pa')}
                               <span style={{fontSize:isWide?'13px':'11.5px',fontWeight:700,color:'var(--ink)'}}>PA</span>
                               <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
-                            </div>
+                            </button>
                           )}
                           {showToil&&!mergeOtToil&&(
-                            <div onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'4px 0',cursor:carmsSelectMode?'pointer':'default'}}>
+                            <button disabled={!carmsSelectMode} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'4px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:carmsSelectMode?'pointer':'default'}}>
                               {ring(otSelected)}
                               <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-toil')}</span>
                               {catChip('toil')}
                               <span style={{fontSize:isWide?'13px':'11.5px',fontWeight:700,color:'var(--ink)'}}>TOIL</span>
                               <span style={{fontFamily:MONO,fontSize:isWide?'14.5px':'12.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
-                            </div>
+                            </button>
                           )}
                           </div>
                         </div>

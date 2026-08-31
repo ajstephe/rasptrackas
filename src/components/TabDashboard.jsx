@@ -76,8 +76,17 @@ export function TabDashboard({
   };
 
   const salaryBreakdownCard = (
-    <div style={{...S.card,cursor:isWide?'default':'pointer'}} onClick={()=>{ if(!isWide) setSalaryBreakdownExpanded(v=>!v); }}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
+    <div style={S.card}>
+      {/* Desktop starts (and stays) expanded — there's nothing to toggle
+          there, so disabled rather than a plain div: same look, but
+          genuinely inert (out of tab order, no click handler at all)
+          instead of a div whose onClick quietly did nothing on that
+          layout anyway. The accordion body used to need its own
+          stopPropagation to stop a click inside it from bubbling up to
+          this row's own toggle; now that the toggle lives on this button
+          alone (a sibling of the body, not an ancestor of it), a click
+          inside the body was never going to reach it in the first place. */}
+      <button disabled={isWide} onClick={()=>setSalaryBreakdownExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:isWide?'default':'pointer'}}>
         <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
           <div style={{background:'var(--tint-brass)',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c={BRASS}/></div>
           <div>
@@ -86,10 +95,10 @@ export function TabDashboard({
           </div>
         </div>
         {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{salaryBreakdownExpanded?'Tap to Close':'Tap to expand'}</span>}
-      </div>
+      </button>
 
       {salaryBreakdownExpanded&&(
-        <div onClick={e=>e.stopPropagation()} className="accordion-in" style={{cursor:'default'}}>
+        <div className="accordion-in" style={{cursor:'default'}}>
           {/* breakdown rows — London Weighting/Allowance shown as YTD out of full year */}
           <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',display:'flex',flexDirection:'column',gap:'6px'}}>
             {[
@@ -136,7 +145,7 @@ export function TabDashboard({
               { key:'125', value: 125140, label: '£125.1k' },
             ];
             return (
-              <div onClick={e=>{e.stopPropagation();scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} className="tap-row" style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
+              <button onClick={()=>{scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} className="tap-row" style={{display:'block',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'26px'}}>
                   <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross Salary (Actual)</div>
                   <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
@@ -153,7 +162,7 @@ export function TabDashboard({
                   <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
                   <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(grossYTD/1000).toFixed(1)}k</div>
                 </div>
-              </div>
+              </button>
             );
           })()}
 
@@ -173,7 +182,7 @@ export function TabDashboard({
               { key:'125', value: 125140, label: '£125.1k' },
             ];
             return (
-              <div onClick={e=>{e.stopPropagation();scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} className="tap-row" style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
+              <button onClick={()=>{scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} className="tap-row" style={{display:'block',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'3px'}}>
                   <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross Salary (Forecast)</div>
                   <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
@@ -191,7 +200,7 @@ export function TabDashboard({
                   <div style={{position:'absolute',left:`${pct(proj)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
                   <div style={{position:'absolute',left:`${pct(proj)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(proj/1000).toFixed(1)}k</div>
                 </div>
-              </div>
+              </button>
             );
           })()}
 

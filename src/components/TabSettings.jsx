@@ -164,7 +164,7 @@ export function TabSettings({
            — that part was never meant to be hideable. ── */}
       {(()=>{
         const cardHeader = (
-          <div onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setConfigExpanded(v=>!v); }} className={configSetupIncomplete?'':'tap-row'} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete))?'13px':0}}>
+          <button disabled={configSetupIncomplete} onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setConfigExpanded(v=>!v); }} className={configSetupIncomplete?'':'tap-row'} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete))?'13px':0}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Config, Rates &amp; Payscales</div>
@@ -175,7 +175,7 @@ export function TabSettings({
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:configShown?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
               </span>
             )}
-          </div>
+          </button>
         );
         const cardBody = configShown && (
         <>
@@ -335,7 +335,7 @@ export function TabSettings({
         );
 
         const cardHeader = (
-          <div onClick={()=>{ if(isWide){setConfigExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setTaxImpactExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(taxImpactExpanded&&!isWide)?'12px':0,cursor:'pointer'}}>
+          <button onClick={()=>{ if(isWide){setConfigExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setTaxImpactExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(taxImpactExpanded&&!isWide)?'12px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:over?'var(--tint-red)':'var(--tint-green)',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="calc" s={isWide?21:17} c={over?'#dc2626':'#059669'}/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Tax & 100K+ Calculator</div>
@@ -344,7 +344,7 @@ export function TabSettings({
               {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{taxImpactExpanded?'Tap to Close':'Tap to expand'}</span>}
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:taxImpactExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
             </span>
-          </div>
+          </button>
         );
         const cardBody = taxImpactExpanded&&(
               <>
@@ -391,7 +391,7 @@ export function TabSettings({
                 </div>
 
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
-                  <div onClick={()=>{ setTaxCalcActualDetailOpen(v=>!v); setTaxCalcForecastDetailOpen(false); }} style={{background:overA?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overA?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'10px',cursor:'pointer'}}>
+                  <button onClick={()=>{ setTaxCalcActualDetailOpen(v=>!v); setTaxCalcForecastDetailOpen(false); }} style={{background:overA?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overA?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'10px',width:'100%',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
                     <div style={{fontSize:'10px',fontWeight:900,color:overA?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>Calculations</div>
                     {overA ? (
                       <div style={{fontSize:'9.5px',color:'var(--text-red-deep)',lineHeight:1.7}}>
@@ -404,8 +404,8 @@ export function TabSettings({
                       <div style={{fontSize:'9.5px',color:'var(--text-green-deep)',lineHeight:1.7}}>Under £100k so far this year (after pension) — no allowance used yet.</div>
                     )}
                     <div style={{fontSize:'8.5px',fontWeight:800,color:overA?'#dc2626':'#059669',textDecoration:'underline',marginTop:'8px',textAlign:'center'}}>{taxCalcActualDetailOpen?'Showing full breakdown below':'Tap to see full breakdown'}</div>
-                  </div>
-                  <div onClick={()=>{ setTaxCalcForecastDetailOpen(v=>!v); setTaxCalcActualDetailOpen(false); }} style={{background:overF?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overF?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'10px',cursor:'pointer'}}>
+                  </button>
+                  <button onClick={()=>{ setTaxCalcForecastDetailOpen(v=>!v); setTaxCalcActualDetailOpen(false); }} style={{background:overF?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overF?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'10px',width:'100%',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
                     <div style={{fontSize:'10px',fontWeight:900,color:overF?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>Calculations</div>
                     {overF ? (
                       <div style={{fontSize:'9.5px',color:'var(--text-red-deep)',lineHeight:1.7}}>
@@ -418,7 +418,7 @@ export function TabSettings({
                       <div style={{fontSize:'9.5px',color:'var(--text-green-deep)',lineHeight:1.7}}>Projected to stay under £100k (after pension) — {fmtGBP(100000-taxableGrossF)} of headroom at this pace.</div>
                     )}
                     <div style={{fontSize:'8.5px',fontWeight:800,color:overF?'#dc2626':'#059669',textDecoration:'underline',marginTop:'8px',textAlign:'center'}}>{taxCalcForecastDetailOpen?'Showing full breakdown below':'Tap to see full breakdown'}</div>
-                  </div>
+                  </button>
                 </div>
 
                 {taxCalcActualDetailOpen&&(
@@ -558,7 +558,7 @@ export function TabSettings({
       {/* ── Financial Years — generated calendar, every past year with data is browsable ── */}
       {(()=>{
         const cardHeader = (
-          <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setFinancialYearsExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(financialYearsExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
+          <button onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setFinancialYearsExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(financialYearsExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="cal" s={isWide?21:17} c="#2563eb"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Archived Financial Years</div>
@@ -567,7 +567,7 @@ export function TabSettings({
               {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{financialYearsExpanded?'Tap to Close':'Tap to expand'}</span>}
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:financialYearsExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
             </span>
-          </div>
+          </button>
         );
         const cardBody = financialYearsExpanded&&(
           <>
@@ -611,7 +611,7 @@ export function TabSettings({
       {/* ── Export to spreadsheet — separate from backup ── */}
       {(()=>{
         const cardHeader = (
-          <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setDataManagementExpanded(false);} setExportDataExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:(exportDataExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
+          <button onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setDataManagementExpanded(false);} setExportDataExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(exportDataExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-amber)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="share" s={isWide?21:17} c="#d97706"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Financial Reports &amp; Export</div>
@@ -620,7 +620,7 @@ export function TabSettings({
               {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{exportDataExpanded?'Tap to Close':'Tap to expand'}</span>}
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:exportDataExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
             </span>
-          </div>
+          </button>
         );
         const cardBody = exportDataExpanded&&(
           <>
@@ -653,7 +653,7 @@ export function TabSettings({
       {(()=>{
         const acctBase = {background:'var(--surface)',borderRadius:'18px',padding:'19px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid var(--border-2)',marginBottom:'10px',position:'relative',overflow:'hidden'};
         const cardHeader = (
-          <div onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);} setDataManagementExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',cursor:'pointer',marginBottom:(dataManagementExpanded&&!isWide)?'13px':0}}>
+          <button onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);} setDataManagementExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer',marginBottom:(dataManagementExpanded&&!isWide)?'13px':0}}>
             <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
               <div style={{background:'var(--tint-blue)',padding:'11px',borderRadius:'13px'}}><Ico n="user" s={21} c="#2563eb"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Account &amp; Data Management</div>
@@ -662,7 +662,7 @@ export function TabSettings({
               {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline'}}>{dataManagementExpanded?'Tap to Close':'Tap to expand'}</span>}
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:dataManagementExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
             </span>
-          </div>
+          </button>
         );
         const cardBody = dataManagementExpanded&&(
           <div style={{background:'var(--surface-2)',borderRadius:'13px',padding:'13px'}}>
