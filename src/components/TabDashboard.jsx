@@ -7,7 +7,7 @@ import { useCountUp } from '../lib/useCountUp.js';
 // change. renderMonthlyChart, S and the various setters/refs all come in as
 // props rather than being closed over directly.
 export function TabDashboard({
-  isWide, settings, setTab, totals, currPeriodIdx, toilLedger, carmsOutstanding,
+  isWide, settings, setTab, totals, taxForecast, currPeriodIdx, toilLedger, carmsOutstanding,
   salaryBreakdownExpanded, setSalaryBreakdownExpanded,
   scrollToTaxImpact, setTaxImpactExpanded,
   skipBreakdownReset, setBreakdownView, setCalPeriodIdx,
@@ -135,15 +135,25 @@ export function TabDashboard({
             <div style={{fontSize:'9.5px',fontWeight:600,color:'var(--quiet)',textAlign:'right',marginTop:'2px'}}>Figures in brackets, e.g. <span style={{color:'#059669'}}>(£xx.xx)</span>, are net</div>
           </div>
 
-          {/* ── Gross Salary (Actual) ── */}
+          {/* ── Gross Salary (Actual) ──
+               Plots the pension-adjusted taxable figure, not raw gross —
+               the £100k/Personal-Allowance taper is assessed against pay
+               net of pension (a "net pay arrangement" takes it off before
+               tax), exactly what the Tax & 100K+ Calculator this button
+               links to already does. Using raw combinedGrossYTD here used
+               to let this gauge disagree with the Calculator right next
+               to it — showing PA as already tapered, or the wrong rate
+               band, whenever pension (~13% of pensionable pay) was enough
+               to matter near a threshold. totals.taxableGrossYTD is the
+               exact same figure the Calculator's own YTD side reads. ── */}
           {(()=>{
-            const grossYTD = totals.combinedGrossYTD;
-            const over100k = grossYTD > 100000;
-            const paNow = over100k ? Math.max(0, 12570 - Math.floor((grossYTD-100000)/2)) : 12570;
-            const scaleMax = Math.max(125140, grossYTD*1.05);
+            const taxableYTD = totals.taxableGrossYTD;
+            const over100k = taxableYTD > 100000;
+            const paNow = over100k ? Math.max(0, 12570 - Math.floor((taxableYTD-100000)/2)) : 12570;
+            const scaleMax = Math.max(125140, taxableYTD*1.05);
             const pct = v => Math.max(0, Math.min(100, (v/scaleMax)*100));
-            const barColor = grossYTD>=100000 ? '#ef4444' : grossYTD>=50270 ? '#f59e0b' : '#059669';
-            const statusText = grossYTD>=125140 ? '+£125k — No PA' : grossYTD>=100000 ? '+£100k — PA tapering' : grossYTD>=50270 ? 'Higher rate' : 'Basic rate';
+            const barColor = taxableYTD>=100000 ? '#ef4444' : taxableYTD>=50270 ? '#f59e0b' : '#059669';
+            const statusText = taxableYTD>=125140 ? '+£125k — No PA' : taxableYTD>=100000 ? '+£100k — PA tapering' : taxableYTD>=50270 ? 'Higher rate' : 'Basic rate';
             const markers = [
               { key:'pa',  value: paNow,  label: paNow===0 ? 'PA £0' : over100k ? `PA £${(paNow/1000).toFixed(1)}k` : 'PA £12.6k' },
               { key:'hr',  value: 50270,  label: '£50.3k' },
@@ -152,35 +162,41 @@ export function TabDashboard({
             ];
             return (
               <button onClick={()=>{scrollToTaxImpact.current=true;setTaxImpactExpanded(true);setTab('settings');}} className="tap-row" style={{display:'block',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',cursor:'pointer'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'26px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'3px'}}>
                   <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross Salary (Actual)</div>
                   <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
                 </div>
+                <div style={{fontSize:'9.5px',fontWeight:600,color:'var(--quiet)',marginBottom:'19px'}}>After pension — same figure as the Tax &amp; 100K+ Calculator</div>
                 <div style={{position:'relative',marginBottom:'16px'}}>
                   <div style={{background:'var(--border)',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
-                    <div style={{width:`${pct(grossYTD)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
+                    <div style={{width:`${pct(taxableYTD)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
                   </div>
                   {markers.map(m=>(
                     <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'var(--border)',transform:'translateX(-1px)'}}>
                       <div style={{position:'absolute',top:'17px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',fontWeight:800,color:'var(--muted)',whiteSpace:'nowrap'}}>{m.label}</div>
                     </div>
                   ))}
-                  <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
-                  <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(grossYTD/1000).toFixed(1)}k</div>
+                  <div style={{position:'absolute',left:`${pct(taxableYTD)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
+                  <div style={{position:'absolute',left:`${pct(taxableYTD)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(taxableYTD/1000).toFixed(1)}k</div>
                 </div>
               </button>
             );
           })()}
 
-          {/* ── Gross Salary (Forecast) — full-year projection at your current overtime pace ── */}
+          {/* ── Gross Salary (Forecast) — full-year projection at your current
+               overtime pace. Same pension-adjustment reasoning as the Actual
+               gauge above: taxForecast.taxableGrossF is the exact figure the
+               Tax & 100K+ Calculator's own Forecast side assesses the £100k
+               taper against, already computed once in App.jsx's taxForecast
+               memo rather than redone here. ── */}
           {(()=>{
-            const proj = totals.projectedAnnualGross;
-            const over100k = proj > 100000;
-            const paNow = over100k ? Math.max(0, 12570 - Math.floor((proj-100000)/2)) : 12570;
-            const scaleMax = Math.max(125140, proj*1.05);
+            const taxableF = taxForecast ? taxForecast.taxableGrossF : totals.projectedAnnualGross;
+            const over100k = taxableF > 100000;
+            const paNow = over100k ? Math.max(0, 12570 - Math.floor((taxableF-100000)/2)) : 12570;
+            const scaleMax = Math.max(125140, taxableF*1.05);
             const pct = v => Math.max(0, Math.min(100, (v/scaleMax)*100));
-            const barColor = proj>=100000 ? '#ef4444' : proj>=50270 ? '#f59e0b' : '#059669';
-            const statusText = proj>=125140 ? '+£125k — No PA' : proj>=100000 ? '+£100k — PA tapering' : proj>=50270 ? 'Higher rate' : 'Basic rate';
+            const barColor = taxableF>=100000 ? '#ef4444' : taxableF>=50270 ? '#f59e0b' : '#059669';
+            const statusText = taxableF>=125140 ? '+£125k — No PA' : taxableF>=100000 ? '+£100k — PA tapering' : taxableF>=50270 ? 'Higher rate' : 'Basic rate';
             const markers = [
               { key:'pa',  value: paNow,  label: paNow===0 ? 'PA £0' : over100k ? `PA £${(paNow/1000).toFixed(1)}k` : 'PA £12.6k' },
               { key:'hr',  value: 50270,  label: '£50.3k' },
@@ -193,18 +209,18 @@ export function TabDashboard({
                   <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross Salary (Forecast)</div>
                   <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
                 </div>
-                <div style={{fontSize:'9.5px',fontWeight:600,color:'var(--quiet)',marginBottom:'19px'}}>Forecast based on your overtime submissions</div>
+                <div style={{fontSize:'9.5px',fontWeight:600,color:'var(--quiet)',marginBottom:'19px'}}>Forecast based on your overtime submissions, after pension</div>
                 <div style={{position:'relative',marginBottom:'16px'}}>
                   <div style={{background:'var(--border)',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
-                    <div style={{width:`${pct(proj)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
+                    <div style={{width:`${pct(taxableF)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
                   </div>
                   {markers.map(m=>(
                     <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'var(--border)',transform:'translateX(-1px)'}}>
                       <div style={{position:'absolute',top:'17px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',fontWeight:800,color:'var(--muted)',whiteSpace:'nowrap'}}>{m.label}</div>
                     </div>
                   ))}
-                  <div style={{position:'absolute',left:`${pct(proj)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
-                  <div style={{position:'absolute',left:`${pct(proj)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(proj/1000).toFixed(1)}k</div>
+                  <div style={{position:'absolute',left:`${pct(taxableF)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
+                  <div style={{position:'absolute',left:`${pct(taxableF)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(taxableF/1000).toFixed(1)}k</div>
                 </div>
               </button>
             );
