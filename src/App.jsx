@@ -2796,10 +2796,12 @@ export default function App() {
   // Same non-passive-touchmove + rubber-band technique as the calendar
   // swipe and swipe-to-delete elsewhere in the app.
   //
-  // Only meaningful once signed in (there's nothing to pull from
-  // otherwise), so the gesture is simply inert without a session rather
-  // than nagging with a "not signed in" toast on every idle pull. Reads
-  // session/manualSyncing/handleManualSync through refs, kept fresh every
+  // Mobile only — desktop keeps its own always-visible sidebar Sync
+  // button, so there's nothing this gesture adds there. Only meaningful
+  // once signed in (there's nothing to pull from otherwise), so the
+  // gesture is simply inert without a session rather than nagging with a
+  // "not signed in" toast on every idle pull. Reads isWide/session/
+  // manualSyncing/handleManualSync through refs, kept fresh every
   // render below, so the listener (attached once, since mainRef's node
   // itself never remounts between tab switches) never acts on stale
   // values from whichever render happened to be current when it mounted.
@@ -2809,6 +2811,11 @@ export default function App() {
   useEffect(()=>{ manualSyncingRef.current = manualSyncing; },[manualSyncing]);
   const handleManualSyncRef = useRef(handleManualSync);
   useEffect(()=>{ handleManualSyncRef.current = handleManualSync; });
+  // Mobile-only — desktop's fixed sidebar already carries its own
+  // persistent Sync button at all times, so there's no equivalent "nothing
+  // else on screen says how to sync" gap a pull gesture is filling there.
+  const isWideRef = useRef(isWide);
+  useEffect(()=>{ isWideRef.current = isWide; },[isWide]);
   const [pullY, setPullY] = useState(0);
   // Exposed as real state (rather than only the gesture's own internal
   // `state.armed`) so the indicator below can actually render the two
@@ -2820,13 +2827,24 @@ export default function App() {
   const [pullArmed, setPullArmed] = useState(false);
   const PULL_TRIGGER = 64, PULL_MAX = 92;
   useEffect(() => {
-    const el = mainRef.current;
-    if (!el) return;
+    // mainRef.current is reliably null on this effect's first (and, with
+    // an empty dep array, ONLY) run: <main> itself only renders once past
+    // the authLoading/AuthScreens gates further down, which resolve
+    // asynchronously (a real network round-trip to Supabase) well after
+    // this component's first commit. Bailing out here unconditionally, as
+    // this used to, meant the listeners were never attached for anyone
+    // going through a real sign-in — it only looked like it worked in
+    // local-only/no-Supabase testing, where <main> happens to already
+    // exist by the time this runs. Same MutationObserver wait-for-mount
+    // technique as useFocusTrap.js, for the identical reason.
+    let cleanedUp = false;
+    let el = null;
+    let observer = null;
     const state = { active:false, startY:0, armed:false };
     const onStart = (ev) => {
       // Only ever starts a pull from already scrolled-to-top — anywhere
       // else, a downward drag is just an ordinary scroll.
-      if (!sessionRef.current || manualSyncingRef.current || el.scrollTop > 0) { state.active = false; return; }
+      if (isWideRef.current || !sessionRef.current || manualSyncingRef.current || el.scrollTop > 0) { state.active = false; return; }
       state.active = true; state.startY = ev.touches[0].clientY; state.armed = false;
     };
     const onMove = (ev) => {
@@ -2863,15 +2881,31 @@ export default function App() {
       }
       setPullArmed(false);
     };
-    el.addEventListener('touchstart', onStart, { passive:true });
-    el.addEventListener('touchmove', onMove, { passive:false });
-    el.addEventListener('touchend', onEnd, { passive:true });
-    el.addEventListener('touchcancel', onEnd, { passive:true });
+    const attach = () => {
+      if (cleanedUp || el) return;
+      el = mainRef.current;
+      if (!el) return;
+      if (observer) { observer.disconnect(); observer = null; }
+      el.addEventListener('touchstart', onStart, { passive:true });
+      el.addEventListener('touchmove', onMove, { passive:false });
+      el.addEventListener('touchend', onEnd, { passive:true });
+      el.addEventListener('touchcancel', onEnd, { passive:true });
+    };
+    attach();
+    if (!el) {
+      observer = new MutationObserver(attach);
+      observer.observe(document.body, { childList:true, subtree:true });
+    }
+
     return () => {
-      el.removeEventListener('touchstart', onStart);
-      el.removeEventListener('touchmove', onMove);
-      el.removeEventListener('touchend', onEnd);
-      el.removeEventListener('touchcancel', onEnd);
+      cleanedUp = true;
+      if (observer) observer.disconnect();
+      if (el) {
+        el.removeEventListener('touchstart', onStart);
+        el.removeEventListener('touchmove', onMove);
+        el.removeEventListener('touchend', onEnd);
+        el.removeEventListener('touchcancel', onEnd);
+      }
     };
   }, []);
   // Drops the held-open indicator once the pull-triggered sync actually
@@ -3567,7 +3601,10 @@ export default function App() {
           </div>
         </div>
         <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
-          {session&&(
+          {/* Desktop-only, hidden here — the fixed sidebar already carries
+              its own persistent Sync button at all times, so this would
+              just be a second one doing the exact same thing. */}
+          {session&&!isWide&&(
             <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:syncJustSucceeded?'var(--tint-green)':'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',color:syncJustSucceeded?'#059669':'#2563eb',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap',transition:'background 0.3s, color 0.3s'}}>
               <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={13} c={syncJustSucceeded?'#059669':'#2563eb'}/></span> {syncJustSucceeded?'Synced':'Sync'}
             </button>
