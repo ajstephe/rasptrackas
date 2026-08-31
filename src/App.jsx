@@ -36,6 +36,7 @@ import { MonthlyChart } from './components/MonthlyChart.jsx';
 import { useEscapeToClose } from './lib/useEscapeToClose.js';
 import { useBackButtonCloses } from './lib/useBackButtonCloses.js';
 import { useMountTransition, useLastTruthy } from './lib/useMountTransition.js';
+import { useFocusTrap } from './lib/useFocusTrap.js';
 import { haptic } from './lib/haptics.js';
 import { useCountUp } from './lib/useCountUp.js';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
@@ -826,6 +827,21 @@ export default function App() {
   const confirmCreateDayMounted = useMountTransition(!!confirmCreateDay, 220);
   const selectedCalDayMounted = useMountTransition(!!selectedCalDay, 220);
   const datePickerMounted = useMountTransition(!!datePickerFor, 220);
+  // ── focus management for every overlay above ─────────────────────────────
+  // Moves focus into each dialog the instant it opens, traps Tab/Shift+Tab
+  // among its own controls while open, and restores focus to whatever
+  // opened it on close — see useFocusTrap.js. Deliberately keyed to the
+  // real open state (signOutConfirmOpen etc.), not the *Mounted flags above
+  // — trapping Tab inside a dialog that's already mid-close-animation and
+  // invisible would be wrong. Each ref goes on the dialog's actual content
+  // box in the JSX below, never its backdrop.
+  const signOutTrapRef = useRef(null); useFocusTrap(signOutConfirmOpen, signOutTrapRef);
+  const restoreTrapRef = useRef(null); useFocusTrap(restoreConfirmOpen, restoreTrapRef);
+  const payslipTrapRef = useRef(null); useFocusTrap(payslipModalOpen, payslipTrapRef);
+  const chartModalTrapRef = useRef(null); useFocusTrap(!!chartModal, chartModalTrapRef);
+  const confirmCreateDayTrapRef = useRef(null); useFocusTrap(!!confirmCreateDay, confirmCreateDayTrapRef);
+  const selectedCalDayTrapRef = useRef(null); useFocusTrap(!!selectedCalDay, selectedCalDayTrapRef);
+  const datePickerTrapRef = useRef(null); useFocusTrap(!!datePickerFor, datePickerTrapRef);
   // These four close to null/'' rather than false, and their JSX below reads
   // the value itself to decide what to render — holding the last real value
   // keeps that content stable during the mounted-but-closing tail above.
@@ -1339,7 +1355,7 @@ export default function App() {
       setDatePickerMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
     };
     return (
-      <div onClick={ev=>ev.stopPropagation()} className={'alert-pop'+(closing?' pop-out':'')} style={{background:'var(--surface)',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid var(--border)',padding:'22px',width:'360px',maxWidth:'calc(100vw - 32px)',boxSizing:'border-box'}}>
+      <div ref={datePickerTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Choose a date" onClick={ev=>ev.stopPropagation()} className={'alert-pop'+(closing?' pop-out':'')} style={{background:'var(--surface)',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid var(--border)',padding:'22px',width:'360px',maxWidth:'calc(100vw - 32px)',boxSizing:'border-box'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'18px'}}>
           <button onClick={()=>changeMonth(-1)} aria-label="Previous month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cL" s={18} c="#475569"/></button>
           <div style={{fontWeight:900,fontSize:'17px',color:'var(--ink)'}}>{monthLabel}</div>
@@ -3545,7 +3561,7 @@ export default function App() {
            modal, with an explicit close (×) as well as Cancel ── */}
       {signOutMounted&&(
         <div onClick={()=>setSignOutConfirmOpen(false)} className={signOutConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-          <div onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(signOutConfirmOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+          <div ref={signOutTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Sign out?" onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(signOutConfirmOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <button onClick={()=>setSignOutConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
@@ -3562,7 +3578,7 @@ export default function App() {
 
       {restoreMounted&&(
         <div onClick={()=>setRestoreConfirmOpen(false)} className={restoreConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-          <div onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(restoreConfirmOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+          <div ref={restoreTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Restore backup" onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(restoreConfirmOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <button onClick={()=>setRestoreConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
@@ -3828,7 +3844,7 @@ export default function App() {
         const formatLabel = exportFormat==='csv' ? 'Spreadsheet' : 'PDF';
         return (
           <div onClick={()=>setPayslipModalOpen(false)} className={payslipModalOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-            <div onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(payslipModalOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+            <div ref={payslipTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Generate payslip" onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(payslipModalOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
               {!isWide && <div style={{width:'36px',height:'4px',background:'var(--border)',borderRadius:'4px',margin:'0 auto 14px'}}/>}
               {exportFormat===null ? (
                 <>
@@ -4141,7 +4157,7 @@ export default function App() {
       {/* Trends — chart enlarge modal, shares render functions with the inline charts */}
       {chartModalMounted&&(
         <div onClick={()=>{setChartModal(null);setChartTap(null);}} className={chartModal?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50,padding:'16px'}}>
-          <div onClick={e=>e.stopPropagation()} className={'alert-pop'+(chartModal?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'20px',padding:'20px 16px',width:'100%',maxWidth:'480px',maxHeight:'85vh',overflow:'auto',position:'relative'}}>
+          <div ref={chartModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Chart detail" onClick={e=>e.stopPropagation()} className={'alert-pop'+(chartModal?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'20px',padding:'20px 16px',width:'100%',maxWidth:'480px',maxHeight:'85vh',overflow:'auto',position:'relative'}}>
             <button onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',top:'14px',right:'14px',background:'var(--chip-bg)',border:'none',borderRadius:'50%',width:'30px',height:'30px',fontSize:'15px',fontWeight:900,color:'var(--muted)',cursor:'pointer'}}>✕</button>
             <div style={{fontSize:'13px',fontWeight:900,color:'var(--ink)',marginBottom:'16px',paddingRight:'36px'}}>{chartModalV==='cum'?'Cumulative Gross Earnings':'Monthly OT Gross/Net'}</div>
             {chartModalV==='cum' ? renderCumulativeChart(true) : renderMonthlyChart(true)}
@@ -4163,7 +4179,7 @@ export default function App() {
           silently drop you into Log Overtime */}
       {confirmCreateDayMounted&&(
         <div onClick={()=>setConfirmCreateDay(null)} className={confirmCreateDay?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:41,padding:'20px'}}>
-          <div onClick={e=>e.stopPropagation()} className={'alert-pop'+(confirmCreateDay?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'18px',padding:'22px',width:'100%',maxWidth:'320px',textAlign:'center'}}>
+          <div ref={confirmCreateDayTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Add an entry" onClick={e=>e.stopPropagation()} className={'alert-pop'+(confirmCreateDay?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'18px',padding:'22px',width:'100%',maxWidth:'320px',textAlign:'center'}}>
             <div style={{fontWeight:900,fontSize:'15px',color:'var(--ink)',marginBottom:'6px'}}>Create an entry for this day?</div>
             <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginBottom:'18px'}}>{new Date(confirmCreateDayV+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
             <div style={{display:'flex',gap:'8px'}}>
@@ -4177,7 +4193,7 @@ export default function App() {
       {/* Calendar View — day detail popover */}
       {selectedCalDayMounted&&(
         <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} className={selectedCalDay?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:40}}>
-          <div onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(selectedCalDay?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+          <div ref={selectedCalDayTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Day detail" onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(selectedCalDay?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
               <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{new Date(selectedCalDayV.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
               <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} aria-label="Close" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={isWide?20:16} c="#64748b"/></button>
