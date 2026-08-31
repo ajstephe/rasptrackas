@@ -51,12 +51,12 @@ export function TabDashboard({
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:'2px'}}>
           <div style={{display:'flex',alignItems:'center',gap:compact?'10px':'12px'}}>
             <div style={{background:'var(--tint-green-2)',padding:compact?'8px':'9px',borderRadius:compact?'10px':'11px',flexShrink:0}}><Ico n="cash" s={compact?16:17} c="#15803d"/></div>
-            {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 ("Black")
-                cut at all, so a 900 request here was silently rendering as
-                700 anyway (confirmed by rasterizing both and diffing pixels:
-                zero difference). This just makes the code say what's
-                actually on screen. */}
-            <span style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'}}>Net pay · this period</span>
+            {/* Matches the plain-text header style every other row in this
+                card uses (Current Pay Period / TOIL Balance / CARMS &
+                MetHR Outstanding, below) — this was the one header still
+                set as a small uppercase mono eyebrow instead, which read
+                as a different kind of label sitting in the same list. */}
+            <span style={{fontSize:compact?'12px':'13px',fontWeight:700,color:'var(--ink)'}}>Net Pay · This Period</span>
           </div>
           <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}</span>
         </div>
@@ -294,7 +294,11 @@ export function TabDashboard({
       <div style={{background:'var(--navy)',padding:'22px 26px',position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'14px'}}>
-          {/* fontWeight:700 — see the "Net pay" eyebrow above for why. */}
+          {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 ("Black")
+              cut at all, so a 900 request here was silently rendering as
+              700 anyway (confirmed by rasterizing both and diffing pixels:
+              zero difference). This just makes the code say what is
+              actually on screen. */}
           <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
           {totals.curr&&<div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month} · {fmtD(totals.curr.start)}–{fmtD(totals.curr.end)}</div>}
         </div>
@@ -320,7 +324,7 @@ export function TabDashboard({
           <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
-              <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Current pay period</div>
+              <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Current Pay Period</div>
             </div>
             <div style={{textAlign:'right'}}>
               <div style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{totals.curr.month}</div>
@@ -332,7 +336,7 @@ export function TabDashboard({
         <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
           <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
-            <div style={{fontSize:'13px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL balance{toilLedger.balance<0?' — overdrawn':''}</div>
+            <div style={{fontSize:'13px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL Balance{toilLedger.balance<0?' — overdrawn':''}</div>
           </div>
           <div style={{textAlign:'right'}}>
             <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>{fmtHM(toilLedger.balance)} h</div>
@@ -344,7 +348,7 @@ export function TabDashboard({
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
               <div>
-                <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR outstanding</div>
+                <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR Outstanding</div>
                 <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             </div>
@@ -365,7 +369,11 @@ export function TabDashboard({
       <div style={{background:'var(--navy)',padding:'20px 18px',position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'12px'}}>
-          {/* fontWeight:700 — see the "Net pay" eyebrow above for why. */}
+          {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 ("Black")
+              cut at all, so a 900 request here was silently rendering as
+              700 anyway (confirmed by rasterizing both and diffing pixels:
+              zero difference). This just makes the code say what is
+              actually on screen. */}
           <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
           {totals.curr&&<div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month}</div>}
         </div>
@@ -403,7 +411,7 @@ export function TabDashboard({
         <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'14px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
           <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="clock" s={16} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
-            <div style={{fontSize:'12px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL balance{toilLedger.balance<0?' — overdrawn':''}</div>
+            <div style={{fontSize:'12px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL Balance{toilLedger.balance<0?' — overdrawn':''}</div>
           </div>
           <div style={{textAlign:'right'}}>
             <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>{fmtHM(toilLedger.balance)} h</div>
@@ -415,7 +423,7 @@ export function TabDashboard({
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
               <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
               <div>
-                <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR outstanding</div>
+                <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR Outstanding</div>
                 <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             </div>
