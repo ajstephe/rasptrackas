@@ -113,7 +113,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
             </div>
 
             <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',marginBottom:'8px'}}>
-              <span onClick={toggleCarmsSelectMode} className="tap-row" style={{fontSize:'11.5px',fontWeight:800,color:'#2563eb',cursor:'pointer',padding:'4px'}}>{carmsSelectMode?'Cancel':'Select Multiple Entries'}</span>
+              <button onClick={toggleCarmsSelectMode} className="tap-row" style={{fontSize:'11.5px',fontWeight:800,color:'#2563eb',cursor:'pointer',padding:'4px',background:'none',border:'none',fontFamily:'inherit'}}>{carmsSelectMode?'Cancel':'Select Multiple Entries'}</button>
             </div>
             <SegSlider activeKey={carmsFilter} trackStyle={{display:'flex',gap:'6px',marginBottom:'14px'}} indicatorStyle={{background:BRASS,borderRadius:'10px'}}>
               {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'},{id:'toil',lbl:'TOIL'}].map(f=>(
@@ -189,19 +189,25 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                     const allDone = visibleItems.every(isDone);
                     return (
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 4px',fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.6px',borderBottom:'1px solid var(--border-2)'}}>
-                    <span
+                    {/* disabled rather than a plain non-interactive <span>
+                        outside select mode — same visible row either way,
+                        but a real button that's genuinely inert (out of
+                        tab order, announced as disabled) instead of a div
+                        whose click handler quietly disappears */}
+                    <button
+                      disabled={!carmsSelectMode}
                       onClick={carmsSelectMode?()=>{
                         const rows = visibleItems.map(it=>({ id: it.entry.id, markers: required(it) }));
                         toggleCarmsGroup(rows);
                       }:undefined}
-                      style={{display:'flex',alignItems:'center',gap:'8px',cursor:carmsSelectMode?'pointer':'default'}}>
+                      style={{display:'flex',alignItems:'center',gap:'8px',cursor:carmsSelectMode?'pointer':'default',background:'none',border:'none',padding:0,color:'inherit',font:'inherit',textTransform:'inherit',letterSpacing:'inherit'}}>
                       {carmsSelectMode&&(
                         <span style={{width:'15px',height:'15px',borderRadius:'50%',border:`1.5px solid ${allDone?BRASS:'var(--quiet)'}`,background:allDone?BRASS:'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
                           {allDone&&<Ico n="check" s={9} c="#fff" w={3}/>}
                         </span>
                       )}
                       <span>{g.period.short} · {g.period.month} · {fmtD(g.period.start)} – {fmtD(g.period.end)}</span>
-                    </span>
+                    </button>
                     <span style={{fontFamily:MONO,color:BRASS}}>{visibleTotalLabel}</span>
                   </div>
                     );

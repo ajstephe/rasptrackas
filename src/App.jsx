@@ -3466,6 +3466,15 @@ export default function App() {
         input,select,textarea{font-size:16px}
         button:active{opacity:0.8;transform:scale(0.96)}
         button{transition:filter 0.15s ease}
+        /* Keyboard-focus ring for buttons — inputs already get one above,
+           buttons never did, so tabbing through the app on a keyboard/
+           trackpad (or a screen reader's own focus cursor) left no visible
+           indication of which control was focused. :focus-visible (not
+           plain :focus) means this only shows for keyboard/assistive-tech
+           focus, never as a lingering ring after an ordinary tap or click —
+           the one thing that would have made this look like a regression
+           on every existing touch interaction in the app. */
+        button:focus-visible,[role="button"]:focus-visible{outline:2px solid #2563eb;outline-offset:2px;border-radius:6px}
         input[type=date]{-webkit-appearance:none;appearance:none;color-scheme:light;line-height:1.2}
         /* Same theme-detection pattern as every custom property in
            index.html — without this, the OS's native date-picker icon and
