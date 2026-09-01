@@ -2088,7 +2088,16 @@ export default function App() {
     }));
     const combined = [...earned, ...taken].sort((a,b)=>a.date.localeCompare(b.date));
     let running = 0;
-    const rows = combined.map(l=>{ running += l.hours; return {...l, balanceAfter:running}; });
+    const rows = combined.map(l=>{
+      running += l.hours;
+      // Snapped here, not just where it's displayed — a genuinely
+      // break-even balance can drift to something like -1e-13 after
+      // enough earn/take transactions, and addToilTaken's own
+      // resultingBalance < 0 check (below) reads this raw number
+      // directly, not through fmtHM's own display-side clamp.
+      if (Math.abs(running) < 1e-6) running = 0;
+      return {...l, balanceAfter:running};
+    });
     return { rows, balance: running };
   },[entries, toilTaken, calcEntry]);
 
