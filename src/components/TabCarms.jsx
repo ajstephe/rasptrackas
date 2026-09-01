@@ -4,6 +4,7 @@ import { Ico } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
 import { SegSlider } from './SegSlider.jsx';
 import { useMountTransition } from '../lib/useMountTransition.js';
+import { countSelectedClaims } from '../lib/carms.js';
 
 // ─── CARMS & PA Outstanding tab ──────────────────────────────────────────────
 // Rebuilt onto the same "ledger" idiom as the Dashboard: a navy statement
@@ -35,7 +36,17 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
   // same carmsOutstanding data every row already renders from, using
   // whichever of {ot,pa} was actually showing (and therefore selectable)
   // on that row at the moment it was picked.
+  //
+  // carmsSelected is keyed by entry id, but one entry can carry both an
+  // outstanding OT and PA claim (toggleCarmsClaim in App.jsx toggles them
+  // independently for exactly that reason) — so Object.keys(...).length
+  // undercounts the moment a single entry has both boxes ticked: ticking
+  // OT and PA on the same "VIP arrival cover" shift showed "1 selected"
+  // for two visibly-checked rows. selectedTotal already summed both
+  // markers correctly; the count now matches it claim-for-claim instead
+  // of entry-for-entry.
   const selectedIds = Object.keys(carmsSelected||{});
+  const selectedClaimCount = countSelectedClaims(carmsSelected);
   const selectedTotal = (() => {
     if (selectedIds.length===0) return 0;
     const byId = new Map();
@@ -60,8 +71,8 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
   // freeze at their last real value (via the ref below) for that tail.
   const barOpen = carmsSelectMode && selectedIds.length>0;
   const barMounted = useMountTransition(barOpen, 240);
-  const lastBarRef = useRef({ count:selectedIds.length, total:selectedTotal });
-  if (barOpen) lastBarRef.current = { count:selectedIds.length, total:selectedTotal };
+  const lastBarRef = useRef({ count:selectedClaimCount, total:selectedTotal });
+  if (barOpen) lastBarRef.current = { count:selectedClaimCount, total:selectedTotal };
   const { count:barCount, total:barTotal } = lastBarRef.current;
 
   return (

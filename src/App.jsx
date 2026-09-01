@@ -32,6 +32,7 @@ import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, parseBackupFile } from './lib/migrations.js';
+import { countSelectedClaims } from './lib/carms.js';
 import {
   calcEntry as calcEntryPure, submittedGross as submittedGrossPure,
   crossPeriodInfo as crossPeriodInfoPure,
@@ -1536,7 +1537,7 @@ export default function App() {
           <button onClick={()=>changeMonth(1)} aria-label="Next month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
         </div>
         <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:'14px'}}>
-          {datePickerForV==='ot' ? 'Select the date you submitted this OT to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this PA claim to MetHR' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${Object.keys(carmsSelected).length} claim${Object.keys(carmsSelected).length!==1?'s':''}` : 'Select the date of this shift'}
+          {datePickerForV==='ot' ? 'Select the date you submitted this OT to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this PA claim to MetHR' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''}` : 'Select the date of this shift'}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'6px'}}>
           {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=><div key={d} style={{textAlign:'center',fontSize:'11.5px',fontWeight:800,color:'var(--quiet)',padding:'4px 0'}}>{d}</div>)}
@@ -1948,6 +1949,13 @@ export default function App() {
   const [carmsSelectMode, setCarmsSelectMode] = useState(false);
   const [carmsSelected, setCarmsSelected] = useState({});
   const toggleCarmsSelectMode = () => { setCarmsSelectMode(v=>!v); setCarmsSelected({}); };
+  // Object.keys(carmsSelected).length counts ENTRIES, not claims — and one
+  // entry can hold both an outstanding OT and PA claim selected at once (see
+  // toggleCarmsClaim below), so that undercounts whenever both boxes on the
+  // same shift are ticked. Every user-facing "N claim(s)" string reads from
+  // this instead, so the count always matches how many claim checkboxes are
+  // actually ticked, not how many shifts they belong to.
+  const carmsSelectedClaimCount = countSelectedClaims(carmsSelected);
   useEscapeToClose(carmsSelectMode, toggleCarmsSelectMode);
   useBackButtonCloses(carmsSelectMode, toggleCarmsSelectMode);
   // Toggles ONE claim-type on ONE entry — not the whole entry at once.
@@ -2030,7 +2038,7 @@ export default function App() {
       return { ...e, ...updates };
     }));
     const undoBulkSubmit = () => setEntries(prev => prev.map(e => before[e.id] ? { ...e, ...before[e.id] } : e));
-    addToast(`${selectedIds.length} claim${selectedIds.length!==1?'s':''} marked as submitted`, 'undo', {label:'Undo', fn:undoBulkSubmit}, 7000);
+    addToast(`${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''} marked as submitted`, 'undo', {label:'Undo', fn:undoBulkSubmit}, 7000);
     haptic();
     setDatePickerFor(null);
     toggleCarmsSelectMode();
