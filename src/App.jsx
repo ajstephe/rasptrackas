@@ -29,6 +29,7 @@ import {
   calcAutoOTHours, syncShiftTimesIntoForm,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
+import { mergeRemoteRows } from './lib/sync.js';
 import { migrateSettings, migrateEntries } from './lib/migrations.js';
 import {
   calcEntry as calcEntryPure, submittedGross as submittedGrossPure,
@@ -1016,45 +1017,7 @@ export default function App() {
       catch (e) { decryptFailures++; }
     }
     if (decryptFailures > 0) console.error(`[sync] ${decryptFailures} row(s) in ${table} failed to decrypt with the current key`);
-    const merged = [];
-    for (const localItem of itemsRef.current) {
-      if (remoteMap.has(localItem.id)) {
-        const remoteItem = remoteMap.get(localItem.id);
-        const noPendingLocalEdit = lastSyncedRef.current.get(localItem.id) === JSON.stringify(localItem);
-        if (noPendingLocalEdit) {
-          merged.push(remoteItem);
-          lastSyncedRef.current.set(localItem.id, JSON.stringify(remoteItem));
-        } else {
-          merged.push(localItem);
-        }
-        remoteMap.delete(localItem.id);
-      } else if (!lastSyncedRef.current.has(localItem.id)) {
-        merged.push(localItem); // never synced yet — keep, will push shortly
-      } else if (!isWithinCloudRetention(localItem.date)) {
-        // Was synced before, now gone from the cloud — but this item is
-        // older than the retention window, so its absence is expected
-        // (pruned for storage, not a deletion on another device). Kept
-        // locally without limit; not re-pushed either, since deliberately
-        // pruned data shouldn't just reappear in the cloud on its own.
-        merged.push(localItem);
-      }
-      // else: was synced before, still within the retention window, but
-      // gone from the server now — genuinely deleted elsewhere, drop it.
-    }
-    for (const [id, remoteItem] of remoteMap) {
-      // A remote-only row this device's lastSyncedRef already knows about
-      // isn't a new row from elsewhere — it's one THIS device deleted
-      // locally, whose soft-delete push (deliberately no retry queue, see
-      // pushRowChanges above) just hasn't landed on the server yet. Pulling
-      // in that exact gap — a realtime reconnect, or tapping Sync right
-      // after deleting something — used to resurrect it here and re-mark it
-      // synced, undoing the deletion for good. A genuinely new row from
-      // another device was never in this device's lastSyncedRef to begin
-      // with, so this only skips the case it's meant to.
-      if (lastSyncedRef.current.has(id)) continue;
-      merged.push(remoteItem);
-      lastSyncedRef.current.set(id, JSON.stringify(remoteItem));
-    }
+    const merged = mergeRemoteRows(itemsRef.current, remoteMap, lastSyncedRef.current, isWithinCloudRetention);
     persistFn();
     setLocalItems(merged);
     markSynced();
