@@ -29,7 +29,7 @@ import {
   calcAutoOTHours, syncShiftTimesIntoForm,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
-import { mergeRemoteRows } from './lib/sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff } from './lib/sync.js';
 import { migrateSettings, migrateEntries } from './lib/migrations.js';
 import {
   calcEntry as calcEntryPure, submittedGross as submittedGrossPure,
@@ -941,6 +941,17 @@ export default function App() {
   useEffect(()=>{ entriesRef.current = entries; },[entries]);
   useEffect(()=>{ toilTakenRef.current = toilTaken; },[toilTaken]);
   useEffect(()=>{ settingsRef.current = settings; },[settings]);
+  // Guards pushRowChanges/pushSettingsChange against firing before the
+  // post-unlock catch-up pull has actually finished. Without this, an edit
+  // made in the narrow window between dataKey becoming ready and that pull
+  // completing hits push while lastSyncedRef is still empty — every local
+  // row (not just the edit) then reads as "unsynced" and gets upserted,
+  // potentially overwriting correct server data with this device's stale
+  // copies. An edit made during the blocked window isn't lost: it's already
+  // in local state/localStorage, and the pull's own merge logic keeps a
+  // genuinely-new local row, so it rides along and pushes correctly once
+  // this flips true.
+  const initialSyncDoneRef = useRef(false);
 
   const blankForm = { date:todayStr, reason:'', hours133:'', hours150:'', hours200:'', paRate:'None', comments:'', recordShiftTimes:true, rosteredStart:'', rosteredEnd:'', actualStart:'', actualEnd:'', dutyType:'normal', otRateTier:'hours133', otAuto:true, takeAs:'pay', toilHours:'', otSubmitted:false, paSubmitted:false, otSubmittedDate:'', paSubmittedDate:'' };
   const [form, setForm] = useState(blankForm);
@@ -955,11 +966,15 @@ export default function App() {
   // already has the real copy; that gap is closed by pull-and-merge on
   // sign-in, which is the next piece, not this one.
   async function pushRowChanges(table, items, lastSyncedRef, persistFn) {
-    if (!supabase || !session || !dataKey) return;
+    if (!supabase || !session || !dataKey || !initialSyncDoneRef.current) return;
     const uid = session.user.id;
-    const currentIds = new Set(items.map(it => it.id));
-    const toUpsert = items.filter(it => lastSyncedRef.current.get(it.id) !== JSON.stringify(it));
-    const toDelete = Array.from(lastSyncedRef.current.keys()).filter(id => !currentIds.has(id));
+    // computeRowPushDiff has no way to tell "genuinely new, never synced"
+    // apart from "the initial pull just hasn't reconciled this id yet" —
+    // an empty lastSyncedRef makes every local item look unsynced either
+    // way. That distinction can only be made by NOT calling this function
+    // until the initial pull has finished, which is exactly what
+    // initialSyncDoneRef above guards.
+    const { toUpsert, toDelete } = computeRowPushDiff(items, lastSyncedRef.current);
     if (toUpsert.length === 0 && toDelete.length === 0) return;
     const now = new Date().toISOString();
     for (const item of toUpsert) {
@@ -978,7 +993,7 @@ export default function App() {
   }
 
   async function pushSettingsChange(settingsObj) {
-    if (!supabase || !session || !dataKey) return;
+    if (!supabase || !session || !dataKey || !initialSyncDoneRef.current) return;
     const json = JSON.stringify(settingsObj);
     if (lastSyncedSettingsRef.current === json) return;
     try {
@@ -1033,8 +1048,9 @@ export default function App() {
       // still null) only has blank local defaults, not a real pending edit
       // — that's not the same case as "synced before, changed since," and
       // needs to be treated as safe to overwrite, same as no pending edit.
-      const neverSynced = lastSyncedSettingsRef.current === null;
-      const noPendingLocalEdit = neverSynced || lastSyncedSettingsRef.current === JSON.stringify(settingsRef.current);
+      // hasNoPendingLocalEdit expects undefined for "never synced" rather
+      // than this ref's own null default, hence the ?? below.
+      const noPendingLocalEdit = hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined);
       if (noPendingLocalEdit) {
         saveSett(remoteSettings);
         lastSyncedSettingsRef.current = JSON.stringify(remoteSettings);
@@ -1047,11 +1063,18 @@ export default function App() {
   // Runs the initial catch-up pull once the data key is actually ready —
   // deliberately keyed on dataKey alone, not on entries/toilTaken/settings,
   // since this should fire once per unlock, not on every local edit.
+  // initialSyncDoneRef stays false for the duration of this pull so push
+  // can't fire against a still-empty lastSyncedRef (see its declaration
+  // above) — flipped back false first in case this is a second unlock in
+  // the same session (sign out, sign back in as someone else).
   useEffect(()=>{
-    if (!dataKey) return;
-    pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries);
-    pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil);
-    pullAndMergeSettings();
+    if (!dataKey) { initialSyncDoneRef.current = false; return; }
+    initialSyncDoneRef.current = false;
+    Promise.all([
+      pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries),
+      pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil),
+      pullAndMergeSettings(),
+    ]).finally(()=>{ initialSyncDoneRef.current = true; });
     pruneOldCloudData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[dataKey]);
@@ -1075,7 +1098,7 @@ export default function App() {
     // to overwrite with a stale remote copy.
     let hasConnectedOnce = false;
 
-    const handleRowChange = async (setLocalItems, lastSyncedRef, persistFn, payload) => {
+    const handleRowChange = async (itemsRef, setLocalItems, lastSyncedRef, persistFn, payload) => {
       const row = payload.new;
       if (!row) return;
       if (row.deleted_at) {
@@ -1087,6 +1110,16 @@ export default function App() {
       }
       try {
         const decrypted = await decryptWithDataKey(dataKey, row.ciphertext);
+        // Unlike the two pull functions, this used to overwrite local state
+        // unconditionally — a live update arriving for a row this device
+        // has an unsynced (not-yet-pushed) local edit on would silently
+        // discard that edit and mark it synced against the incoming value,
+        // so the next push cycle wouldn't even retry it. Same
+        // noPendingLocalEdit protection as pullAndMergeRows, checked
+        // against the current in-memory item via itemsRef (kept live by a
+        // sibling effect) rather than a stale closed-over value.
+        const current = itemsRef.current.find(it => it.id === row.id);
+        if (!hasNoPendingLocalEdit(current, lastSyncedRef.current.get(row.id))) return;
         lastSyncedRef.current.set(row.id, JSON.stringify(decrypted));
         persistFn();
         setLocalItems(prev => {
@@ -1099,12 +1132,15 @@ export default function App() {
     };
 
     const channel = supabase.channel('sync-'+uid)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `user_id=eq.${uid}` }, p => handleRowChange(setEntries, lastSyncedEntriesRef, persistLastSyncedEntries, p))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'toil_taken', filter: `user_id=eq.${uid}` }, p => handleRowChange(setToilTaken, lastSyncedToilRef, persistLastSyncedToil, p))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `user_id=eq.${uid}` }, p => handleRowChange(entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries, p))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'toil_taken', filter: `user_id=eq.${uid}` }, p => handleRowChange(toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil, p))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings', filter: `user_id=eq.${uid}` }, async (p) => {
         const row = p.new; if (!row) return;
         try {
           const decrypted = await decryptWithDataKey(dataKey, row.ciphertext);
+          // Same noPendingLocalEdit protection as handleRowChange above —
+          // settings had the identical unconditional-overwrite gap.
+          if (!hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined)) return;
           lastSyncedSettingsRef.current = JSON.stringify(decrypted);
           persistLastSyncedSettings();
           saveSett(decrypted);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeRemoteRows } from './sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff } from './sync.js';
 
 // isWithinCloudRetention stubs — the real one only matters for the
 // "synced before, now gone remotely" branch, so tests that don't touch
@@ -7,6 +7,61 @@ import { mergeRemoteRows } from './sync.js';
 const neverCalled = () => { throw new Error('isWithinCloudRetention should not have been called'); };
 const alwaysWithin = () => true;
 const neverWithin = () => false;
+
+describe('hasNoPendingLocalEdit — the shared guard behind every remote-overwrites-local decision', () => {
+  it('is safe to overwrite when there is no local item at all', () => {
+    expect(hasNoPendingLocalEdit(undefined, JSON.stringify({ id: 'a1', hours: 5 }))).toBe(true);
+    expect(hasNoPendingLocalEdit(null, JSON.stringify({ id: 'a1', hours: 5 }))).toBe(true);
+  });
+
+  it('is safe to overwrite when this id has never been synced before, even if the local item differs from the incoming one — the round-12 cold-start case', () => {
+    const local = { id: 'a1', hours: 1, note: 'stale' };
+    expect(hasNoPendingLocalEdit(local, undefined)).toBe(true);
+  });
+
+  it('is safe to overwrite when the local item still matches what was last synced', () => {
+    const local = { id: 'a1', hours: 9.5 };
+    expect(hasNoPendingLocalEdit(local, JSON.stringify(local))).toBe(true);
+  });
+
+  it('is NOT safe to overwrite when the local item has diverged from what was last synced — a genuine pending edit', () => {
+    const local = { id: 'a1', hours: 5, note: 'edited locally, not pushed yet' };
+    const priorSynced = JSON.stringify({ id: 'a1', hours: 9.5, note: 'older remote value' });
+    expect(hasNoPendingLocalEdit(local, priorSynced)).toBe(false);
+  });
+});
+
+describe('computeRowPushDiff', () => {
+  it('upserts an item whose JSON has diverged from what was last synced', () => {
+    const items = [{ id: 'a1', hours: 5 }];
+    const lastSynced = new Map([['a1', JSON.stringify({ id: 'a1', hours: 9 })]]);
+    expect(computeRowPushDiff(items, lastSynced)).toEqual({ toUpsert: [items[0]], toDelete: [] });
+  });
+
+  it('does not upsert an item that already matches what was last synced', () => {
+    const item = { id: 'a1', hours: 9 };
+    const lastSynced = new Map([['a1', JSON.stringify(item)]]);
+    expect(computeRowPushDiff([item], lastSynced)).toEqual({ toUpsert: [], toDelete: [] });
+  });
+
+  it('deletes an id that lastSyncedMap still has but is no longer in the local items', () => {
+    const lastSynced = new Map([['gone1', JSON.stringify({ id: 'gone1', hours: 3 })]]);
+    expect(computeRowPushDiff([], lastSynced)).toEqual({ toUpsert: [], toDelete: ['gone1'] });
+  });
+
+  it('the round-12/round-13 hazard: an empty lastSyncedMap (no sync history yet) treats every local item as needing upsert, even ones that are actually stale duplicates a pull is about to correct — this is exactly why callers must not invoke pushRowChanges until the initial post-unlock pull has finished (initialSyncDoneRef in App.jsx), not something this diff can fix on its own', () => {
+    const items = [
+      { id: 'staleA', hours: 1 },
+      { id: 'staleB', hours: 2 },
+      { id: 'genuinelyNew', hours: 3 },
+    ];
+    const lastSynced = new Map(); // fresh device, nothing synced yet
+
+    const { toUpsert } = computeRowPushDiff(items, lastSynced);
+
+    expect(toUpsert).toEqual(items); // all three — the diff itself cannot distinguish them
+  });
+});
 
 describe('mergeRemoteRows — cold-start (device has never synced before)', () => {
   it('takes the remote copy when a fresh device has a different local value for the same id — the round-12 bug', () => {
