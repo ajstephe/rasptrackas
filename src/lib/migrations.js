@@ -26,3 +26,31 @@ export const migrateEntries = list => (list||[]).map(e => ({
   otSubmittedDate: e.otSubmittedDate || e.date,
   paSubmittedDate: e.paSubmittedDate || e.date,
 }));
+
+// Parses and validates an uploaded backup file before any of it reaches
+// state — handleImport in App.jsx used to hand d.entries straight to
+// setEntries with no check at all, unlike the two lines right next to it
+// (migrateSettings already defends against a falsy/invalid settings
+// object; d.toilTaken||[] already falls back explicitly). An entries value
+// that's missing or not actually an array — the wrong file was picked, or
+// a valid-JSON file that just isn't a backup — used to set entries to
+// undefined, which is fatal, not silent: every entries.filter/.map/.forEach
+// throughout the app assumes an array, and the very next render crashes.
+// toilTaken is checked the same way but not migrated — it never had a
+// CARMS-submission concept, so running migrateEntries over it would just
+// bolt on fields (otSubmitted, otSubmittedDate...) that don't belong on a
+// TOIL record at all.
+export const parseBackupFile = jsonText => {
+  let d;
+  try { d = JSON.parse(jsonText); }
+  catch (e) { return { ok:false, error:"That file isn't valid — it doesn't look like a backup at all." }; }
+  if (!d || typeof d !== 'object' || !Array.isArray(d.entries)) {
+    return { ok:false, error:"That doesn't look like an Overtime & Shift Tracker backup file." };
+  }
+  return {
+    ok: true,
+    entries: migrateEntries(d.entries),
+    settings: migrateSettings(d.settings),
+    toilTaken: Array.isArray(d.toilTaken) ? d.toilTaken : [],
+  };
+};

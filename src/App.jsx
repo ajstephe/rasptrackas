@@ -30,7 +30,7 @@ import {
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential } from './lib/sync.js';
-import { migrateSettings, migrateEntries } from './lib/migrations.js';
+import { migrateSettings, migrateEntries, parseBackupFile } from './lib/migrations.js';
 import {
   calcEntry as calcEntryPure, submittedGross as submittedGrossPure,
   crossPeriodInfo as crossPeriodInfoPure,
@@ -2759,7 +2759,15 @@ export default function App() {
 
   const handleImport=ev=>{
     const fr=new FileReader();
-    fr.onload=e=>{ const d=JSON.parse(e.target.result); setEntries(d.entries); setSettings(migrateSettings(d.settings)); setToilTaken(d.toilTaken||[]); setTab('dashboard'); addToast('Backup restored'); };
+    fr.onload=e=>{
+      const result = parseBackupFile(e.target.result);
+      if (!result.ok) { addToast(result.error, 'warn'); return; }
+      setEntries(result.entries);
+      setSettings(result.settings);
+      setToilTaken(result.toilTaken);
+      setTab('dashboard');
+      addToast('Backup restored');
+    };
     fr.readAsText(ev.target.files[0]);
   };
 
