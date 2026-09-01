@@ -1204,6 +1204,14 @@ export default function App() {
       // old password still active — the whole point of the reset link is
       // to make them set a new one first.
       if (event === 'PASSWORD_RECOVERY') setPasswordRecoveryMode(true);
+      // A null session here means this device no longer has a valid one —
+      // an explicit sign-out (handleSignOut already calls this itself, so
+      // this is a harmless repeat there), a rejected/expired refresh token,
+      // or a session revoked/superseded elsewhere. Whatever the cause, the
+      // same clean-slate reasoning applies: see clearLocalAccountData's own
+      // comment. Also correct — a no-op — on a fresh device that's never
+      // signed in at all, since local state is already blank there.
+      if (!newSession) clearLocalAccountData();
       setSession(newSession);
     });
     return ()=>{ cancelled = true; listener.subscription.unsubscribe(); };
@@ -2752,24 +2760,28 @@ export default function App() {
     setWipeConf(false);
     setTab('dashboard');
   };
-  const handleSignOut = async () => {
-    if (!supabase) return;
-    haptic();
-    await supabase.auth.signOut();
-    setDataKey(null);
-    // App() never remounts across a sign-out/sign-in — same component
-    // instance, same in-memory state — and entries/toilTaken/settings are
-    // only ever seeded from localStorage once, on that first mount. Without
-    // clearing all of it here, explicitly, this device's next sign-in (same
-    // person or, on a shared device, someone else entirely) would start from
-    // whatever this account left behind rather than a clean pull of their
-    // own data — recent items eventually self-correct once that pull
-    // reconciles against the new account's own cloud copy, but anything
-    // already past the cloud retention window has no cloud copy left to
-    // reconcile against, so it would otherwise linger here permanently,
-    // silently mixed into whoever signs in next. Safe to do unconditionally:
-    // this account's real data was never at risk — Supabase is the actual
-    // source of truth this device re-pulls from on its own next sign-in.
+  // App() never remounts across a session ending and a new one starting —
+  // same component instance, same in-memory state — and entries/toilTaken/
+  // settings are only ever seeded from localStorage once, on that first
+  // mount. Without clearing all of it here, explicitly, this device's next
+  // sign-in (same person or, on a shared device, someone else entirely)
+  // would start from whatever the last session left behind rather than a
+  // clean pull of its own data — recent items eventually self-correct once
+  // that pull reconciles against the new account's own cloud copy, but
+  // anything already past the cloud retention window has no cloud copy
+  // left to reconcile against, so it would otherwise linger here
+  // permanently, silently mixed into whoever signs in next. Safe to call
+  // unconditionally, any time a session goes away for any reason: the real
+  // data was never at risk — Supabase is the actual source of truth the
+  // device re-pulls from on its own next sign-in.
+  //
+  // Originally lived only inside handleSignOut, reached solely by tapping
+  // Sign Out — but a session can end other ways it doesn't cover (a
+  // rejected/expired refresh token, a session revoked or superseded by
+  // signing in elsewhere), each of which reaches onAuthStateChange with a
+  // null session exactly like an explicit sign-out does, and none of which
+  // used to run this. Pulled out here so both paths call the same thing.
+  const clearLocalAccountData = () => {
     setEntries([]);
     setToilTaken([]);
     setSettings({ rank:'', service:'' });
@@ -2785,6 +2797,14 @@ export default function App() {
     dualWrite(KEYS.lastSyncedAt, null);
     dualWrite(KEYS.lastCloudPruneCheck, null);
     setLastSyncedAt(null);
+  };
+
+  const handleSignOut = async () => {
+    if (!supabase) return;
+    haptic();
+    await supabase.auth.signOut();
+    setDataKey(null);
+    clearLocalAccountData();
     addToast('Signed out', 'success');
     // No further manual state changes needed — onAuthStateChange (in the
     // effect above) picks up the sign-out and clears session automatically,
