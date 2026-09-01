@@ -1071,7 +1071,20 @@ export default function App() {
     if (decryptFailures > 0) console.error(`[sync] ${decryptFailures} row(s) in ${table} failed to decrypt with the current key`);
     const merged = mergeRemoteRows(itemsRef.current, remoteMap, lastSyncedRef.current, isWithinCloudRetention);
     persistFn();
-    setLocalItems(merged);
+    // entries only, not toil_taken — TOIL records have no CARMS-submission
+    // concept to default (same reasoning as parseBackupFile). A row that's
+    // never been through this locally (arriving fresh via pull, from a
+    // device or a moment in this account's history that predates CARMS
+    // tracking) used to skip this entirely, unlike local boot and backup
+    // restore — isOtSubmitted's own undefined-means-submitted default kept
+    // the dashboard's count correct either way, but the edit form reads
+    // otSubmitted directly and truthy-checks it, so an unmigrated entry
+    // opened for editing showed the toggle off while the dashboard already
+    // counted it as submitted. lastSyncedRef above still recorded the raw,
+    // unmigrated value (mergeRemoteRows sets it before this point) — same
+    // deliberate choice as the settings fix, so a real migration change
+    // here gets pushed back up to the server too, not just fixed locally.
+    setLocalItems(table === 'entries' ? migrateEntries(merged) : merged);
     markSynced();
   }
 
@@ -1147,7 +1160,7 @@ export default function App() {
     // to overwrite with a stale remote copy.
     let hasConnectedOnce = false;
 
-    const handleRowChange = async (itemsRef, setLocalItems, lastSyncedRef, persistFn, payload) => {
+    const handleRowChange = async (table, itemsRef, setLocalItems, lastSyncedRef, persistFn, payload) => {
       const row = payload.new;
       if (!row) return;
       if (row.deleted_at) {
@@ -1171,18 +1184,20 @@ export default function App() {
         if (!hasNoPendingLocalEdit(current, lastSyncedRef.current.get(row.id))) return;
         lastSyncedRef.current.set(row.id, JSON.stringify(decrypted));
         persistFn();
+        // entries only — see pullAndMergeRows' matching comment for why.
+        const toApply = table === 'entries' ? migrateEntries([decrypted])[0] : decrypted;
         setLocalItems(prev => {
           const idx = prev.findIndex(it => it.id === row.id);
-          if (idx === -1) return [...prev, decrypted];
-          const copy = [...prev]; copy[idx] = decrypted; return copy;
+          if (idx === -1) return [...prev, toApply];
+          const copy = [...prev]; copy[idx] = toApply; return copy;
         });
         markSynced();
       } catch (e) { /* undecryptable — skip */ }
     };
 
     const channel = supabase.channel('sync-'+uid)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `user_id=eq.${uid}` }, p => handleRowChange(entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries, p))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'toil_taken', filter: `user_id=eq.${uid}` }, p => handleRowChange(toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil, p))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `user_id=eq.${uid}` }, p => handleRowChange('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries, p))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'toil_taken', filter: `user_id=eq.${uid}` }, p => handleRowChange('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil, p))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings', filter: `user_id=eq.${uid}` }, async (p) => {
         const row = p.new; if (!row) return;
         try {

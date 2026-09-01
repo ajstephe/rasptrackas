@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { migrateSettings, migrateEntries, parseBackupFile } from './migrations.js';
+import { mergeRemoteRows } from './sync.js';
 import { PAY_RATES } from './payRates.js';
 
 // A real, currently-valid rank/service pair, read from PAY_RATES itself
@@ -92,5 +93,31 @@ describe('parseBackupFile — the fix for a wrong-file-picked crash', () => {
     expect(parseBackupFile(JSON.stringify({ entries: 'not an array' })).ok).toBe(false);
     expect(parseBackupFile(JSON.stringify(null)).ok).toBe(false);
     expect(parseBackupFile(JSON.stringify(42)).ok).toBe(false);
+  });
+});
+
+describe('migrateEntries applied to a pull result — the fix for entries syncing in unmigrated', () => {
+  it('an entry with no otSubmitted field at all, arriving fresh from a pull that has never seen it before, gets backfilled to submitted — matching what local boot and backup restore already did', () => {
+    // Mirrors exactly what App.jsx's pullAndMergeRows now does: run
+    // mergeRemoteRows' result through migrateEntries for the entries table.
+    // Before this fix that second step didn't happen, so an entry like
+    // this reached state with otSubmitted still undefined — safe for
+    // isOtSubmitted's own dashboard-facing check, but not for the edit
+    // form, which reads the field directly.
+    const remoteMap = new Map([
+      ['a1', { id: 'a1', date: '2020-01-15', hours133: 3 }], // no otSubmitted/paSubmitted at all
+    ]);
+    const merged = mergeRemoteRows([], remoteMap, new Map(), () => true);
+    const result = migrateEntries(merged);
+    expect(result[0]).toMatchObject({ otSubmitted: true, paSubmitted: true, otSubmittedDate: '2020-01-15', paSubmittedDate: '2020-01-15' });
+  });
+
+  it('does not touch an entry that already has explicit submission fields, migrated or not', () => {
+    const remoteMap = new Map([
+      ['a1', { id: 'a1', date: '2026-01-15', hours133: 3, otSubmitted: false, paSubmitted: true, otSubmittedDate: '2026-01-10', paSubmittedDate: '2026-01-12' }],
+    ]);
+    const merged = mergeRemoteRows([], remoteMap, new Map(), () => true);
+    const result = migrateEntries(merged);
+    expect(result[0]).toEqual(remoteMap.get('a1'));
   });
 });
