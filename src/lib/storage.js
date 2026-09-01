@@ -23,18 +23,36 @@ export const KEYS = {
 // names like v/t specifically to make an accidental collision with a
 // genuine stored shape (an object value that happens to itself have a `v`
 // or `t` key) implausible.
-const wrap = (val) => ({ __v: val, __t: Date.now() });
+//
+// __t alone isn't fine-grained enough: Date.now() is millisecond-resolution,
+// and two dualWrite calls in the same tick of the same page (a delete
+// immediately followed by an Undo, say) can easily land on the same
+// millisecond, especially on a fast engine. __seq is a strictly-increasing
+// counter local to this page load, used purely to break an __t tie between
+// two writes that happened moments apart in this same session — it's
+// meaningless across a reload (it resets to 0), but a tie in __t across two
+// genuinely different page loads is astronomically unlikely anyway, since
+// that requires two separate real-world moments in time to round to the
+// exact same millisecond.
+let writeSeq = 0;
+const wrap = (val) => ({ __v: val, __t: Date.now(), __seq: ++writeSeq });
 
 // Recognises the wrapper shape written by the current dualWrite, but also
 // accepts a bare, unwrapped value with no real timestamp — every key
 // written before this change is stored that way, and this can't assume a
 // clean slate on a real device. An unwrapped legacy value gets -Infinity
-// so a wrapped value from the other store, which always carries a real
-// timestamp, wins the freshness comparison in dualRead below.
+// for both __t and __seq so a wrapped value from the other store, which
+// always carries a real timestamp, wins the freshness comparison below.
 const unwrap = (parsed) => {
-  if (parsed && typeof parsed === 'object' && '__v' in parsed && '__t' in parsed) return parsed;
-  return { __v: parsed, __t: -Infinity };
+  if (parsed && typeof parsed === 'object' && '__v' in parsed && '__t' in parsed) {
+    return { __v: parsed.__v, __t: parsed.__t, __seq: parsed.__seq ?? -Infinity };
+  }
+  return { __v: parsed, __t: -Infinity, __seq: -Infinity };
 };
+
+// True when `a` should be preferred over `b` — newer __t wins outright;
+// only on an exact __t tie does __seq decide it.
+const isNewerOrEqual = (a, b) => a.__t !== b.__t ? a.__t > b.__t : a.__seq >= b.__seq;
 
 export const dualWrite = (key, val) => {
   const s = JSON.stringify(wrap(val));
@@ -62,7 +80,7 @@ export const dualRead = (key, fb) => {
   // advancing, so a still-working sessionStorage naturally overtakes it
   // and gets read instead, rather than being permanently shadowed by a
   // localStorage value that merely exists.
-  if (local && session) return (local.__t >= session.__t ? local : session).__v;
+  if (local && session) return (isNewerOrEqual(local, session) ? local : session).__v;
   if (local) return local.__v;
   if (session) return session.__v;
   return fb;
