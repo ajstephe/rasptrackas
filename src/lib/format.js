@@ -3,6 +3,13 @@ export const fmt    = n=>`£${n.toFixed(2)}`;
 // Decimal hours → "HH.MM" where MM is minutes (0-59), not a decimal fraction —
 // e.g. 21.5 (21h 30m) → "21.30", not "21.50".
 export const fmtHM  = n=>{
+  // A value that's mathematically zero can arrive here as something like
+  // -1e-13 — ordinary floating-point drift from repeated addition/
+  // subtraction (toilLedger's running balance, mainly), not a real
+  // negative amount. Left alone this displays as "-0.00" instead of
+  // "0.00". 1e-6 is nowhere near a real hours value (the smallest unit
+  // anyone logs is minutes) but comfortably clears realistic float drift.
+  if (Math.abs(n) < 1e-6) n = 0;
   const sign = n<0 ? '-' : '';
   const abs = Math.abs(n);
   let h = Math.floor(abs);
