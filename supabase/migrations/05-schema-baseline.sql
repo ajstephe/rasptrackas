@@ -90,3 +90,24 @@ exception when duplicate_object then null; end $$;
 
 create index if not exists entries_user_id_idx on entries(user_id);
 create index if not exists toil_taken_user_id_idx on toil_taken(user_id);
+
+-- Recovered from pg_stat_statements: the original, never-committed setup ran
+-- this as its own second migration ("run this AFTER 01-schema-and-rls.sql"),
+-- adding these three tables — deliberately not user_keys, which is only
+-- ever read once at sign-in — to the realtime publication. Without this,
+-- entries/toilTaken/settings changes on one device never reach another
+-- signed-in device live (App.jsx's own `.channel('sync-'+uid)` subscription
+-- has nothing to listen to). `alter publication ... add table` errors
+-- (42710, duplicate_object) if the table's already a member, exactly like
+-- `create policy` does — same guard shape as the policies above.
+do $$ begin
+  alter publication supabase_realtime add table entries;
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table toil_taken;
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table settings;
+exception when duplicate_object then null; end $$;
