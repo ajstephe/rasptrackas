@@ -98,10 +98,17 @@ export function TabLogOvertime({
                   <div style={{height:'2px'}}/>
 
                   {/* Normal Duty vs Rest Day Working (RDW) — on RDW there's no
-                      roster to compare against, so the whole shift is overtime */}
-                  <SegSlider activeKey={form.dutyType==='rdw'?'rdw':'normal'} trackStyle={{display:'flex',gap:'6px',background:'var(--tint-blue-2)',borderRadius:'13px',padding:'3px',marginBottom:'13px'}} indicatorStyle={{background:'#fff',borderRadius:'9px',boxShadow:'0 2px 6px rgba(37,99,235,0.25)'}}>
-                    <button data-seg-key="normal" onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'normal'}))} style={{position:'relative',zIndex:1,flex:1,border:'none',background:'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer'}}>Normal Duty</button>
-                    <button data-seg-key="rdw" onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'rdw',rosteredStart:'',rosteredEnd:''}))} style={{position:'relative',zIndex:1,flex:1,border:'none',background:'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:'#2563eb',cursor:'pointer'}}>Rest Day Working (RDW)</button>
+                      roster to compare against, so the whole shift is overtime.
+                      Brass indicator + white/muted text, same convention as
+                      every other SegSlider in the app (O/T rate, Protection
+                      Allowance, PA rate, Calendar/List View, Appearance) — this
+                      one used to be a one-off white-pill/blue-text pairing with
+                      no reason for the difference, unlike this file's other
+                      hardcoded-colour SegSlider (Take Overtime As, below),
+                      which departs from brass deliberately and says so. */}
+                  <SegSlider activeKey={form.dutyType==='rdw'?'rdw':'normal'} trackStyle={{display:'flex',gap:'6px',background:'var(--tint-blue-2)',borderRadius:'13px',padding:'3px',marginBottom:'13px'}} indicatorStyle={{background:BRASS,borderRadius:'9px',boxShadow:'0 2px 6px rgba(184,130,63,0.35)'}}>
+                    <button data-seg-key="normal" onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'normal'}))} style={{position:'relative',zIndex:1,flex:1,border:'none',background:'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:form.dutyType==='rdw'?'var(--muted)':'#fff',cursor:'pointer'}}>Normal Duty</button>
+                    <button data-seg-key="rdw" onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'rdw',rosteredStart:'',rosteredEnd:''}))} style={{position:'relative',zIndex:1,flex:1,border:'none',background:'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:form.dutyType==='rdw'?'#fff':'var(--muted)',cursor:'pointer'}}>Rest Day Working (RDW)</button>
                   </SegSlider>
 
                   {form.dutyType!=='rdw' && (
