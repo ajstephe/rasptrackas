@@ -30,6 +30,7 @@ import {
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential } from './lib/sync.js';
+import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, parseBackupFile } from './lib/migrations.js';
 import {
   calcEntry as calcEntryPure, submittedGross as submittedGrossPure,
@@ -2193,7 +2194,7 @@ export default function App() {
         setEntries(updatedEntries);
         addToast('Record updated');
       } else {
-        savedId = Date.now().toString();
+        savedId = genRecordId();
         updatedEntries = [...entries,{...cleanForm,id:savedId}];
         setEntries(updatedEntries);
         addToast('Overtime logged');
@@ -2253,7 +2254,7 @@ export default function App() {
     const hrs = wholeHours + mins/60;
     if (!toilTakenForm.date || hrs<=0) { addToast('Enter a date and a positive number of hours','warn'); return; }
     const resultingBalance = toilLedger.balance - hrs;
-    setToilTaken(prev=>[...prev, { id:Date.now().toString(), date:toilTakenForm.date, hours:hrs, note:toilTakenForm.note||'' }]);
+    setToilTaken(prev=>[...prev, { id:genRecordId(), date:toilTakenForm.date, hours:hrs, note:toilTakenForm.note||'' }]);
     setToilTakenForm({date:todayStr, hours:'', minutes:'00', note:''});
     haptic();
     if (resultingBalance < 0) {
