@@ -958,6 +958,19 @@ export default function App() {
   // are serialized rather than left to race — see pushRowChanges' own
   // comment for the concrete failure this prevents.
   const pushChainRef = useRef({});
+  // Carves out the one exception to onAuthStateChange's otherwise-correct
+  // "any time a session ends, for any reason, clear local data" rule (see
+  // that rule's own comment for why it's right everywhere else). Account
+  // deletion is the one case it isn't: the edge function cascades the
+  // user's cloud rows away via the schema's own foreign keys, so by the
+  // time the token this session was using stops resolving to a real user
+  // (the very next auto-refresh, same mechanism as an ordinary expired
+  // session) there is no server copy left for "the real data is safe on
+  // Supabase" to refer to — and the Delete Account screen explicitly
+  // promises local data survives. Set for exactly one onAuthStateChange
+  // firing, then consumed, so every other reason a session ends still
+  // clears local data precisely as intended.
+  const justDeletedAccountRef = useRef(false);
 
   const blankForm = { date:todayStr, reason:'', hours133:'', hours150:'', hours200:'', paRate:'None', comments:'', recordShiftTimes:true, rosteredStart:'', rosteredEnd:'', actualStart:'', actualEnd:'', dutyType:'normal', otRateTier:'hours133', otAuto:true, takeAs:'pay', toilHours:'', otSubmitted:false, paSubmitted:false, otSubmittedDate:'', paSubmittedDate:'' };
   const [form, setForm] = useState(blankForm);
@@ -1251,7 +1264,13 @@ export default function App() {
       // same clean-slate reasoning applies: see clearLocalAccountData's own
       // comment. Also correct — a no-op — on a fresh device that's never
       // signed in at all, since local state is already blank there.
-      if (!newSession) clearLocalAccountData();
+      // The one exception is justDeletedAccountRef (see its own comment) —
+      // account deletion also ends the session this way, but there's no
+      // server copy left to justify clearing the local one too.
+      if (!newSession) {
+        if (!justDeletedAccountRef.current) clearLocalAccountData();
+        justDeletedAccountRef.current = false;
+      }
       setSession(newSession);
     });
     return ()=>{ cancelled = true; listener.subscription.unsubscribe(); };
@@ -2865,10 +2884,14 @@ export default function App() {
   // code), so it calls a small Edge Function that does it server-side.
   // Deleting the auth user cascades to entries/toil_taken/settings/user_keys
   // automatically via the "on delete cascade" foreign keys in the schema —
-  // nothing else needs deleting here. Local data on this device is
-  // deliberately untouched — the real distinction from Wipe All Data is
-  // that this removes the account and email entirely; Wipe All Data clears
-  // everything (local and cloud) but leaves the same account signed in.
+  // nothing else needs deleting here. Local data on this device is meant to
+  // stay untouched — the real distinction from Wipe All Data is that this
+  // removes the account and email entirely; Wipe All Data clears everything
+  // (local and cloud) but leaves the same account signed in. That local
+  // data used to actually get wiped anyway a moment later, once the session
+  // this call tears down reached onAuthStateChange's otherwise-correct
+  // "any session ending clears local data" rule — see justDeletedAccountRef
+  // just below, which exists purely to stop that.
   const handleDeleteAccount = async () => {
     if (!supabase) return;
     haptic();
@@ -2877,6 +2900,16 @@ export default function App() {
       const { data, error } = await supabase.functions.invoke('delete-account');
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      justDeletedAccountRef.current = true;
+      // Forces the session teardown (and the onAuthStateChange firing
+      // justDeletedAccountRef exists for) to happen now, rather than
+      // waiting on whatever's left of this token's lifetime before its next
+      // natural refresh attempt fails. Keeps the flag's armed window as
+      // short as possible — best-effort: the account is already gone
+      // either way, so a failure here (the user no longer existing
+      // server-side, most likely) shouldn't read as the deletion itself
+      // having failed.
+      try { await supabase.auth.signOut(); } catch (e) { /* account's already gone; nothing more to do here */ }
       setDataKey(null);
       setDeleteAcctConf(false);
       setDeleteAcctTyped('');
