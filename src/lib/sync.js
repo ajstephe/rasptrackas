@@ -16,6 +16,22 @@ export function hasNoPendingLocalEdit(currentItem, priorSyncedJson) {
   return priorSyncedJson === JSON.stringify(currentItem);
 }
 
+// Runs fn after whatever's still pending in chainMap[key], and leaves the
+// new promise there for the next caller to chain after in turn — a tiny
+// per-key mutex built out of promises rather than a real lock. This is what
+// stops pushRowChanges' delete-then-fast-Undo race: without it, two calls
+// for the same table could each read lastSyncedMap before the other had
+// finished mutating it. fn runs regardless of whether the previous chain
+// link resolved or rejected (`.then(fn, fn)`), and a rejection is caught
+// before being stored back (`.catch(()=>{})`) so one failed call doesn't
+// permanently wedge every later call for that key into never running.
+export function chainSequential(chainMap, key, fn) {
+  const previous = chainMap[key] || Promise.resolve();
+  const chained = previous.then(fn, fn);
+  chainMap[key] = chained.catch(() => {});
+  return chained;
+}
+
 // What pushRowChanges needs to upload: local items whose JSON no longer
 // matches what this device last believes it pushed (toUpsert), and ids
 // this device used to track but no longer has locally (toDelete — a local
