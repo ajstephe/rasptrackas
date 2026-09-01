@@ -1075,7 +1075,19 @@ export default function App() {
       // than this ref's own null default, hence the ?? below.
       const noPendingLocalEdit = hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined);
       if (noPendingLocalEdit) {
-        saveSett(remoteSettings);
+        // migrateSettings used to only ever run against this device's own
+        // localStorage on boot — a settings row pulled from the server
+        // (or restored from an old backup, or synced down from a device
+        // that's been offline across a rank/pay-point rename) skipped it
+        // entirely and could write an invalid rank straight into state,
+        // which the Settings screen isn't defensive enough to survive
+        // rendering (see TabSettings.jsx). lastSyncedSettingsRef still
+        // tracks the raw remote value, not the migrated one: if migration
+        // actually changed anything, the next push cycle will see local
+        // state no longer matches what's "synced" and correct the server
+        // copy too, instead of every device independently and silently
+        // re-discovering the same stale value forever.
+        saveSett(migrateSettings(remoteSettings));
         lastSyncedSettingsRef.current = JSON.stringify(remoteSettings);
         persistLastSyncedSettings();
       }
@@ -1164,9 +1176,14 @@ export default function App() {
           // Same noPendingLocalEdit protection as handleRowChange above —
           // settings had the identical unconditional-overwrite gap.
           if (!hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined)) return;
+          // Same migrateSettings gap as pullAndMergeSettings above — a live
+          // update can carry an invalid rank/pay-point just as easily as a
+          // pulled one. lastSyncedSettingsRef tracks the raw value for the
+          // same reason: so a real migration gets pushed back up rather
+          // than silently re-discovered on every device forever.
           lastSyncedSettingsRef.current = JSON.stringify(decrypted);
           persistLastSyncedSettings();
-          saveSett(decrypted);
+          saveSett(migrateSettings(decrypted));
           markSynced();
         } catch (e) { /* undecryptable — skip */ }
       })

@@ -214,7 +214,14 @@ export function TabSettings({
             <div style={{position:'absolute',right:'13px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex'}}><Ico n="cD" s={13} c="var(--quiet)" w={2.5}/></div>
           </div>
         </div>
-        {settings.rank&&(
+        {/* Gated on PAY_RATES[settings.rank] actually existing, not just
+            settings.rank being truthy — a rank string that's no longer a
+            valid key (synced down from before a pay-scale rename, or from
+            an old backup) used to still pass this check and then crash on
+            Object.keys(PAY_RATES[settings.rank]) below. Now it just
+            behaves like no rank is set, matching how App.jsx's own two
+            rate lookups already treat this defensively. */}
+        {PAY_RATES[settings.rank]&&(
           <div>
             <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'7px'}}>
               <label style={{...S.lbl,marginBottom:0}}>Pay Point</label>
@@ -234,7 +241,11 @@ export function TabSettings({
           <span style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Hourly Rates & Payscales</span>
         </div>
 
-        {settings.rank&&settings.service&&(()=>{
+        {/* Same defensive gate as the Pay Point block above — checks the
+            lookup actually resolves rather than just that both strings are
+            non-empty, so an invalid rank/service pair can't reach the
+            unguarded PAY_RATES[rank][service] below. */}
+        {PAY_RATES[settings.rank]?.[settings.service]&&(()=>{
           const svcData = PAY_RATES[settings.rank][settings.service];
           return (
             <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'14px'}}>
