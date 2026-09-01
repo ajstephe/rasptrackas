@@ -29,7 +29,7 @@ import {
   calcAutoOTHours, syncShiftTimesIntoForm,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff } from './lib/sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential } from './lib/sync.js';
 import { migrateSettings, migrateEntries } from './lib/migrations.js';
 import {
   calcEntry as calcEntryPure, submittedGross as submittedGrossPure,
@@ -952,6 +952,11 @@ export default function App() {
   // genuinely-new local row, so it rides along and pushes correctly once
   // this flips true.
   const initialSyncDoneRef = useRef(false);
+  // Per-table promise chain so overlapping pushRowChanges calls for the
+  // same table (a delete followed by a fast Undo, or any two rapid edits)
+  // are serialized rather than left to race — see pushRowChanges' own
+  // comment for the concrete failure this prevents.
+  const pushChainRef = useRef({});
 
   const blankForm = { date:todayStr, reason:'', hours133:'', hours150:'', hours200:'', paRate:'None', comments:'', recordShiftTimes:true, rosteredStart:'', rosteredEnd:'', actualStart:'', actualEnd:'', dutyType:'normal', otRateTier:'hours133', otAuto:true, takeAs:'pay', toilHours:'', otSubmitted:false, paSubmitted:false, otSubmittedDate:'', paSubmittedDate:'' };
   const [form, setForm] = useState(blankForm);
@@ -967,29 +972,47 @@ export default function App() {
   // sign-in, which is the next piece, not this one.
   async function pushRowChanges(table, items, lastSyncedRef, persistFn) {
     if (!supabase || !session || !dataKey || !initialSyncDoneRef.current) return;
-    const uid = session.user.id;
-    // computeRowPushDiff has no way to tell "genuinely new, never synced"
-    // apart from "the initial pull just hasn't reconciled this id yet" —
-    // an empty lastSyncedRef makes every local item look unsynced either
-    // way. That distinction can only be made by NOT calling this function
-    // until the initial pull has finished, which is exactly what
-    // initialSyncDoneRef above guards.
-    const { toUpsert, toDelete } = computeRowPushDiff(items, lastSyncedRef.current);
-    if (toUpsert.length === 0 && toDelete.length === 0) return;
-    const now = new Date().toISOString();
-    for (const item of toUpsert) {
-      try {
-        const ciphertext = await encryptWithDataKey(dataKey, item);
-        const { error } = await supabase.from(table).upsert({ id: item.id, user_id: uid, ciphertext, updated_at: now, deleted_at: null });
-        if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); markSynced(); console.log(`[sync] pushed ${table} id=${item.id}`); }
-        else console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error);
-      } catch (e) { console.error(`[sync] push threw for ${table} id=${item.id}:`, e.message || e); }
-    }
-    for (const id of toDelete) {
-      const { error } = await supabase.from(table).update({ deleted_at: now, updated_at: now }).eq('id', id).eq('user_id', uid);
-      if (!error) { lastSyncedRef.current.delete(id); persistFn(); markSynced(); }
-      else console.error(`[sync] soft-delete failed for ${table} id=${id}:`, error.message || error);
-    }
+    // Serialized per table via pushChainRef, rather than left free to race:
+    // without this, a delete followed by a fast Undo (a real window on a
+    // slow connection, not just two clicks) could compute their diffs
+    // concurrently against a lastSyncedRef the other call was still
+    // mid-mutating. Concretely: Undo's push would see the row as "already
+    // in sync" because the delete's own network call hadn't resolved and
+    // cleared lastSyncedRef yet, and then the delete's success handler
+    // would clear it anyway once it did land — leaving the server
+    // soft-deleted while the row sat restored on screen, with nothing left
+    // to notice the mismatch until some unrelated later edit. Chaining
+    // each call after the previous one for the same table means a later
+    // call's diff always runs against a lastSyncedRef that already
+    // reflects everything earlier calls did — Undo's push, run only once
+    // the delete's own push has fully settled, correctly sees the id is no
+    // longer marked synced and re-upserts it with deleted_at cleared.
+    const run = async () => {
+      const uid = session.user.id;
+      // computeRowPushDiff has no way to tell "genuinely new, never
+      // synced" apart from "the initial pull just hasn't reconciled this
+      // id yet" — an empty lastSyncedRef makes every local item look
+      // unsynced either way. That distinction can only be made by NOT
+      // calling this function until the initial pull has finished, which
+      // is exactly what initialSyncDoneRef above guards.
+      const { toUpsert, toDelete } = computeRowPushDiff(items, lastSyncedRef.current);
+      if (toUpsert.length === 0 && toDelete.length === 0) return;
+      const now = new Date().toISOString();
+      for (const item of toUpsert) {
+        try {
+          const ciphertext = await encryptWithDataKey(dataKey, item);
+          const { error } = await supabase.from(table).upsert({ id: item.id, user_id: uid, ciphertext, updated_at: now, deleted_at: null });
+          if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); markSynced(); console.log(`[sync] pushed ${table} id=${item.id}`); }
+          else console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error);
+        } catch (e) { console.error(`[sync] push threw for ${table} id=${item.id}:`, e.message || e); }
+      }
+      for (const id of toDelete) {
+        const { error } = await supabase.from(table).update({ deleted_at: now, updated_at: now }).eq('id', id).eq('user_id', uid);
+        if (!error) { lastSyncedRef.current.delete(id); persistFn(); markSynced(); }
+        else console.error(`[sync] soft-delete failed for ${table} id=${id}:`, error.message || error);
+      }
+    };
+    return chainSequential(pushChainRef.current, table, run);
   }
 
   async function pushSettingsChange(settingsObj) {

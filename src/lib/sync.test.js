@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff } from './sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential } from './sync.js';
+
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
 // isWithinCloudRetention stubs — the real one only matters for the
 // "synced before, now gone remotely" branch, so tests that don't touch
@@ -28,6 +30,54 @@ describe('hasNoPendingLocalEdit — the shared guard behind every remote-overwri
     const local = { id: 'a1', hours: 5, note: 'edited locally, not pushed yet' };
     const priorSynced = JSON.stringify({ id: 'a1', hours: 9.5, note: 'older remote value' });
     expect(hasNoPendingLocalEdit(local, priorSynced)).toBe(false);
+  });
+});
+
+describe('chainSequential — the fix for the delete-then-fast-Undo race', () => {
+  it('runs a second call for the same key only after the first has fully settled, even though the first is still slower', async () => {
+    const chainMap = {};
+    const order = [];
+    const first = chainSequential(chainMap, 'entries', async () => {
+      await wait(30); // simulates a slow network call still in flight
+      order.push('first-done');
+    });
+    const second = chainSequential(chainMap, 'entries', async () => {
+      // If this ran concurrently with `first` instead of waiting for it,
+      // it would push 'second-done' before 'first-done' — exactly the
+      // delete-then-Undo race, where Undo's push read stale bookkeeping
+      // because the delete's own push hadn't finished mutating it yet.
+      order.push('second-done');
+    });
+    await Promise.all([first, second]);
+    expect(order).toEqual(['first-done', 'second-done']);
+  });
+
+  it('still runs the next call for the same key even if the previous one rejected', async () => {
+    const chainMap = {};
+    const order = [];
+    const failing = chainSequential(chainMap, 'entries', async () => {
+      order.push('failing-ran');
+      throw new Error('simulated push failure');
+    });
+    const next = chainSequential(chainMap, 'entries', async () => {
+      order.push('next-ran');
+    });
+    await Promise.allSettled([failing, next]);
+    expect(order).toEqual(['failing-ran', 'next-ran']);
+  });
+
+  it('does not serialize calls made under different keys against each other', async () => {
+    const chainMap = {};
+    const order = [];
+    const entriesCall = chainSequential(chainMap, 'entries', async () => {
+      await wait(30);
+      order.push('entries-done');
+    });
+    const toilCall = chainSequential(chainMap, 'toil_taken', async () => {
+      order.push('toil-done'); // unrelated table — should not wait on entries
+    });
+    await Promise.all([entriesCall, toilCall]);
+    expect(order).toEqual(['toil-done', 'entries-done']);
   });
 });
 
