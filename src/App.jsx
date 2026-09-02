@@ -339,9 +339,21 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
       const passWrap = await wrapDataKey(dek, password, PASSWORD_KDF_ITERATIONS);
       const recWrap  = await wrapDataKey(dek, recoveryWord, RECOVERY_KDF_ITERATIONS);
       const { data: sessionData } = await supabase.auth.getSession();
-      const consent = takePendingConsent();
+      const uid = sessionData.session.user.id;
+      // This upsert also fires for an EXISTING account resetting its DEK
+      // after losing both password and recovery word ("Continue without my
+      // old data", above) — not just genuine first-time sign-up. Only stamp
+      // fresh consent when there's no row yet; otherwise keep whatever the
+      // account's real original sign-up already recorded, so a DEK reset
+      // can't silently overwrite a true consent timestamp with a fabricated
+      // "agreed to it right now" one.
+      const { data: existingKeyRow } = await supabase.from('user_keys')
+        .select('privacy_version, privacy_accepted_at').eq('user_id', uid).maybeSingle();
+      const consent = existingKeyRow?.privacy_version
+        ? { version: existingKeyRow.privacy_version, acceptedAt: existingKeyRow.privacy_accepted_at }
+        : takePendingConsent();
       const { error: err } = await supabase.from('user_keys').upsert({
-        user_id: sessionData.session.user.id,
+        user_id: uid,
         wrapped_dek: passWrap.wrapped,
         kek_salt: passWrap.salt,
         kek_iterations: PASSWORD_KDF_ITERATIONS,

@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Ico } from './Icons.jsx';
 import { useFocusTrap } from '../lib/useFocusTrap.js';
+import { useEscapeToClose } from '../lib/useEscapeToClose.js';
 import { PRIVACY_VERSION } from '../lib/legal.js';
 
 // ─── Privacy notice ──────────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ import { PRIVACY_VERSION } from '../lib/legal.js';
 export function PrivacyNotice({ onClose }) {
   const boxRef = useRef(null);
   useFocusTrap(true, boxRef);
+  useEscapeToClose(true, onClose);
 
   const sec = { marginBottom: '20px' };
   const h3 = { fontSize: '13px', fontWeight: 900, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 8px' };
