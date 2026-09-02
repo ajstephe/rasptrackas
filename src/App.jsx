@@ -33,12 +33,14 @@ import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequen
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
+import { stashPendingConsent, takePendingConsent } from './lib/legal.js';
 import {
   calcEntry as calcEntryPure, submittedGross as submittedGrossPure,
   crossPeriodInfo as crossPeriodInfoPure,
   isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate,
 } from './lib/calc.js';
 import { Ico, ClockCashIcon, FireExitIcon } from './components/Icons.jsx';
+import { PrivacyNotice } from './components/PrivacyNotice.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
 import { SegSlider } from './components/SegSlider.jsx';
 import { MonthlyChart } from './components/MonthlyChart.jsx';
@@ -243,6 +245,8 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
   const [error, setError]           = useState('');
   const [forgotSent, setForgotSent] = useState(false);
   const [noRecoveryWarning, setNoRecoveryWarning] = useState(false);
+  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
+  const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
 
   const AS = {
     // Dark blue page — deliberately different from the rest of the app's
@@ -302,7 +306,12 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     if (!validEmail) { setError('Enter a valid email address'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
     if (password !== password2) { setError('Passwords do not match'); return; }
+    if (!agreedToPrivacy) { setError('Please agree to the Privacy Notice to create an account'); return; }
     setBusy(true);
+    // Consent is real at this tick, not at whatever moment user_keys finally
+    // gets written — stashed here so it survives the gap when email
+    // confirmation defers that write to handleRecoverySetup, below.
+    stashPendingConsent();
     const { data, error: err } = await supabase.auth.signUp({ email, password });
     setBusy(false);
     if (err) { setError(err.message); return; }
@@ -330,6 +339,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
       const passWrap = await wrapDataKey(dek, password, PASSWORD_KDF_ITERATIONS);
       const recWrap  = await wrapDataKey(dek, recoveryWord, RECOVERY_KDF_ITERATIONS);
       const { data: sessionData } = await supabase.auth.getSession();
+      const consent = takePendingConsent();
       const { error: err } = await supabase.from('user_keys').upsert({
         user_id: sessionData.session.user.id,
         wrapped_dek: passWrap.wrapped,
@@ -338,6 +348,8 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         wrapped_dek_recovery: recWrap.wrapped,
         recovery_salt: recWrap.salt,
         recovery_iterations: RECOVERY_KDF_ITERATIONS,
+        privacy_version: consent.version,
+        privacy_accepted_at: consent.acceptedAt,
       });
       setBusy(false);
       if (err) { setError(err.message); return; }
@@ -455,6 +467,10 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
               <span>↻</span>
               <span><b>You'll set up a recovery secret next.</b> That protects your data if you ever forget your password.</span>
             </div>
+            <label style={{display:'flex',alignItems:'flex-start',gap:'9px',marginBottom:'14px',cursor:'pointer'}}>
+              <input type="checkbox" checked={agreedToPrivacy} onChange={e=>setAgreedToPrivacy(e.target.checked)} style={{marginTop:'2px',flexShrink:0,width:'16px',height:'16px',accentColor:'#2563eb',cursor:'pointer'}}/>
+              <span style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,fontWeight:600}}>I've read the <span style={AS.link} onClick={e=>{ e.preventDefault(); setShowPrivacyNotice(true); }}>Privacy Notice</span> and agree to my data being processed as described.</span>
+            </label>
             {error && <div style={AS.err}>{error}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignUp}>{busy?'Creating…':'Create account'}</button>
             <div style={AS.linkRow}>Already have an account? <span style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Sign in</span></div>
@@ -535,6 +551,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
           version is ready" PWA-update prompt) would silently queue into
           state with nothing rendering it, and never be seen. */}
       <ToastStack toasts={toasts} onDismiss={dismissToast}/>
+      {showPrivacyNotice && <PrivacyNotice onClose={()=>setShowPrivacyNotice(false)}/>}
     </div>
   );
 }

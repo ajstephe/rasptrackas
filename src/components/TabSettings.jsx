@@ -5,6 +5,7 @@ import { PAY_RATES } from '../lib/payRates.js';
 import { calcUKIncomeTax, calcUKIncomeTaxNoTaper, computeTaxBandBreakdown, calcPensionContribution } from '../lib/tax.js';
 import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
+import { PrivacyNotice } from './PrivacyNotice.jsx';
 import { SegSlider } from './SegSlider.jsx';
 import { useMountTransition } from '../lib/useMountTransition.js';
 import { useFocusTrap } from '../lib/useFocusTrap.js';
@@ -40,6 +41,7 @@ export function TabSettings({
   yearsWithData, setArchiveExpandedPeriod, setFySummaryPrintMode, setFySummaryYear,
   animClass='fi',
 }) {
+  const [privacyNoticeOpen, setPrivacyNoticeOpen] = useState(false);
   // Mirrored exit for the two destructive confirm cards below (Wipe All
   // Data, Delete Account) — same useMountTransition trick as App.jsx's
   // overlays: cancelling one of these used to hard-cut it away instantly
@@ -795,6 +797,21 @@ export function TabSettings({
           <Ico n="cR" s={16} c="#94a3b8"/>
         </a>
       </div>
+
+      {/* ── Privacy Notice — read-only here (the sign-up screen is where the
+           actual consent checkbox lives); this is just so an existing
+           officer can come back and re-read what they agreed to. ── */}
+      <div style={S.card}>
+        <button onClick={()=>setPrivacyNoticeOpen(true)} style={{display:'flex',alignItems:'center',gap:'12px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
+          <div style={{background:'var(--tint-blue)',padding:isWide?'13px':'11px',borderRadius:'13px',flexShrink:0}}><Ico n="shield" s={isWide?23:19} c="#2563eb"/></div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Privacy Notice</div>
+            <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:700,marginTop:'2px'}}>What's collected, and why</div>
+          </div>
+          <Ico n="cR" s={16} c="#94a3b8"/>
+        </button>
+      </div>
+      {privacyNoticeOpen && <PrivacyNotice onClose={()=>setPrivacyNoticeOpen(false)}/>}
       </div>
 
       {/* ── Backdrop for the desktop popup cards above — click
