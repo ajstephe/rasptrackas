@@ -858,9 +858,12 @@ export default function App() {
   // the render-timing one above. justCompletedSetup keeps this card open
   // AND inline, exactly like configSetupIncomplete already does, without
   // touching configExpanded at all — the desktop modal stays something
-  // only an explicit click on the header ever triggers (see its onClick
-  // in TabSettings.jsx, which clears this flag once the person makes that
-  // choice themselves).
+  // only an explicit ask ever triggers: a click on the header once setup's
+  // done (see its onClick in TabSettings.jsx, which clears this flag once
+  // the person makes that choice themselves), or — the one deliberate
+  // exception — following a "Setup Required" prompt (setupPopupRequested,
+  // below), which is its own explicit ask for exactly this popup, just
+  // made before setup is complete rather than after.
   const [prevConfigSetupIncomplete, setPrevConfigSetupIncomplete] = useState(configSetupIncomplete);
   const [justCompletedSetup, setJustCompletedSetup] = useState(false);
   if (configSetupIncomplete !== prevConfigSetupIncomplete) {
@@ -868,6 +871,30 @@ export default function App() {
     if (prevConfigSetupIncomplete && !configSetupIncomplete) setJustCompletedSetup(true);
   }
   const configShown = configExpanded || configSetupIncomplete || justCompletedSetup;
+  // Desktop only — set when the person explicitly follows a "Setup
+  // Required" prompt (Home/Log Overtime's own card, not organic navigation
+  // to More..) via goToConfigSetup below, so Config pops out as a modal
+  // right away instead of the inline nudge configSetupIncomplete alone
+  // produces. Cleared the same two ways justCompletedSetup is (TabSettings'
+  // header onClick and the shared overlay's onClick), plus — below — the
+  // moment tab itself leaves 'settings', since the sidebar/bottom nav sit
+  // outside that overlay and can navigate away without ever triggering
+  // either. That reset used to live in a TabSettings useEffect cleanup,
+  // keyed off the component unmounting — StrictMode's dev-only double-
+  // invoke (mount → cleanup → mount, to surface exactly this kind of
+  // assumption) ran that cleanup once immediately, clearing the flag
+  // before the popup it was meant to open ever rendered. Tracking tab
+  // during render instead, the same adjust-while-rendering pattern
+  // prevConfigSetupIncomplete already uses above, sidesteps that: it only
+  // ever fires on a genuine change between two actually-different renders,
+  // never on StrictMode re-invoking the same one.
+  const [setupPopupRequested, setSetupPopupRequested] = useState(false);
+  const [prevTabForSetupPopup, setPrevTabForSetupPopup] = useState(tab);
+  if (tab !== prevTabForSetupPopup) {
+    setPrevTabForSetupPopup(tab);
+    if (prevTabForSetupPopup === 'settings' && setupPopupRequested) setSetupPopupRequested(false);
+  }
+  const goToConfigSetup = () => { setSetupPopupRequested(true); setTab('settings'); };
   const [financialYearsExpanded, setFinancialYearsExpanded] = useState(false);
   const [pulseBackupBtn, setPulseBackupBtn] = useState(false);
 
@@ -4406,7 +4433,7 @@ export default function App() {
         {tab==='dashboard'&&(
           <TabDashboard
             animClass={tabAnimClass}
-            isWide={isWide} settings={settings} setTab={setTab} totals={totals}
+            isWide={isWide} settings={settings} setTab={setTab} goToConfigSetup={goToConfigSetup} totals={totals}
             currPeriodIdx={currPeriodIdx} toilLedger={toilLedger} carmsOutstanding={carmsOutstanding}
             salaryBreakdownExpanded={salaryBreakdownExpanded} setSalaryBreakdownExpanded={setSalaryBreakdownExpanded}
             scrollToTaxImpact={scrollToTaxImpact} setTaxImpactExpanded={setTaxImpactExpanded}
@@ -4420,7 +4447,7 @@ export default function App() {
         {tab==='add'&&(
           <TabLogOvertime
             animClass={tabAnimClass}
-            editing={editing} setEditing={setEditing} setTab={setTab} settings={settings} isWide={isWide}
+            editing={editing} setEditing={setEditing} setTab={setTab} goToConfigSetup={goToConfigSetup} settings={settings} isWide={isWide}
             S={S} MONO={MONO} BRASS={BRASS} form={form} setForm={setForm} todayStr={todayStr} notesRef={notesRef}
             effectiveTier={effectiveTier} preview={preview} handleSave={handleSave} justSaved={justSaved}
             carmsToggleRef={carmsToggleRef} focusCarmsToggle={focusCarmsToggle}
@@ -4465,6 +4492,7 @@ export default function App() {
             savedBadge={savedBadge} themeMode={themeMode} setTheme={setTheme}
             configExpanded={configExpanded} setConfigExpanded={setConfigExpanded} configShown={configShown} configSetupIncomplete={configSetupIncomplete}
             justCompletedSetup={justCompletedSetup} setJustCompletedSetup={setJustCompletedSetup}
+            setupPopupRequested={setupPopupRequested} setSetupPopupRequested={setSetupPopupRequested}
             taxImpactExpanded={taxImpactExpanded} setTaxImpactExpanded={setTaxImpactExpanded} taxImpactCardRef={taxImpactCardRef}
             taxCalcActualDetailOpen={taxCalcActualDetailOpen} setTaxCalcActualDetailOpen={setTaxCalcActualDetailOpen}
             taxCalcForecastDetailOpen={taxCalcForecastDetailOpen} setTaxCalcForecastDetailOpen={setTaxCalcForecastDetailOpen}

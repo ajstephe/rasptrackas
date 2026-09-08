@@ -12,7 +12,7 @@ import { SegSlider } from './SegSlider.jsx';
 // everything it touches comes in as an explicit prop rather than trying to
 // bundle it into one opaque object.
 export function TabLogOvertime({
-  editing, setEditing, setTab, settings, isWide, S, MONO, BRASS,
+  editing, setEditing, setTab, goToConfigSetup, settings, isWide, S, MONO, BRASS,
   form, setForm, todayStr, notesRef, effectiveTier, preview, handleSave, justSaved,
   carmsToggleRef, focusCarmsToggle, setDatePickerMonth, setDatePickerFor,
   syncShiftTimesIntoForm, animClass='fi',
@@ -39,7 +39,7 @@ export function TabLogOvertime({
           </div>
           <div style={{fontWeight:900,fontSize:'15px',color:'var(--text-red-deep)',marginBottom:'6px'}}>Setup Required</div>
           <div style={{fontSize:'12px',color:'var(--text-red-deep)',lineHeight:1.6,marginBottom:'16px'}}>You need to select your rank and pay point in More.. before you can log overtime. This ensures your pay is calculated correctly from the start.</div>
-          <button onClick={()=>setTab('settings')} style={{background:'#dc2626',border:'none',borderRadius:'11px',padding:'12px 22px',fontWeight:900,fontSize:'12px',color:'#fff',cursor:'pointer',fontFamily:'inherit',boxShadow:'0 4px 14px rgba(220,38,38,0.3)'}}>Go to More.. →</button>
+          <button onClick={goToConfigSetup} style={{background:'#dc2626',border:'none',borderRadius:'11px',padding:'12px 22px',fontWeight:900,fontSize:'12px',color:'#fff',cursor:'pointer',fontFamily:'inherit',boxShadow:'0 4px 14px rgba(220,38,38,0.3)'}}>Go to More.. →</button>
         </div>
       ) : (
       <>

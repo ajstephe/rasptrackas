@@ -7,7 +7,7 @@ import { useCountUp } from '../lib/useCountUp.js';
 // change. renderMonthlyChart, S and the various setters/refs all come in as
 // props rather than being closed over directly.
 export function TabDashboard({
-  isWide, settings, setTab, totals, currPeriodIdx, toilLedger, carmsOutstanding,
+  isWide, settings, setTab, goToConfigSetup, totals, currPeriodIdx, toilLedger, carmsOutstanding,
   salaryBreakdownExpanded, setSalaryBreakdownExpanded,
   scrollToTaxImpact, setTaxImpactExpanded,
   skipBreakdownReset, setBreakdownView, setCalPeriodIdx,
@@ -270,7 +270,7 @@ export function TabDashboard({
         <div style={{flex:1}}>
           <div style={{fontWeight:900,color:'var(--text-red-deep)',fontSize:'13px',marginBottom:'3px'}}>Setup Required</div>
           <div style={{color:'var(--text-red-deep)',fontSize:'12px',marginBottom:'8px'}}>Configure your rank and pay in More..</div>
-          <button onClick={()=>setTab('settings')} style={{background:'var(--surface-red-mid)',border:'none',borderRadius:'8px',padding:'5px 11px',fontWeight:900,fontSize:'11px',color:'var(--text-red-deep)',cursor:'pointer',fontFamily:'inherit'}}>Go to More.. →</button>
+          <button onClick={goToConfigSetup} style={{background:'var(--surface-red-mid)',border:'none',borderRadius:'8px',padding:'5px 11px',fontWeight:900,fontSize:'11px',color:'var(--text-red-deep)',cursor:'pointer',fontFamily:'inherit'}}>Go to More.. →</button>
         </div>
       </div>
     )}
