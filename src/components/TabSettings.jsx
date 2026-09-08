@@ -24,6 +24,7 @@ export function TabSettings({
   isWide, S, MONO, BRASS,
   savedBadge, themeMode, setTheme,
   configExpanded, setConfigExpanded, configShown, configSetupIncomplete,
+  justCompletedSetup, setJustCompletedSetup,
   taxImpactExpanded, setTaxImpactExpanded, taxImpactCardRef,
   taxCalcActualDetailOpen, setTaxCalcActualDetailOpen,
   taxCalcForecastDetailOpen, setTaxCalcForecastDetailOpen,
@@ -179,7 +180,7 @@ export function TabSettings({
            — that part was never meant to be hideable. ── */}
       {(()=>{
         const cardHeader = (
-          <button disabled={configSetupIncomplete} onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setConfigExpanded(v=>!v); }} className={configSetupIncomplete?'':'tap-row'} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete))?'13px':0}}>
+          <button disabled={configSetupIncomplete} onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setJustCompletedSetup(false); setConfigExpanded(v=>!v); }} className={configSetupIncomplete?'':'tap-row'} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete||justCompletedSetup))?'13px':0}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
               <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Config, Rates &amp; Payscales</div>
@@ -302,12 +303,14 @@ export function TabSettings({
         </>
         );
         // Desktop: only the genuinely user-toggled open state pops
-        // out as a modal — the forced-open-while-setup-incomplete
-        // case stays inline even on desktop (it's a first-run nudge,
-        // not something tapped open, so it shouldn't hijack into a
-        // popup the moment you land on this tab).
-        const showInline = configShown && (!isWide || configSetupIncomplete);
-        const showModal = isWide && configExpanded && !configSetupIncomplete;
+        // out as a modal — the forced-open-while-setup-incomplete case
+        // (and the one-render-longer justCompletedSetup tail right after
+        // it finishes, from App.jsx) both stay inline even on desktop:
+        // it's a first-run nudge, not something tapped open, so it
+        // shouldn't hijack into a popup the moment setup completes,
+        // let alone the moment you land on this tab.
+        const showInline = configShown && (!isWide || configSetupIncomplete || justCompletedSetup);
+        const showModal = isWide && configExpanded && !configSetupIncomplete && !justCompletedSetup;
         if (showModal) configModalContentRef.current = <>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></>;
         return (
           <>

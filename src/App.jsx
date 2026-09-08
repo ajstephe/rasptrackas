@@ -845,12 +845,27 @@ export default function App() {
   // after. React re-runs the render synchronously when a setState call
   // during render actually changes a value, so the corrected result is
   // what reaches the DOM — never the momentarily-wrong one.
+  // Deliberately its OWN flag, not folded into configExpanded: on desktop,
+  // configExpanded is also what pops this card out into a modal overlay
+  // (showModal in TabSettings.jsx). Setting configExpanded=true here to
+  // keep the card open the moment setup completes was ALSO, unintentionally,
+  // a "pop into a modal" request — so on desktop specifically, finishing
+  // setup immediately swapped the inline card out for a modal popover the
+  // person never asked for, which is its own genuine "the whole thing just
+  // closed and reopened somewhere else" bug, distinct from (and on top of)
+  // the render-timing one above. justCompletedSetup keeps this card open
+  // AND inline, exactly like configSetupIncomplete already does, without
+  // touching configExpanded at all — the desktop modal stays something
+  // only an explicit click on the header ever triggers (see its onClick
+  // in TabSettings.jsx, which clears this flag once the person makes that
+  // choice themselves).
   const [prevConfigSetupIncomplete, setPrevConfigSetupIncomplete] = useState(configSetupIncomplete);
+  const [justCompletedSetup, setJustCompletedSetup] = useState(false);
   if (configSetupIncomplete !== prevConfigSetupIncomplete) {
     setPrevConfigSetupIncomplete(configSetupIncomplete);
-    if (prevConfigSetupIncomplete && !configSetupIncomplete) setConfigExpanded(true);
+    if (prevConfigSetupIncomplete && !configSetupIncomplete) setJustCompletedSetup(true);
   }
-  const configShown = configExpanded || configSetupIncomplete;
+  const configShown = configExpanded || configSetupIncomplete || justCompletedSetup;
   const [financialYearsExpanded, setFinancialYearsExpanded] = useState(false);
   const [pulseBackupBtn, setPulseBackupBtn] = useState(false);
 
@@ -4293,6 +4308,7 @@ export default function App() {
             isWide={isWide} S={S} MONO={MONO} BRASS={BRASS}
             savedBadge={savedBadge} themeMode={themeMode} setTheme={setTheme}
             configExpanded={configExpanded} setConfigExpanded={setConfigExpanded} configShown={configShown} configSetupIncomplete={configSetupIncomplete}
+            justCompletedSetup={justCompletedSetup} setJustCompletedSetup={setJustCompletedSetup}
             taxImpactExpanded={taxImpactExpanded} setTaxImpactExpanded={setTaxImpactExpanded} taxImpactCardRef={taxImpactCardRef}
             taxCalcActualDetailOpen={taxCalcActualDetailOpen} setTaxCalcActualDetailOpen={setTaxCalcActualDetailOpen}
             taxCalcForecastDetailOpen={taxCalcForecastDetailOpen} setTaxCalcForecastDetailOpen={setTaxCalcForecastDetailOpen}
