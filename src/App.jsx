@@ -1357,9 +1357,25 @@ export default function App() {
   // not once per keystroke. 600ms: long enough to bridge two selects
   // picked back-to-back, short enough that a genuine pause still saves
   // promptly.
+  // Found live, against a real brand-new account: this effect also runs
+  // once on mount (React runs every effect after the first render, not
+  // just on later changes) — with whatever `settings` happens to be at
+  // that instant, which for a fresh sign-in is the blank default, before
+  // pullAndMergeSettings has necessarily even resolved. Left unguarded,
+  // that scheduled a real push of blank settings ~600ms after every
+  // sign-in, regardless of anything the person does — and if that timer
+  // landed AFTER the person's own genuine edit had already pushed
+  // correctly, it silently overwrote real rank/pay-point data with blank
+  // right after saving it, server-side, confirmed directly by reading the
+  // row back. mountedRef skips scheduling entirely on that first run —
+  // only real, later changes to settings (a genuine edit, or a legitimate
+  // pull/realtime update, both of which already go through their own
+  // hasNoPendingLocalEdit/remoteSettingsChanged guards) ever queue a push.
+  const settingsMountedRef = useRef(false);
   const pushSettingsDebounceRef = useRef(null);
   useEffect(()=>{
     dualWrite(KEYS.settings,settings);
+    if (!settingsMountedRef.current) { settingsMountedRef.current = true; return; }
     if (pushSettingsDebounceRef.current) clearTimeout(pushSettingsDebounceRef.current);
     pushSettingsDebounceRef.current = setTimeout(()=>{ pushSettingsChange(settings); }, 600);
     return () => clearTimeout(pushSettingsDebounceRef.current);
