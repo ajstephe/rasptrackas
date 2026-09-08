@@ -43,6 +43,8 @@ import { Ico, ClockCashIcon, FireExitIcon } from './components/Icons.jsx';
 import { PrivacyNotice } from './components/PrivacyNotice.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
 import { SegSlider } from './components/SegSlider.jsx';
+import { Tooltip } from './components/Tooltip.jsx';
+import { ContextMenu } from './components/ContextMenu.jsx';
 import { MonthlyChart } from './components/MonthlyChart.jsx';
 import { useEscapeToClose } from './lib/useEscapeToClose.js';
 import { useBackButtonCloses } from './lib/useBackButtonCloses.js';
@@ -682,6 +684,9 @@ export default function App() {
   const [changingPw, setChangingPw] = useState(false);
   const [changePwError, setChangePwError] = useState('');
   const [confirmDel,   setConfirmDel]   = useState(null);
+  // Right-click menu for a desktop "At a Glance" claim row — { x, y, claim }
+  // (see ContextMenu.jsx) or null when closed.
+  const [claimMenu,    setClaimMenu]    = useState(null);
   const [toasts,       setToasts]       = useState([]);
   const [savedBadge,   setSavedBadge]   = useState(false);
   const [session,      setSession]      = useState(null);
@@ -2476,6 +2481,29 @@ export default function App() {
     addToast('Record deleted','undo',{label:'Undo',fn:()=>setEntries(prev=>[...prev,d])},7000);
   };
 
+  // ── "At a Glance" claim right-click menu actions ────────────────────────
+  // Each claim is one outstanding marker (OT or PA) on a real entry — see
+  // the allClaims construction further down — so "mark submitted" only
+  // flips the one marker this claim actually represents, not both.
+  const markClaimSubmitted = (claim) => {
+    const isOt = claim.kind === 'Overtime';
+    setEntries(prev => prev.map(x => x.id === claim.entry.id
+      ? { ...x, ...(isOt ? { otSubmitted: true, otSubmittedDate: todayStr } : { paSubmitted: true, paSubmittedDate: todayStr }) }
+      : x));
+    addToast(`${isOt ? 'Overtime' : claim.kind} marked as submitted`);
+  };
+  // Opens a prefilled copy in the Log Overtime form for review rather than
+  // silently saving a second record — same reason handleSave refuses to
+  // create two entries on the same date: a duplicate shouldn't appear
+  // without the person seeing and confirming it first. Submission status
+  // resets since the copy hasn't been submitted anywhere yet.
+  const duplicateClaimEntry = (claim) => {
+    const { id, otSubmitted, otSubmittedDate, paSubmitted, paSubmittedDate, ...rest } = claim.entry;
+    setForm({ ...rest, date: todayStr, otSubmitted: false, paSubmitted: false, otSubmittedDate: '', paSubmittedDate: '' });
+    setEditing(null);
+    setTab('add');
+  };
+
   const [toilTakenForm, setToilTakenForm] = useState({date:todayStr, hours:'', minutes:'00', note:''});
   const addToilTaken = () => {
     const wholeHours = parseInt(toilTakenForm.hours,10)||0;
@@ -3920,11 +3948,23 @@ export default function App() {
         @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         /* ── directional tab entrance — same fade, sliding in from whichever
              side of the nav order the tab you left sits on, instead of
-             always rising from below like .fi. See tabAnimClass above. ── */
-        @keyframes fiRight{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
-        @keyframes fiLeft{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
-        .fi-right{animation:fiRight 0.24s ease}
-        .fi-left{animation:fiLeft 0.24s ease}
+             always rising from below like .fi. See tabAnimClass above.
+             The keyframe stops are src/lib/spring.js's own integrator
+             (stiffness 1100, damping 66 — critically damped, so the slide
+             decelerates into place with no bounce, unlike the deliberate
+             overshoot alert-pop/modal-pop use elsewhere: a dialog popping
+             into existence reads as a physical object arriving, but a
+             content panel sliding across shouldn't wobble once it gets
+             there) sampled at 16 even steps and baked into real @keyframes,
+             the same technique alertPop/modalPop use above. ── */
+        @keyframes fiRight{
+          0%{opacity:0;transform:translateX(16px)}6.3%{opacity:0.304;transform:translateX(14.027px)}12.5%{opacity:0.539;transform:translateX(10.79px)}18.8%{opacity:0.714;transform:translateX(7.774px)}25%{opacity:0.838;transform:translateX(5.653px)}31.3%{opacity:0.919;transform:translateX(3.837px)}37.5%{opacity:0.968;transform:translateX(2.56px)}43.8%{opacity:0.991;transform:translateX(1.688px)}50%{opacity:0.999;transform:translateX(1.106px)}56.3%{opacity:1;transform:translateX(0.718px)}62.5%{opacity:1;transform:translateX(0.466px)}68.8%{opacity:1;transform:translateX(0.301px)}75%{opacity:1;transform:translateX(0.205px)}81.3%{opacity:1;transform:translateX(0.131px)}87.5%{opacity:1;transform:translateX(0.085px)}93.8%{opacity:1;transform:translateX(0.054px)}100%{opacity:1;transform:translateX(0)}
+        }
+        @keyframes fiLeft{
+          0%{opacity:0;transform:translateX(-16px)}6.3%{opacity:0.304;transform:translateX(-14.027px)}12.5%{opacity:0.539;transform:translateX(-10.79px)}18.8%{opacity:0.714;transform:translateX(-7.774px)}25%{opacity:0.838;transform:translateX(-5.653px)}31.3%{opacity:0.919;transform:translateX(-3.837px)}37.5%{opacity:0.968;transform:translateX(-2.56px)}43.8%{opacity:0.991;transform:translateX(-1.688px)}50%{opacity:0.999;transform:translateX(-1.106px)}56.3%{opacity:1;transform:translateX(-0.718px)}62.5%{opacity:1;transform:translateX(-0.466px)}68.8%{opacity:1;transform:translateX(-0.301px)}75%{opacity:1;transform:translateX(-0.205px)}81.3%{opacity:1;transform:translateX(-0.131px)}87.5%{opacity:1;transform:translateX(-0.085px)}93.8%{opacity:1;transform:translateX(-0.054px)}100%{opacity:1;transform:translateX(0)}
+        }
+        .fi-right{animation:fiRight 0.262s linear}
+        .fi-left{animation:fiLeft 0.262s linear}
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         @keyframes su{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         /* No transform here (there used to be a scale(1.012) pulse) — this
@@ -4009,6 +4049,29 @@ export default function App() {
              hover feedback of any kind before this despite being real
              onClick targets — not a re-skin of an existing treatment. */
           .glance-claim-row:hover{background:var(--surface-2);transform:translateY(-1px)}
+        }
+        /* ── native-style tooltip (Tooltip.jsx) — icon-only buttons (edit/
+             delete on a list entry) get a dark, arrowed label instead of
+             relying on the aria-label alone, which sighted mouse users
+             never see. Pure CSS: the show-delay lives on the :hover rule's
+             transition-delay rather than a JS timer, so it appears only
+             after a deliberate pause (matching real macOS tooltip timing)
+             but disappears immediately the moment the pointer leaves —
+             :hover stops matching, and the base rule's fast, undelayed
+             transition takes back over. hover:hover keeps this desktop-
+             only, same as every other hover treatment above. ── */
+        .tt-wrap{position:relative;display:inline-flex;}
+        .tt{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1c1c1e;color:#fff;font-size:11px;font-weight:700;padding:5px 9px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.12s ease;box-shadow:0 6px 16px rgba(0,0,0,0.3);z-index:60;}
+        .tt::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1c1c1e;}
+        @media (hover:hover){
+          .tt-wrap:hover .tt{opacity:1;transition-delay:0.5s;}
+        }
+        /* ── right-click menu (ContextMenu.jsx) item hover — plain
+             background:none buttons, so the generic brightness-filter
+             hover above has nothing visible to darken; needs its own
+             tint like sidebar-nav-btn/glance-claim-row above. ── */
+        @media (hover:hover){
+          .ctx-menu-item:hover{background:var(--surface-2);}
         }
         /* ── toast enter/exit — ToastStack mirrors the toasts array into
              local state so a dismissed toast plays this leave transition
@@ -4217,6 +4280,19 @@ export default function App() {
       `}</style>
 
       <div className="no-print"><ToastStack toasts={toasts} onDismiss={dismissToast} isWide={isWide}/></div>
+      {claimMenu && (
+        <ContextMenu
+          x={claimMenu.x} y={claimMenu.y}
+          onClose={()=>setClaimMenu(null)}
+          items={[
+            { icon:'edit', label:'Edit entry', run:()=>startEdit(claimMenu.claim.entry) },
+            { icon:'copy', label:'Duplicate', run:()=>duplicateClaimEntry(claimMenu.claim) },
+            { icon:'check', label:'Mark submitted', run:()=>markClaimSubmitted(claimMenu.claim) },
+            { divider:true },
+            { icon:'trash', label:'Delete', danger:true, run:()=>delEntry(claimMenu.claim.entry.id) },
+          ]}
+        />
+      )}
 
       {/* ── header ── */}
       <header className="no-print" style={S.hdr}>
@@ -4517,7 +4593,7 @@ export default function App() {
                   return (
                     <>
                       {shown.map((cl,i)=>(
-                        <div key={cl.key} onClick={()=>setTab('carms')} className="glance-claim-row" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',padding:'9px 8px',margin:'0 -8px',borderRadius:'9px',borderTop:i===0?'none':'1px solid var(--border-2)',cursor:'pointer'}}>
+                        <div key={cl.key} onClick={()=>setTab('carms')} onContextMenu={(ev)=>{ ev.preventDefault(); setClaimMenu({ x: ev.clientX, y: ev.clientY, claim: cl }); }} className="glance-claim-row" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',padding:'9px 8px',margin:'0 -8px',borderRadius:'9px',borderTop:i===0?'none':'1px solid var(--border-2)',cursor:'pointer'}}>
                           <div style={{minWidth:0}}>
                             <div style={{fontSize:'11.5px',fontWeight:700,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cl.entry.reason||'Shift'}</div>
                             <div style={{fontSize:'9.5px',color:'var(--quiet)'}}>{cl.kind} · {new Date(cl.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
@@ -4957,8 +5033,8 @@ export default function App() {
                       ); })()}
                     </div>
                     <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
-                      <button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} aria-label="Edit this record" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button>
-                      <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this record" style={{background:confirmDel===e.id?'var(--tint-red)':'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button>
+                      <Tooltip label="Edit entry"><button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} aria-label="Edit this record" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button></Tooltip>
+                      <Tooltip label="Delete entry"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this record" style={{background:confirmDel===e.id?'var(--tint-red)':'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button></Tooltip>
                     </div>
                   </div>
 
