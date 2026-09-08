@@ -1061,14 +1061,36 @@ export default function App() {
 
   async function pushSettingsChange(settingsObj) {
     if (!supabase || !session || !dataKey || !initialSyncDoneRef.current) return;
-    const json = JSON.stringify(settingsObj);
-    if (lastSyncedSettingsRef.current === json) return;
-    try {
-      const ciphertext = await encryptWithDataKey(dataKey, settingsObj);
-      const { error } = await supabase.from('settings').upsert({ user_id: session.user.id, ciphertext, updated_at: new Date().toISOString() });
-      if (!error) { lastSyncedSettingsRef.current = json; persistLastSyncedSettings(); markSynced(); console.log('[sync] pushed settings'); }
-      else console.error('[sync] push failed for settings:', error.message || error);
-    } catch (e) { console.error('[sync] push threw for settings:', e.message || e); }
+    // Serialized via pushChainRef, same fix and same reason as
+    // pushRowChanges above — this used to be the one push path left free
+    // to race. Two edits in quick succession (e.g. picking Rank, then
+    // immediately Pay Point, before the first upsert has even resolved)
+    // fired two overlapping, unserialized upserts for the same settings
+    // row. Whichever happened to resolve LAST won the actual write and
+    // set lastSyncedSettingsRef last, regardless of call order — so the
+    // earlier (rank-only) push could complete after the later (rank+
+    // service) one, silently overwriting it server-side. That stale
+    // write then echoed back over realtime; since lastSyncedSettingsRef
+    // now matched what had just landed, hasNoPendingLocalEdit had nothing
+    // left to compare against and let the echo through, visibly reverting
+    // the just-picked Pay Point back to empty — reported as "picking Rank
+    // keeps jumping back and closing Pay Point," with a genuine repeat
+    // "Saved" flash each time it happened. Chaining each call after the
+    // previous one for this same key means a later edit's push always
+    // starts from a lastSyncedSettingsRef that already reflects the
+    // earlier one, so pushes land in the order they were made, not
+    // whichever the network happened to finish first.
+    const run = async () => {
+      const json = JSON.stringify(settingsObj);
+      if (lastSyncedSettingsRef.current === json) return;
+      try {
+        const ciphertext = await encryptWithDataKey(dataKey, settingsObj);
+        const { error } = await supabase.from('settings').upsert({ user_id: session.user.id, ciphertext, updated_at: new Date().toISOString() });
+        if (!error) { lastSyncedSettingsRef.current = json; persistLastSyncedSettings(); markSynced(); console.log('[sync] pushed settings'); }
+        else console.error('[sync] push failed for settings:', error.message || error);
+      } catch (e) { console.error('[sync] push threw for settings:', e.message || e); }
+    };
+    return chainSequential(pushChainRef.current, 'settings', run);
   }
 
   // ── cloud pull + merge ──────────────────────────────────────────────────
