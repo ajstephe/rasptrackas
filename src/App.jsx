@@ -44,7 +44,6 @@ import { PrivacyNotice } from './components/PrivacyNotice.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
 import { SegSlider } from './components/SegSlider.jsx';
 import { Tooltip } from './components/Tooltip.jsx';
-import { ContextMenu } from './components/ContextMenu.jsx';
 import { MonthlyChart } from './components/MonthlyChart.jsx';
 import { useEscapeToClose } from './lib/useEscapeToClose.js';
 import { useBackButtonCloses } from './lib/useBackButtonCloses.js';
@@ -684,9 +683,6 @@ export default function App() {
   const [changingPw, setChangingPw] = useState(false);
   const [changePwError, setChangePwError] = useState('');
   const [confirmDel,   setConfirmDel]   = useState(null);
-  // Right-click menu for a desktop "At a Glance" claim row — { x, y, claim }
-  // (see ContextMenu.jsx) or null when closed.
-  const [claimMenu,    setClaimMenu]    = useState(null);
   const [toasts,       setToasts]       = useState([]);
   const [savedBadge,   setSavedBadge]   = useState(false);
   const [session,      setSession]      = useState(null);
@@ -2481,29 +2477,6 @@ export default function App() {
     addToast('Record deleted','undo',{label:'Undo',fn:()=>setEntries(prev=>[...prev,d])},7000);
   };
 
-  // ── "At a Glance" claim right-click menu actions ────────────────────────
-  // Each claim is one outstanding marker (OT or PA) on a real entry — see
-  // the allClaims construction further down — so "mark submitted" only
-  // flips the one marker this claim actually represents, not both.
-  const markClaimSubmitted = (claim) => {
-    const isOt = claim.kind === 'Overtime';
-    setEntries(prev => prev.map(x => x.id === claim.entry.id
-      ? { ...x, ...(isOt ? { otSubmitted: true, otSubmittedDate: todayStr } : { paSubmitted: true, paSubmittedDate: todayStr }) }
-      : x));
-    addToast(`${isOt ? 'Overtime' : claim.kind} marked as submitted`);
-  };
-  // Opens a prefilled copy in the Log Overtime form for review rather than
-  // silently saving a second record — same reason handleSave refuses to
-  // create two entries on the same date: a duplicate shouldn't appear
-  // without the person seeing and confirming it first. Submission status
-  // resets since the copy hasn't been submitted anywhere yet.
-  const duplicateClaimEntry = (claim) => {
-    const { id, otSubmitted, otSubmittedDate, paSubmitted, paSubmittedDate, ...rest } = claim.entry;
-    setForm({ ...rest, date: todayStr, otSubmitted: false, paSubmitted: false, otSubmittedDate: '', paSubmittedDate: '' });
-    setEditing(null);
-    setTab('add');
-  };
-
   const [toilTakenForm, setToilTakenForm] = useState({date:todayStr, hours:'', minutes:'00', note:''});
   const addToilTaken = () => {
     const wholeHours = parseInt(toilTakenForm.hours,10)||0;
@@ -4066,13 +4039,6 @@ export default function App() {
         @media (hover:hover){
           .tt-wrap:hover .tt{opacity:1;transition-delay:0.5s;}
         }
-        /* ── right-click menu (ContextMenu.jsx) item hover — plain
-             background:none buttons, so the generic brightness-filter
-             hover above has nothing visible to darken; needs its own
-             tint like sidebar-nav-btn/glance-claim-row above. ── */
-        @media (hover:hover){
-          .ctx-menu-item:hover{background:var(--surface-2);}
-        }
         /* ── toast enter/exit — ToastStack mirrors the toasts array into
              local state so a dismissed toast plays this leave transition
              before it's actually dropped, instead of vanishing the instant
@@ -4280,19 +4246,6 @@ export default function App() {
       `}</style>
 
       <div className="no-print"><ToastStack toasts={toasts} onDismiss={dismissToast} isWide={isWide}/></div>
-      {claimMenu && (
-        <ContextMenu
-          x={claimMenu.x} y={claimMenu.y}
-          onClose={()=>setClaimMenu(null)}
-          items={[
-            { icon:'edit', label:'Edit entry', run:()=>startEdit(claimMenu.claim.entry) },
-            { icon:'copy', label:'Duplicate', run:()=>duplicateClaimEntry(claimMenu.claim) },
-            { icon:'check', label:'Mark submitted', run:()=>markClaimSubmitted(claimMenu.claim) },
-            { divider:true },
-            { icon:'trash', label:'Delete', danger:true, run:()=>delEntry(claimMenu.claim.entry.id) },
-          ]}
-        />
-      )}
 
       {/* ── header ── */}
       <header className="no-print" style={S.hdr}>
@@ -4593,7 +4546,7 @@ export default function App() {
                   return (
                     <>
                       {shown.map((cl,i)=>(
-                        <div key={cl.key} onClick={()=>setTab('carms')} onContextMenu={(ev)=>{ ev.preventDefault(); setClaimMenu({ x: ev.clientX, y: ev.clientY, claim: cl }); }} className="glance-claim-row" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',padding:'9px 8px',margin:'0 -8px',borderRadius:'9px',borderTop:i===0?'none':'1px solid var(--border-2)',cursor:'pointer'}}>
+                        <div key={cl.key} onClick={()=>setTab('carms')} className="glance-claim-row" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',padding:'9px 8px',margin:'0 -8px',borderRadius:'9px',borderTop:i===0?'none':'1px solid var(--border-2)',cursor:'pointer'}}>
                           <div style={{minWidth:0}}>
                             <div style={{fontSize:'11.5px',fontWeight:700,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cl.entry.reason||'Shift'}</div>
                             <div style={{fontSize:'9.5px',color:'var(--quiet)'}}>{cl.kind} · {new Date(cl.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
