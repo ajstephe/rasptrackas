@@ -50,6 +50,7 @@ import { useMountTransition, useLastTruthy } from './lib/useMountTransition.js';
 import { useFocusTrap } from './lib/useFocusTrap.js';
 import { haptic } from './lib/haptics.js';
 import { useCountUp } from './lib/useCountUp.js';
+import { springValue } from './lib/spring.js';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
 // Only one of these six is ever on screen at a time (via `tab` state below),
 // so there's no reason all six ship in the initial JS payload — each becomes
@@ -888,6 +889,8 @@ export default function App() {
   const [navEl, setNavEl] = useState(null);
   const navBtnRefs = useRef({});
   const [navPillRect, setNavPillRect] = useState({ left: 0, width: 0 });
+  const navPillRef = useRef(navPillRect);
+  const navPillCancelRef = useRef([() => {}, () => {}]);
   const stickyRef = useRef(null);
   const entryRefs = useRef({});
   const carmsToggleRef = useRef(null);
@@ -3317,14 +3320,6 @@ export default function App() {
   // (no Vibration API there — Android Chrome only). The visual state
   // needs to carry the full story on its own, not lean on that.
   const [pullArmed, setPullArmed] = useState(false);
-  // True only while a finger is actually down and dragging — as opposed
-  // to "pullY is non-zero", which used to gate the settle transition
-  // below and was wrong: pullY is *also* non-zero during the two
-  // programmatic snaps (armed-release settling to PULL_TRIGGER, and the
-  // final close), which is exactly when a transition should play, not
-  // when it should be suppressed. That bug meant those two snaps jumped
-  // instantly with no animation at all instead of settling smoothly.
-  const [pullDragging, setPullDragging] = useState(false);
   const PULL_TRIGGER = 64, PULL_MAX = 92;
   // How far a raw finger movement has to travel before the resistance
   // curve below reports 1 pull-unit — tunable feel, not a hard distance.
@@ -3344,6 +3339,11 @@ export default function App() {
     let el = null;
     let observer = null;
     const state = { active:false, dragging:false, startY:0, armed:false };
+    // Tracked outside React state so onEnd always has the live drag
+    // position to spring from — state read from this closure would be
+    // stale (these handlers are attached once, on mount).
+    let pullYCur = 0;
+    let cancelPullSpring = () => {};
     const onStart = (ev) => {
       // Only ever starts a pull from already scrolled-to-top — anywhere
       // else, a downward drag is just an ordinary scroll.
@@ -3353,9 +3353,9 @@ export default function App() {
     const onMove = (ev) => {
       if (!state.active) return;
       const dy = ev.touches[0].clientY - state.startY;
-      if (dy <= 0 || el.scrollTop > 0) { state.active = false; setPullDragging(false); setPullY(0); setPullArmed(false); return; }
+      if (dy <= 0 || el.scrollTop > 0) { state.active = false; cancelPullSpring(); pullYCur = 0; setPullY(0); setPullArmed(false); return; }
       ev.preventDefault();
-      if (!state.dragging) { state.dragging = true; setPullDragging(true); }
+      if (!state.dragging) state.dragging = true;
       // Elastic resistance, not a flat multiplier with a hard cap — the
       // same shape UIScrollView's own rubber-band uses: quick to respond
       // at first, then increasingly reluctant the further past comfortable
@@ -3364,6 +3364,7 @@ export default function App() {
       // right up until it hits that ceiling, then dead-stops — the one
       // moment an elastic gesture should least feel rigid.
       const damped = PULL_MAX * (1 - Math.exp(-dy / PULL_RESISTANCE));
+      pullYCur = damped;
       setPullY(damped);
       // A short tap the instant the pull crosses the trigger distance —
       // the same "it's armed now" tactile cue iOS gives when a pull-to-
@@ -3379,7 +3380,6 @@ export default function App() {
       if (!state.active) return;
       state.active = false;
       state.dragging = false;
-      setPullDragging(false);
       // Springs shut immediately either way, rather than holding open at
       // PULL_TRIGGER through the sync itself — that used to mean the
       // spring-close animation and the chevron/text swapping to a spinner
@@ -3389,7 +3389,13 @@ export default function App() {
       // for the whole sync regardless of what triggered it (a tap or a
       // pull) — that's the one place "it's syncing" needs to live, so
       // the pull indicator's own job is done the moment you let go.
-      setPullY(0);
+      // Real spring physics for the close itself, not a canned curve —
+      // same feel as the "Ledger in Motion" mockup's pull-to-refresh demo.
+      cancelPullSpring();
+      cancelPullSpring = springValue(pullYCur, 0, {
+        stiffness: 300, damping: 26,
+        onUpdate: (v) => { pullYCur = v; setPullY(v); },
+      });
       if (state.armed) handleManualSyncRef.current();
       setPullArmed(false);
     };
@@ -3411,6 +3417,7 @@ export default function App() {
 
     return () => {
       cleanedUp = true;
+      cancelPullSpring();
       if (observer) observer.disconnect();
       if (el) {
         el.removeEventListener('touchstart', onStart);
@@ -3420,15 +3427,13 @@ export default function App() {
       }
     };
   }, []);
-  // Only the two *settle* moments (armed-release snapping open, the final
-  // close) animate — 'none' for every frame of an actual drag, so the
-  // indicator/padding never lag a single pixel behind the finger while
-  // it's moving. The overshoot curve (already used for alert-pop
-  // elsewhere in the app) gives the settle a touch of spring rather than
-  // a flat ease-out — the difference between "stopping" and "landing".
-  const pullSettling = !pullDragging && !prefersReducedMotion();
-  const pullPaddingTransition = pullSettling ? 'padding-top 0.32s cubic-bezier(.34,1.42,.64,1)' : 'none';
-  const pullIndicatorTransition = pullSettling ? 'transform 0.32s cubic-bezier(.34,1.42,.64,1), opacity 0.32s cubic-bezier(.34,1.42,.64,1), color 0.2s ease' : 'none';
+  // pullY itself is now animated every frame by real spring physics (both
+  // while dragging — 1:1 with the finger — and while settling shut, via
+  // the spring kicked off in onEnd above), so the padding/indicator below
+  // just bind straight to it with no CSS transition of their own. Only the
+  // armed/unarmed color swap still gets a short CSS fade — it's a discrete
+  // state flip, not something the spring already smooths.
+  const pullColorTransition = prefersReducedMotion() ? 'none' : 'color 0.2s ease';
 
   // Scrolls the main container so a month card sits just below the sticky
   // header. The header's height is measured live (it changes between views,
@@ -3515,13 +3520,27 @@ export default function App() {
     const place = () => {
       const btn = navBtnRefs.current[tab];
       if (!btn) return;
-      setNavPillRect({ left: btn.offsetLeft, width: btn.offsetWidth });
+      const target = { left: btn.offsetLeft, width: btn.offsetWidth };
+      const from = navPillRef.current;
+      navPillCancelRef.current[0]();
+      navPillCancelRef.current[1]();
+      // Same spring feel as the segmented-control pill (SegSlider) — start
+      // and width spring independently, matching the "Ledger in Motion"
+      // mockup's nav-bar demo.
+      navPillCancelRef.current[0] = springValue(from.left, target.left, {
+        stiffness: 260, damping: 22,
+        onUpdate: (v) => { navPillRef.current = { ...navPillRef.current, left: v }; setNavPillRect(r => ({ ...r, left: v })); },
+      });
+      navPillCancelRef.current[1] = springValue(from.width, target.width, {
+        stiffness: 260, damping: 22,
+        onUpdate: (v) => { navPillRef.current = { ...navPillRef.current, width: v }; setNavPillRect(r => ({ ...r, width: v })); },
+      });
     };
     place();
     window.addEventListener('resize', place);
     const ro = new ResizeObserver(place);
     ro.observe(navEl);
-    return () => { window.removeEventListener('resize', place); ro.disconnect(); };
+    return () => { window.removeEventListener('resize', place); ro.disconnect(); navPillCancelRef.current[0](); navPillCancelRef.current[1](); };
   }, [navEl, tab, isWide]);
 
   // ── display helpers ────────────────────────────────────────────────────────
@@ -3938,7 +3957,7 @@ export default function App() {
              inline per-render (measured against the real button layout,
              which itself is fluid via the clamp() rules below), only the
              easing lives here. ── */
-        .nav-pill{position:absolute;top:5px;bottom:5px;border-radius:12px;background:var(--tint-brass);transition:left 0.45s cubic-bezier(.65,0,.35,1), width 0.45s cubic-bezier(.65,0,.35,1);pointer-events:none;z-index:0}
+        .nav-pill{position:absolute;top:5px;bottom:5px;border-radius:12px;background:var(--tint-brass);pointer-events:none;z-index:0}
         .nav-ico{transition:transform 0.35s cubic-bezier(.34,1.56,.64,1)}
         .nav-ico.active{transform:scale(1.15)}
         @keyframes claimIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
@@ -4068,7 +4087,6 @@ export default function App() {
         @keyframes tabSpin{to{transform:rotate(360deg)}}
         .tab-spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--border-2);border-top-color:#b8823f;animation:tabSpin 0.7s linear infinite;}
         @media (prefers-reduced-motion: reduce){
-          .nav-pill{transition-duration:0.001ms}
           .nav-ico{transition-duration:0.001ms}
           .claim-in{animation-duration:0.001ms}
           .fi-right{animation-duration:0.001ms}
@@ -4305,18 +4323,20 @@ export default function App() {
            at the start, a full 180° right at the trigger) instead of
            snapping between two fixed angles — it should turn with your
            finger, the same way a real UIRefreshControl's spinner tracks
-           the drag, not flip once you cross an invisible line. Only the
-           settle-shut moment on release actually transitions — see
-           pullSettling above, 'none' for every frame of a live drag, so
-           nothing here ever fights or lags behind the finger while it's
-           actually moving. */}
+           the drag, not flip once you cross an invisible line. pullY
+           itself is spring-animated (real mass/stiffness/damping, not a
+           canned curve) both while dragging — 1:1 with the finger — and
+           while settling shut on release, so height/opacity/rotation
+           below just bind straight to it every frame with no CSS
+           transition of their own; only the armed/unarmed label color is
+           a discrete flip that still gets a short CSS fade. */}
       {pullY>0&&(
-        <div className="no-print" style={{position:'absolute',top:0,left:0,right:0,height:pullY+'px',display:'flex',alignItems:'flex-end',justifyContent:'center',gap:'7px',paddingBottom:'12px',pointerEvents:'none',zIndex:5,opacity:Math.min(1,pullY/24),transition:pullIndicatorTransition}}>
-          <span style={{display:'flex',transition:pullIndicatorTransition,transform:`rotate(${Math.min(180,(pullY/PULL_TRIGGER)*180)}deg) scale(${pullArmed?1.1:1})`}}><Ico n="cD" s={16} c={pullArmed?BRASS:'var(--quiet)'} w={2.5}/></span>
-          <span style={{fontSize:'11px',fontWeight:800,color:pullArmed?BRASS:'var(--muted)',transition:pullIndicatorTransition}}>{pullArmed?'Release to sync':'Pull to sync'}</span>
+        <div className="no-print" style={{position:'absolute',top:0,left:0,right:0,height:pullY+'px',display:'flex',alignItems:'flex-end',justifyContent:'center',gap:'7px',paddingBottom:'12px',pointerEvents:'none',zIndex:5,opacity:Math.min(1,pullY/24)}}>
+          <span style={{display:'flex',transform:`rotate(${Math.min(180,(pullY/PULL_TRIGGER)*180)}deg) scale(${pullArmed?1.1:1})`}}><Ico n="cD" s={16} c={pullArmed?BRASS:'var(--quiet)'} w={2.5}/></span>
+          <span style={{fontSize:'11px',fontWeight:800,color:pullArmed?BRASS:'var(--muted)',transition:pullColorTransition}}>{pullArmed?'Release to sync':'Pull to sync'}</span>
         </div>
       )}
-      <main ref={mainRef} className="no-print" style={{...S.main, paddingTop:pullY||undefined, transition:pullPaddingTransition}}>
+      <main ref={mainRef} className="no-print" style={{...S.main, paddingTop:pullY||undefined}}>
       <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'50vh'}}><div className="tab-spinner"/></div>}>
 
         {/* ══════════════════════════════════════════ DASHBOARD */}
