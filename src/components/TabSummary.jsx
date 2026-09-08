@@ -6,6 +6,7 @@ import { isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate, periodI
 import { RATE_TIER_MULT } from '../lib/payRates.js';
 import { Ico } from './Icons.jsx';
 import { SegSlider } from './SegSlider.jsx';
+import { Tooltip } from './Tooltip.jsx';
 
 // ─── Summary tab (List View + Calendar View) ────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='months' block — no behaviour
@@ -397,8 +398,8 @@ export function TabSummary({
                             ); })()}
                           </div>
                           <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
-                            <button onClick={()=>{setConfirmDel(null);startEdit(e);}} aria-label="Edit this record" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button>
-                            <button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this record" style={{background:confirmDel===e.id?'var(--tint-red)':'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={14} c="#ef4444"/></button>
+                            <Tooltip label="Edit entry"><button onClick={()=>{setConfirmDel(null);startEdit(e);}} aria-label="Edit this record" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button></Tooltip>
+                            <Tooltip label="Delete entry"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this record" style={{background:confirmDel===e.id?'var(--tint-red)':'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={14} c="#ef4444"/></button></Tooltip>
                           </div>
                         </div>
 
