@@ -29,7 +29,7 @@ import {
   calcAutoOTHours, syncShiftTimesIntoForm,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged } from './lib/sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -987,9 +987,17 @@ export default function App() {
   const lastSyncedEntriesRef = useRef(new Map(Object.entries(dualRead(KEYS.lastSyncedEntries,{}))));
   const lastSyncedToilRef = useRef(new Map(Object.entries(dualRead(KEYS.lastSyncedToilTaken,{}))));
   const lastSyncedSettingsRef = useRef(dualRead(KEYS.lastSyncedSettings,null));
+  // Newest settings-row updated_at this device has actually established —
+  // either by pushing it, or by accepting an incoming pull/realtime update.
+  // hasNoPendingLocalEdit alone answers "does this match what I think is
+  // synced", which a stale, late-arriving echo can satisfy purely by
+  // coincidence once a newer push has already landed; comparing timestamps
+  // catches that regardless. See isStaleSettingsUpdate in sync.js.
+  const lastSettingsUpdatedAtRef = useRef(dualRead(KEYS.lastSettingsUpdatedAt,null));
   const persistLastSyncedEntries = () => dualWrite(KEYS.lastSyncedEntries, Object.fromEntries(lastSyncedEntriesRef.current));
   const persistLastSyncedToil = () => dualWrite(KEYS.lastSyncedToilTaken, Object.fromEntries(lastSyncedToilRef.current));
   const persistLastSyncedSettings = () => dualWrite(KEYS.lastSyncedSettings, lastSyncedSettingsRef.current);
+  const persistLastSettingsUpdatedAt = () => dualWrite(KEYS.lastSettingsUpdatedAt, lastSettingsUpdatedAtRef.current);
   // Always-current mirrors of local state, for the async pull/realtime code
   // below — a value captured at the top of a useEffect can be stale by the
   // time an awaited call or an event callback actually runs.
@@ -1112,8 +1120,13 @@ export default function App() {
       if (lastSyncedSettingsRef.current === json) return;
       try {
         const ciphertext = await encryptWithDataKey(dataKey, settingsObj);
-        const { error } = await supabase.from('settings').upsert({ user_id: session.user.id, ciphertext, updated_at: new Date().toISOString() });
-        if (!error) { lastSyncedSettingsRef.current = json; persistLastSyncedSettings(); markSynced(); console.log('[sync] pushed settings'); }
+        const now = new Date().toISOString();
+        const { error } = await supabase.from('settings').upsert({ user_id: session.user.id, ciphertext, updated_at: now });
+        if (!error) {
+          lastSyncedSettingsRef.current = json; persistLastSyncedSettings();
+          lastSettingsUpdatedAtRef.current = now; persistLastSettingsUpdatedAt();
+          markSynced(); console.log('[sync] pushed settings');
+        }
         else console.error('[sync] push failed for settings:', error.message || error);
       } catch (e) { console.error('[sync] push threw for settings:', e.message || e); }
     };
@@ -1169,7 +1182,7 @@ export default function App() {
 
   async function pullAndMergeSettings() {
     if (!supabase || !session || !dataKey) return;
-    const { data: row, error } = await supabase.from('settings').select('ciphertext').eq('user_id', session.user.id).maybeSingle();
+    const { data: row, error } = await supabase.from('settings').select('ciphertext, updated_at').eq('user_id', session.user.id).maybeSingle();
     if (error || !row) return;
     try {
       const remoteSettings = await decryptWithDataKey(dataKey, row.ciphertext);
@@ -1180,7 +1193,13 @@ export default function App() {
       // hasNoPendingLocalEdit expects undefined for "never synced" rather
       // than this ref's own null default, hence the ?? below.
       const noPendingLocalEdit = hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined);
-      if (noPendingLocalEdit) {
+      // See isStaleSettingsUpdate in sync.js — a pulled row can satisfy
+      // hasNoPendingLocalEdit purely by coincidence if it's actually an
+      // older snapshot than what this device has already established
+      // (most concretely: right after Wipe All Data, whose own delayed
+      // blank write can otherwise land after a person's very next edit).
+      const stale = isStaleSettingsUpdate(row.updated_at, lastSettingsUpdatedAtRef.current);
+      if (noPendingLocalEdit && !stale) {
         // migrateSettings used to only ever run against this device's own
         // localStorage on boot — a settings row pulled from the server
         // (or restored from an old backup, or synced down from a device
@@ -1211,6 +1230,8 @@ export default function App() {
         if (remoteSettingsChanged(migrated, settingsRef.current)) saveSett(migrated);
         lastSyncedSettingsRef.current = JSON.stringify(remoteSettings);
         persistLastSyncedSettings();
+        lastSettingsUpdatedAtRef.current = row.updated_at;
+        persistLastSettingsUpdatedAt();
       }
       markSynced();
     } catch (e) { /* undecryptable — skip */ }
@@ -1299,6 +1320,16 @@ export default function App() {
           // Same noPendingLocalEdit protection as handleRowChange above —
           // settings had the identical unconditional-overwrite gap.
           if (!hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined)) return;
+          // See isStaleSettingsUpdate in sync.js — the realtime channel
+          // delivers events in the order Postgres committed them, but
+          // delivery/decryption timing to THIS client isn't guaranteed to
+          // preserve that order relative to this device's own later
+          // pushes. A delayed echo of an older write (concretely: Wipe All
+          // Data's own blank push, echoing back after a person's very next
+          // edit already landed) can satisfy hasNoPendingLocalEdit purely
+          // because a newer push happened to match first — this closes
+          // that gap regardless of what the content check above allowed.
+          if (isStaleSettingsUpdate(row.updated_at, lastSettingsUpdatedAtRef.current)) return;
           // Same migrateSettings gap as pullAndMergeSettings above — a live
           // update can carry an invalid rank/pay-point just as easily as a
           // pulled one. lastSyncedSettingsRef tracks the raw value for the
@@ -1306,6 +1337,8 @@ export default function App() {
           // than silently re-discovered on every device forever.
           lastSyncedSettingsRef.current = JSON.stringify(decrypted);
           persistLastSyncedSettings();
+          lastSettingsUpdatedAtRef.current = row.updated_at;
+          persistLastSettingsUpdatedAt();
           // Same "safe to apply" vs. "actually changed" gap as
           // pullAndMergeSettings above, and the one that actually matters
           // here: every settings push this device makes echoes straight
@@ -2997,6 +3030,7 @@ export default function App() {
     lastSyncedEntriesRef.current.clear(); persistLastSyncedEntries();
     lastSyncedToilRef.current.clear(); persistLastSyncedToil();
     lastSyncedSettingsRef.current = null; persistLastSyncedSettings();
+    lastSettingsUpdatedAtRef.current = null; persistLastSettingsUpdatedAt();
     setWipingData(false);
     setWipeConf(false);
     setTab('dashboard');
@@ -3029,9 +3063,11 @@ export default function App() {
     lastSyncedEntriesRef.current = new Map();
     lastSyncedToilRef.current = new Map();
     lastSyncedSettingsRef.current = null;
+    lastSettingsUpdatedAtRef.current = null;
     persistLastSyncedEntries();
     persistLastSyncedToil();
     persistLastSyncedSettings();
+    persistLastSettingsUpdatedAt();
     dualWrite(KEYS.entries, []);
     dualWrite(KEYS.toilTaken, []);
     dualWrite(KEYS.settings, null);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged } from './sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate } from './sync.js';
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -296,5 +296,33 @@ describe('remoteSettingsChanged — the guard behind not re-applying a settings 
     const a = { rank: 'Constable', service: 'PC 3' };
     const b = { service: 'PC 3', rank: 'Constable' };
     expect(remoteSettingsChanged(a, b)).toBe(true);
+  });
+});
+
+describe('isStaleSettingsUpdate — catching a delayed echo that arrives after a newer write already landed', () => {
+  it('is never stale when nothing has been established yet', () => {
+    expect(isStaleSettingsUpdate('2026-01-01T00:00:00.000Z', null)).toBe(false);
+    expect(isStaleSettingsUpdate('2026-01-01T00:00:00.000Z', undefined)).toBe(false);
+  });
+
+  it('is stale when the incoming update is older than what is already known', () => {
+    expect(isStaleSettingsUpdate('2026-01-01T00:00:00.000Z', '2026-01-01T00:00:05.000Z')).toBe(true);
+  });
+
+  it('is stale when the incoming update has the exact same timestamp — not newer, so not worth reapplying', () => {
+    expect(isStaleSettingsUpdate('2026-01-01T00:00:05.000Z', '2026-01-01T00:00:05.000Z')).toBe(true);
+  });
+
+  it('is not stale when the incoming update is genuinely newer — the real Wipe-then-edit scenario this exists for', () => {
+    // Wipe's own blank push landed at :00; the person's very next edit
+    // (Rank + Pay Point) pushed successfully afterward at :02. Even if
+    // Wipe's blank write's realtime echo is still in flight and arrives
+    // after both, its own updated_at (:00) is what gets compared — not
+    // when the echo happens to arrive — so it correctly reads as stale
+    // against the :02 the real edit already established.
+    const wipeWriteTime = '2026-01-01T00:00:00.000Z';
+    const realEditTime = '2026-01-01T00:00:02.000Z';
+    expect(isStaleSettingsUpdate(wipeWriteTime, realEditTime)).toBe(true);
+    expect(isStaleSettingsUpdate(realEditTime, wipeWriteTime)).toBe(false);
   });
 });

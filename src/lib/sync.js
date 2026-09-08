@@ -16,6 +16,28 @@ export function hasNoPendingLocalEdit(currentItem, priorSyncedJson) {
   return priorSyncedJson === JSON.stringify(currentItem);
 }
 
+// "Safe to take the remote copy" isn't the same question as "is this
+// remote copy actually the newest one" — a real, live bug this app shipped
+// for a while: Wipe All Data deletes the settings row, then pushes a fresh
+// blank one; if that blank write's own realtime echo is delayed (a slow or
+// inconsistent connection, or simply arriving after a person's very next
+// edit already pushed something newer), hasNoPendingLocalEdit alone can't
+// tell the two apart — the moment a newer push lands and updates what this
+// device believes is "synced," an older, still-in-flight echo of the
+// wipe's blank write suddenly looks "safe" too, since it now matches
+// nothing to protect against, and gets applied — silently reverting a
+// person's just-saved Rank/Pay Point back to blank right after they set
+// it. Comparing each settings row's own updated_at against the newest one
+// this device has actually seen (from either a push it made or an update
+// it already accepted) closes that gap: an update whose timestamp isn't
+// strictly newer than what's already been established is stale, full
+// stop, regardless of what the content-equality check above would have
+// allowed through.
+export function isStaleSettingsUpdate(incomingUpdatedAt, lastKnownUpdatedAt) {
+  if (!lastKnownUpdatedAt) return false;
+  return new Date(incomingUpdatedAt).getTime() <= new Date(lastKnownUpdatedAt).getTime();
+}
+
 // "Safe to apply" (hasNoPendingLocalEdit) answers a different question than
 // "does this actually change anything" — every settings push a device makes
 // echoes straight back to that same device (pull-on-reconnect and realtime

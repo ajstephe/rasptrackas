@@ -10,6 +10,7 @@ export const KEYS = {
   lastSyncedEntries:'ajs_ot_lastSyncedEntries',
   lastSyncedToilTaken:'ajs_ot_lastSyncedToilTaken',
   lastSyncedSettings:'ajs_ot_lastSyncedSettings',
+  lastSettingsUpdatedAt:'ajs_ot_lastSettingsUpdatedAt',
   lastCloudPruneCheck:'ajs_ot_lastCloudPruneCheck',
   // Distinct from the three lastSynced* keys above, which store per-row
   // sync bookkeeping (snapshots used to detect pending local edits) — this
