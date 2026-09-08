@@ -4323,7 +4323,7 @@ export default function App() {
         {tab==='dashboard'&&(
           <TabDashboard
             animClass={tabAnimClass}
-            isWide={isWide} settings={settings} setTab={setTab} totals={totals} taxForecast={taxForecast}
+            isWide={isWide} settings={settings} setTab={setTab} totals={totals}
             currPeriodIdx={currPeriodIdx} toilLedger={toilLedger} carmsOutstanding={carmsOutstanding}
             salaryBreakdownExpanded={salaryBreakdownExpanded} setSalaryBreakdownExpanded={setSalaryBreakdownExpanded}
             scrollToTaxImpact={scrollToTaxImpact} setTaxImpactExpanded={setTaxImpactExpanded}
