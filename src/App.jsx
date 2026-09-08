@@ -831,13 +831,25 @@ export default function App() {
   // actually completes, it's left open rather than snapping shut, since
   // the person was just looking at it.
   const configSetupIncomplete = !settings.rank || !settings.service;
-  const prevConfigSetupIncompleteRef = useRef(configSetupIncomplete);
-  useEffect(()=>{
-    if (prevConfigSetupIncompleteRef.current && !configSetupIncomplete) {
-      setConfigExpanded(true);
-    }
-    prevConfigSetupIncompleteRef.current = configSetupIncomplete;
-  },[configSetupIncomplete]);
+  // Adjusted during render, not in a useEffect — an effect-based version
+  // of this ran one full commit behind: the very render where
+  // configSetupIncomplete first flips to false (the instant Pay Point
+  // gets a value) already computes configShown from the OLD configExpanded
+  // (still false, since the effect that would flip it hasn't run yet), so
+  // THAT render genuinely paints the section closed — tearing down and
+  // recreating every DOM node inside it, including whichever <select> the
+  // person had just used to finish setup, mid-interaction. This is the
+  // "adjust state while rendering" pattern React itself documents for
+  // exactly this shape of problem: comparing against state from the
+  // previous render, and correcting before anything commits, rather than
+  // after. React re-runs the render synchronously when a setState call
+  // during render actually changes a value, so the corrected result is
+  // what reaches the DOM — never the momentarily-wrong one.
+  const [prevConfigSetupIncomplete, setPrevConfigSetupIncomplete] = useState(configSetupIncomplete);
+  if (configSetupIncomplete !== prevConfigSetupIncomplete) {
+    setPrevConfigSetupIncomplete(configSetupIncomplete);
+    if (prevConfigSetupIncomplete && !configSetupIncomplete) setConfigExpanded(true);
+  }
   const configShown = configExpanded || configSetupIncomplete;
   const [financialYearsExpanded, setFinancialYearsExpanded] = useState(false);
   const [pulseBackupBtn, setPulseBackupBtn] = useState(false);
