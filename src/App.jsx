@@ -563,7 +563,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
           copy here, any toast fired while on this screen (e.g. the "a new
           version is ready" PWA-update prompt) would silently queue into
           state with nothing rendering it, and never be seen. */}
-      <ToastStack toasts={toasts} onDismiss={dismissToast}/>
+      <ToastStack toasts={toasts} onDismiss={dismissToast} isWide={isWide}/>
       {showPrivacyNotice && <PrivacyNotice onClose={()=>setShowPrivacyNotice(false)}/>}
     </div>
   );
@@ -3974,6 +3974,7 @@ export default function App() {
              is the same press feedback for those. ── */
         .tap-row{transition:transform 0.12s ease, opacity 0.12s ease, filter 0.15s ease}
         .tap-row:active{transform:scale(0.975);opacity:0.7}
+        .glance-claim-row{transition:background 0.14s ease, transform 0.14s ease}
         /* ── hover feedback, desktop only ─────────────────────────────────
              Every clickable surface got tap feedback for touch a while
              back; this is the mouse equivalent, which the app never had
@@ -3987,7 +3988,27 @@ export default function App() {
              value for every different context. ── */
         @media (hover:hover){
           .tap-row:hover{filter:brightness(0.96)}
+          /* :not(:active) so a click-and-hold doesn't fight tap-row:active's
+             own press-down scale above — that one should always win. */
+          .tap-row:hover:not(:active){transform:translateY(-1px)}
           button:not(:disabled):hover{filter:brightness(0.94)}
+          /* Sidebar nav items sit on the translucent vibrancy material
+             below rather than a plain surface, where the generic
+             brightness-filter hover (above) reads muddy against something
+             already semi-transparent — a soft highlight wash matches how
+             the active state already works here (a tinted background, not
+             a brightness shift) instead of fighting it. :not(:disabled)'s
+             filter is overridden back to none for the same reason. Setting
+             a custom property rather than the background property directly
+             — same reason as .toast-bar's --toast-dur above: the button's
+             own inline style always wins a direct fight over background, so
+             it reads through this var() instead of setting the property
+             itself, leaving the var free for this rule to set. */
+          button.sidebar-nav-btn:hover{filter:none;--sidebar-hover-bg:rgba(255,255,255,0.06)}
+          /* The "At a Glance" claim rows (desktop sidebar aside) had no
+             hover feedback of any kind before this despite being real
+             onClick targets — not a re-skin of an existing treatment. */
+          .glance-claim-row:hover{background:var(--surface-2);transform:translateY(-1px)}
         }
         /* ── toast enter/exit — ToastStack mirrors the toasts array into
              local state so a dismissed toast plays this leave transition
@@ -4017,20 +4038,32 @@ export default function App() {
         /* ── confirmation modals pop in, they don't just appear ──────────
              .alert-pop: centred dialogs (desktop sign-out/restore/export,
              and Settings' inline wipe/delete-account warnings) scale up
-             with a touch of overshoot, like an iOS alert.
+             with a touch of overshoot, like an iOS alert. The keyframe
+             stops below aren't hand-picked — they're src/lib/spring.js's
+             own mass-spring-damper integrator (stiffness 360, damping 22,
+             scale 0.9→1) sampled at 21 even steps, baked into a real
+             @keyframes rule so the entrance is genuine spring physics
+             rather than a cubic-bezier approximation of one, while still
+             playing as an ordinary CSS animation — untouched by
+             useMountTransition (see useMountTransition.js), which only
+             times the *exit* (unchanged below).
              .sheet-pop: mobile bottom sheets slide up instead — a sheet
              anchored to the screen edge scaling from its centre would
              look broken.
-             .modal-pop: Settings' desktop popover cards — same overshoot
-             as alert-pop, but keyframed around the translate(-50%,-50%)
-             centering modalBoxStyle already sets inline, so the pop
-             doesn't fight that positioning. ── */
-        @keyframes alertPop{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
-        .alert-pop{animation:alertPop 0.32s cubic-bezier(.34,1.42,.64,1)}
+             .modal-pop: Settings' desktop popover cards — same spring as
+             alert-pop (scale 0.92→1, same 360/22), keyframed around the
+             translate(-50%,-50%) centering modalBoxStyle already sets
+             inline, so the pop doesn't fight that positioning. ── */
+        @keyframes alertPop{
+          0%{opacity:0;transform:scale(0.9)}5%{opacity:0.33;transform:scale(0.9062)}10%{opacity:0.578;transform:scale(0.92)}15%{opacity:0.756;transform:scale(0.9375)}20%{opacity:0.875;transform:scale(0.9554)}25%{opacity:0.947;transform:scale(0.9719)}30%{opacity:0.984;transform:scale(0.9856)}35%{opacity:0.998;transform:scale(0.9961)}40%{opacity:1;transform:scale(1.0034)}45%{opacity:1;transform:scale(1.0078)}50%{opacity:1;transform:scale(1.0099)}55%{opacity:1;transform:scale(1.0102)}60%{opacity:1;transform:scale(1.0092)}65%{opacity:1;transform:scale(1.0076)}70%{opacity:1;transform:scale(1.0058)}75%{opacity:1;transform:scale(1.004)}80%{opacity:1;transform:scale(1.0024)}85%{opacity:1;transform:scale(1.0011)}90%{opacity:1;transform:scale(1.0001)}95%{opacity:1;transform:scale(0.9995)}100%{opacity:1;transform:scale(1)}
+        }
+        .alert-pop{animation:alertPop 0.377s linear}
         @keyframes sheetPop{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
         .sheet-pop{animation:sheetPop 0.32s cubic-bezier(.32,.72,0,1)}
-        @keyframes modalPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-        .modal-pop{animation:modalPop 0.28s cubic-bezier(.34,1.42,.64,1)}
+        @keyframes modalPop{
+          0%{opacity:0;transform:translate(-50%,-50%) scale(0.92)}5%{opacity:0.33;transform:translate(-50%,-50%) scale(0.9249)}10%{opacity:0.578;transform:translate(-50%,-50%) scale(0.936)}15%{opacity:0.756;transform:translate(-50%,-50%) scale(0.95)}20%{opacity:0.875;transform:translate(-50%,-50%) scale(0.9644)}25%{opacity:0.947;transform:translate(-50%,-50%) scale(0.9761)}30%{opacity:0.984;transform:translate(-50%,-50%) scale(0.9874)}35%{opacity:0.998;transform:translate(-50%,-50%) scale(0.9961)}40%{opacity:1;transform:translate(-50%,-50%) scale(1.0022)}45%{opacity:1;transform:translate(-50%,-50%) scale(1.006)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.0078)}55%{opacity:1;transform:translate(-50%,-50%) scale(1.0082)}60%{opacity:1;transform:translate(-50%,-50%) scale(1.0076)}65%{opacity:1;transform:translate(-50%,-50%) scale(1.0064)}70%{opacity:1;transform:translate(-50%,-50%) scale(1.005)}75%{opacity:1;transform:translate(-50%,-50%) scale(1.0037)}80%{opacity:1;transform:translate(-50%,-50%) scale(1.0023)}85%{opacity:1;transform:translate(-50%,-50%) scale(1.0012)}90%{opacity:1;transform:translate(-50%,-50%) scale(1.0003)}95%{opacity:1;transform:translate(-50%,-50%) scale(0.9997)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+        }
+        .modal-pop{animation:modalPop 0.371s linear}
         /* ── …and mirror it on the way out ────────────────────────────────
              Paired with useMountTransition (see useMountTransition.js):
              every alert-pop/sheet-pop overlay above (Sign Out, Restore,
@@ -4094,6 +4127,7 @@ export default function App() {
           .save-pulse{animation-duration:0.001ms}
           .badge-pop{animation-duration:0.001ms}
           .tap-row{transition-duration:0.001ms}
+          .glance-claim-row{transition-duration:0.001ms}
           .toast-enter{animation-duration:0.001ms}
           .toast-leave{animation-duration:0.001ms}
           .toast-bar{animation-duration:0.001ms}
@@ -4182,7 +4216,7 @@ export default function App() {
         }
       `}</style>
 
-      <div className="no-print"><ToastStack toasts={toasts} onDismiss={dismissToast}/></div>
+      <div className="no-print"><ToastStack toasts={toasts} onDismiss={dismissToast} isWide={isWide}/></div>
 
       {/* ── header ── */}
       <header className="no-print" style={S.hdr}>
@@ -4483,7 +4517,7 @@ export default function App() {
                   return (
                     <>
                       {shown.map((cl,i)=>(
-                        <div key={cl.key} onClick={()=>setTab('carms')} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',padding:'9px 0',borderTop:i===0?'none':'1px solid var(--border-2)',cursor:'pointer'}}>
+                        <div key={cl.key} onClick={()=>setTab('carms')} className="glance-claim-row" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',padding:'9px 8px',margin:'0 -8px',borderRadius:'9px',borderTop:i===0?'none':'1px solid var(--border-2)',cursor:'pointer'}}>
                           <div style={{minWidth:0}}>
                             <div style={{fontSize:'11.5px',fontWeight:700,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cl.entry.reason||'Shift'}</div>
                             <div style={{fontSize:'9.5px',color:'var(--quiet)'}}>{cl.kind} · {new Date(cl.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
@@ -5066,7 +5100,18 @@ export default function App() {
            position, since S.wrap keeps its own scroll/height behavior
            unchanged rather than being restructured into a row layout. ── */}
       {isWide&&(
-        <div className="no-print" style={{position:'fixed',top:0,left:0,bottom:0,width:'230px',background:'var(--navy)',padding:'22px 16px',display:'flex',flexDirection:'column',zIndex:30,boxSizing:'border-box'}}>
+        <div className="no-print" style={{position:'fixed',top:0,left:0,bottom:0,width:'230px',zIndex:30,overflow:'hidden'}}>
+          {/* Vibrancy material — a translucent, blurred navy over a soft
+              glow tinted to whichever tab is active, rather than a flat
+              fill. Nothing else sits behind this fixed column to blur (it's
+              a permanent column, not an overlay over scrolling content), so
+              the glow is what gives the blur something to actually work
+              with — tying its colour to the active tab (the same brass/
+              green wash the nav pill below already uses) is what keeps this
+              from being pure decoration. */}
+          <div style={{position:'absolute',inset:0,background:tab==='add'?'radial-gradient(circle at 28% 15%,rgba(16,185,129,0.55),transparent 65%)':'radial-gradient(circle at 28% 15%,rgba(184,130,63,0.5),transparent 65%)',transition:'background 0.4s ease',pointerEvents:'none'}}/>
+          <div style={{position:'absolute',inset:0,background:'rgba(var(--navy-rgb),0.86)',backdropFilter:'blur(22px) saturate(1.5)',WebkitBackdropFilter:'blur(22px) saturate(1.5)',pointerEvents:'none'}}/>
+          <div style={{position:'relative',zIndex:1,height:'100%',padding:'22px 16px',display:'flex',flexDirection:'column',boxSizing:'border-box'}}>
           {/* Today's date, in place of the logo — two compact lines so the
               header stays the same height as the icon it replaced and fits
               the fixed 230px column without wrapping awkwardly. */}
@@ -5095,7 +5140,7 @@ export default function App() {
             const isAdd = t.id==='add';
             const isActive = tab===t.id;
             return (
-              <button key={t.id} data-seg-key={t.id} onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'transparent',color:isAdd?'#10b981':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
+              <button key={t.id} data-seg-key={t.id} className="sidebar-nav-btn" onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'var(--sidebar-hover-bg, transparent)',color:isAdd?'#10b981':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
                 {isAdd ? (
                   <span className={(entries.length===0&&!isActive)?'nav-add-pulse':''} style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
                 ) : (
@@ -5135,6 +5180,7 @@ export default function App() {
               <FireExitIcon size={14} color="#e3bd85"/> Sign Out
             </button>
           )}
+          </div>
         </div>
       )}
     </div>

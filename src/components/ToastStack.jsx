@@ -28,10 +28,19 @@ function useAnimatedToasts(toasts) {
   return items;
 }
 
-export function ToastStack({ toasts, onDismiss }) {
+export function ToastStack({ toasts, onDismiss, isWide }) {
   const items = useAnimatedToasts(toasts);
+  // Desktop escapes the width-constrained content column via `fixed`
+  // (relative to the real viewport, not whatever positioned ancestor
+  // happens to be nearest) and anchors to the actual window's top-right
+  // corner — the mobile-width column this used to center within isn't the
+  // true page on a wide monitor, so toasts landed visibly left-of-centre.
+  // Mobile keeps its original top-centre placement untouched.
+  const posStyle = isWide
+    ? {position:'fixed',top:'20px',right:'20px',left:'auto',transform:'none'}
+    : {position:'absolute',top:'calc(72px + env(safe-area-inset-top))',left:'50%',transform:'translateX(-50%)'};
   return (
-    <div style={{position:'absolute',top:'calc(72px + env(safe-area-inset-top))',left:'50%',transform:'translateX(-50%)',zIndex:999,display:'flex',flexDirection:'column',gap:'7px',width:'calc(100% - 24px)',maxWidth:'390px',pointerEvents:'none'}}>
+    <div style={{...posStyle,zIndex:999,display:'flex',flexDirection:'column',gap:'7px',width:'calc(100% - 24px)',maxWidth:'390px',pointerEvents:'none'}}>
       {items.map(t=>{
         // 'alert' gets an enlarged layout — charcoal with a red accent bar, a
         // bold title, an explanatory line and a full-width action button.
