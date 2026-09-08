@@ -200,15 +200,22 @@ export function TabSettings({
             <label style={{...S.lbl,marginBottom:0}}>Rank</label>
             {!settings.rank&&<span style={{fontSize:'10px',fontWeight:900,color:'#dc2626',background:'var(--tint-red)',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Start here</span>}
           </div>
-          {/* No setup-pulse-urgent here (there used to be one) — this
-              wraps a native <select>, and ANY continuously-running CSS
-              animation on a select's ancestor risks the browser
-              force-closing its own open popup mid-interaction, not just
-              the transform half already removed once before. The static
-              red border + bold text + "Start here" badge already make
-              this unmissable without animating anything underneath the
-              control itself. */}
-          <div style={{borderRadius:'13px',position:'relative'}}>
+          {/* setup-pulse-urgent is back on this wrapper — pulled off it
+              entirely during the "why does picking Rank jump back and
+              close Pay Point" investigation, on suspicion the animation
+              itself was force-closing the native <select> popup. It
+              wasn't: the real causes turned out to be a render-timing
+              remount, an involuntary desktop modal pop-out, an
+              unconditional push on mount, and a stale out-of-order
+              realtime echo — all in App.jsx's sync/render logic, nothing
+              here. Safe to restore. Still deliberately using the
+              transform-free urgentPulse (opacity + box-shadow only, see
+              its keyframes) rather than the original scale() version —
+              animating transform on a native <select>'s ancestor is a
+              real, separate risk on some browsers regardless of whether
+              it was ever the actual cause here, so no reason to bring
+              that part back too. */}
+          <div className={!settings.rank?'setup-pulse-urgent':''} style={{borderRadius:'13px',position:'relative'}}>
             <select style={{...S.sel,paddingRight:'36px',border: !settings.rank ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.rank ? 900 : 700}} value={settings.rank} onChange={e=>{
               const r=e.target.value;
               if(!r) return saveSett({...settings,rank:'',service:''});
@@ -238,9 +245,8 @@ export function TabSettings({
               <label style={{...S.lbl,marginBottom:0}}>Pay Point</label>
               {!settings.service&&<span style={{fontSize:'10px',fontWeight:900,color:'#dc2626',background:'var(--tint-red)',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Now this</span>}
             </div>
-            {/* Same reasoning as Rank's wrapper above — no setup-pulse-urgent
-                on the ancestor of a native <select>. */}
-            <div style={{borderRadius:'13px',position:'relative'}}>
+            {/* Same restoration, same reasoning, as Rank's wrapper above. */}
+            <div className={!settings.service?'setup-pulse-urgent':''} style={{borderRadius:'13px',position:'relative'}}>
               <select style={{...S.sel,paddingRight:'36px',border: !settings.service ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.service ? 900 : 700}} value={settings.service} onChange={e=>saveSett({...settings,service:e.target.value})}>
                 <option value="">Select pay point...</option>
                 {Object.keys(PAY_RATES[settings.rank]).map(p=><option key={p} value={p}>{p}</option>)}
