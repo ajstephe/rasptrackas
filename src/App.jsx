@@ -3759,7 +3759,18 @@ export default function App() {
         .fi-left{animation:fiLeft 0.24s ease}
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         @keyframes su{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes urgentPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0);transform:scale(1)}25%{opacity:0.78;box-shadow:0 0 0 9px rgba(220,38,38,0.38);transform:scale(1.012)}50%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0);transform:scale(1)}75%{opacity:0.78;box-shadow:0 0 0 9px rgba(220,38,38,0.38);transform:scale(1.012)}}
+        /* No transform here (there used to be a scale(1.012) pulse) — this
+           class wraps the Rank and Pay Point <select> elements directly in
+           TabSettings, and a continuously-animating transform on a native
+           <select>'s ancestor makes the browser force-close its open native
+           dropdown mid-interaction, since it can't keep the OS popup
+           anchored to a moving/rescaling target. That read as "picking a
+           rank kicks you back out and closes Pay Point" — the box wasn't
+           actually closing anything, the browser was defensively dismissing
+           its own popup every ~0.4s while the animation ran. Opacity and
+           box-shadow don't reposition anything, so the pulse still reads as
+           urgent without fighting the native control it's wrapped around. */
+        @keyframes urgentPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0)}25%,75%{opacity:0.78;box-shadow:0 0 0 9px rgba(220,38,38,0.38)}50%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0)}}
         @keyframes backupPulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}30%{box-shadow:0 0 0 8px rgba(37,99,235,0.35)}50%{box-shadow:0 0 0 0 rgba(37,99,235,0)}70%{box-shadow:0 0 0 8px rgba(37,99,235,0.35)}}
         @keyframes subtlePulse{0%{opacity:0.5}20%{opacity:1}40%{opacity:0.5}60%{opacity:1}80%,100%{opacity:0.5}}
         @keyframes entryFlash{0%{box-shadow:0 0 0 0 rgba(37,99,235,0.45)}60%{box-shadow:0 0 0 10px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
