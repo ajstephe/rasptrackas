@@ -21,13 +21,6 @@ export function TabDashboard({
   const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
   const animatedNet = useCountUp(pb ? pb.combinedNet : 0);
   const animatedGrossYTD = useCountUp(settings.rank&&settings.service ? totals.combinedGrossYTD : 0);
-  // Raw projected-annual figure, same as the Tax & 100K+ Calculator's own
-  // Forecast column (totals.projectedAnnualGross there too) — deliberately
-  // NOT taxForecast.taxableGrossF, which is pension-adjusted for the
-  // £100k/PA taper assessment further down this same screen. This pairing
-  // is the true, nothing-taken-off-yet gross a person actually earned/will
-  // earn, same intent as combinedGrossYTD alongside it.
-  const animatedGrossForecast = useCountUp(settings.rank&&settings.service ? totals.projectedAnnualGross : 0);
 
   // ── Net-pay hero row ──────────────────────────────────────────────
   // Replaces the old cramped "Gross & Net" mini-columns with the one
@@ -309,28 +302,9 @@ export function TabDashboard({
           <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
           {totals.curr&&<div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month} · {fmtD(totals.curr.start)}–{fmtD(totals.curr.end)}</div>}
         </div>
-        {/* Actual + Forecast, both the true gross — nothing taken off yet,
-             not even pension. The "Gross Salary (Actual/Forecast)" gauges
-             further down this same screen deliberately show the
-             pension-adjusted figure instead (that's what the £100k/PA
-             taper is actually assessed against) — this pair is the plain
-             number a person actually earned or will earn, before any of
-             that, same split as the Tax & 100K+ Calculator's own Gross
-             row. */}
-        <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Total Gross — Before Deductions</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'22px',marginBottom:'9px'}}>
-          <div>
-            <div style={{fontSize:'9.5px',fontWeight:700,color:'#7c93b3',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>Actual (YTD)</div>
-            <div style={{fontFamily:MONO,fontSize:'23px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15}}>
-              {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
-            </div>
-          </div>
-          <div>
-            <div style={{fontSize:'9.5px',fontWeight:700,color:'#7c93b3',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>Forecast</div>
-            <div style={{fontFamily:MONO,fontSize:'23px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15}}>
-              {settings.rank&&settings.service ? fmtGBP(animatedGrossForecast) : '—'}
-            </div>
-          </div>
+        <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Total Gross YTD</div>
+        <div style={{fontFamily:MONO,fontSize:'32px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'9px'}}>
+          {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
         </div>
         <div style={{width:'44px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'9px'}}/>
         <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#7c93b3',marginBottom:carmsOutstanding.totalAmount>0?'12px':0}}>
@@ -403,21 +377,9 @@ export function TabDashboard({
           <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
           {totals.curr&&<div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month}</div>}
         </div>
-        {/* Same Actual/Forecast true-gross pairing as desktop above. */}
-        <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'}}>Total Gross — Before Deductions</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px',marginBottom:'8px'}}>
-          <div>
-            <div style={{fontSize:'8.5px',fontWeight:700,color:'#7c93b3',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Actual (YTD)</div>
-            <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15}}>
-              {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
-            </div>
-          </div>
-          <div>
-            <div style={{fontSize:'8.5px',fontWeight:700,color:'#7c93b3',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Forecast</div>
-            <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15}}>
-              {settings.rank&&settings.service ? fmtGBP(animatedGrossForecast) : '—'}
-            </div>
-          </div>
+        <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'}}>Total Gross YTD</div>
+        <div style={{fontFamily:MONO,fontSize:'27px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'8px'}}>
+          {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
         </div>
         <div style={{width:'38px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'8px'}}/>
         <div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:600,color:'#7c93b3',marginBottom:carmsOutstanding.totalAmount>0?'10px':0}}>
