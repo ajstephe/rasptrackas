@@ -16,6 +16,22 @@ export function hasNoPendingLocalEdit(currentItem, priorSyncedJson) {
   return priorSyncedJson === JSON.stringify(currentItem);
 }
 
+// "Safe to apply" (hasNoPendingLocalEdit) answers a different question than
+// "does this actually change anything" — every settings push a device makes
+// echoes straight back to that same device (pull-on-reconnect and realtime
+// both have no way to exclude the client that made the write), so without
+// this check, an incoming remote value that's already identical to current
+// local settings still gets applied. For entries/toilTaken that's a harmless
+// no-op re-render; for settings it visibly re-fires the "Saved" badge (a
+// real UI change, not just a state update React can quietly bail out of,
+// since migrateSettings/spreading always returns a new object even when
+// every field is unchanged) — on literally every single edit, since the
+// self-echo isn't a race, it's guaranteed. Only skip when the two are
+// actually equivalent; a genuine change from elsewhere still applies.
+export function remoteSettingsChanged(migratedRemote, currentSettings) {
+  return JSON.stringify(migratedRemote) !== JSON.stringify(currentSettings);
+}
+
 // Runs fn after whatever's still pending in chainMap[key], and leaves the
 // new promise there for the next caller to chain after in turn — a tiny
 // per-key mutex built out of promises rather than a real lock. This is what

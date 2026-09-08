@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential } from './sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged } from './sync.js';
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -266,5 +266,35 @@ describe('mergeRemoteRows — mixed, multi-row scenarios', () => {
       { id: 'newFromOtherDevice', hours: 77 },
     ]));
     expect(merged).toHaveLength(4); // deletedElsewhere correctly dropped
+  });
+});
+
+describe('remoteSettingsChanged — the guard behind not re-applying a settings echo of this device\'s own edit', () => {
+  it('is false when the migrated remote value is identical to current settings, even as a different object', () => {
+    const current = { rank: 'Constable', service: 'PC 3' };
+    const migratedEcho = { rank: 'Constable', service: 'PC 3' }; // a new object, same content
+    expect(remoteSettingsChanged(migratedEcho, current)).toBe(false);
+  });
+
+  it('is true when the remote value genuinely differs — a real change from elsewhere still applies', () => {
+    const current = { rank: 'Constable', service: 'PC 3' };
+    const fromAnotherDevice = { rank: 'Sergeant', service: 'PS 1' };
+    expect(remoteSettingsChanged(fromAnotherDevice, current)).toBe(true);
+  });
+
+  it('is true the very first time, before any local settings exist', () => {
+    expect(remoteSettingsChanged({ rank: 'Constable', service: 'PC 3' }, { rank: '', service: '' })).toBe(true);
+  });
+
+  it('is order-sensitive to key order in practice, matching JSON.stringify — same fields, same order, is the only thing that reads as unchanged', () => {
+    // Documents the actual comparison this relies on: both call sites build
+    // `migrated` and read `settingsRef.current` through the same shape
+    // (migrateSettings' own output, or a plain settings object), so this
+    // never actually sees two objects with the same fields in a different
+    // order in practice — this test exists so a future refactor that did
+    // introduce that risk would fail loudly here instead of silently.
+    const a = { rank: 'Constable', service: 'PC 3' };
+    const b = { service: 'PC 3', rank: 'Constable' };
+    expect(remoteSettingsChanged(a, b)).toBe(true);
   });
 });

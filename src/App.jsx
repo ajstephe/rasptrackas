@@ -29,7 +29,7 @@ import {
   calcAutoOTHours, syncShiftTimesIntoForm,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential } from './lib/sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -1166,7 +1166,22 @@ export default function App() {
         // state no longer matches what's "synced" and correct the server
         // copy too, instead of every device independently and silently
         // re-discovering the same stale value forever.
-        saveSett(migrateSettings(remoteSettings));
+        //
+        // "Safe to apply" isn't the same question as "actually changed" —
+        // this device's own push of a moment ago pulls right back down
+        // here too (nothing excludes the device that made the edit from
+        // its own pull/realtime), and this used to call saveSett
+        // unconditionally regardless. migrateSettings/spreading always
+        // returns a new object even when every field is identical, so
+        // React can't bail the re-render out itself, and saveSett's own
+        // "Saved" badge would flash a second time for an edit that had
+        // already fully landed — a real, visible re-render that could
+        // close whatever native <select> the person had just opened next.
+        // Comparing the actual content first means a real remote change
+        // still applies exactly as before; only a pure echo of this
+        // device's own edit is skipped.
+        const migrated = migrateSettings(remoteSettings);
+        if (remoteSettingsChanged(migrated, settingsRef.current)) saveSett(migrated);
         lastSyncedSettingsRef.current = JSON.stringify(remoteSettings);
         persistLastSyncedSettings();
       }
@@ -1264,7 +1279,19 @@ export default function App() {
           // than silently re-discovered on every device forever.
           lastSyncedSettingsRef.current = JSON.stringify(decrypted);
           persistLastSyncedSettings();
-          saveSett(migrateSettings(decrypted));
+          // Same "safe to apply" vs. "actually changed" gap as
+          // pullAndMergeSettings above, and the one that actually matters
+          // here: every settings push this device makes echoes straight
+          // back over this exact channel (nothing excludes the client
+          // that made the write), so this fired on literally every single
+          // edit, not just races — a picked Rank landing, then its own
+          // echo re-applying an equivalent object a moment later, flashing
+          // "Saved" again and re-rendering right as Pay Point's dropdown
+          // was likely being opened. Comparing content first means a
+          // genuine change from elsewhere still applies; a pure self-echo
+          // no longer does.
+          const migrated = migrateSettings(decrypted);
+          if (remoteSettingsChanged(migrated, settingsRef.current)) saveSett(migrated);
           markSynced();
         } catch (e) { /* undecryptable — skip */ }
       })
