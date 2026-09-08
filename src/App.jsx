@@ -1342,7 +1342,28 @@ export default function App() {
     pushRowChanges('entries', entries, lastSyncedEntriesRef, persistLastSyncedEntries);
   },[entries]);
   useEffect(()=>{ dualWrite(KEYS.toilTaken,toilTaken); pushRowChanges('toil_taken', toilTaken, lastSyncedToilRef, persistLastSyncedToil); },[toilTaken]);
-  useEffect(()=>{ dualWrite(KEYS.settings,settings); pushSettingsChange(settings); },[settings]);
+  // Local persistence (dualWrite) stays instant — every edit is safe on
+  // this device the moment it happens, same as everywhere else. The
+  // network push is debounced, though: picking Rank then Pay Point right
+  // after fires this effect twice in quick succession, and each push
+  // round-trips to Supabase and back over realtime — even fully
+  // serialized and even with the self-echo no-op check (both already
+  // fixed), that's still two real network round-trips landing close
+  // together for what's really one logical edit ("finish setting up my
+  // rank and pay point"), and every extra round-trip is another chance
+  // for timing on a slow or inconsistent connection to do something
+  // unexpected. Waiting for a short pause in typing/selecting means a
+  // rapid pair of picks pushes once, with the final, complete state —
+  // not once per keystroke. 600ms: long enough to bridge two selects
+  // picked back-to-back, short enough that a genuine pause still saves
+  // promptly.
+  const pushSettingsDebounceRef = useRef(null);
+  useEffect(()=>{
+    dualWrite(KEYS.settings,settings);
+    if (pushSettingsDebounceRef.current) clearTimeout(pushSettingsDebounceRef.current);
+    pushSettingsDebounceRef.current = setTimeout(()=>{ pushSettingsChange(settings); }, 600);
+    return () => clearTimeout(pushSettingsDebounceRef.current);
+  },[settings]);
 
   // ── auth session ──────────────────────────────────────────────────────────
   // Checks for an existing session once on mount, then stays subscribed for
