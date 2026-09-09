@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { buildCalendarWeeks } from '../lib/payPeriods.js';
 import { KEYS, dualWrite } from '../lib/storage.js';
 import { fmt, fmtHM, fmtGBP, fmtD, fmtDDMM } from '../lib/format.js';
@@ -42,6 +42,17 @@ export function TabSummary({
   const calCardRef = useRef(null);
   const calSwipeStartYRef = useRef(null);
   const calSwipeAxisRef = useRef(null);
+
+  // Which Compact-view rows have their notes drawer open — purely a UI
+  // concern local to this tab (nothing else reads it, nothing persists it),
+  // unlike expanded/calPeriodIdx above which App.jsx lifts because other
+  // things (jumpTo, the post-save navigation) need to drive them from outside.
+  const [openNotes, setOpenNotes] = useState(()=>new Set());
+  const toggleNotes = id => setOpenNotes(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   // React's onTouchMove is bound passively (matching the browser's own
   // default, for scroll performance), so calling preventDefault from the
@@ -94,31 +105,45 @@ export function TabSummary({
           only affects its vertical position, not its width. ── */}
       <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'rgba(var(--surface-2-rgb),0.82)',backdropFilter:'blur(16px) saturate(1.5)',WebkitBackdropFilter:'blur(16px) saturate(1.5)',borderRadius:'18px',border:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',overflow:'hidden',paddingTop:'10px',paddingBottom:'8px',paddingLeft:'12px',paddingRight:'12px',marginBottom:'6px'}}>
         <SegSlider activeKey={breakdownView} trackStyle={{display:'flex',background:'var(--chip-bg)',borderRadius:'14px',padding:'4px',boxShadow:'0 4px 14px rgba(15,23,42,0.08)'}} indicatorStyle={{background:BRASS,borderRadius:'11px',boxShadow:'0 2px 8px rgba(184,130,63,0.35)'}}>
-          {/* Each half is a div rather than a button so the star can be its own
-              tap target inside it — nesting buttons isn't valid HTML. */}
-          <div data-seg-key="calendar" onClick={()=>{ setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }} style={{position:'relative',zIndex:1,flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:'transparent',color:breakdownView==='calendar'?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
-            <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
-              <Ico n="cal" s={13} c={breakdownView==='calendar'?'#fff':'var(--muted)'} w={2.5}/>Calendar View
+          {/* Each third is a div rather than a button so the star can be its own
+              tap target inside it — nesting buttons isn't valid HTML. Labels
+              drop "View" (Calendar/List/Compact, not "Calendar View") purely
+              to fit three segments in the space two used to have — the
+              heading above already says Summary, so the word wasn't earning
+              its width here. */}
+          <div data-seg-key="calendar" onClick={()=>{ setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }} style={{position:'relative',zIndex:1,flex:1,padding:'9px 3px',borderRadius:'11px',fontWeight:900,fontSize:'11.5px',cursor:'pointer',background:'transparent',color:breakdownView==='calendar'?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',alignItems:'center',gap:'2px',userSelect:'none'}}>
+            <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'4px',minWidth:0,overflow:'hidden'}}>
+              <Ico n="cal" s={12} c={breakdownView==='calendar'?'#fff':'var(--muted)'} w={2.5}/>Calendar
             </span>
-            <span onClick={e=>{ e.stopPropagation(); setDefaultBreakdownView('calendar'); dualWrite(KEYS.defaultBreakdownView,'calendar'); }} className="star-tap" style={{flexShrink:0,display:'flex',alignItems:'center',padding:'4px 5px',cursor:'pointer'}}>
-              <Ico n="star" s={17} w={1.8}
+            <span onClick={e=>{ e.stopPropagation(); setDefaultBreakdownView('calendar'); dualWrite(KEYS.defaultBreakdownView,'calendar'); }} className="star-tap" style={{flexShrink:0,display:'flex',alignItems:'center',padding:'4px 3px',cursor:'pointer'}}>
+              <Ico n="star" s={15} w={1.8}
                 c={defaultBreakdownView==='calendar'?'#fbbf24':(breakdownView==='calendar'?'rgba(255,255,255,0.5)':'#cbd5e1')}
                 f={defaultBreakdownView==='calendar'?'#fbbf24':'none'}/>
             </span>
           </div>
-          <div data-seg-key="list" onClick={()=>{ setBreakdownView('list'); snapToActiveMonth(); }} style={{position:'relative',zIndex:1,flex:1,padding:'9px 6px',borderRadius:'11px',fontWeight:900,fontSize:'13px',cursor:'pointer',background:'transparent',color:breakdownView==='list'?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',alignItems:'center',gap:'4px',userSelect:'none'}}>
-            <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}>
-              <Ico n="list" s={13} c={breakdownView==='list'?'#fff':'var(--muted)'} w={2.5}/>List View
+          <div data-seg-key="list" onClick={()=>{ setBreakdownView('list'); snapToActiveMonth(); }} style={{position:'relative',zIndex:1,flex:1,padding:'9px 3px',borderRadius:'11px',fontWeight:900,fontSize:'11.5px',cursor:'pointer',background:'transparent',color:breakdownView==='list'?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',alignItems:'center',gap:'2px',userSelect:'none'}}>
+            <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'4px',minWidth:0,overflow:'hidden'}}>
+              <Ico n="list" s={12} c={breakdownView==='list'?'#fff':'var(--muted)'} w={2.5}/>List
             </span>
-            <span onClick={e=>{ e.stopPropagation(); setDefaultBreakdownView('list'); dualWrite(KEYS.defaultBreakdownView,'list'); }} className="star-tap" style={{flexShrink:0,display:'flex',alignItems:'center',padding:'4px 5px',cursor:'pointer'}}>
-              <Ico n="star" s={17} w={1.8}
+            <span onClick={e=>{ e.stopPropagation(); setDefaultBreakdownView('list'); dualWrite(KEYS.defaultBreakdownView,'list'); }} className="star-tap" style={{flexShrink:0,display:'flex',alignItems:'center',padding:'4px 3px',cursor:'pointer'}}>
+              <Ico n="star" s={15} w={1.8}
                 c={defaultBreakdownView==='list'?'#fbbf24':(breakdownView==='list'?'rgba(255,255,255,0.5)':'#cbd5e1')}
                 f={defaultBreakdownView==='list'?'#fbbf24':'none'}/>
             </span>
           </div>
+          <div data-seg-key="compact" onClick={()=>{ setBreakdownView('compact'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }} style={{position:'relative',zIndex:1,flex:1,padding:'9px 3px',borderRadius:'11px',fontWeight:900,fontSize:'11.5px',cursor:'pointer',background:'transparent',color:breakdownView==='compact'?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',alignItems:'center',gap:'2px',userSelect:'none'}}>
+            <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'4px',minWidth:0,overflow:'hidden'}}>
+              <Ico n="table" s={12} c={breakdownView==='compact'?'#fff':'var(--muted)'} w={2.5}/>Compact
+            </span>
+            <span onClick={e=>{ e.stopPropagation(); setDefaultBreakdownView('compact'); dualWrite(KEYS.defaultBreakdownView,'compact'); }} className="star-tap" style={{flexShrink:0,display:'flex',alignItems:'center',padding:'4px 3px',cursor:'pointer'}}>
+              <Ico n="star" s={15} w={1.8}
+                c={defaultBreakdownView==='compact'?'#fbbf24':(breakdownView==='compact'?'rgba(255,255,255,0.5)':'#cbd5e1')}
+                f={defaultBreakdownView==='compact'?'#fbbf24':'none'}/>
+            </span>
+          </div>
         </SegSlider>
         <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',textAlign:'center',marginTop:'6px',lineHeight:1.4}}>
-          {defaultBreakdownView==='list'?'List View':'Calendar View'} opens by default · tap ★ to change
+          {defaultBreakdownView==='list'?'List':defaultBreakdownView==='compact'?'Compact':'Calendar'} opens by default · tap ★ to change
         </div>
 
         {/* month jump pills — part of the sticky header in List View.
@@ -151,8 +176,11 @@ export function TabSummary({
 
         {/* month pills — Calendar View equivalent, selects the period
             being viewed. Same boxed treatment on desktop as List View
-            above, for consistency between the two. */}
-        {breakdownView==='calendar'&&(
+            above, for consistency between the two. Compact reuses this
+            exact block (and calPeriodIdx) rather than getting its own —
+            both are "one period at a time" views, unlike List's stack of
+            twelve independently-expandable cards. */}
+        {(breakdownView==='calendar'||breakdownView==='compact')&&(
           <div style={isWide?{background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'14px',padding:'10px 14px',marginTop:'8px'}:{}}>
           <div style={{display:'flex',gap:'3px',paddingTop:isWide?0:'8px',justifyContent:'center'}}>
             {PAY_PERIODS.map((p,idx)=>{
@@ -480,6 +508,107 @@ export function TabSummary({
       })}
       </div>
       {renderFYTotalsCard()}
+      </>
+      ) : breakdownView==='compact' ? (
+      <>
+      {/* ══════════════════ COMPACT VIEW — one period, dense rows ══════════════════
+          Deliberately doesn't render renderFYTotalsCard() below, unlike List —
+          this view's whole point is showing just the selected month, and the
+          financial-year archive card belongs to a different question than
+          "what happened in this period". ── */}
+      {(()=>{
+        const cIdx = calPeriodIdx===null ? currPeriodIdx : calPeriodIdx;
+        const cPeriod = PAY_PERIODS[cIdx];
+        const cEntries = fyEntries.filter(e=>e.date>=cPeriod.start&&e.date<=cPeriod.end);
+        const pb = totals.periodBreakdown[cIdx];
+        let totalHrs = 0;
+        cEntries.forEach(e=>{ const c=calcEntry(e); totalHrs += c.h1+c.h2+c.h3; });
+        // Tier tags reflect hours actually WORKED at each rate (h1/h2/h3 —
+        // includes any portion diverted to TOIL), not just the paid portion
+        // (payH1/payH2/payH3) the old per-tier breakdown box used — "rate"
+        // here answers "what was this shift worked at", separately from
+        // whether it was taken as pay or TOIL.
+        const TIER_LABEL = { h1:'1.33×', h2:'1.5×', h3:'2.0×' };
+
+        return (
+          <>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'2px 3px 10px'}}>
+              <div style={{fontWeight:900,fontSize:'16px',color:'var(--ink)',letterSpacing:'-0.3px'}}>{cPeriod.month}</div>
+              <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'var(--quiet)'}}>{fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
+            </div>
+
+            {cEntries.length===0 ? (
+              <div style={{textAlign:'center',padding:'20px 10px 24px'}}>
+                <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
+                  <Ico n="cal" s={18} c="#1e40af" w={2}/>
+                </div>
+                <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No records yet this period</div>
+                <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log a shift and it'll show up here</div>
+              </div>
+            ) : [...cEntries].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e=>{
+              const c = calcEntry(e);
+              const tiers = [];
+              if (c.h1>0) tiers.push(TIER_LABEL.h1);
+              if (c.h2>0) tiers.push(TIER_LABEL.h2);
+              if (c.h3>0) tiers.push(TIER_LABEL.h3);
+              if (c.toilH>0 && tiers.length===0) tiers.push('TOIL');
+              const rateLabel = tiers.length ? tiers.join(' + ') : '—';
+              const hasPA = e.paRate && e.paRate!=='None';
+              const notesOpen = openNotes.has(e.id);
+              return (
+                <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',border:focusEntryId===e.id?'2px solid #2563eb':'1px solid var(--border-2)',borderRadius:'12px',padding:'9px 11px',marginBottom:'6px',transition:'background 0.4s ease, border-color 0.4s ease'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'6px'}}>
+                    <span style={{fontWeight:900,fontSize:'12.5px',color:'var(--ink)',whiteSpace:'nowrap'}}>{fmtD(e.date)}</span>
+                    <span style={{fontSize:'10px',fontWeight:800,color:'#3b82f6',textTransform:'uppercase',letterSpacing:'0.02em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,textAlign:'right'}}>
+                      {e.reason||'Shift'}
+                      {e.takeAs==='toil'&&<span style={{marginLeft:'6px',color:'#6d28d9'}}>· TOIL</span>}
+                      {e.takeAs==='mix'&&<span style={{marginLeft:'6px',color:'#6d28d9'}}>· Mix</span>}
+                    </span>
+                    {e.comments&&(
+                      <button onClick={()=>toggleNotes(e.id)} aria-label={notesOpen?'Hide notes':'Show notes'} style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',width:'22px',height:'22px',borderRadius:'7px',background:'var(--chip-bg)',border:'none',cursor:'pointer',padding:0}}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.2s',transform:notesOpen?'rotate(180deg)':'none'}}><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                    )}
+                  </div>
+                  <div style={{display:'flex',gap:'7px',flexWrap:'wrap',marginTop:'5px',fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--muted)'}}>
+                    <span style={{color:'var(--ink)',fontWeight:700}}>{(c.h1+c.h2+c.h3).toFixed(1)}h</span>
+                    <span style={{color:'var(--border)'}}>·</span>
+                    <span>{rateLabel}</span>
+                    <span style={{color:'var(--border)'}}>·</span>
+                    <span style={{color:hasPA?'#b45309':'var(--quiet)'}}>{hasPA?`${e.paRate} · ${fmt(c.pa)}`:'No PA'}</span>
+                  </div>
+                  {e.comments&&(
+                    <div style={{display:'grid',gridTemplateRows:notesOpen?'1fr':'0fr',transition:'grid-template-rows 0.28s cubic-bezier(.32,.72,0,1)'}}>
+                      <div style={{overflow:'hidden'}}>
+                        <div style={{borderTop:'1px solid var(--border-2)',marginTop:'8px',paddingTop:'7px'}}>
+                          <div style={{fontSize:'12px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid var(--border-2)',paddingLeft:'8px',whiteSpace:'pre-wrap',overflowWrap:'anywhere',lineHeight:1.5}}>{e.comments}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {cEntries.length>0 && (
+              <div style={{display:'flex',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 4px',marginTop:'4px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
+                <div style={{flex:1,textAlign:'center',padding:'0 4px'}}>
+                  <div style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--quiet)',marginBottom:'3px'}}>Hours</div>
+                  <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>{totalHrs.toFixed(1)}h</div>
+                </div>
+                <div style={{flex:1,textAlign:'center',padding:'0 4px',borderLeft:'1px solid var(--border-2)'}}>
+                  <div style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--quiet)',marginBottom:'3px'}}>Gross</div>
+                  <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:'var(--text-navy)'}}>{fmt(pb.combinedGross)}</div>
+                </div>
+                <div style={{flex:1,textAlign:'center',padding:'0 4px',borderLeft:'1px solid var(--border-2)'}}>
+                  <div style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--quiet)',marginBottom:'3px'}}>Net</div>
+                  <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:'#059669'}}>{fmt(pb.combinedNet)}</div>
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
       </>
       ) : (
       <>

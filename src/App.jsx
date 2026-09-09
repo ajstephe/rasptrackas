@@ -661,7 +661,7 @@ export default function App() {
   }, [themeMode]);
 
   const [defaultBreakdownView, setDefaultBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'calendar'));
-  const [breakdownView, setBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'calendar')); // 'list' | 'calendar'
+  const [breakdownView, setBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'calendar')); // 'list' | 'calendar' | 'compact'
   const [calPeriodIdx, setCalPeriodIdx] = useState(null); // set to currPeriodIdx on first render
   const [selectedCalDay, setSelectedCalDay] = useState(null);
   const [confirmCreateDay, setConfirmCreateDay] = useState(null);
@@ -1522,7 +1522,7 @@ export default function App() {
     if(tab!=='months') return;
     if(skipBreakdownReset.current){ skipBreakdownReset.current=false; return; }
     setBreakdownView(defaultBreakdownView);
-    if(defaultBreakdownView==='calendar') setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);
+    if(defaultBreakdownView==='calendar'||defaultBreakdownView==='compact') setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);
   },[tab]);
 
   // Scrolls Settings so the £100k Tax Impact card sits at the top — but only
@@ -2494,6 +2494,11 @@ export default function App() {
           ds: targetDate, dEntries, periodIdx,
           totalHrs: dayTotals.hrs, hasPA: dayTotals.pa, hasOT: true,
         });
+        if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'});
+      } else if(defaultBreakdownView==='compact' && period){
+        setBreakdownView('compact');
+        setCalPeriodIdx(periodIdx);
+        setFocusEntryId(savedId);
         if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'});
       } else {
         setBreakdownView('list');
@@ -3502,7 +3507,7 @@ export default function App() {
   // After saving, scroll the newly created/updated record into view and give it
   // a brief highlight, so the person can see their entry landed correctly.
   useEffect(()=>{
-    if(!focusEntryId || tab!=='months' || breakdownView!=='list') return;
+    if(!focusEntryId || tab!=='months' || (breakdownView!=='list' && breakdownView!=='compact')) return;
     const t = setTimeout(()=>{
       const el = entryRefs.current[focusEntryId];
       const cont = mainRef.current;
