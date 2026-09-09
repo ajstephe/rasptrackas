@@ -52,6 +52,7 @@ import { useFocusTrap } from './lib/useFocusTrap.js';
 import { haptic } from './lib/haptics.js';
 import { useCountUp } from './lib/useCountUp.js';
 import { springValue } from './lib/spring.js';
+import { useDraggableSheet } from './lib/useDraggableSheet.js';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
 // Only one of these six is ever on screen at a time (via `tab` state below),
 // so there's no reason all six ship in the initial JS payload — each becomes
@@ -986,6 +987,17 @@ export default function App() {
   const confirmCreateDayMounted = useMountTransition(!!confirmCreateDay, 220);
   const selectedCalDayMounted = useMountTransition(!!selectedCalDay, 220);
   const datePickerMounted = useMountTransition(!!datePickerFor, 220);
+  // ── drag-to-dismiss for the mobile bottom sheets ─────────────────────────
+  // Desktop's alert-pop dialogs are centred, not edge-anchored, and never
+  // render a grabber — this only ever engages via the mobile sheet-pop
+  // markup below. The CARMS/PA multi-select bar (TabCarms.jsx) reuses the
+  // sheet-pop class purely for its pop-in/out timing but is a small
+  // rounded-all-corners toolbar with no backdrop, not an edge-to-edge sheet,
+  // so it's deliberately not wired up here.
+  const signOutDrag = useDraggableSheet(signOutConfirmOpen, () => setSignOutConfirmOpen(false));
+  const restoreDrag = useDraggableSheet(restoreConfirmOpen, () => setRestoreConfirmOpen(false));
+  const payslipDrag = useDraggableSheet(payslipModalOpen, () => setPayslipModalOpen(false));
+  const selectedCalDayDrag = useDraggableSheet(!!selectedCalDay, () => { setSelectedCalDay(null); setConfirmDel(null); });
   // ── focus management for every overlay above ─────────────────────────────
   // Moves focus into each dialog the instant it opens, traps Tab/Shift+Tab
   // among its own controls while open, and restores focus to whatever
@@ -4139,6 +4151,15 @@ export default function App() {
         .alert-pop.pop-out{animation:alertPopOut 0.2s cubic-bezier(.4,0,1,1) forwards}
         @keyframes sheetPopOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(28px)}}
         .sheet-pop.pop-out{animation:sheetPopOut 0.22s cubic-bezier(.4,0,1,1) forwards}
+        /* Drag-to-dismiss handle for the mobile sheets above (see
+           useDraggableSheet.js) — negative margin extends the grab target
+           well past the pill's own 36x4px so it's actually easy to catch a
+           finger on, without pushing the sheet's real content down to make
+           room for it. touch-action:none stops the browser's own scroll/
+           overscroll gesture from fighting the drag. */
+        .sheet-grabber{display:flex;justify-content:center;padding:2px 0 14px;margin:-6px -20px 2px;cursor:grab;touch-action:none;}
+        .sheet-grabber:active{cursor:grabbing;}
+        .sheet-grabber-pill{width:36px;height:4px;border-radius:4px;background:var(--border);}
         @keyframes modalPopOut{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-50%) scale(0.92)}}
         .modal-pop.pop-out{animation:modalPopOut 0.2s cubic-bezier(.4,0,1,1) forwards}
         @keyframes ovFadeIn{from{opacity:0}to{opacity:1}}
@@ -4303,11 +4324,11 @@ export default function App() {
            modal, with an explicit close (×) as well as Cancel ── */}
       {signOutMounted&&(
         <div onClick={()=>setSignOutConfirmOpen(false)} className={signOutConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-          <div ref={signOutTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Sign out?" onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(signOutConfirmOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+          <div ref={signOutTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Sign out?" onClick={e=>e.stopPropagation()} className={isWide?'alert-pop'+(signOutConfirmOpen?'':' pop-out'):'sheet-pop'+(!signOutConfirmOpen&&!signOutDrag.isDragClosing?' pop-out':'')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none',...(!isWide?signOutDrag.sheetDragStyle:null)}}>
             <button onClick={()=>setSignOutConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
-            {!isWide && <div style={{width:'36px',height:'4px',background:'var(--border)',borderRadius:'4px',margin:'0 auto 14px'}}/>}
+            {!isWide && <div className="sheet-grabber" {...signOutDrag.grabberProps}><div className="sheet-grabber-pill"/></div>}
             <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>Sign out?</div>
             <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>You'll need your password again to get back in. Data already synced stays exactly as it is.</div>
             <div style={{display:'flex',gap:'8px'}}>
@@ -4320,11 +4341,11 @@ export default function App() {
 
       {restoreMounted&&(
         <div onClick={()=>setRestoreConfirmOpen(false)} className={restoreConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-          <div ref={restoreTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Restore backup" onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(restoreConfirmOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+          <div ref={restoreTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Restore backup" onClick={e=>e.stopPropagation()} className={isWide?'alert-pop'+(restoreConfirmOpen?'':' pop-out'):'sheet-pop'+(!restoreConfirmOpen&&!restoreDrag.isDragClosing?' pop-out':'')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none',...(!isWide?restoreDrag.sheetDragStyle:null)}}>
             <button onClick={()=>setRestoreConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
-            {!isWide && <div style={{width:'36px',height:'4px',background:'var(--border)',borderRadius:'4px',margin:'0 auto 14px'}}/>}
+            {!isWide && <div className="sheet-grabber" {...restoreDrag.grabberProps}><div className="sheet-grabber-pill"/></div>}
             <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>Are you sure you want to overwrite the existing data?</div>
             <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>Do you want to create a backup before proceeding?</div>
             <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
@@ -4617,8 +4638,8 @@ export default function App() {
         const formatLabel = exportFormat==='csv' ? 'Spreadsheet' : 'PDF';
         return (
           <div onClick={()=>setPayslipModalOpen(false)} className={payslipModalOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-            <div ref={payslipTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Generate payslip" onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(payslipModalOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
-              {!isWide && <div style={{width:'36px',height:'4px',background:'var(--border)',borderRadius:'4px',margin:'0 auto 14px'}}/>}
+            <div ref={payslipTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Generate payslip" onClick={e=>e.stopPropagation()} className={isWide?'alert-pop'+(payslipModalOpen?'':' pop-out'):'sheet-pop'+(!payslipModalOpen&&!payslipDrag.isDragClosing?' pop-out':'')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none',...(!isWide?payslipDrag.sheetDragStyle:null)}}>
+              {!isWide && <div className="sheet-grabber" {...payslipDrag.grabberProps}><div className="sheet-grabber-pill"/></div>}
               {exportFormat===null ? (
                 <>
                   <div style={{fontSize:'15px',fontWeight:900,marginBottom:'4px'}}>Financial Reports &amp; Export</div>
@@ -4981,7 +5002,8 @@ export default function App() {
       {/* Calendar View — day detail popover */}
       {selectedCalDayMounted&&(
         <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} className={selectedCalDay?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:40}}>
-          <div ref={selectedCalDayTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Day detail" onClick={e=>e.stopPropagation()} className={(isWide?'alert-pop':'sheet-pop')+(selectedCalDay?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none'}}>
+          <div ref={selectedCalDayTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Day detail" onClick={e=>e.stopPropagation()} className={isWide?'alert-pop'+(selectedCalDay?'':' pop-out'):'sheet-pop'+(!selectedCalDay&&!selectedCalDayDrag.isDragClosing?' pop-out':'')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none',...(!isWide?selectedCalDayDrag.sheetDragStyle:null)}}>
+            {!isWide && <div className="sheet-grabber" {...selectedCalDayDrag.grabberProps}><div className="sheet-grabber-pill"/></div>}
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
               <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{new Date(selectedCalDayV.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
               <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} aria-label="Close" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={isWide?20:16} c="#64748b"/></button>
