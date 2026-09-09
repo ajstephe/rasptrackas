@@ -121,16 +121,6 @@ export function TabSummary({
                 f={defaultBreakdownView==='calendar'?'#fbbf24':'none'}/>
             </span>
           </div>
-          <div data-seg-key="list" onClick={()=>{ setBreakdownView('list'); snapToActiveMonth(); }} style={{position:'relative',zIndex:1,flex:1,padding:'9px 3px',borderRadius:'11px',fontWeight:900,fontSize:'11.5px',cursor:'pointer',background:'transparent',color:breakdownView==='list'?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',alignItems:'center',gap:'2px',userSelect:'none'}}>
-            <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'4px',minWidth:0,overflow:'hidden'}}>
-              <Ico n="list" s={12} c={breakdownView==='list'?'#fff':'var(--muted)'} w={2.5}/>List
-            </span>
-            <span onClick={e=>{ e.stopPropagation(); setDefaultBreakdownView('list'); dualWrite(KEYS.defaultBreakdownView,'list'); }} className="star-tap" style={{flexShrink:0,display:'flex',alignItems:'center',padding:'4px 3px',cursor:'pointer'}}>
-              <Ico n="star" s={15} w={1.8}
-                c={defaultBreakdownView==='list'?'#fbbf24':(breakdownView==='list'?'rgba(255,255,255,0.5)':'#cbd5e1')}
-                f={defaultBreakdownView==='list'?'#fbbf24':'none'}/>
-            </span>
-          </div>
           <div data-seg-key="compact" onClick={()=>{ setBreakdownView('compact'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }} style={{position:'relative',zIndex:1,flex:1,padding:'9px 3px',borderRadius:'11px',fontWeight:900,fontSize:'11.5px',cursor:'pointer',background:'transparent',color:breakdownView==='compact'?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',alignItems:'center',gap:'2px',userSelect:'none'}}>
             <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'4px',minWidth:0,overflow:'hidden'}}>
               <Ico n="table" s={12} c={breakdownView==='compact'?'#fff':'var(--muted)'} w={2.5}/>Compact
@@ -139,6 +129,16 @@ export function TabSummary({
               <Ico n="star" s={15} w={1.8}
                 c={defaultBreakdownView==='compact'?'#fbbf24':(breakdownView==='compact'?'rgba(255,255,255,0.5)':'#cbd5e1')}
                 f={defaultBreakdownView==='compact'?'#fbbf24':'none'}/>
+            </span>
+          </div>
+          <div data-seg-key="list" onClick={()=>{ setBreakdownView('list'); snapToActiveMonth(); }} style={{position:'relative',zIndex:1,flex:1,padding:'9px 3px',borderRadius:'11px',fontWeight:900,fontSize:'11.5px',cursor:'pointer',background:'transparent',color:breakdownView==='list'?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',alignItems:'center',gap:'2px',userSelect:'none'}}>
+            <span style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'4px',minWidth:0,overflow:'hidden'}}>
+              <Ico n="list" s={12} c={breakdownView==='list'?'#fff':'var(--muted)'} w={2.5}/>List
+            </span>
+            <span onClick={e=>{ e.stopPropagation(); setDefaultBreakdownView('list'); dualWrite(KEYS.defaultBreakdownView,'list'); }} className="star-tap" style={{flexShrink:0,display:'flex',alignItems:'center',padding:'4px 3px',cursor:'pointer'}}>
+              <Ico n="star" s={15} w={1.8}
+                c={defaultBreakdownView==='list'?'#fbbf24':(breakdownView==='list'?'rgba(255,255,255,0.5)':'#cbd5e1')}
+                f={defaultBreakdownView==='list'?'#fbbf24':'none'}/>
             </span>
           </div>
         </SegSlider>
