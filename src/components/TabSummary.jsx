@@ -555,8 +555,12 @@ export function TabSummary({
               const rateLabel = tiers.length ? tiers.join(' + ') : '—';
               const hasPA = e.paRate && e.paRate!=='None';
               const notesOpen = openNotes.has(e.id);
+              const cardProps = e.comments ? {
+                role:'button', tabIndex:0, onClick:()=>toggleNotes(e.id),
+                onKeyDown:ev=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); toggleNotes(e.id); } },
+              } : {};
               return (
-                <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',border:focusEntryId===e.id?'2px solid #2563eb':'1px solid var(--border-2)',borderRadius:'12px',padding:'9px 11px',marginBottom:'6px',transition:'background 0.4s ease, border-color 0.4s ease'}}>
+                <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} {...cardProps} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',border:focusEntryId===e.id?'2px solid #2563eb':'1px solid var(--border-2)',borderRadius:'12px',padding:'9px 11px',marginBottom:'6px',transition:'background 0.4s ease, border-color 0.4s ease',cursor:e.comments?'pointer':'default'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'6px'}}>
                     <span style={{fontWeight:900,fontSize:'12.5px',color:'var(--ink)',whiteSpace:'nowrap'}}>{fmtD(e.date)}</span>
                     <span style={{fontSize:'10px',fontWeight:800,color:'#3b82f6',textTransform:'uppercase',letterSpacing:'0.02em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,textAlign:'right'}}>
@@ -564,12 +568,28 @@ export function TabSummary({
                       {e.takeAs==='toil'&&<span style={{marginLeft:'6px',color:'#6d28d9'}}>· TOIL</span>}
                       {e.takeAs==='mix'&&<span style={{marginLeft:'6px',color:'#6d28d9'}}>· Mix</span>}
                     </span>
+                    {/* Edit/Delete — same actions and icons as List View's own
+                        entry card (startEdit/delEntry), each stopping the
+                        click from also reaching the card's own expand
+                        handler above. */}
+                    <Tooltip label="Edit entry"><button onClick={ev=>{ev.stopPropagation();setConfirmDel(null);startEdit(e);}} aria-label="Edit this record" style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',width:'22px',height:'22px',borderRadius:'7px',background:'var(--chip-bg)',border:'none',cursor:'pointer',padding:0}}><Ico n="edit" s={11} c="#64748b"/></button></Tooltip>
+                    <Tooltip label="Delete entry"><button onClick={ev=>{ev.stopPropagation();setConfirmDel(confirmDel===e.id?null:e.id);}} aria-label="Delete this record" style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',width:'22px',height:'22px',borderRadius:'7px',background:'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',cursor:'pointer',padding:0,transition:'all 0.15s'}}><Ico n="trash" s={11} c="#ef4444"/></button></Tooltip>
                     {e.comments&&(
-                      <button onClick={()=>toggleNotes(e.id)} aria-label={notesOpen?'Hide notes':'Show notes'} style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',width:'22px',height:'22px',borderRadius:'7px',background:'var(--chip-bg)',border:'none',cursor:'pointer',padding:0}}>
+                      <button onClick={ev=>{ev.stopPropagation();toggleNotes(e.id);}} aria-label={notesOpen?'Hide notes':'Show notes'} style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',width:'22px',height:'22px',borderRadius:'7px',background:'var(--chip-bg)',border:'none',cursor:'pointer',padding:0}}>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.2s',transform:notesOpen?'rotate(180deg)':'none'}}><polyline points="6 9 12 15 18 9"/></svg>
                       </button>
                     )}
                   </div>
+                  {/* delete confirmation — same shape as List View's own */}
+                  {confirmDel===e.id&&(
+                    <div onClick={ev=>ev.stopPropagation()} style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'8px 10px',marginTop:'7px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
+                      <span style={{fontSize:'12px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this record?</span>
+                      <div style={{display:'flex',gap:'6px',flexShrink:0}}>
+                        <button onClick={()=>setConfirmDel(null)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'7px',padding:'4px 10px',fontSize:'11.5px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+                        <button onClick={()=>delEntry(e.id)} style={{background:'#dc2626',border:'none',borderRadius:'7px',padding:'4px 10px',fontSize:'11.5px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
+                      </div>
+                    </div>
+                  )}
                   <div style={{display:'flex',alignItems:'center',gap:'7px',flexWrap:'wrap',marginTop:'5px',fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--muted)'}}>
                     <span style={{color:'var(--ink)',fontWeight:700}}>{(c.h1+c.h2+c.h3).toFixed(1)}h</span>
                     <span style={{color:'var(--border)'}}>·</span>
