@@ -3997,6 +3997,20 @@ export default function App() {
            urgent without fighting the native control it's wrapped around. */
         @keyframes urgentPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0)}25%,75%{opacity:0.78;box-shadow:0 0 0 9px rgba(220,38,38,0.38)}50%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0)}}
         @keyframes backupPulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}30%{box-shadow:0 0 0 8px rgba(37,99,235,0.35)}50%{box-shadow:0 0 0 0 rgba(37,99,235,0)}70%{box-shadow:0 0 0 8px rgba(37,99,235,0.35)}}
+        /* Idle-state nudge for the brass Save/Update Record button (see
+           TabLogOvertime.jsx and the mobile floating button below) — same
+           double-pulse ring shape as backupPulse, just brass instead of
+           blue, and layered on top of the button's own static elevation
+           shadow (kept constant across all four keyframe steps) rather
+           than replacing it, so the ring never reads as the button's drop
+           shadow flickering. Stops the instant justSaved flips true —
+           .save-pulse's own one-shot green ring takes over from there. */
+        @keyframes savePulseIdle{
+          0%,100%{box-shadow:0 3px 14px rgba(184,130,63,0.4),0 0 0 0 rgba(184,130,63,0)}
+          30%{box-shadow:0 3px 14px rgba(184,130,63,0.4),0 0 0 10px rgba(184,130,63,0.35)}
+          50%{box-shadow:0 3px 14px rgba(184,130,63,0.4),0 0 0 0 rgba(184,130,63,0)}
+          70%{box-shadow:0 3px 14px rgba(184,130,63,0.4),0 0 0 10px rgba(184,130,63,0.35)}
+        }
         @keyframes subtlePulse{0%{opacity:0.5}20%{opacity:1}40%{opacity:0.5}60%{opacity:1}80%,100%{opacity:0.5}}
         @keyframes entryFlash{0%{box-shadow:0 0 0 0 rgba(37,99,235,0.45)}60%{box-shadow:0 0 0 10px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
         .entry-flash{animation:entryFlash 1.4s ease-out 2}
@@ -4207,6 +4221,7 @@ export default function App() {
           .fi-right{animation-duration:0.001ms}
           .fi-left{animation-duration:0.001ms}
           .save-pulse{animation-duration:0.001ms}
+          .save-pulse-idle{animation-duration:0.001ms}
           .badge-pop{animation-duration:0.001ms}
           .tap-row{transition-duration:0.001ms}
           .glance-claim-row{transition-duration:0.001ms}
@@ -4249,6 +4264,7 @@ export default function App() {
         .star-tap:active{transform:scale(1.35)}
         .hint-pulse{animation:subtlePulse 1.8s ease-in-out infinite}
         .backup-pulse{animation:backupPulse 1.4s ease-in-out infinite}
+        .save-pulse-idle{animation:savePulseIdle 1.8s ease-in-out infinite}
         .fi{animation:fi 0.22s ease}
         .setup-pulse-urgent{animation:urgentPulse 1.5s ease-in-out infinite}
         input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
@@ -5132,17 +5148,20 @@ export default function App() {
 
       {/* floating save button — mobile only (Log Shift, once rank/pay point
            are set). Desktop uses the in-flow button at the end of the form
-           instead. Blue (matching the Sign In / primary-action blue used
-           on the auth screens), not red — red stays reserved for
-           destructive/error states elsewhere (delete, validation, tax
-           deductions) so the single most-pressed button in the app stops
-           sharing a colour with "you're about to lose your data". Shadow
-           blur also tightened (20px→14px, alpha 0.5→0.4) so it reads as a
-           button glow rather than bleeding colour onto the bottom nav
-           docked just underneath it. */}
+           instead. Brass, not blue — blue sat a shade away from the "This
+           Shift" preview card's own gradient (which ends at #1d4ed8)
+           directly above it, so the two nearly merged into one shape. Not
+           red either — red stays reserved for destructive/error states
+           elsewhere (delete, validation, tax deductions). The idle-state
+           double-pulse (save-pulse-idle, see savePulseIdle above) keeps it
+           from ever fully settling into the background the way a static
+           button — even a brass one — eventually can on a long form. Shadow
+           blur tightened (20px→14px, alpha 0.5→0.4) so the static glow
+           reads as a button glow rather than bleeding colour onto the
+           bottom nav docked just underneath it. */}
       {tab==='add'&&!isWide&&settings.rank&&settings.service&&(
         <div style={{position:'absolute',bottom:'72px',left:'14px',right:'14px',zIndex:25}}>
-          <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':''} style={{width:'100%',background:justSaved?'#059669':'#2563eb',color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':'0 3px 14px rgba(37,99,235,0.4)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',transition:'background 0.3s'}}>
+          <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':'save-pulse-idle'} style={{width:'100%',background:justSaved?'#059669':BRASS,color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':undefined,padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',transition:'background 0.3s'}}>
             <Ico n={justSaved?'check':'save'} s={18} c="#fff"/>
             {justSaved?'Saved':(editing?'Update Record':'Save Record')}
           </button>
