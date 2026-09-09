@@ -4015,13 +4015,17 @@ export default function App() {
         @keyframes entryFlash{0%{box-shadow:0 0 0 0 rgba(37,99,235,0.45)}60%{box-shadow:0 0 0 10px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
         .entry-flash{animation:entryFlash 1.4s ease-out 2}
         @keyframes carmsPulse{
-          0%{box-shadow:0 0 0 0 rgba(37,99,235,0.6); transform:scale(1);}
-          20%{box-shadow:0 0 0 16px rgba(37,99,235,0); transform:scale(1.02);}
-          40%{box-shadow:0 0 0 0 rgba(37,99,235,0.6); transform:scale(1);}
-          60%{box-shadow:0 0 0 16px rgba(37,99,235,0); transform:scale(1.02);}
-          100%{box-shadow:0 0 0 0 rgba(37,99,235,0); transform:scale(1);}
+          0%{box-shadow:0 0 0 0 rgba(184,130,63,0.6); transform:scale(1);}
+          20%{box-shadow:0 0 0 16px rgba(184,130,63,0); transform:scale(1.02);}
+          40%{box-shadow:0 0 0 0 rgba(184,130,63,0.6); transform:scale(1);}
+          60%{box-shadow:0 0 0 16px rgba(184,130,63,0); transform:scale(1.02);}
+          100%{box-shadow:0 0 0 0 rgba(184,130,63,0); transform:scale(1);}
         }
-        .carms-pulse{animation:carmsPulse 1.6s ease-out;}
+        /* 2 iterations (same shorthand as entry-flash's own "2") rather than
+           lengthening a single run — each run is already its own two-pulse
+           beat (0%→40%, 40%→80% via the 20/60 steps above), so this reads
+           as a couple of clearly separated pulses instead of one long one. */
+        .carms-pulse{animation:carmsPulse 1.6s ease-out 2;}
         @keyframes navAddPulse{0%,100%{opacity:1}50%{opacity:0.45}}
         .nav-add-pulse{animation:navAddPulse 1.8s ease-in-out infinite;}
         /* ── sliding nav pill (bottom mobile nav) — position/width are set

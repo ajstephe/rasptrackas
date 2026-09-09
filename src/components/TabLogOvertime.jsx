@@ -385,7 +385,7 @@ export function TabLogOvertime({
           entry reflects whatever it's already set to. PA toggle only
           shown when there's actually a PA rate selected, since
           otherwise there's nothing to track for that part. */}
-      <div ref={carmsToggleRef} className={focusCarmsToggle?'carms-pulse':''} style={{...S.card,marginBottom:'11px',border:focusCarmsToggle?'2px solid #2563eb':'1px solid var(--border-2)'}}>
+      <div ref={carmsToggleRef} className={focusCarmsToggle?'carms-pulse':''} style={{...S.card,marginBottom:'11px',border:focusCarmsToggle?`2px solid ${BRASS}`:'1px solid var(--border-2)'}}>
         <div style={{fontWeight:900,fontSize:'15px',color:'var(--ink)',marginBottom:'2px'}}>CARMS Submission</div>
         <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginBottom:'4px'}}>Toggle when Overtime and/or PA claims have been submitted on the relevant system.</div>
         {(()=>{
