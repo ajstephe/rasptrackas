@@ -368,7 +368,13 @@ export function TabSummary({
                 <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'9px'}}>Individual Records</div>
 
                 {pE.length===0
-                  ?<div style={{textAlign:'center',padding:'14px',color:'var(--quiet)',fontSize:'15px',fontWeight:700}}>No records yet</div>
+                  ?<div style={{textAlign:'center',padding:'20px 10px 24px'}}>
+                    <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
+                      <Ico n="cal" s={18} c="#1e40af" w={2}/>
+                    </div>
+                    <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No records yet this period</div>
+                    <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log a shift and it'll show up here</div>
+                  </div>
                   :[...pE].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e=>{
                     const c=calcEntry(e);
                     const isFut=e.date>todayStr;
