@@ -492,10 +492,15 @@ export function TabLogOvertime({
            always shows once rank/pay point are set, whether or not
            a preview happens to be showing. */}
       {isWide&&(
-        // Blue, not red — matches the floating mobile button above; red
-        // stays reserved for destructive/error states (delete, validation,
-        // tax deductions) elsewhere in the app.
-        <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':''} style={{width:'100%',background:justSaved?'#059669':'#2563eb',color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':'0 3px 14px rgba(37,99,235,0.4)',padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',marginTop:'18px',transition:'background 0.3s'}}>
+        // Brass, not blue — matches the floating mobile button above (see
+        // its own comment for why: blue nearly merged into the "This
+        // Shift" preview card's own gradient sitting right above it). Not
+        // red either — red stays reserved for destructive/error states
+        // (delete, validation, tax deductions) elsewhere in the app. The
+        // idle-state pulse (save-pulse-idle) is the same one the mobile
+        // button uses, for the same reason — keeps the single most-pressed
+        // button in the app from ever fully blending into a long form.
+        <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':'save-pulse-idle'} style={{width:'100%',background:justSaved?'#059669':BRASS,color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':undefined,padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',marginTop:'18px',transition:'background 0.3s'}}>
           <Ico n={justSaved?'check':'save'} s={18} c="#fff"/>
           {justSaved?'Saved':(editing?'Update Record':'Save Record')}
         </button>
