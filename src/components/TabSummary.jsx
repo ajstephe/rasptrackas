@@ -570,12 +570,18 @@ export function TabSummary({
                       </button>
                     )}
                   </div>
-                  <div style={{display:'flex',gap:'7px',flexWrap:'wrap',marginTop:'5px',fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--muted)'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'7px',flexWrap:'wrap',marginTop:'5px',fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--muted)'}}>
                     <span style={{color:'var(--ink)',fontWeight:700}}>{(c.h1+c.h2+c.h3).toFixed(1)}h</span>
                     <span style={{color:'var(--border)'}}>·</span>
                     <span>{rateLabel}</span>
                     <span style={{color:'var(--border)'}}>·</span>
                     <span style={{color:hasPA?'#b45309':'var(--quiet)'}}>{hasPA?`${e.paRate} · ${fmt(c.pa)}`:'No PA'}</span>
+                    {/* Same shared badge as List View and the calendar day
+                        popup (see carmsBadge in App.jsx) — null for a pure
+                        record with nothing to submit, green when everything
+                        claimable on this entry is in, red (and tappable
+                        straight to the entry's own toggle) otherwise. */}
+                    {carmsBadge(e, 8)}
                   </div>
                   {e.comments&&(
                     <div style={{display:'grid',gridTemplateRows:notesOpen?'1fr':'0fr',transition:'grid-template-rows 0.28s cubic-bezier(.32,.72,0,1)'}}>
