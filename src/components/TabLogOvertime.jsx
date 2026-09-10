@@ -25,7 +25,7 @@ export function TabLogOvertime({
   const animatedPreviewGross = useCountUp(preview.gross, 400);
   const animatedPreviewNet = useCountUp(preview.net, 400);
   return (
-    <div className={animClass} style={{padding:'14px',paddingBottom:isWide?'14px':'calc(160px + env(safe-area-inset-bottom))'}}>
+    <div className={animClass} style={{padding:'14px',paddingBottom:isWide?'110px':'calc(160px + env(safe-area-inset-bottom))'}}>
       <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'18px'}}>
         {editing&&<button onClick={()=>{setEditing(null);setTab('months');}} aria-label="Cancel editing" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="back" s={16}/></button>}
         <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>{editing?'Edit Record':'Log Overtime'}</h2>
@@ -484,13 +484,20 @@ export function TabLogOvertime({
         </div>
       )}
 
-      {/* in-flow save button — desktop only. Same handler, same look
-           as the floating mobile version below, just placed at the
-           natural end of the form instead of fixed over the content,
-           since there's no bottom nav here for it to need to float
-           above. Sits outside the preview's own conditional so it
-           always shows once rank/pay point are set, whether or not
-           a preview happens to be showing. */}
+      {/* sticky save button — desktop only. Same handler, same look as the
+           floating mobile version below, just anchored via position:sticky
+           against <main>'s own scroll container (App.jsx's S.main is the
+           overflowY:auto element, not the page) instead of position:
+           absolute over a bottom nav that doesn't exist here. Previously
+           sat in-flow at the end of the form — easy to scroll straight
+           past on a long entry (start/end times, PA, notes, both CARMS
+           toggles) and only notice it was missing once looking for it.
+           Sits outside the preview's own conditional so it always shows
+           once rank/pay point are set, whether or not a preview happens to
+           be showing. The wrapper's own paddingBottom (top of this file)
+           is widened on desktop to match, so the sticky button has empty
+           space to settle into rather than ever overlapping the CARMS
+           Submission box scrolling past underneath it. */}
       {isWide&&(
         // Brass, not blue — matches the floating mobile button above (see
         // its own comment for why: blue nearly merged into the "This
@@ -500,7 +507,7 @@ export function TabLogOvertime({
         // idle-state pulse (save-pulse-idle) is the same one the mobile
         // button uses, for the same reason — keeps the single most-pressed
         // button in the app from ever fully blending into a long form.
-        <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':'save-pulse-idle'} style={{width:'100%',background:justSaved?'#059669':BRASS,color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':undefined,padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',marginTop:'18px',transition:'background 0.3s'}}>
+        <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':'save-pulse-idle'} style={{position:'sticky',bottom:'20px',width:'100%',background:justSaved?'#059669':BRASS,color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':undefined,padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',marginTop:'18px',transition:'background 0.3s'}}>
           <Ico n={justSaved?'check':'save'} s={18} c="#fff"/>
           {justSaved?'Saved':(editing?'Update Record':'Save Record')}
         </button>
