@@ -124,7 +124,7 @@ const NAV_TABS = [
   {id:'dashboard',n:'home', lbl:'Home'},
   {id:'add',      n:'plus', lbl:'Log Overtime'},
   {id:'months',   n:'cal',  lbl:'Summary'},
-  {id:'carms',    n:'check', lbl:'CARMS/PA'},
+  {id:'carms',    n:'send',  lbl:'Awaits Submission'},
   {id:'graph',    n:'clock', lbl:'TOIL'},
   {id:'settings', n:'cog',  lbl:'More..'},
 ];
@@ -4602,7 +4602,7 @@ export default function App() {
 
           <div style={{padding:'14px 0 4px'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}}>
-              <span style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>CARMS &amp; PA Outstanding</span>
+              <span style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>CARMS/PA Awaiting Submission</span>
               {carmsOutstanding.totalClaims>0&&<span onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:700,color:BRASS,cursor:'pointer'}}>View all →</span>}
             </div>
             {carmsOutstanding.totalClaims===0
@@ -5194,12 +5194,17 @@ export default function App() {
             {t.id==='add' ? (
               <span className={`nav-ico-add${showAddNudge&&tab!==t.id?' nav-add-pulse':''}`} style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
             ) : (
-              <span className={`nav-ico${tab===t.id?' active':''}`} style={{display:'flex'}}><Ico n={t.n} s={18} c={tab===t.id?BRASS:'var(--quiet)'} w={tab===t.id?2.5:2}/></span>
+              <span className={`nav-ico${tab===t.id?' active':''}`} style={{display:'flex'}}><Ico n={t.n} s={t.id==='carms'?14:18} c={tab===t.id?BRASS:'var(--quiet)'} w={tab===t.id?2.5:2}/></span>
             )}
             {/* the pulse is a "come tap this" nudge — it stops once you're
                 actually on the tab it's pointing at, rather than nagging
                 the whole time you're using it */}
-            <span style={S.nLbl} className={`nav-lbl${showAddNudge&&t.id==='add'&&tab!==t.id?' nav-add-pulse':''}`}>{t.lbl}</span>
+            {/* CARMS/PA is the one nav label long enough to need two lines
+                ("Awaits Submission" vs. everything else's one short word) —
+                nLbl's nowrap would otherwise spill it into Summary and TOIL
+                on either side. The negative margin-top tucks it back up
+                under its now-smaller icon rather than leaving a gap. */}
+            <span style={t.id==='carms'?{...S.nLbl,whiteSpace:'normal',textAlign:'center',lineHeight:1.25,marginTop:'-5px'}:S.nLbl} className={`nav-lbl${showAddNudge&&t.id==='add'&&tab!==t.id?' nav-add-pulse':''}`}>{t.lbl}</span>
           </button>
         ))}
       </nav>
