@@ -5269,12 +5269,12 @@ export default function App() {
                 {/* Sidebar labels inherit the button's 14.5px, but "Awaits
                     Submission" plus its badge doesn't fit this 230px column
                     on one line at that size — measured overflow, not a
-                    guess (~32px over at 14.5px). 11.2px is measured as the
-                    largest size that still clears it with a little room to
-                    spare (fits up to ~11.4px before it starts spilling
-                    over); it's the only tab label override here, every
-                    other tab clears the column comfortably at 14.5px. */}
-                <span className={(isAdd&&entries.length===0&&!isActive)?'nav-add-pulse':''} style={t.id==='carms'?{fontSize:'11.2px'}:undefined}>{t.lbl}</span>
+                    guess (~32px over at 14.5px). Shrinking the font instead
+                    only bought ~11.4px before it started spilling again, so
+                    it wraps onto two lines ("Awaits" / "Submission") at the
+                    same 14.5px as every other tab, rather than being the
+                    one tab that reads smaller. */}
+                <span className={(isAdd&&entries.length===0&&!isActive)?'nav-add-pulse':''} style={t.id==='carms'?{whiteSpace:'normal',lineHeight:1.25}:undefined}>{t.lbl}</span>
                 {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
                   <span className="badge-pop" style={{marginLeft:'auto',background:'#d97706',color:'#fff',fontSize:'10px',fontWeight:900,padding:'1px 7px',borderRadius:'10px',display:'inline-block'}}>{carmsOutstanding.totalClaims>99?'99+':carmsOutstanding.totalClaims}</span>
                 )}
