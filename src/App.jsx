@@ -5266,7 +5266,13 @@ export default function App() {
                 {/* stops nudging once you're actually on this tab, and
                     retires for good once a shift's ever been logged — see
                     the matching comment on the mobile bottom nav above */}
-                <span className={(isAdd&&entries.length===0&&!isActive)?'nav-add-pulse':''}>{t.lbl}</span>
+                {/* Sidebar labels inherit the button's 14.5px, but "Awaits
+                    Submission" plus its badge doesn't fit this 230px column
+                    on one line at that size — measured overflow, not a
+                    guess (~32px over at 14.5px). 10.5px is the only tab
+                    label override here; every other tab clears the column
+                    comfortably at the normal size. */}
+                <span className={(isAdd&&entries.length===0&&!isActive)?'nav-add-pulse':''} style={t.id==='carms'?{fontSize:'10.5px'}:undefined}>{t.lbl}</span>
                 {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
                   <span className="badge-pop" style={{marginLeft:'auto',background:'#d97706',color:'#fff',fontSize:'10px',fontWeight:900,padding:'1px 7px',borderRadius:'10px',display:'inline-block'}}>{carmsOutstanding.totalClaims>99?'99+':carmsOutstanding.totalClaims}</span>
                 )}
