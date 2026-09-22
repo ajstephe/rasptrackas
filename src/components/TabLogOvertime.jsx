@@ -428,7 +428,7 @@ export function TabLogOvertime({
         <div style={{padding:'11px 0',opacity:form.paRate==='None'?0.45:1}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
             <div>
-              <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>PA Submitted on MetHR</div>
+              <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>PA Submitted on PSOP</div>
               <div style={{fontFamily:MONO,fontSize:'10px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{form.paRate==='None' ? 'No PA rate selected for this shift' : `${form.paRate} — ${fmtGBP(PA_RATES[form.paRate]||0)}`}</div>
             </div>
             <button role="switch" aria-checked={form.paRate!=='None'&&form.paSubmitted} disabled={form.paRate==='None'} onClick={()=>{

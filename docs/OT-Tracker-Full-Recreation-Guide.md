@@ -302,7 +302,7 @@ Both wrapped copies (plus their salts and iteration counts) are stored in `user_
 ## 6. Non-negotiable architecture rules
 
 - **Single file, no new npm packages.** Everything either lives in `App.jsx` or loads from a CDN at the moment it's needed.
-- **Submission-awareness is the core domain rule.** Logging a shift records that it was *worked*. It does not count towards gross/net until the relevant submission toggle (OT via CARMS, PA via MetHR) is switched on. Applies everywhere money is shown.
+- **Submission-awareness is the core domain rule.** Logging a shift records that it was *worked*. It does not count towards gross/net until the relevant submission toggle (OT via CARMS, PA via PSOP) is switched on. Applies everywhere money is shown.
 - **Money is attributed by submission date, not worked date.** A shift worked in one pay period but submitted in a later one has its money counted in the period containing the *submission* date, matching how CARMS actually pays it. This is the single most-tested piece of domain logic in the app (see §7) — verified directly via function calls, not just visually, multiple times. Don't re-investigate `computePayslipData` as a bug without reading the entire function first.
 - **Hours-worked figures stay unconditional and period-local** — a factual record of what happened, regardless of submission status. Deliberately *different* from the money rule above; both conventions coexist without conflict once you know which is which.
 - **One entry per date**, strictly enforced.
@@ -336,7 +336,7 @@ Search for these before writing a new one — duplicating logic that already exi
 ### Home
 - Dark "TOTAL GROSS YTD" card, days into tax year, amber "not yet submitted to CARMS" line (clickable)
 - Salary Breakdown & Overtime Forecast (expandable)
-- **CARMS & MetHR Awaiting Submission card** — icon, heading, total amount, claim count on the left; Overtime/PA figures as a compact two-line stat block on the right, separated by a vertical hairline rather than a horizontal divider strip. Both the total and the Overtime/PA breakdown figures use the same amber (`#d97706`).
+- **CARMS & PSOP Awaiting Submission card** — icon, heading, total amount, claim count on the left; Overtime/PA figures as a compact two-line stat block on the right, separated by a vertical hairline rather than a horizontal divider strip. Both the total and the Overtime/PA breakdown figures use the same amber (`#d97706`).
 - TOIL Balance card (purple normally, red if overdrawn)
 - Current Pay Period card
 - Gross & Net OT — Current Period (mobile-only card; desktop shows this via At a Glance instead)
@@ -417,7 +417,7 @@ Search for these before writing a new one — duplicating logic that already exi
 
 **This document's session (post-v145):**
 - CARMS & PA Outstanding page: Overtime/PA/TOIL pills enlarged and unified in size; all amount figures (OT, PA, TOIL hours, merged-row sub-amount) standardised to match the PA figure's size; month/pay-period header line enlarged to match the duty-reason line
-- Home page: CARMS & MetHR Awaiting Submission box redesigned from a bottom divider-strip layout to a right-hand split (icon/heading/total on the left, Overtime/PA as a compact stat block on the right, separated by a vertical hairline); Overtime/PA unclaimed figures on both this box and the desktop "At a Glance" panel recoloured from dark brown to the same amber as the other figures in their box
+- Home page: CARMS & PSOP Awaiting Submission box redesigned from a bottom divider-strip layout to a right-hand split (icon/heading/total on the left, Overtime/PA as a compact stat block on the right, separated by a vertical hairline); Overtime/PA unclaimed figures on both this box and the desktop "At a Glance" panel recoloured from dark brown to the same amber as the other figures in their box
 - Calendar View cross-period marker rebuilt end-to-end: root-caused and fixed a real bug where the marker required the *entire* day to be fully submitted before showing at all, silently hiding legitimate partial cross-period cases (e.g. OT/TOIL already submitted and counted elsewhere while PA is still outstanding via a separate system on its own timeline); replaced the old tiny inline text label and, later, the special split-colour cell background entirely with a single consistent indigo asterisk marker (custom rounded-stroke SVG, not a font glyph), inset into the top-right corner of the cell; legend updated to match, moved into the left column under "No OT — Info Only," relabelled "OT/PA Counted Other Period"
 - Log Overtime tab: desktop-only two-column layout built for the Rostered/Actual Shift + rate-selection area (see §8 for full detail), including matched-height columns, original RDW behaviour preserved (Rostered section removed, not disabled) with vertical centring to fill the matched height, and a matching Manual Entry mode treatment — all scoped to desktop only, mobile untouched throughout
 - This document itself — first full ground-up recreation guide, covering the previously-undocumented Supabase schema, Realtime setup, Edge Function, and end-to-end encryption architecture

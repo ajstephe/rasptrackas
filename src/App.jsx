@@ -669,7 +669,7 @@ export default function App() {
   const [focusCarmsToggle, setFocusCarmsToggle] = useState(false);
 
   // Which period group in CARMS Outstanding should scroll into view and
-  // pulse, set when jumping there from a "CARMS & MetHR pending" panel in
+  // pulse, set when jumping there from a "CARMS & PSOP pending" panel in
   // Summary — same scroll-and-fade pattern as focusEntryId/focusCarmsToggle.
   const [pulsePeriodIdx, setPulsePeriodIdx] = useState(null);
   const [editing,      setEditing]      = useState(null);
@@ -1755,7 +1755,7 @@ export default function App() {
           <button onClick={()=>changeMonth(1)} aria-label="Next month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
         </div>
         <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:'14px'}}>
-          {datePickerForV==='ot' ? 'Select the date you submitted this OT to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this PA claim to MetHR' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''}` : 'Select the date of this shift'}
+          {datePickerForV==='ot' ? 'Select the date you submitted this OT to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this PA claim to PSOP' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''}` : 'Select the date of this shift'}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'6px'}}>
           {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=><div key={d} style={{textAlign:'center',fontSize:'11.5px',fontWeight:800,color:'var(--quiet)',padding:'4px 0'}}>{d}</div>)}
@@ -2140,7 +2140,7 @@ export default function App() {
         // Overtime and TOIL share one toggle (otSubmitted) so they count as
         // a single item together; PA is independent and counts separately —
         // a day with both outstanding is genuinely two claims to submit,
-        // not one, since they go to two different systems (CARMS/MetHR).
+        // not one, since they go to two different systems (CARMS/PSOP).
         totalClaims += items.reduce((s,it)=>s+(it.otOutstanding?1:0)+(it.paOutstanding?1:0),0);
       }
     });
@@ -2179,7 +2179,7 @@ export default function App() {
   // Toggles ONE claim-type on ONE entry — not the whole entry at once.
   // An entry with both OT and PA outstanding used to select/deselect both
   // together as a single unit, forcing them into the same bulk submission
-  // even though CARMS (overtime) and MetHR (PA) are separate systems people
+  // even though CARMS (overtime) and PSOP (PA) are separate systems people
   // often don't submit to on the same schedule. 'key' is 'ot' or 'pa';
   // the entry drops out of carmsSelected entirely once neither is set,
   // rather than lingering as an empty {} that would still count towards
@@ -2647,7 +2647,7 @@ export default function App() {
     // on submission date, not the shift's own date — same principle as
     // periodBreakdown's own FY attribution. A shift worked in late March but
     // submitted in April belongs to the new financial year's export, since
-    // that's when it actually became real money on CARMS/MetHR, matching
+    // that's when it actually became real money on CARMS/PSOP, matching
     // how the Home screen's own totals already treat it. An entry qualifies
     // if EITHER its OT or PA submission date falls in range — an entry with
     // only one side submitted still needs to show up once that side lands.
@@ -2695,7 +2695,7 @@ export default function App() {
       const yearFraction = p ? taxYearFractionForDate(p.end) : taxYearFractionForDate(e.date);
       const result = applyBandTax(cumulativeBefore, gross, yearFraction, periodGrossBefore);
       // A plain-language breakdown of exactly how the Gross figure was made
-      // up — e.g. "4hr@1.5x=£60.00 + PA2@£90.00". Respects submission
+      // up — e.g. "4hr@1.5x=£60.00 + PA2@£98.00". Respects submission
       // status the same way Gross itself does, so the parts shown here
       // always add up to the Gross value in the next column, rather than
       // showing OT/PA components that haven't actually been claimed yet.
@@ -3539,7 +3539,7 @@ export default function App() {
   },[focusCarmsToggle, tab]);
 
   // Jumping to a specific period group in CARMS Outstanding from a "CARMS &
-  // MetHR pending" panel in Summary — same scroll-then-fade shape as the
+  // PSOP pending" panel in Summary — same scroll-then-fade shape as the
   // two effects above.
   useEffect(()=>{
     if(pulsePeriodIdx===null || tab!=='carms') return;
@@ -4610,7 +4610,7 @@ export default function App() {
               : (()=>{
                   // One row per CLAIM, not per entry: an entry with both
                   // overtime and PA outstanding is two separate submissions
-                  // (CARMS and MetHR), so it gets a row each with its own
+                  // (CARMS and PSOP), so it gets a row each with its own
                   // amount — mirroring the CARMS/PA tab, and keeping the row
                   // count consistent with the "claims to submit" total below,
                   // which has always counted them separately.

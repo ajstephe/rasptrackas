@@ -53,7 +53,7 @@ export function TabDashboard({
             <div style={{background:'var(--tint-green-2)',padding:compact?'8px':'9px',borderRadius:compact?'10px':'11px',flexShrink:0}}><Ico n="cash" s={compact?16:17} c="#15803d"/></div>
             {/* Matches the plain-text header style every other row in this
                 card uses (Current Pay Period / TOIL Balance / CARMS &
-                MetHR Outstanding, below) — this was the one header still
+                PSOP Outstanding, below) — this was the one header still
                 set as a small uppercase mono eyebrow instead, which read
                 as a different kind of label sitting in the same list. */}
             <span style={{fontSize:compact?'12px':'13px',fontWeight:700,color:'var(--ink)'}}>Net Pay · This Period</span>
@@ -348,7 +348,7 @@ export function TabDashboard({
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
               <div>
-                <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR Outstanding</div>
+                <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; PSOP Outstanding</div>
                 <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             </div>
@@ -423,7 +423,7 @@ export function TabDashboard({
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
               <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
               <div>
-                <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; MetHR Outstanding</div>
+                <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; PSOP Outstanding</div>
                 <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             </div>

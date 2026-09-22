@@ -60,8 +60,8 @@ export const PAY_RATES = {
   },
 };
 
-export const PA_RATES   = { None:0, PA1:40, PA2:90, PA3:125 };
-export const PA_LABELS  = { None:'—', PA1:'£40', PA2:'£90', PA3:'£125' };
+export const PA_RATES   = { None:0, PA1:48, PA2:98, PA3:133 };
+export const PA_LABELS  = { None:'—', PA1:'£48', PA2:'£98', PA3:'£133' };
 
 // Which of the three overtime rate tiers a given field name/key maps to —
 // used to convert TOIL hours (worked) into TOIL hours (banked).

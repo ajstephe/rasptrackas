@@ -254,7 +254,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                       // A day showing TOIL on its own (the dedicated TOIL filter
                       // tab, where showOt is always false) still gets its own row.
                       const mergeOtToil = showOt && showToil;
-                      // OT and PA go to different systems (CARMS vs MetHR) on
+                      // OT and PA go to different systems (CARMS vs PSOP) on
                       // different schedules, so each gets its own ring and its
                       // own toggle rather than one shared selection for the
                       // whole entry — selecting one no longer forces the other

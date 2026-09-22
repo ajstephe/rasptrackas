@@ -348,7 +348,7 @@ export function TabSummary({
                     <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="checklist" s={15} c={BRASS}/></div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Awaiting submission</div>
-                      <div style={{fontSize:'10px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>CARMS &amp; MetHR</div>
+                      <div style={{fontSize:'10px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>CARMS &amp; PSOP</div>
                     </div>
                     <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(g.periodTotal)}</div>
                   </button>
@@ -718,7 +718,7 @@ export function TabSummary({
           const isRecordOnly = dEntries.length>0 && totalHrs===0 && !hasPA;
           // Cross-period detection is independent of whether the
           // *other* part of the day is submitted — OT/TOIL goes
-          // through CARMS and PA goes through MetHR on separate
+          // through CARMS and PA goes through PSOP on separate
           // timelines, so it's normal for one side to already be
           // submitted and counted in a different period while the
           // other is still outstanding. This drives the asterisk
@@ -983,7 +983,7 @@ export function TabSummary({
                 <button onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); }} className="nav-add-pulse" style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'18px',marginTop:'9px',width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
                   <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                     <Ico n="clock" s={14} c="#d97706"/>
-                    <span style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>CARMS &amp; MetHR Awaiting Submission</span>
+                    <span style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>CARMS &amp; PSOP Awaiting Submission</span>
                   </div>
                   <span style={{fontFamily:MONO,fontSize:'19px',fontWeight:600,color:'#d97706'}}>{fmtGBP(g.periodTotal)}</span>
                 </button>

@@ -54,8 +54,8 @@ describe('calcEntry', () => {
     const rates = getRates(SETTINGS.rank, SETTINGS.service, '2026-08-15');
     const e = baseEntry({ hours133:'1', paRate:'PA2' });
     const c = calcEntry(e, SETTINGS);
-    expect(c.pa).toBe(90);
-    expect(c.gross).toBeCloseTo(rates.r133 + 90, 6);
+    expect(c.pa).toBe(98);
+    expect(c.gross).toBeCloseTo(rates.r133 + 98, 6);
   });
 
   it('treats an entry with no rank/service configured as earning zero', () => {
@@ -143,8 +143,8 @@ describe('submittedGross', () => {
 
   it('counts PA pay only when the PA toggle is on, independent of the OT toggle', () => {
     const e = baseEntry({ hours133:'2', paRate:'PA1', otSubmitted:false, paSubmitted:true });
-    // OT not submitted (contributes 0) but PA is (contributes flat £40).
-    expect(submittedGross(e, SETTINGS)).toBe(40);
+    // OT not submitted (contributes 0) but PA is (contributes flat £48).
+    expect(submittedGross(e, SETTINGS)).toBe(48);
   });
 
   it('always counts an entry that has no overtime hours at all as its (zero) night contribution', () => {

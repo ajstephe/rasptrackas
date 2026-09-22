@@ -2,7 +2,7 @@
 // carmsSelected (App.jsx) maps entry id -> which of that row's own claim
 // types are ticked, e.g. { ot: true, pa: true } — an entry can carry both an
 // outstanding OT and PA claim, selected independently, since CARMS
-// (overtime) and MetHR (PA) are separate systems people often submit to on
+// (overtime) and PSOP (PA) are separate systems people often submit to on
 // different schedules.
 //
 // Object.keys(carmsSelected).length counts ENTRIES, not claims, so it
