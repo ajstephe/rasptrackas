@@ -502,7 +502,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'20px'}}>
           <ClockCashIcon width={26} height={18}/>
           <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0}}>
-            <span style={{fontSize:'17px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime &amp; Shift Tracker</span>
+            <span style={{fontSize:'17px',fontWeight:900,color:'#2152c4',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime &amp; Shift Tracker</span>
             <span style={{fontSize:'12px',fontWeight:700,color:'var(--quiet)',letterSpacing:'0.2px'}}>by Adam Stephens</span>
           </div>
         </div>
@@ -3965,7 +3965,7 @@ export default function App() {
       <div className="fi" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'18px',height:'100dvh',background:'var(--surface-2)',fontFamily:'var(--app-font)'}}>
         <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'10px'}}>
           <ClockCashIcon width={40} height={27}/>
-          <span style={{fontSize:'17px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.3px'}}>Overtime &amp; Shift Tracker</span>
+          <span style={{fontSize:'17px',fontWeight:900,color:'#2152c4',letterSpacing:'-0.3px'}}>Overtime &amp; Shift Tracker</span>
         </div>
         <div className="tab-spinner"/>
       </div>
@@ -4393,7 +4393,7 @@ export default function App() {
         <div style={{display:'flex',alignItems:'center',gap:'8px',minWidth:0}}>
           <ClockCashIcon width={28} height={19}/>
           <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0,overflow:'hidden'}}>
-            <span style={{fontSize:'19px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime &amp; Shift Tracker</span>
+            <span style={{fontSize:'19px',fontWeight:900,color:'#2152c4',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime &amp; Shift Tracker</span>
             <span style={{fontSize:'13px',fontWeight:700,color:'var(--quiet)',letterSpacing:'0.2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>by Adam Stephens</span>
           </div>
         </div>
