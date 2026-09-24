@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { fmtGBP, fmtD } from '../lib/format.js';
 import { Ico } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
@@ -6,19 +6,19 @@ import { SegSlider } from './SegSlider.jsx';
 import { useMountTransition } from '../lib/useMountTransition.js';
 import { countSelectedClaims } from '../lib/carms.js';
 
-// ─── CARMS & PA Outstanding tab ──────────────────────────────────────────────
-// Rebuilt onto the same "ledger" idiom as the Dashboard: a navy statement
-// header (eyebrow, one big mono total, brass divider) instead of three
-// separate translucent stat tiles, then hairline rows with icon chips
-// instead of a boxed dark card. Behaviour (filters, refs, pulse-scroll,
-// claim numbering, edit-on-tap) is unchanged from the original extraction.
+// ─── CARMS & PA Outstanding tab — "Table View" ───────────────────────────────
+// Desktop gets a real sortable table (click Date/Amount to reorder, a
+// checkbox on every row from the start, a hover "Mark submitted" quick
+// action) instead of the old single narrow column of cards. Mobile keeps
+// the period-grouped list it always had, but each row now carries the same
+// always-visible checkbox and quick-submit action as desktop — no "Select
+// Multiple Entries" mode to enter first, on either platform.
 export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, setCarmsFilter, periodGroupRefs, pulsePeriodIdx, startEdit, setFocusCarmsToggle, carmsClaimNumbers, animClass='fi',
-  carmsSelectMode, toggleCarmsSelectMode, carmsSelected, toggleCarmsClaim, toggleCarmsGroup, openCarmsBulkConfirm,
+  carmsSelected, toggleCarmsClaim, toggleCarmsGroup, selectCarmsClaim, openCarmsBulkConfirm,
 }) {
-  // Small tinted icon-chip, shared by every OT/PA/TOIL row below —
-  // replaces the old flat colour text pill so a claim's category reads
-  // the same way the rest of the app (Dashboard, Summary) marks one:
-  // an icon in a tinted circle, not a coloured block of text.
+  // Small tinted icon-chip, used by the mobile list's rows — an icon in a
+  // tinted circle, matching how the rest of the app (Dashboard, Summary)
+  // marks a claim's category.
   const catChip = (kind, size=26) => {
     const map = {
       ot:   { n:'clock', bg:'var(--tint-blue)',   c:'#2563eb' },
@@ -28,6 +28,33 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
     return <div style={{width:size+'px',height:size+'px',borderRadius:'9px',background:map.bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n={map.n} s={Math.round(size*0.5)} c={map.c} w={2}/></div>;
   };
 
+  // Same tinted-pill treatment for the desktop table's Type column — icon
+  // plus label in one badge instead of a bare chip, since the table has
+  // room for the word itself (an entry's actual PA tier, e.g. "PA2", is
+  // more useful here than the generic "PA" the old cards showed).
+  const typeBadge = (row) => {
+    const kind = row.kind==='ot+toil' ? 'ot' : row.kind;
+    const map = {
+      ot:   { n:'clock', bg:'var(--tint-blue)',   c:'#2563eb' },
+      pa:   { n:'cash',  bg:'var(--tint-amber)',  c:'#f59e0b' },
+      toil: { n:'moon',  bg:'var(--tint-purple)', c:'#7c3aed' },
+    }[kind];
+    return (
+      <span style={{display:'inline-flex',alignItems:'center',gap:'5px',fontSize:'10.5px',fontWeight:800,padding:'3px 8px',borderRadius:'7px',background:map.bg,color:map.c,whiteSpace:'nowrap'}}>
+        <Ico n={map.n} s={11} c={map.c} w={2.2}/>{row.typeLabel}
+      </span>
+    );
+  };
+
+  // Real checkbox, always visible — the one interactive element shared by
+  // every row on both platforms, replacing the old select-mode-only ring.
+  const Checkbox = ({ checked, onClick, size=18 }) => (
+    <button type="button" role="checkbox" aria-checked={checked} onClick={onClick} className="tap-anchor"
+      style={{width:size+'px',height:size+'px',borderRadius:'6px',border:`1.5px solid ${checked?BRASS:'var(--border)'}`,background:checked?BRASS:'var(--surface)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',padding:0,cursor:'pointer',touchAction:'manipulation'}}>
+      {checked && <Ico n="check" s={Math.round(size*0.62)} c="#fff" w={3}/>}
+    </button>
+  );
+
   // Counts up/down instead of jumping whenever the outstanding total
   // changes — e.g. marking a claim as submitted on Log Overtime.
   const animatedTotal = useCountUp(carmsOutstanding.totalAmount);
@@ -35,16 +62,10 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
   // Selected count/total for the bulk action bar — looked up against the
   // same carmsOutstanding data every row already renders from, using
   // whichever of {ot,pa} was actually showing (and therefore selectable)
-  // on that row at the moment it was picked.
-  //
-  // carmsSelected is keyed by entry id, but one entry can carry both an
-  // outstanding OT and PA claim (toggleCarmsClaim in App.jsx toggles them
-  // independently for exactly that reason) — so Object.keys(...).length
-  // undercounts the moment a single entry has both boxes ticked: ticking
-  // OT and PA on the same "VIP arrival cover" shift showed "1 selected"
-  // for two visibly-checked rows. selectedTotal already summed both
-  // markers correctly; the count now matches it claim-for-claim instead
-  // of entry-for-entry.
+  // on that row at the moment it was picked. carmsSelected is keyed by
+  // entry id, but one entry can carry both an outstanding OT and PA claim
+  // (toggleCarmsClaim toggles them independently), so Object.keys(...)
+  // .length would undercount — this sums both markers instead.
   const selectedIds = Object.keys(carmsSelected||{});
   const selectedClaimCount = countSelectedClaims(carmsSelected);
   const selectedTotal = (() => {
@@ -63,325 +84,290 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
   })();
 
   // ── bulk action bar mirrors its own entrance on the way out ─────────────
-  // Same useMountTransition trick as App.jsx's overlays: deselecting the
-  // last claim (or cancelling select mode) used to cut this bar away
-  // instantly; now it keeps rendering for one more beat so .sheet-pop's
-  // "-out" class can slide it back down instead. selectedIds/selectedTotal
-  // themselves drop to 0 the instant that happens, so barCount/barTotal
-  // freeze at their last real value (via the ref below) for that tail.
-  const barOpen = carmsSelectMode && selectedIds.length>0;
+  const barOpen = selectedIds.length>0;
   const barMounted = useMountTransition(barOpen, 240);
   const lastBarRef = useRef({ count:selectedClaimCount, total:selectedTotal });
   if (barOpen) lastBarRef.current = { count:selectedClaimCount, total:selectedTotal };
   const { count:barCount, total:barTotal } = lastBarRef.current;
 
+  // ── sort — Date (newest first) by default, or Amount, shared by the
+  // desktop table's clickable column headers and the mobile list's single
+  // "Sort: Date/Amount" pill ──────────────────────────────────────────────
+  const [sortKey, setSortKey] = useState('date');
+  const [sortDir, setSortDir] = useState('desc');
+  // Jumping here from a period's "Awaiting submission" panel in Summary
+  // only makes sense in date order, where that period's rows sit together
+  // as one contiguous block — force back to it so the scroll target (the
+  // first row of that period) actually means something.
+  useEffect(()=>{ if(pulsePeriodIdx!=null){ setSortKey('date'); setSortDir('desc'); } },[pulsePeriodIdx]);
+  const toggleSort = (key) => {
+    if (sortKey===key) setSortDir(d=>d==='desc'?'asc':'desc');
+    else { setSortKey(key); setSortDir('desc'); }
+  };
+  const sortRows = (rows) => rows.slice().sort((a,b)=>{
+    const cmp = sortKey==='amount' ? (a.amount-b.amount) : (a.date<b.date?-1:a.date>b.date?1:0);
+    return sortDir==='asc' ? cmp : -cmp;
+  });
+
+  const matchesFilter = it => {
+    if (carmsFilter==='ot') return it.otOutstanding;
+    if (carmsFilter==='pa') return it.paOutstanding;
+    if (carmsFilter==='toil') return it.toilOutstanding;
+    return true;
+  };
+
+  // One item (one logged entry) can carry up to three separate claims —
+  // Overtime, PA, and TOIL — each toggled and submitted independently
+  // (TOIL shares the same 'ot' toggle as Overtime, since it only ever
+  // banks as a side effect of that same CARMS submission, so it's never
+  // its own selectable claim outside the dedicated TOIL filter). Flattened
+  // here into one row per claim so the table/list can sort and select them
+  // individually.
+  const flattenItem = (it, periodIdx) => {
+    const rows = [];
+    const showOt = it.otOutstanding && carmsFilter!=='pa' && carmsFilter!=='toil';
+    const showPa = it.paOutstanding && carmsFilter!=='ot' && carmsFilter!=='toil';
+    const showToil = it.toilOutstanding && carmsFilter!=='ot' && carmsFilter!=='pa';
+    const mergeOtToil = showOt && showToil;
+    if (showOt) {
+      rows.push({
+        id: it.entry.id+'-ot', entry: it.entry, entryId: it.entry.id, claimKey:'ot', kind: mergeOtToil?'ot+toil':'ot',
+        date: it.entry.date, reason: it.entry.reason||'Shift', periodIdx,
+        typeLabel: mergeOtToil?'Overtime + TOIL':'Overtime',
+        amount: it.otAmt, amountDisplay: fmtGBP(it.otAmt), toilHrs: mergeOtToil?it.toilHrs:0,
+        claimNo: carmsClaimNumbers.get(it.entry.id+'-ot'),
+      });
+    }
+    if (showPa) {
+      rows.push({
+        id: it.entry.id+'-pa', entry: it.entry, entryId: it.entry.id, claimKey:'pa', kind:'pa',
+        date: it.entry.date, reason: it.entry.reason||'Shift', periodIdx,
+        typeLabel: it.entry.paRate||'PA',
+        amount: it.paAmt, amountDisplay: fmtGBP(it.paAmt), toilHrs: 0,
+        claimNo: carmsClaimNumbers.get(it.entry.id+'-pa'),
+      });
+    }
+    if (showToil && !mergeOtToil) {
+      rows.push({
+        id: it.entry.id+'-toil', entry: it.entry, entryId: it.entry.id, claimKey:'ot', kind:'toil',
+        date: it.entry.date, reason: it.entry.reason||'Shift', periodIdx,
+        typeLabel: 'TOIL',
+        amount: it.toilHrs, amountDisplay: `${it.toilHrs.toFixed(1)}h`, toilHrs: it.toilHrs,
+        claimNo: carmsClaimNumbers.get(it.entry.id+'-toil'),
+      });
+    }
+    return rows;
+  };
+
+  const goToEntry = (entry) => { startEdit(entry); setFocusCarmsToggle(true); };
+
+  // "Select all" — every row's *required* markers (whichever of ot/pa that
+  // row's own filter context says actually applies) must already be set,
+  // not just that the entry has any marker at all, otherwise a row
+  // selected for PA only would read as "done" here even with its own OT
+  // still outstanding.
+  const required = it => {
+    const r = {};
+    if (it.otOutstanding && carmsFilter!=='pa' && carmsFilter!=='toil') r.ot = true;
+    if (it.paOutstanding && carmsFilter!=='ot' && carmsFilter!=='toil') r.pa = true;
+    return r;
+  };
+  const isDone = it => {
+    const req = required(it);
+    const sel = carmsSelected[it.entry.id] || {};
+    return (!req.ot || sel.ot) && (!req.pa || sel.pa);
+  };
+
+  const anyOutstanding = carmsOutstanding.groups.length>0;
+  const anyVisible = carmsOutstanding.groups.some(g=>g.items.some(matchesFilter));
+
+  const filterSeg = (compact) => (
+    <SegSlider activeKey={carmsFilter} trackStyle={{display:'flex',gap:compact?'4px':'6px',flex:1}} indicatorStyle={{background:BRASS,borderRadius:compact?'8px':'10px'}}>
+      {[{id:'all',lbl:'All'},{id:'ot',lbl:compact?'OT':'Overtime'},{id:'pa',lbl:'PA'},{id:'toil',lbl:'TOIL'}].map(f=>(
+        <div key={f.id} data-seg-key={f.id} onClick={()=>setCarmsFilter(f.id)} className="tap-row" style={{position:'relative',zIndex:1,flex:1,textAlign:'center',padding:compact?'6px 3px':'8px 4px',borderRadius:compact?'8px':'10px',fontSize:compact?'9.5px':'11px',fontWeight:800,cursor:'pointer',background:'transparent',color:carmsFilter===f.id?'#fff':'var(--muted)',border:carmsFilter===f.id?'none':'1px solid var(--border-2)'}}>{f.lbl}</div>
+      ))}
+    </SegSlider>
+  );
+
+  const emptyState = (title, sub) => (
+    <div style={{textAlign:'center',padding:'22px 10px 26px'}}>
+      <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
+        <Ico n="check" s={20} c={BRASS} w={2.3}/>
+      </div>
+      <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>{title}</div>
+      <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>{sub}</div>
+    </div>
+  );
+
+  // ── desktop: one flat, sortable table across every period ───────────────
+  const renderDesktopTable = () => {
+    const visibleItemsAll = carmsOutstanding.groups.flatMap(g=>g.items.filter(matchesFilter).map(it=>({ it, periodIdx:g.periodIdx })));
+    const flatRows = sortRows(visibleItemsAll.flatMap(({it,periodIdx})=>flattenItem(it,periodIdx)));
+    const allDone = visibleItemsAll.length>0 && visibleItemsAll.every(({it})=>isDone(it));
+    const toggleSelectAll = () => {
+      const byEntry = new Map();
+      visibleItemsAll.forEach(({it})=>byEntry.set(it.entry.id, required(it)));
+      const rows = Array.from(byEntry, ([id,markers])=>({id,markers}));
+      toggleCarmsGroup(rows);
+    };
+    const periodMonthByIdx = new Map(carmsOutstanding.groups.map(g=>[g.periodIdx, g.period.month]));
+    const thStyle = {textAlign:'left',fontSize:'9.5px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.05em',color:'var(--quiet)',padding:'10px 12px',borderBottom:'1px solid var(--border-2)',background:'var(--surface-2)',userSelect:'none'};
+    const tdStyle = {padding:'10px 12px',fontSize:'12px',fontWeight:700,color:'var(--ink)',verticalAlign:'top'};
+    const seenPeriods = new Set();
+
+    return (
+      <div style={{background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'14px',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
+        <style>{`.awaits-table tr:last-child td{border-bottom:none;}.awaits-quick{opacity:0;transition:opacity .12s ease;}.awaits-tr:hover .awaits-quick{opacity:1;}`}</style>
+        <table className="awaits-table" style={{width:'100%',borderCollapse:'collapse'}}>
+          <thead>
+            <tr>
+              <th style={thStyle}><Checkbox checked={allDone} onClick={toggleSelectAll} size={16}/></th>
+              <th style={{...thStyle,cursor:'pointer'}} onClick={()=>toggleSort('date')}>Date {sortKey==='date'&&(sortDir==='desc'?'▾':'▴')}</th>
+              <th style={thStyle}>Shift / Reason</th>
+              <th style={thStyle}>Type</th>
+              <th style={thStyle}>Period</th>
+              <th style={{...thStyle,textAlign:'right',cursor:'pointer'}} onClick={()=>toggleSort('amount')}>Amount {sortKey==='amount'&&(sortDir==='desc'?'▾':'▴')}</th>
+              <th style={thStyle}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {flatRows.map(row=>{
+              const selected = !!carmsSelected[row.entryId]?.[row.claimKey];
+              const isFirstOfPeriod = !seenPeriods.has(row.periodIdx);
+              if (isFirstOfPeriod) seenPeriods.add(row.periodIdx);
+              return (
+                <tr key={row.id}
+                  ref={el=>{ if(isFirstOfPeriod) periodGroupRefs.current[row.periodIdx]=el; }}
+                  className={'awaits-tr'+(pulsePeriodIdx===row.periodIdx?' carms-pulse':'')}
+                  onClick={()=>goToEntry(row.entry)}
+                  style={{cursor:'pointer',background:selected?'rgba(184,130,63,0.07)':'transparent'}}>
+                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)'}} onClick={e=>e.stopPropagation()}><Checkbox checked={selected} onClick={()=>toggleCarmsClaim(row.entryId,row.claimKey)} size={16}/></td>
+                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',whiteSpace:'nowrap'}}>
+                    {row.claimNo!=null&&<span style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:800,color:'var(--quiet)',marginRight:'6px'}}>#{row.claimNo}</span>}
+                    {fmtD(row.date)}
+                  </td>
+                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)'}}>{row.reason}</td>
+                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)'}}>{typeBadge(row)}</td>
+                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',color:'var(--quiet)',fontWeight:700,whiteSpace:'nowrap'}}>{periodMonthByIdx.get(row.periodIdx)}</td>
+                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',fontFamily:MONO,textAlign:'right',whiteSpace:'nowrap'}}>
+                    {row.amountDisplay}
+                    {row.kind==='ot+toil'&&<div style={{fontSize:'10px',fontWeight:700,color:'#7c3aed',marginTop:'2px'}}>+ {row.toilHrs.toFixed(1)}h TOIL</div>}
+                  </td>
+                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',textAlign:'right'}}>
+                    <button className="awaits-quick" onClick={e=>{ e.stopPropagation(); selectCarmsClaim(row.entryId,row.claimKey); openCarmsBulkConfirm(); }}
+                      style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:800,color:'var(--text-green-deep)',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'7px',padding:'4px 9px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
+                      <Ico n="check" s={10} c="var(--text-green-deep)" w={3}/> Mark submitted
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  // ── mobile: period-grouped dense list, same grouping/pulse container as
+  // before, redesigned rows (checkbox + icon chip + always-visible quick
+  // submit instead of hover, since hover doesn't exist on a phone) ────────
+  const renderMobileList = () => carmsOutstanding.groups.map(g=>{
+    const visibleItems = g.items.filter(matchesFilter);
+    if (visibleItems.length===0) return null;
+    const groupTotalLabel = (() => {
+      if (carmsFilter==='toil') return `${visibleItems.reduce((s,it)=>s+it.toilHrs,0).toFixed(1)}h`;
+      const total = visibleItems.reduce((s,it)=>{
+        if (carmsFilter==='ot') return s+it.otAmt;
+        if (carmsFilter==='pa') return s+it.paAmt;
+        return s+it.amount;
+      },0);
+      return fmtGBP(total);
+    })();
+    const rows = sortRows(visibleItems.flatMap(it=>flattenItem(it, g.periodIdx)));
+    return (
+      <div key={g.periodIdx} ref={el=>periodGroupRefs.current[g.periodIdx]=el} className={pulsePeriodIdx===g.periodIdx?'carms-pulse':''} style={{marginBottom:'14px',borderRadius:'14px',border:pulsePeriodIdx===g.periodIdx?'2px solid #2563eb':'2px solid transparent'}}>
+        <div style={{display:'flex',justifyContent:'space-between',padding:'8px 4px',fontSize:'12.5px',fontWeight:800,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.6px',borderBottom:'1px solid var(--border-2)'}}>
+          <span>{g.period.short} · {g.period.month} · {fmtD(g.period.start)} – {fmtD(g.period.end)}</span>
+          <span style={{fontFamily:MONO,color:BRASS}}>{groupTotalLabel}</span>
+        </div>
+        <div style={{padding:'10px 0 2px'}}>
+          {rows.map((row,i)=>{
+            const selected = !!carmsSelected[row.entryId]?.[row.claimKey];
+            return (
+              <div key={row.id} className="claim-in tap-row" onClick={()=>goToEntry(row.entry)} style={{display:'flex',alignItems:'center',gap:'9px',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'9px 10px',marginBottom:'7px',cursor:'pointer',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none',animationDelay:(Math.min(i,6)*55)+'ms',background:selected?'rgba(184,130,63,0.07)':'var(--surface)'}}>
+                <span onClick={e=>e.stopPropagation()}><Checkbox checked={selected} onClick={()=>toggleCarmsClaim(row.entryId,row.claimKey)} size={18}/></span>
+                {catChip(row.kind==='ot+toil'?'ot':row.kind, 26)}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.reason}</div>
+                  <div style={{fontSize:'9.5px',color:'var(--quiet)',marginTop:'1px'}}>{row.typeLabel} · {new Date(row.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
+                </div>
+                <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'5px',flexShrink:0}}>
+                  <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--ink)'}}>{row.amountDisplay}</div>
+                  {row.kind==='ot+toil'&&<div style={{fontFamily:MONO,fontSize:'9px',fontWeight:700,color:'#7c3aed'}}>+{row.toilHrs.toFixed(1)}h TOIL</div>}
+                  <button onClick={e=>{ e.stopPropagation(); selectCarmsClaim(row.entryId,row.claimKey); openCarmsBulkConfirm(); }}
+                    style={{display:'flex',alignItems:'center',gap:'3px',fontSize:'8.5px',fontWeight:800,color:'var(--text-green-deep)',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'6px',padding:'3px 6px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
+                    <Ico n="check" s={8} c="var(--text-green-deep)" w={3}/> Submit
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  });
+
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 18px',letterSpacing:'-0.5px'}}>CARMS &amp; PA Awaiting Submission</h2>
 
-      <div style={{background:'var(--surface)',borderRadius:'18px',border:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',overflow:'hidden'}}>
-
-        {/* ── navy statement header ── */}
-        <div style={{background:'var(--navy)',padding:'22px 20px',position:'relative',overflow:'hidden'}}>
-          {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 cut; this
-              was silently rendering as 700 already (confirmed by pixel
-              diff), so the code now says what's actually on screen. */}
-          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f',marginBottom:'10px'}}>Outstanding</div>
-          <div style={{fontFamily:MONO,fontSize:'28px',fontWeight:600,color:'#fff',letterSpacing:'-0.02em',marginBottom:'9px'}}>{fmtGBP(animatedTotal)}</div>
-          <div style={{width:'38px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'12px'}}/>
-          <div style={{fontSize:'11px',color:'#93c5fd',fontWeight:600,lineHeight:1.5}}>Spacing out your overtime for a steadier payday, or quietly dodging the taxman as £100k creeps closer — either way, good thinking. This is everything still sitting unclaimed in CARMS and PA, so nothing gets left behind.</div>
-        </div>
-
-        {/* ── OT / PA / Claims — hairline rows, icon chips, the same
-             template the Dashboard uses for its own ledger rows ── */}
-        <div style={{padding:'2px 20px'}}>
-          <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'13px 0',borderBottom:'1px solid var(--border-2)'}}>
-            {catChip('ot', 32)}
-            <div style={{flex:1,fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>OT Outstanding</div>
-            <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</div>
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'13px 0',borderBottom:'1px solid var(--border-2)'}}>
-            {catChip('pa', 32)}
-            <div style={{flex:1,fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>PA Outstanding</div>
-            <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</div>
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'13px 0'}}>
-            <div style={{width:'32px',height:'32px',borderRadius:'13px',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
-            <div style={{flex:1,fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Claims</div>
-            <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--ink)'}}>{carmsOutstanding.totalClaims}</div>
-          </div>
-        </div>
-
-        {carmsOutstanding.groups.length===0 ? (
-          <div style={{textAlign:'center',padding:'22px 10px 26px'}}>
-            <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
-              <Ico n="check" s={20} c={BRASS} w={2.3}/>
-            </div>
-            <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>All caught up</div>
-            <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Every logged claim has been marked as submitted</div>
-          </div>
-        ) : (
-          <div style={{padding:'0 20px 18px'}}>
-            <div style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'10px 12px',fontSize:'11px',color:'var(--text-amber-deep)',lineHeight:1.5,margin:'10px 0 14px'}}>
-              This {fmtGBP(carmsOutstanding.totalAmount)} isn't in your Total Gross YTD yet — it only counts once it's been marked as submitted on the Log Overtime screen.
-            </div>
-
-            <SegSlider activeKey={carmsFilter} trackStyle={{display:'flex',gap:'6px',marginBottom:'10px'}} indicatorStyle={{background:BRASS,borderRadius:'10px'}}>
-              {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'},{id:'toil',lbl:'TOIL'}].map(f=>(
-                <div key={f.id} data-seg-key={f.id} onClick={()=>setCarmsFilter(f.id)} className="tap-row" style={{position:'relative',zIndex:1,flex:1,textAlign:'center',padding:'8px 4px',borderRadius:'10px',fontSize:'11px',fontWeight:800,cursor:'pointer',background:'transparent',color:carmsFilter===f.id?'#fff':'var(--muted)',border:carmsFilter===f.id?'none':'1px solid var(--border-2)'}}>{f.lbl}</div>
-              ))}
-            </SegSlider>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'flex-start',marginBottom:'14px'}}>
-              <button onClick={toggleCarmsSelectMode} className="tap-row" style={{fontSize:'13px',fontWeight:900,color:'#2563eb',cursor:'pointer',padding:'9px 16px',background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'10px',fontFamily:'inherit',touchAction:'manipulation'}}>{carmsSelectMode?'Cancel':'Select Multiple Entries'}</button>
-            </div>
-
-            {(()=>{
-              const matchesFilter = it => {
-                if (carmsFilter==='ot') return it.otOutstanding;
-                if (carmsFilter==='pa') return it.paOutstanding;
-                if (carmsFilter==='toil') return it.toilOutstanding;
-                return true;
-              };
-              const anyVisible = carmsOutstanding.groups.some(g=>g.items.some(matchesFilter));
-              // Something's outstanding overall (we're already past the
-              // groups.length===0 branch above) but nothing matches THIS
-              // filter — without this, the list below just silently
-              // renders nothing, which reads as a bug rather than "there's
-              // simply no PA outstanding right now."
-              if (!anyVisible) {
-                const filterLbl = carmsFilter==='ot'?'Overtime':carmsFilter==='pa'?'PA':'TOIL';
-                return (
-                  <div style={{textAlign:'center',padding:'20px 10px 24px'}}>
-                    <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
-                      <Ico n="check" s={18} c={BRASS} w={2.3}/>
-                    </div>
-                    <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>Nothing outstanding for {filterLbl}</div>
-                    <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Other categories still have claims — switch filters above to see them</div>
-                  </div>
-                );
-              }
-              return carmsOutstanding.groups.map(g=>{
-              const visibleItems = g.items.filter(matchesFilter);
-              if (visibleItems.length===0) return null;
-              const visibleTotalLabel = (() => {
-                if (carmsFilter==='toil') return `${visibleItems.reduce((s,it)=>s+it.toilHrs,0).toFixed(1)}h`;
-                const total = visibleItems.reduce((s,it)=>{
-                  if (carmsFilter==='ot') return s+it.otAmt;
-                  if (carmsFilter==='pa') return s+it.paAmt;
-                  return s+it.amount;
-                },0);
-                return fmtGBP(total);
-              })();
-              return (
-                <div key={g.periodIdx} ref={el=>periodGroupRefs.current[g.periodIdx]=el} className={pulsePeriodIdx===g.periodIdx?'carms-pulse':''} style={{marginBottom:'14px',borderRadius:'14px',border:pulsePeriodIdx===g.periodIdx?'2px solid #2563eb':'2px solid transparent'}}>
-                  {/* "select all in this period" — required(it) is the same
-                      {ot,pa} shape each row itself computes for its own
-                      selection, so this only reads as fully-checked once
-                      every individual OT and PA line in the group is
-                      actually selected, not just once every entry has *a*
-                      marker on it (an entry selected for PA only no longer
-                      counts as "done" if it also has OT outstanding here). ── */}
-                  {(()=>{
-                    // Only the keys this row actually has outstanding under
-                    // the current filter are included at all (never an
-                    // explicit false) — toggleCarmsGroup merges these into
-                    // whatever's already selected for that entry, so a key
-                    // this group toggle isn't concerned with (e.g. an OT
-                    // claim already selected independently while looking at
-                    // the PA filter) is left alone rather than clobbered.
-                    const required = it => {
-                      const r = {};
-                      if (it.otOutstanding && carmsFilter!=='pa' && carmsFilter!=='toil') r.ot = true;
-                      if (it.paOutstanding && carmsFilter!=='ot' && carmsFilter!=='toil') r.pa = true;
-                      return r;
-                    };
-                    const isDone = it => {
-                      const req = required(it);
-                      const sel = carmsSelected[it.entry.id] || {};
-                      return (!req.ot || sel.ot) && (!req.pa || sel.pa);
-                    };
-                    const allDone = visibleItems.every(isDone);
-                    return (
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 4px',fontSize:isWide?'14.5px':'12.5px',fontWeight:800,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.6px',borderBottom:'1px solid var(--border-2)'}}>
-                    {/* disabled rather than a plain non-interactive <span>
-                        outside select mode — same visible row either way,
-                        but a real button that's genuinely inert (out of
-                        tab order, announced as disabled) instead of a div
-                        whose click handler quietly disappears.
-                        touchAction:'manipulation' below (here and on every
-                        other tap target in this select-mode flow) tells
-                        mobile browsers this element is for tapping, not
-                        panning — without it, a quick tap inside a
-                        scrollable list can occasionally get reclassified
-                        as the start of a scroll instead of a click if the
-                        finger moves even a couple of px, which reads as
-                        "nothing happened unless I press firmly/for a
-                        moment". A small ring made that worse (more finger
-                        movement relative to a small target), which is why
-                        the ring itself is also bigger now than it was. ── */}
-                    <button
-                      disabled={!carmsSelectMode}
-                      className={carmsSelectMode?'tap-anchor':undefined}
-                      onClick={carmsSelectMode?()=>{
-                        const rows = visibleItems.map(it=>({ id: it.entry.id, markers: required(it) }));
-                        toggleCarmsGroup(rows);
-                      }:undefined}
-                      style={{display:'flex',alignItems:'center',gap:'8px',padding:'6px 0',margin:'-6px 0',cursor:carmsSelectMode?'pointer':'default',background:'none',border:'none',color:'inherit',font:'inherit',textTransform:'inherit',letterSpacing:'inherit',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
-                      {carmsSelectMode&&(
-                        <span style={{width:'19px',height:'19px',borderRadius:'50%',border:`1.5px solid ${allDone?BRASS:'var(--quiet)'}`,background:allDone?BRASS:'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                          {allDone&&<Ico n="check" s={11} c="#fff" w={3}/>}
-                        </span>
-                      )}
-                      <span>{g.period.short} · {g.period.month} · {fmtD(g.period.start)} – {fmtD(g.period.end)}</span>
-                    </button>
-                    <span style={{fontFamily:MONO,color:BRASS}}>{visibleTotalLabel}</span>
-                  </div>
-                    );
-                  })()}
-                  <div style={{background:'var(--surface-2)',borderRadius:'12px',padding:'4px 12px'}}>
-                    {visibleItems.map((it,i)=>{
-                      const goToEntry = () => {
-                        startEdit(it.entry);
-                        setFocusCarmsToggle(true);
-                      };
-                      const showOt = it.otOutstanding && carmsFilter!=='pa' && carmsFilter!=='toil';
-                      const showPa = it.paOutstanding && carmsFilter!=='ot' && carmsFilter!=='toil';
-                      const showToil = it.toilOutstanding && carmsFilter!=='ot' && carmsFilter!=='pa';
-                      // Overtime and TOIL are the same submission — TOIL only
-                      // banks once the underlying OT is submitted, so whenever
-                      // both are outstanding on one entry they share a single
-                      // numbered row rather than each claiming their own number.
-                      // A day showing TOIL on its own (the dedicated TOIL filter
-                      // tab, where showOt is always false) still gets its own row.
-                      const mergeOtToil = showOt && showToil;
-                      // OT and PA go to different systems (CARMS vs PSOP) on
-                      // different schedules, so each gets its own ring and its
-                      // own toggle rather than one shared selection for the
-                      // whole entry — selecting one no longer forces the other
-                      // along with it. TOIL never gets its own key: it only
-                      // ever banks as a side effect of the OT submission
-                      // (there's no separate "TOIL submitted" flag in the data
-                      // at all), so the merged OT+TOIL line and the standalone
-                      // TOIL-filter line both toggle the same 'ot' marker.
-                      const otSelected = !!carmsSelected[it.entry.id]?.ot;
-                      const paSelected = !!carmsSelected[it.entry.id]?.pa;
-                      const anySelected = otSelected || paSelected;
-                      // 24px, up from an original 19px — this is the one
-                      // element in each row people instinctively aim for
-                      // (it visually reads as "the radio button"), even
-                      // though the whole row is the real tap target, so it
-                      // reads as the smallest, most precision-demanding
-                      // part of a row that's supposed to be easy to hit.
-                      const ring = (on) => carmsSelectMode&&(
-                        <span style={{width:'24px',height:'24px',borderRadius:'50%',border:`1.5px solid ${on?BRASS:'var(--quiet)'}`,background:on?BRASS:'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                          {on&&<Ico n="check" s={13} c="#fff" w={3}/>}
-                        </span>
-                      );
-                      // Below, each OT/PA/TOIL line renders as an actual
-                      // <button> only in select mode — outside it, it's a
-                      // plain <div>, not a disabled <button>. A disabled
-                      // button still occupies its full space but eats the
-                      // click entirely rather than letting it bubble
-                      // (disabled form controls don't dispatch — or
-                      // forward — click at all), which is exactly why
-                      // tapping this row anywhere except the reason/date
-                      // line above used to do nothing: every one of these
-                      // lines was a disabled button sitting on top of the
-                      // navigable area, silently swallowing the tap that
-                      // should have reached this row's own onClick below.
-                      //
-                      // Can't be a real <button> itself — it contains
-                      // those OT/PA/TOIL <button>s whenever select mode is
-                      // active (a <button> may not itself contain other
-                      // interactive content per HTML5). role="button" +
-                      // tabIndex + Enter/Space is the standard alternative;
-                      // both drop away entirely in select mode, when this
-                      // row's own click handler is disabled anyway and the
-                      // toggles above are the real interactive elements.
-                      //
-                      // "tap-row" (the global :active{transform:scale(0.975)}
-                      // press feedback) also drops away in select mode, for
-                      // a subtler reason: it squeezes the whole row toward
-                      // its own center the instant the mouse goes down. On
-                      // a row this wide, that shifts a ring sitting near the
-                      // left edge several px away from wherever the pointer
-                      // physically is — so on a real mouse (which doesn't
-                      // move mid-click the way a resting finger can) the
-                      // mouseup can land next to the ring instead of on it,
-                      // and no click ever fires even though the button
-                      // still visibly took focus. Outside select mode this
-                      // div *is* the tap target, so the squeeze is harmless;
-                      // in select mode it's inert and its children are the
-                      // real targets, so the squeeze only costs reliability.
-                      return (
-                        <div key={it.entry.id} role={carmsSelectMode?undefined:'button'} tabIndex={carmsSelectMode?undefined:0} onClick={carmsSelectMode?undefined:goToEntry} onKeyDown={carmsSelectMode?undefined:(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goToEntry(); } }} className={carmsSelectMode?'claim-in':'claim-in tap-row'} style={{display:'flex',alignItems:'flex-start',gap:'10px',paddingTop:isWide?'12px':'10px',paddingBottom:isWide?'12px':'10px',borderBottom:'1px solid var(--border-2)',cursor:carmsSelectMode?'default':'pointer',animationDelay:(Math.min(i,6)*55)+'ms',background:anySelected?'rgba(184,130,63,0.07)':'transparent',margin:anySelected?'0 -10px':0,paddingLeft:anySelected?'10px':0,paddingRight:anySelected?'10px':0,borderRadius:anySelected?'8px':0,touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
-                          <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:isWide?'14.5px':'12.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',marginBottom:'6px'}}>
-                            {it.entry.reason||'Shift'} — {new Date(it.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
-                          </div>
-                          {mergeOtToil&&(()=>{ const Row = carmsSelectMode?'button':'div'; return (
-                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
-                              {ring(otSelected)}
-                              <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
-                              <div style={{display:'flex',alignItems:'center',gap:'4px',flexShrink:0}}>
-                                {catChip('ot')}
-                                {catChip('toil')}
-                              </div>
-                              <span style={{fontSize:isWide?'13px':'11.5px',fontWeight:700,color:'var(--ink)'}}>Overtime <span style={{color:'var(--quiet)',fontWeight:600}}>+ TOIL</span></span>
-                              <div style={{marginLeft:'auto',textAlign:'right'}}>
-                                <div style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706'}}>{fmtGBP(it.otAmt)}</div>
-                                <div style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:700,color:'#7c3aed'}}>+ {it.toilHrs.toFixed(1)}h TOIL</div>
-                              </div>
-                            </Row>
-                          ); })()}
-                          {showOt&&!mergeOtToil&&(()=>{ const Row = carmsSelectMode?'button':'div'; return (
-                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
-                              {ring(otSelected)}
-                              <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-ot')}</span>
-                              {catChip('ot')}
-                              <span style={{fontSize:isWide?'13px':'11.5px',fontWeight:700,color:'var(--ink)'}}>Overtime</span>
-                              <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.otAmt)}</span>
-                            </Row>
-                          ); })()}
-                          {showPa&&(()=>{ const Row = carmsSelectMode?'button':'div'; return (
-                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'pa'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
-                              {ring(paSelected)}
-                              <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-pa')}</span>
-                              {catChip('pa')}
-                              <span style={{fontSize:isWide?'13px':'11.5px',fontWeight:700,color:'var(--ink)'}}>PA</span>
-                              <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{fmtGBP(it.paAmt)}</span>
-                            </Row>
-                          ); })()}
-                          {showToil&&!mergeOtToil&&(()=>{ const Row = carmsSelectMode?'button':'div'; return (
-                            <Row className={carmsSelectMode?'tap-anchor':undefined} onClick={carmsSelectMode?()=>toggleCarmsClaim(it.entry.id,'ot'):undefined} style={{display:'flex',alignItems:'center',gap:'8px',padding:'9px 0',width:'100%',background:'none',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none'}}>
-                              {ring(otSelected)}
-                              <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:'var(--muted)',minWidth:isWide?'14px':'12px'}}>{carmsClaimNumbers.get(it.entry.id+'-toil')}</span>
-                              {catChip('toil')}
-                              <span style={{fontSize:isWide?'13px':'11.5px',fontWeight:700,color:'var(--ink)'}}>TOIL</span>
-                              <span style={{fontFamily:MONO,fontSize:isWide?'14.5px':'12.5px',fontWeight:600,color:'#d97706',marginLeft:'auto'}}>{it.toilHrs.toFixed(1)}h</span>
-                            </Row>
-                          ); })()}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-              });
-            })()}
-          </div>
-        )}
+      {/* ── navy statement header ── */}
+      <div style={{background:'var(--navy)',borderRadius:'18px',padding:'22px 20px',position:'relative',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
+        <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f',marginBottom:'10px'}}>Outstanding</div>
+        <div style={{fontFamily:MONO,fontSize:'28px',fontWeight:600,color:'#fff',letterSpacing:'-0.02em',marginBottom:'9px'}}>{fmtGBP(animatedTotal)}</div>
+        <div style={{width:'38px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'12px'}}/>
+        <div style={{fontSize:'11px',color:'#93c5fd',fontWeight:600,lineHeight:1.5}}>Spacing out your overtime for a steadier payday, or quietly dodging the taxman as £100k creeps closer — either way, good thinking. This is everything still sitting unclaimed in CARMS and PA, so nothing gets left behind.</div>
       </div>
 
+      {!anyOutstanding ? (
+        emptyState('All caught up', 'Every logged claim has been marked as submitted')
+      ) : (
+        <div style={{marginTop:'14px'}}>
+          {/* ── condensed OT / PA / Claims strip — one line, not three
+               repeating hairline rows ── */}
+          <div style={{display:'flex',gap:'18px',alignItems:'baseline',flexWrap:'wrap',margin:'2px 2px 12px'}}>
+            <span style={{fontFamily:MONO,fontSize:'20px',fontWeight:600,color:'var(--ink)'}}>{carmsOutstanding.totalClaims}</span>
+            <span style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>Claim{carmsOutstanding.totalClaims!==1?'s':''} outstanding</span>
+            <span style={{color:'var(--border)'}}>|</span>
+            <span style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:700}}>OT <span style={{fontFamily:MONO,color:'var(--ink)'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span></span>
+            <span style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:700}}>PA <span style={{fontFamily:MONO,color:'var(--ink)'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span></span>
+          </div>
+
+          <div style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'9px 12px',fontSize:'11px',color:'var(--text-amber-deep)',lineHeight:1.5,marginBottom:'14px'}}>
+            This {fmtGBP(carmsOutstanding.totalAmount)} isn't in your Total Gross YTD yet — it only counts once it's been marked as submitted on the Log Overtime screen.
+          </div>
+
+          <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'14px'}}>
+            {filterSeg(!isWide)}
+            {!isWide&&(
+              <button onClick={()=>toggleSort(sortKey==='date'?'amount':'date')} style={{display:'flex',alignItems:'center',gap:'4px',fontSize:'9.5px',fontWeight:800,color:'var(--quiet)',background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'8px',padding:'6px 9px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
+                {sortKey==='date'?'Date':'Amount'} <Ico n="cD" s={9} c="var(--quiet)" w={2.5}/>
+              </button>
+            )}
+          </div>
+
+          {!anyVisible ? (
+            emptyState(`Nothing outstanding for ${carmsFilter==='ot'?'Overtime':carmsFilter==='pa'?'PA':'TOIL'}`, 'Other categories still have claims — switch filters above to see them')
+          ) : (
+            isWide ? renderDesktopTable() : renderMobileList()
+          )}
+        </div>
+      )}
+
       {/* ── bulk action bar — only present while there's something to act
-           on, same "floats just above the bottom nav" placement as Log
-           Overtime's own sticky preview banner. That 88px only clears
-           the mobile bottom nav — desktop has no bottom nav (it's a
-           fixed left sidebar instead), so this used to stick with a big
-           dead gap reserved under it for nothing. Matches Log Overtime's
-           own preview banner: sticky only applies on mobile, desktop
-           just renders it in normal flow at the end of the list. ── */}
+           on, floats just above the bottom nav on mobile; desktop has no
+           bottom nav (fixed left sidebar instead), so it just sits in
+           normal flow there. ── */}
       {barMounted && (
         <div className={'sheet-pop'+(barOpen?'':' pop-out')} style={{...(!isWide?{position:'sticky',bottom:'calc(88px + env(safe-area-inset-bottom))'}:{}),zIndex:24,marginTop:'11px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'15px',padding:'12px 14px',boxShadow:'0 10px 24px rgba(15,39,68,0.16)'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>

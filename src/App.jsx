@@ -2184,18 +2184,17 @@ export default function App() {
   // ── CARMS bulk submit ─────────────────────────────────────────────────────
   // The real workflow this screen exists for — submitting a stack of claims
   // to CARMS in one sitting — used to mean visiting each shift's own edit
-  // screen and flipping its toggle individually, once per claim. Select mode
-  // lets several rows (or a whole period at once) get marked submitted
+  // screen and flipping its toggle individually, once per claim. A checkbox
+  // sits on every claim row from the start (Table View redesign — no more
+  // "Select Multiple Entries" mode to enter first), letting several rows
+  // (or all of them, via the table's header checkbox) get marked submitted
   // together, asking for one shared submission date instead of one per shift.
   // carmsSelected maps entry id -> which of that row's own pieces were
-  // actually showing (and therefore selected) at the moment it was picked —
+  // actually showing (and therefore selectable) at the moment it was picked —
   // {ot,pa} rather than a flat id set, since one entry can carry both an
   // outstanding OT and PA claim, and a filtered view might only be showing
-  // one of the two. Nothing here touches the existing single-tap-to-edit
-  // flow — it only exists while carmsSelectMode is on.
-  const [carmsSelectMode, setCarmsSelectMode] = useState(false);
+  // one of the two. Nothing here touches the existing single-tap-to-edit flow.
   const [carmsSelected, setCarmsSelected] = useState({});
-  const toggleCarmsSelectMode = () => { setCarmsSelectMode(v=>!v); setCarmsSelected({}); };
   // Object.keys(carmsSelected).length counts ENTRIES, not claims — and one
   // entry can hold both an outstanding OT and PA claim selected at once (see
   // toggleCarmsClaim below), so that undercounts whenever both boxes on the
@@ -2203,8 +2202,6 @@ export default function App() {
   // this instead, so the count always matches how many claim checkboxes are
   // actually ticked, not how many shifts they belong to.
   const carmsSelectedClaimCount = countSelectedClaims(carmsSelected);
-  useEscapeToClose(carmsSelectMode, toggleCarmsSelectMode);
-  useBackButtonCloses(carmsSelectMode, toggleCarmsSelectMode);
   // Toggles ONE claim-type on ONE entry — not the whole entry at once.
   // An entry with both OT and PA outstanding used to select/deselect both
   // together as a single unit, forcing them into the same bulk submission
@@ -2222,6 +2219,14 @@ export default function App() {
       else next[entryId] = updated;
       return next;
     });
+  };
+  // Unconditionally marks ONE claim as selected — used by each row's own
+  // "Mark submitted" quick action, which needs to select that single claim
+  // (regardless of whatever it was already set to) and immediately open the
+  // shared date-confirm sheet, rather than toggling it on/off like the
+  // checkbox does.
+  const selectCarmsClaim = (entryId, key) => {
+    setCarmsSelected(prev => ({ ...prev, [entryId]: { ...prev[entryId], [key]: true } }));
   };
   const toggleCarmsGroup = (rows) => { // rows: [{id, markers}]
     setCarmsSelected(prev => {
@@ -2288,7 +2293,7 @@ export default function App() {
     addToast(`${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''} marked as submitted`, 'undo', {label:'Undo', fn:undoBulkSubmit}, 7000);
     haptic();
     setDatePickerFor(null);
-    toggleCarmsSelectMode();
+    setCarmsSelected({});
   };
   // Sequential numbering for the CARMS/PA list — oldest claim is #1, and the
   // numbers shift automatically as claims get submitted, since this is
@@ -4559,7 +4564,7 @@ export default function App() {
         {/* ══════════════════════════════════════════ CARMS OUTSTANDING */}
         {tab==='carms'&&(
           <TabCarms animClass={tabAnimClass} MONO={MONO} BRASS={BRASS} isWide={isWide} carmsOutstanding={carmsOutstanding} carmsFilter={carmsFilter} setCarmsFilter={setCarmsFilter} periodGroupRefs={periodGroupRefs} pulsePeriodIdx={pulsePeriodIdx} startEdit={startEdit} setFocusCarmsToggle={setFocusCarmsToggle} carmsClaimNumbers={carmsClaimNumbers}
-            carmsSelectMode={carmsSelectMode} toggleCarmsSelectMode={toggleCarmsSelectMode} carmsSelected={carmsSelected} toggleCarmsClaim={toggleCarmsClaim} toggleCarmsGroup={toggleCarmsGroup} openCarmsBulkConfirm={openCarmsBulkConfirm}/>
+            carmsSelected={carmsSelected} toggleCarmsClaim={toggleCarmsClaim} toggleCarmsGroup={toggleCarmsGroup} selectCarmsClaim={selectCarmsClaim} openCarmsBulkConfirm={openCarmsBulkConfirm}/>
         )}
 
         {/* ══════════════════════════════════════════ TOIL */}
