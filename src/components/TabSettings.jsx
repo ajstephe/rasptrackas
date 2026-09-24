@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CURRENT_FY_YEAR, generateFYPeriods } from '../lib/payPeriods.js';
 import { PAY_RATES } from '../lib/payRates.js';
@@ -9,6 +9,8 @@ import { PrivacyNotice } from './PrivacyNotice.jsx';
 import { SegSlider } from './SegSlider.jsx';
 import { useMountTransition } from '../lib/useMountTransition.js';
 import { useFocusTrap } from '../lib/useFocusTrap.js';
+
+const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['apple','Apple'],['professional','Pro'],['midnight','Midnight'],['sandstone','Sandstone'],['flagship','Flagship']];
 
 // ─── More.. (settings) tab ───────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='settings' block — no behaviour
@@ -113,6 +115,43 @@ export function TabSettings({
   const fyModalContentRef = useRef(null);
   const exportModalContentRef = useRef(null);
   const dataModalContentRef = useRef(null);
+
+  // ── mobile Appearance row: an arrow + edge fade whenever themes sit
+  // off-screen, since a phone only fits about five of the eight. ──
+  const themeRowRef = useRef(null);
+  const [themeRowEdges, setThemeRowEdges] = useState({ start:true, end:true });
+  const updateThemeRowEdges = () => {
+    const el = themeRowRef.current;
+    if (!el) return;
+    const start = el.scrollLeft <= 2;
+    const end = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+    setThemeRowEdges(prev => (prev.start===start && prev.end===end) ? prev : { start, end });
+  };
+  useEffect(() => {
+    if (isWide) return;
+    const el = themeRowRef.current;
+    if (!el) return;
+    // A theme chosen from past the right edge (e.g. Flagship) would
+    // otherwise be hidden again every time Settings opens.
+    const active = el.querySelector(`[data-seg-key="${themeMode}"]`);
+    if (active) el.scrollTo({ left: Math.max(0, active.offsetLeft - (el.clientWidth - active.offsetWidth)/2), behavior:'instant' });
+    updateThemeRowEdges();
+    const ro = new ResizeObserver(updateThemeRowEdges);
+    ro.observe(el);
+    document.fonts?.ready?.then(updateThemeRowEdges);
+    return () => ro.disconnect();
+  }, [isWide]);
+  const scrollThemeRow = (dir) => {
+    const el = themeRowRef.current;
+    if (!el) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollBy({ left: dir*el.clientWidth*0.7, behavior: reduce?'auto':'smooth' });
+  };
+  const themeIndicator = {background:BRASS,borderRadius:'9px',boxShadow:`0 4px 11px ${pillShadow}`};
+  const themeButtons = THEME_OPTIONS.map(([v,lbl])=>(
+    <button key={v} data-seg-key={v} onClick={()=>setTheme(v)} style={{position:'relative',zIndex:1,flexShrink:0,whiteSpace:'nowrap',padding:'6px 12px',borderRadius:'9px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:themeMode===v?'#fff':'var(--muted)'}}>{lbl}</button>
+  ));
+
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
@@ -174,11 +213,33 @@ export function TabSettings({
             the track scrolls horizontally rather than wrapping — SegSlider's
             offsetLeft/offsetWidth measurements are unaffected by scroll
             position, so the pill still lands correctly either way. */}
-        <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px',overflowX:'auto',padding:'3px 1px'}} indicatorStyle={{background:BRASS,borderRadius:'9px',boxShadow:`0 4px 11px ${pillShadow}`}}>
-          {[['system','Auto'],['light','Light'],['dark','Dark'],['apple','Apple'],['professional','Pro'],['midnight','Midnight'],['sandstone','Sandstone'],['flagship','Flagship']].map(([v,lbl])=>(
-            <button key={v} data-seg-key={v} onClick={()=>setTheme(v)} style={{position:'relative',zIndex:1,flexShrink:0,whiteSpace:'nowrap',padding:'6px 12px',borderRadius:'9px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:themeMode===v?'#fff':'var(--muted)'}}>{lbl}</button>
-          ))}
-        </SegSlider>
+        {isWide ? (
+          <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px',overflowX:'auto',padding:'3px 1px'}} indicatorStyle={themeIndicator}>{themeButtons}</SegSlider>
+        ) : (
+          <>
+            {/* The scroller wraps SegSlider rather than being its track so it
+                can be measured and scrolled from here; the pill still
+                positions against the track itself, unaffected by scroll. */}
+            {/* paddingBottom gives the selected pill's shadow room — a scroller
+                clips everything outside its box, not just sideways. */}
+            <div style={{position:'relative'}}>
+              <style>{'.theme-row::-webkit-scrollbar{display:none}'}</style>
+              <div ref={themeRowRef} onScroll={updateThemeRowEdges} className="theme-row" style={{overflowX:'auto',scrollbarWidth:'none',paddingBottom:'12px',marginBottom:'-12px'}}>
+                <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px',padding:'3px 1px',width:'max-content'}} indicatorStyle={themeIndicator}>{themeButtons}</SegSlider>
+              </div>
+              {[['start','left','cL','Show earlier themes',-1],['end','right','cR','Show more themes',1]].map(([edge,side,icon,label,dir])=>{
+                const hidden = themeRowEdges[edge];
+                return [
+                  <div key={edge+'-fade'} aria-hidden="true" style={{position:'absolute',top:0,bottom:0,[side]:0,zIndex:2,width:'54px',pointerEvents:'none',background:`linear-gradient(to ${side==='left'?'right':'left'}, var(--surface) 40%, rgba(var(--surface-rgb),0))`,opacity:hidden?0:1,transition:'opacity .2s'}}/>,
+                  <button key={edge+'-arrow'} type="button" aria-label={label} aria-hidden={hidden||undefined} tabIndex={hidden?-1:0} onClick={()=>scrollThemeRow(dir)} style={{position:'absolute',top:'calc(50% - 6px)',[side]:0,zIndex:3,transform:'translateY(-50%)',width:'28px',height:'28px',borderRadius:'50%',border:'1px solid var(--border)',background:'var(--surface)',color:'var(--muted)',boxShadow:'0 2px 6px rgba(15,39,68,0.14)',display:'flex',alignItems:'center',justifyContent:'center',padding:0,cursor:'pointer',opacity:hidden?0:1,pointerEvents:hidden?'none':'auto',transition:'opacity .2s',touchAction:'manipulation'}}>
+                    <Ico n={icon} s={13} w={2.6}/>
+                  </button>,
+                ];
+              })}
+            </div>
+            <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'7px'}}>{THEME_OPTIONS.length} themes · swipe or tap the arrow for more</div>
+          </>
+        )}
       </div>
 
       <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}:undefined}>
