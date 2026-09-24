@@ -75,11 +75,11 @@
          Apple devices) are added alongside DM Sans/IBM Plex Mono so all
          four Appearance options beyond the default can load their type
          without a second request each. -->
-    <!-- Space Grotesk (Midnight) and Lora (Sandstone) added alongside the
-         rest for the same reason Inter was — so all Appearance options load
-         their type up front instead of on first pick. Terminal reuses
-         IBM Plex Mono, already loaded. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Lora:wght@500;600;700&display=swap" rel="stylesheet"/>
+    <!-- Space Grotesk (Midnight), Lora (Sandstone) and Ysabeau Office
+         (Flagship) added alongside the rest for the same reason Inter was —
+         so all Appearance options load their type up front instead of on
+         first pick. -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Lora:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -118,6 +118,9 @@
         --sidebar-bg-rgb:15,39,68;
         --accent:#b8823f;
         --app-font:'DM Sans',system-ui,sans-serif;
+        /* Money/hours figures (MONO in App.jsx). Only Flagship overrides
+           it; every other theme keeps IBM Plex Mono. */
+        --num-font:'IBM Plex Mono',monospace;
         --tint-blue:#eff6ff;
         --tint-red:#fef2f2;
         --tint-green:#f0fdf4;
@@ -142,10 +145,10 @@
         /* Every custom theme below is a fixed look, not a dark-mode-aware
            variant of the default — excluded here the same way an explicit
            "light" choice already is, so a dark OS never quietly overrides
-           any of them one token at a time. Midnight and Terminal are
-           dark-first designs in their own right, so this matters just as
-           much for them as it does for the three light ones. */
-        :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="sandstone"]):not([data-theme="terminal"]){
+           any of them one token at a time. Midnight is a dark-first design
+           in its own right, so this matters just as much for it as it does
+           for the light ones. */
+        :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="sandstone"]):not([data-theme="flagship"]){
           --page-bg:#0b1220;
           --surface:#111c2e;
           --surface-rgb:17,28,46;
@@ -408,51 +411,55 @@
         --text-blue-deep:#435a34;
       }
 
-      /* ── Terminal ── utilitarian and monochrome: true black, one
-         phosphor-green accent, and IBM Plex Mono used for every label and
-         heading, not just figures. Every category tint (OT/PA/TOIL) is
-         collapsed to the same green — deliberately, so nothing competes
-         with the numbers for attention — except the genuine danger red,
-         kept as a real red for the same reason Sandstone keeps one: a
-         delete confirmation shouldn't quietly turn green. */
-      :root[data-theme="terminal"]{
-        color-scheme: dark;
-        --page-bg:#000000;
-        --surface:#0a0a0a;
-        --surface-rgb:10,10,10;
-        --surface-2:#111111;
-        --surface-2-rgb:17,17,17;
-        --chip-bg:#161616;
-        --border:#242424;
-        --border-2:#1a1a1a;
-        --ink:#e6e6e6;
-        --muted:#8a8a8a;
-        --quiet:#57575a;
-        --navy:#0d0d0d;
-        --navy-rgb:13,13,13;
-        --sidebar-bg-rgb:0,0,0;
-        --accent:#22c55e;
-        --app-font:'IBM Plex Mono',ui-monospace,monospace;
-        --tint-blue:#0f1f15;
-        --tint-red:#2a1414;
-        --tint-green:#10241a;
-        --tint-green-2:#13301f;
-        --tint-purple:#0f1f15;
-        --tint-amber:#0f1f15;
-        --tint-amber-2:#13301f;
-        --tint-teal:#0f1f15;
-        --text-navy:#4ade80;
-        --text-red-deep:#f3a9a9;
-        --text-green-deep:#4ade80;
-        --text-purple-deep:#4ade80;
-        --text-amber-deep:#4ade80;
-        --tint-blue-2:#132a1c;
-        --tint-brass:#0f1f15;
-        --tint-indigo:#14201a;
-        --text-indigo-deep:#4ade80;
-        --surface-red-mid:#5c2020;
-        --text-blue-deep:#4ade80;
+      /* ── Flagship ── inspired by British Airways' design language (not
+         its name, logo or ribbon): a deep navy sidebar and statement cards,
+         white cards on a cool grey page, an airline blue for every accent,
+         and red kept for one job only — marking the active tab (the
+         navActiveIcon palette entry in App.jsx). Letters and figures share
+         one typeface the way BA's own Mylius Modern does; Ysabeau Office is
+         the closest freely-licensed match, so --num-font follows --app-font
+         here instead of staying IBM Plex Mono. Tabular lining figures keep
+         amounts lining up in columns the way the monospace did. */
+      :root[data-theme="flagship"]{
+        color-scheme: light;
+        --page-bg:#eef1f5;
+        --surface:#ffffff;
+        --surface-rgb:255,255,255;
+        --surface-2:#f6f8fb;
+        --surface-2-rgb:246,248,251;
+        --chip-bg:#edf1f6;
+        --border:#d9dfe8;
+        --border-2:#e7ebf1;
+        --ink:#0b1f45;
+        --muted:#4a5a78;
+        --quiet:#6d7c96;
+        --navy:#0a2356;
+        --navy-rgb:10,35,86;
+        --sidebar-bg-rgb:10,35,86;
+        --accent:#2b64c2;
+        --app-font:'Ysabeau Office',system-ui,sans-serif;
+        --num-font:'Ysabeau Office',system-ui,sans-serif;
+        --tint-blue:#e8f0fb;
+        --tint-red:#fdecec;
+        --tint-green:#e9f7ef;
+        --tint-green-2:#d5f0df;
+        --tint-purple:#f1edfb;
+        --tint-amber:#fff4e2;
+        --tint-amber-2:#ffe6bf;
+        --tint-teal:#e6f5f3;
+        --text-navy:#0a2356;
+        --text-red-deep:#b3151d;
+        --text-green-deep:#16733f;
+        --text-purple-deep:#5b3fb0;
+        --text-amber-deep:#a85f00;
+        --tint-blue-2:#d6e4f8;
+        --tint-brass:#e8f0fb;
+        --tint-indigo:#e8ebfb;
+        --text-indigo-deep:#3848b8;
+        --surface-red-mid:#f3a0a4;
+        --text-blue-deep:#1f56b3;
       }
+      :root[data-theme="flagship"] body{font-variant-numeric:lining-nums tabular-nums}
       html,body,#root{background:var(--page-bg)}
 
       /* Native form elements (input/select/textarea) don't inherit

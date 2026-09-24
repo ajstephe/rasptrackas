@@ -175,7 +175,7 @@ export function TabSettings({
             offsetLeft/offsetWidth measurements are unaffected by scroll
             position, so the pill still lands correctly either way. */}
         <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px',overflowX:'auto',padding:'3px 1px'}} indicatorStyle={{background:BRASS,borderRadius:'9px',boxShadow:`0 4px 11px ${pillShadow}`}}>
-          {[['system','Auto'],['light','Light'],['dark','Dark'],['apple','Apple'],['professional','Pro'],['midnight','Midnight'],['sandstone','Sandstone'],['terminal','Terminal']].map(([v,lbl])=>(
+          {[['system','Auto'],['light','Light'],['dark','Dark'],['apple','Apple'],['professional','Pro'],['midnight','Midnight'],['sandstone','Sandstone'],['flagship','Flagship']].map(([v,lbl])=>(
             <button key={v} data-seg-key={v} onClick={()=>setTheme(v)} style={{position:'relative',zIndex:1,flexShrink:0,whiteSpace:'nowrap',padding:'6px 12px',borderRadius:'9px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:themeMode===v?'#fff':'var(--muted)'}}>{lbl}</button>
           ))}
         </SegSlider>

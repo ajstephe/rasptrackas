@@ -102,7 +102,9 @@ idle(() => {
 // decoration, never state. Kept as plain constants (not swapped into every
 // existing blue literal app-wide) so this stays a scoped, reversible pass —
 // see the ledger-redesign branch notes for what's in vs. out of scope.
-const MONO  = "'IBM Plex Mono',monospace";
+// Figures font, set per theme in index.html (--num-font) — IBM Plex Mono
+// everywhere except Flagship, which sets numbers in the same face as its text.
+const MONO  = 'var(--num-font)';
 // One accent + desktop-sidebar palette per Appearance option beyond the
 // default light/dark pair — Apple-Inspired and Professional Light are
 // fixed looks (see the :not([data-theme=...]) guards in index.html), each
@@ -142,13 +144,17 @@ const THEME_PALETTES = {
     sidebarGlow:'rgba(179,86,42,0.22)', sidebarPill:'rgba(179,86,42,0.22)',
     sidebarBtnBg:'rgba(217,138,92,0.14)', sidebarBtnBorder:'rgba(217,138,92,0.35)', sidebarBtnSubtext:'rgba(217,138,92,0.6)',
   },
-  terminal: {
-    brass:'#22c55e', brassLight:'#4ade80', pillShadow:'rgba(34,197,94,0.35)',
-    sidebarText:'#4d4d4d', sidebarTextActive:'#e6e6e6', sidebarDivider:'rgba(255,255,255,0.08)',
-    sidebarGlow:'rgba(34,197,94,0.14)', sidebarPill:'rgba(34,197,94,0.18)',
-    sidebarBtnBg:'rgba(34,197,94,0.12)', sidebarBtnBorder:'rgba(34,197,94,0.32)', sidebarBtnSubtext:'rgba(74,222,128,0.6)',
+  // navActiveIcon (optional, falls back to brassLight) lets red mark only
+  // the current tab — brassLight also colours Sync/Sign Out, where red
+  // would read as an error.
+  flagship: {
+    brass:'#2b64c2', brassLight:'#8fb4f0', navActiveIcon:'#ef4a52', pillShadow:'rgba(43,100,194,0.35)',
+    sidebarText:'#9fb3d6', sidebarTextActive:'#fff', sidebarDivider:'rgba(255,255,255,0.1)',
+    sidebarGlow:'rgba(43,100,194,0.45)', sidebarPill:'rgba(43,100,194,0.38)',
+    sidebarBtnBg:'rgba(143,180,240,0.12)', sidebarBtnBorder:'rgba(143,180,240,0.35)', sidebarBtnSubtext:'rgba(143,180,240,0.65)',
   },
 };
+const THEME_IDS = ['system','light','dark','apple','professional','midnight','sandstone','flagship'];
 // Same check TabSummary's calendar swipe already makes before its own
 // snap-back — used by the pull-to-refresh indicator's settle transition
 // below for the same reason: the live drag tracks the finger regardless
@@ -678,7 +684,8 @@ export default function App() {
   // 'light' | 'dark' | 'system' — 'system' means no data-theme attribute at
   // all, so the plain CSS prefers-color-scheme rule in index.html drives it
   // (and keeps following the OS live, no listener needed here).
-  const [themeMode, setThemeMode] = useState(()=>dualRead(KEYS.themeMode,'system'));
+  // A saved theme that's since been removed (Terminal) falls back to Auto.
+  const [themeMode, setThemeMode] = useState(()=>{ const v = dualRead(KEYS.themeMode,'system'); return THEME_IDS.includes(v) ? v : 'system'; });
   useEffect(()=>{
     if(themeMode==='system') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', themeMode);
@@ -4360,15 +4367,14 @@ export default function App() {
            index.html — without this, the OS's native date-picker icon and
            popup stay light-themed even in dark mode, exactly the bug the
            old TimeSelect had before it was rebuilt. Apple-Inspired,
-           Professional Light and Sandstone are fixed light looks, not
-           dark-mode variants, so they're excluded here the same way an
+           Professional Light, Sandstone and Flagship are fixed light looks,
+           not dark-mode variants, so they're excluded here the same way an
            explicit "light" choice already is. */
         @media (prefers-color-scheme: dark){
-          :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]):not([data-theme="sandstone"]) input[type=date]{color-scheme:dark}
+          :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]):not([data-theme="sandstone"]):not([data-theme="flagship"]) input[type=date]{color-scheme:dark}
         }
         :root[data-theme="dark"] input[type=date]{color-scheme:dark}
         :root[data-theme="midnight"] input[type=date]{color-scheme:dark}
-        :root[data-theme="terminal"] input[type=date]{color-scheme:dark}
         input[type=date]::-webkit-date-and-time-value{text-align:left}
         input[type=date]::-webkit-datetime-edit{padding:0}
         input[type=date]::-webkit-calendar-picker-indicator{background:transparent;cursor:pointer;opacity:0.55;padding:0;margin:0}
@@ -5323,7 +5329,7 @@ export default function App() {
                 {isAdd ? (
                   <span className={(entries.length===0&&!isActive)?'nav-add-pulse':''} style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
                 ) : (
-                  <Ico n={t.n} s={20} c={isActive?THEME.brassLight:THEME.sidebarText} w={isActive?2.5:2}/>
+                  <Ico n={t.n} s={20} c={isActive?(THEME.navActiveIcon||THEME.brassLight):THEME.sidebarText} w={isActive?2.5:2}/>
                 )}
                 {/* stops nudging once you're actually on this tab, and
                     retires for good once a shift's ever been logged — see

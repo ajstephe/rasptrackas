@@ -240,7 +240,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                   ref={el=>{ if(isFirstOfPeriod) periodGroupRefs.current[row.periodIdx]=el; }}
                   className={'awaits-tr'+(pulsePeriodIdx===row.periodIdx?' carms-pulse':'')}
                   onClick={()=>goToEntry(row.entry)}
-                  style={{cursor:'pointer',background:selected?'rgba(184,130,63,0.07)':'transparent'}}>
+                  style={{cursor:'pointer',background:selected?BRASS+'12':'transparent'}}>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)'}} onClick={e=>e.stopPropagation()}><Checkbox checked={selected} onClick={()=>toggleCarmsClaim(row.entryId,row.claimKey)} size={16}/></td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',whiteSpace:'nowrap'}}>
                     {row.claimNo!=null&&<span style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:800,color:'var(--quiet)',marginRight:'6px'}}>#{row.claimNo}</span>}
@@ -294,7 +294,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
           {rows.map((row,i)=>{
             const selected = !!carmsSelected[row.entryId]?.[row.claimKey];
             return (
-              <div key={row.id} className="claim-in tap-row" onClick={()=>goToEntry(row.entry)} style={{display:'flex',alignItems:'center',gap:'9px',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'9px 10px',marginBottom:'7px',cursor:'pointer',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none',animationDelay:(Math.min(i,6)*55)+'ms',background:selected?'rgba(184,130,63,0.07)':'var(--surface)'}}>
+              <div key={row.id} className="claim-in tap-row" onClick={()=>goToEntry(row.entry)} style={{display:'flex',alignItems:'center',gap:'9px',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'9px 10px',marginBottom:'7px',cursor:'pointer',touchAction:'manipulation',userSelect:'none',WebkitUserSelect:'none',animationDelay:(Math.min(i,6)*55)+'ms',background:selected?BRASS+'12':'var(--surface)'}}>
                 <span onClick={e=>e.stopPropagation()}><Checkbox checked={selected} onClick={()=>toggleCarmsClaim(row.entryId,row.claimKey)} size={18}/></span>
                 {catChip(row.kind==='ot+toil'?'ot':row.kind, 26)}
                 <div style={{flex:1,minWidth:0}}>
