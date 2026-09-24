@@ -117,9 +117,11 @@ export function PrivacyNotice({ onClose }) {
     // screen opened it), and unlike every other screen's own top-level
     // container, <body> itself never declares the app's font. Without this,
     // the whole dialog silently fell back to the browser default instead of
-    // matching the app's DM Sans, even though "inherit" is used correctly
-    // throughout — there was just nothing above it setting anything.
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 200, boxSizing: 'border-box', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
+    // matching the app's chosen font, even though "inherit" is used
+    // correctly throughout — there was just nothing above it setting
+    // anything. var(--app-font) rather than a literal 'DM Sans' so this
+    // still matches whichever Appearance theme is active.
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 200, boxSizing: 'border-box', fontFamily: 'var(--app-font)' }}>
       {body}
     </div>,
     document.body

@@ -103,7 +103,34 @@ idle(() => {
 // existing blue literal app-wide) so this stays a scoped, reversible pass —
 // see the ledger-redesign branch notes for what's in vs. out of scope.
 const MONO  = "'IBM Plex Mono',monospace";
-const BRASS = '#b8823f';
+// One accent + desktop-sidebar palette per Appearance option beyond the
+// default light/dark pair — Apple-Inspired and Professional Light are
+// fixed looks (see the :not([data-theme=...]) guards in index.html), each
+// swapping the brass wayfinding colour for its own and, where the sidebar
+// needs to diverge from its usual dark-navy vibrancy (Apple's is light,
+// Professional's drops the glow entirely), carrying its own sidebar
+// text/pill/button colours too. 'classic' covers system/light/dark, which
+// all share today's brass-on-navy sidebar unchanged.
+const THEME_PALETTES = {
+  classic: {
+    brass:'#b8823f', brassLight:'#e3bd85', pillShadow:'rgba(184,130,63,0.35)',
+    sidebarText:'#93c5fd', sidebarTextActive:'#fff', sidebarDivider:'rgba(255,255,255,0.1)',
+    sidebarGlow:'rgba(184,130,63,0.5)', sidebarPill:'rgba(184,130,63,0.18)',
+    sidebarBtnBg:'rgba(184,130,63,0.16)', sidebarBtnBorder:'rgba(184,130,63,0.4)', sidebarBtnSubtext:'rgba(227,189,133,0.65)',
+  },
+  apple: {
+    brass:'#0071e3', brassLight:'#409cff', pillShadow:'rgba(0,113,227,0.35)',
+    sidebarText:'#6e6e73', sidebarTextActive:'#1d1d1f', sidebarDivider:'rgba(0,0,0,0.08)',
+    sidebarGlow:'rgba(0,113,227,0.14)', sidebarPill:'rgba(0,113,227,0.1)',
+    sidebarBtnBg:'rgba(0,113,227,0.08)', sidebarBtnBorder:'rgba(0,113,227,0.25)', sidebarBtnSubtext:'rgba(0,113,227,0.55)',
+  },
+  professional: {
+    brass:'#0f766e', brassLight:'#2dd4bf', pillShadow:'rgba(15,118,110,0.35)',
+    sidebarText:'#94a3b8', sidebarTextActive:'#f8fafc', sidebarDivider:'rgba(255,255,255,0.08)',
+    sidebarGlow:null, sidebarPill:'rgba(15,118,110,0.28)',
+    sidebarBtnBg:'rgba(45,212,191,0.12)', sidebarBtnBorder:'rgba(45,212,191,0.35)', sidebarBtnSubtext:'rgba(45,212,191,0.6)',
+  },
+};
 // Same check TabSummary's calendar swipe already makes before its own
 // snap-back — used by the pull-to-refresh indicator's settle transition
 // below for the same reason: the live drag tracks the finger regardless
@@ -256,7 +283,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     // light theme, matching the brand-moment treatment requested for this
     // screen specifically. #0f2744 matches the app's own theme-color, so
     // it's not a new colour being introduced, just used at page-scale here.
-    page: {display:'flex',flexDirection:'column',minHeight:'100dvh',maxWidth:isWide?'none':'430px',margin:'0 auto',background:'var(--navy)',fontFamily:"'DM Sans',system-ui,sans-serif",color:'var(--ink)',boxSizing:'border-box',position:'relative',overflowY:'auto',overscrollBehavior:'contain'},
+    page: {display:'flex',flexDirection:'column',minHeight:'100dvh',maxWidth:isWide?'none':'430px',margin:'0 auto',background:'var(--navy)',fontFamily:'var(--app-font)',color:'var(--ink)',boxSizing:'border-box',position:'relative',overflowY:'auto',overscrollBehavior:'contain'},
     cardWrap: {flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',position:'relative',zIndex:1,minHeight:0},
     card: {width:'100%',maxWidth:isWide?'460px':'none',background:'var(--surface)',borderRadius:'18px',padding:isWide?'34px 30px 28px':'26px 22px 22px',boxShadow:'0 12px 34px rgba(0,0,0,0.28)',boxSizing:'border-box'},
     label:{display:'block',fontSize:'9px',color:'var(--muted)',margin:'0 0 6px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1.5px'},
@@ -639,6 +666,8 @@ export default function App() {
     else document.documentElement.setAttribute('data-theme', themeMode);
   },[themeMode]);
   const setTheme = v => { setThemeMode(v); dualWrite(KEYS.themeMode, v); };
+  const THEME = THEME_PALETTES[themeMode] || THEME_PALETTES.classic;
+  const BRASS = THEME.brass;
 
   // ── Android's status bar follows theme-color, and it's a solid colour
   // (not translucent like iOS's), so a value that's only ever right for one
@@ -3594,7 +3623,7 @@ export default function App() {
 
   // ── styles ─────────────────────────────────────────────────────────────────
   const S={
-    wrap: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'var(--page-bg)',fontFamily:"'DM Sans',system-ui,sans-serif",color:'var(--ink)',position:'relative',boxShadow:'0 0 60px rgba(0,0,0,0.14)',overflow:'hidden'},
+    wrap: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'var(--page-bg)',fontFamily:'var(--app-font)',color:'var(--ink)',position:'relative',boxShadow:'0 0 60px rgba(0,0,0,0.14)',overflow:'hidden'},
     hdr:  {background:'var(--surface)',paddingTop:'calc(13px + env(safe-area-inset-top))',paddingRight:'18px',paddingBottom:'13px',paddingLeft:'18px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,zIndex:10},
     main: {flex:1,overflowY:'auto',overflowX:'hidden',overscrollBehaviorY:'contain',minWidth:0,scrollbarWidth:prefersCoarsePointer()?'none':'thin',msOverflowStyle:'none'},
     nav:  {background:'rgba(var(--surface-rgb),0.72)',backdropFilter:'blur(20px) saturate(1.5)',WebkitBackdropFilter:'blur(20px) saturate(1.5)',borderTop:'1px solid var(--border-2)',position:'absolute',bottom:0,width:'100%',paddingTop:'7px',paddingRight:'4px',paddingBottom:'calc(12px + env(safe-area-inset-bottom))',paddingLeft:'4px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
@@ -3903,7 +3932,7 @@ export default function App() {
     // rather than a generic "Loading…" placeholder — .fi eases it in
     // instead of it just cutting straight in over whatever was there before.
     return (
-      <div className="fi" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'18px',height:'100dvh',background:'var(--surface-2)',fontFamily:"'DM Sans',system-ui,sans-serif"}}>
+      <div className="fi" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'18px',height:'100dvh',background:'var(--surface-2)',fontFamily:'var(--app-font)'}}>
         <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'10px'}}>
           <ClockCashIcon width={40} height={27}/>
           <span style={{fontSize:'17px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.3px'}}>Overtime &amp; Shift Tracker</span>
@@ -4223,7 +4252,7 @@ export default function App() {
              a slow connection's first visit to a given tab (each tab is
              its own lazy-loaded chunk, cached after that). ── */
         @keyframes tabSpin{to{transform:rotate(360deg)}}
-        .tab-spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--border-2);border-top-color:#b8823f;animation:tabSpin 0.7s linear infinite;}
+        .tab-spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--border-2);border-top-color:var(--accent,#b8823f);animation:tabSpin 0.7s linear infinite;}
         @media (prefers-reduced-motion: reduce){
           .nav-ico{transition-duration:0.001ms}
           .claim-in{animation-duration:0.001ms}
@@ -4307,9 +4336,12 @@ export default function App() {
         /* Same theme-detection pattern as every custom property in
            index.html — without this, the OS's native date-picker icon and
            popup stay light-themed even in dark mode, exactly the bug the
-           old TimeSelect had before it was rebuilt. */
+           old TimeSelect had before it was rebuilt. Apple-Inspired and
+           Professional Light are fixed light looks, not dark-mode variants,
+           so they're excluded here the same way an explicit "light" choice
+           already is. */
         @media (prefers-color-scheme: dark){
-          :root:not([data-theme="light"]) input[type=date]{color-scheme:dark}
+          :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]) input[type=date]{color-scheme:dark}
         }
         :root[data-theme="dark"] input[type=date]{color-scheme:dark}
         input[type=date]::-webkit-date-and-time-value{text-align:left}
@@ -4540,7 +4572,7 @@ export default function App() {
           <TabSettings
             animClass={tabAnimClass}
             isWide={isWide} S={S} MONO={MONO} BRASS={BRASS}
-            savedBadge={savedBadge} themeMode={themeMode} setTheme={setTheme}
+            savedBadge={savedBadge} themeMode={themeMode} setTheme={setTheme} pillShadow={THEME.pillShadow}
             configExpanded={configExpanded} setConfigExpanded={setConfigExpanded} configShown={configShown} configSetupIncomplete={configSetupIncomplete}
             justCompletedSetup={justCompletedSetup} setJustCompletedSetup={setJustCompletedSetup}
             setupPopupRequested={setupPopupRequested} setSetupPopupRequested={setSetupPopupRequested}
@@ -5225,9 +5257,14 @@ export default function App() {
               the glow is what gives the blur something to actually work
               with — tying its colour to the active tab (the same brass/
               green wash the nav pill below already uses) is what keeps this
-              from being pure decoration. */}
-          <div style={{position:'absolute',inset:0,background:tab==='add'?'radial-gradient(circle at 28% 15%,rgba(16,185,129,0.55),transparent 65%)':'radial-gradient(circle at 28% 15%,rgba(184,130,63,0.5),transparent 65%)',transition:'background 0.4s ease',pointerEvents:'none'}}/>
-          <div style={{position:'absolute',inset:0,background:'rgba(var(--navy-rgb),0.86)',backdropFilter:'blur(22px) saturate(1.5)',WebkitBackdropFilter:'blur(22px) saturate(1.5)',pointerEvents:'none'}}/>
+              from being pure decoration. THEME.sidebarGlow is null for
+              Professional Light, which drops the glow entirely rather than
+              tinting it — the flat, calmer look that theme is going for —
+              and --sidebar-bg-rgb (not --navy-rgb) drives the vibrancy layer
+              itself so Apple-Inspired can go light here while its statement
+              cards elsewhere stay on --navy. */}
+          <div style={{position:'absolute',inset:0,background:tab==='add'?'radial-gradient(circle at 28% 15%,rgba(16,185,129,0.55),transparent 65%)':(THEME.sidebarGlow?`radial-gradient(circle at 28% 15%,${THEME.sidebarGlow},transparent 65%)`:'transparent'),transition:'background 0.4s ease',pointerEvents:'none'}}/>
+          <div style={{position:'absolute',inset:0,background:'rgba(var(--sidebar-bg-rgb),0.86)',backdropFilter:'blur(22px) saturate(1.5)',WebkitBackdropFilter:'blur(22px) saturate(1.5)',pointerEvents:'none'}}/>
           <div style={{position:'relative',zIndex:1,height:'100%',padding:'22px 16px',display:'flex',flexDirection:'column',boxSizing:'border-box'}}>
           {/* Today's date, in place of the logo — two compact lines so the
               header stays the same height as the icon it replaced and fits
@@ -5239,9 +5276,9 @@ export default function App() {
             const suffix = (dd%10===1&&dd!==11)?'st':(dd%10===2&&dd!==12)?'nd':(dd%10===3&&dd!==13)?'rd':'th';
             const monthName = now.toLocaleDateString('en-GB',{month:'long'});
             return (
-              <div style={{textAlign:'center',padding:'0 8px 16px',borderBottom:'1px solid rgba(255,255,255,0.1)',marginBottom:'16px'}}>
-                <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>{dayName}</div>
-                <div style={{fontSize:'15px',fontWeight:900,color:'#fff',marginTop:'2px',whiteSpace:'nowrap'}}>{dd}{suffix} {monthName}</div>
+              <div style={{textAlign:'center',padding:'0 8px 16px',borderBottom:`1px solid ${THEME.sidebarDivider}`,marginBottom:'16px'}}>
+                <div style={{fontSize:'10px',fontWeight:900,color:THEME.sidebarText,textTransform:'uppercase',letterSpacing:'0.06em'}}>{dayName}</div>
+                <div style={{fontSize:'15px',fontWeight:900,color:THEME.sidebarTextActive,marginTop:'2px',whiteSpace:'nowrap'}}>{dd}{suffix} {monthName}</div>
               </div>
             );
           })()}
@@ -5252,16 +5289,16 @@ export default function App() {
               (opacity:0), which used to leave "selected" and "always
               highlighted" looking identical in this sidebar. Every other
               tab keeps the brass wash it always had. */}
-          <SegSlider activeKey={tab} orientation="vertical" trackStyle={{display:'flex',flexDirection:'column'}} indicatorStyle={{background:tab==='add'?'rgba(16,185,129,0.16)':'rgba(184,130,63,0.18)',borderRadius:'11px'}}>
+          <SegSlider activeKey={tab} orientation="vertical" trackStyle={{display:'flex',flexDirection:'column'}} indicatorStyle={{background:tab==='add'?'rgba(16,185,129,0.16)':THEME.sidebarPill,borderRadius:'11px'}}>
           {NAV_TABS.map(t=>{
             const isAdd = t.id==='add';
             const isActive = tab===t.id;
             return (
-              <button key={t.id} data-seg-key={t.id} className="sidebar-nav-btn" onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'var(--sidebar-hover-bg, transparent)',color:isAdd?'#10b981':(isActive?'#fff':'#93c5fd'),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
+              <button key={t.id} data-seg-key={t.id} className="sidebar-nav-btn" onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'var(--sidebar-hover-bg, transparent)',color:isAdd?'#10b981':(isActive?THEME.sidebarTextActive:THEME.sidebarText),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
                 {isAdd ? (
                   <span className={(entries.length===0&&!isActive)?'nav-add-pulse':''} style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
                 ) : (
-                  <Ico n={t.n} s={20} c={isActive?'#e3bd85':'#93c5fd'} w={isActive?2.5:2}/>
+                  <Ico n={t.n} s={20} c={isActive?THEME.brassLight:THEME.sidebarText} w={isActive?2.5:2}/>
                 )}
                 {/* stops nudging once you're actually on this tab, and
                     retires for good once a shift's ever been logged — see
@@ -5292,17 +5329,19 @@ export default function App() {
             // press of this exact button.
             // Brass — matching the wayfinding accent used everywhere else
             // in this column — rather than the flat white-on-navy these
-            // two buttons used to share with nothing else nearby.
-            <button onClick={handleManualSync} disabled={manualSyncing} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'2px',background:syncJustSucceeded?'rgba(5,150,105,0.35)':'rgba(184,130,63,0.16)',border:syncJustSucceeded?'1px solid transparent':'1px solid rgba(184,130,63,0.4)',borderRadius:'10px',padding:lastSyncedAt?'9px 11px':'11px',fontSize:'12.5px',fontWeight:800,color:syncJustSucceeded?'#fff':'#e3bd85',cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'auto',transition:'background 0.3s'}}>
+            // two buttons used to share with nothing else nearby. Themed via
+            // THEME.sidebarBtnBg/Border/sidebarBtnSubtext + THEME.brassLight
+            // rather than the literal brass rgba() this used to hardcode.
+            <button onClick={handleManualSync} disabled={manualSyncing} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'2px',background:syncJustSucceeded?'rgba(5,150,105,0.35)':THEME.sidebarBtnBg,border:syncJustSucceeded?'1px solid transparent':`1px solid ${THEME.sidebarBtnBorder}`,borderRadius:'10px',padding:lastSyncedAt?'9px 11px':'11px',fontSize:'12.5px',fontWeight:800,color:syncJustSucceeded?'#fff':THEME.brassLight,cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'auto',transition:'background 0.3s'}}>
               <span style={{display:'flex',alignItems:'center',gap:'7px'}}>
-                <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={14} c={syncJustSucceeded?'#fff':'#e3bd85'}/></span> {syncJustSucceeded?'Synced':'Sync'}
+                <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={14} c={syncJustSucceeded?'#fff':THEME.brassLight}/></span> {syncJustSucceeded?'Synced':'Sync'}
               </span>
-              {lastSyncedAt&&<span style={{fontSize:'10px',fontWeight:600,color:syncJustSucceeded?'rgba(255,255,255,0.7)':'rgba(227,189,133,0.65)'}}>Synced {fmtRelTime(lastSyncedAt)}</span>}
+              {lastSyncedAt&&<span style={{fontSize:'10px',fontWeight:600,color:syncJustSucceeded?'rgba(255,255,255,0.7)':THEME.sidebarBtnSubtext}}>Synced {fmtRelTime(lastSyncedAt)}</span>}
             </button>
           )}
           {session&&(
-            <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:'rgba(184,130,63,0.16)',border:'1px solid rgba(184,130,63,0.4)',borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:'#e3bd85',cursor:'pointer',fontFamily:'inherit',marginTop:'10px'}}>
-              <FireExitIcon size={14} color="#e3bd85"/> Sign Out
+            <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:THEME.sidebarBtnBg,border:`1px solid ${THEME.sidebarBtnBorder}`,borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:THEME.brassLight,cursor:'pointer',fontFamily:'inherit',marginTop:'10px'}}>
+              <FireExitIcon size={14} color={THEME.brassLight}/> Sign Out
             </button>
           )}
           </div>

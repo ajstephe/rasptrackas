@@ -70,7 +70,12 @@
          MONO+fontWeight:900 usages is at each of those call sites instead,
          switched to the real 700 they were already silently rendering as.
          See the round-7 audit for how both were confirmed. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+    <!-- Inter (Professional Light theme) and the system font stack (Apple-
+         Inspired theme, no webfont needed — it resolves to real SF Pro on
+         Apple devices) are added alongside DM Sans/IBM Plex Mono so all
+         four Appearance options beyond the default can load their type
+         without a second request each. -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -106,6 +111,9 @@
         --quiet:#78849b;
         --navy:#0f2744;
         --navy-rgb:15,39,68;
+        --sidebar-bg-rgb:15,39,68;
+        --accent:#b8823f;
+        --app-font:'DM Sans',system-ui,sans-serif;
         --tint-blue:#eff6ff;
         --tint-red:#fef2f2;
         --tint-green:#f0fdf4;
@@ -127,7 +135,11 @@
         --text-blue-deep:#1e40af;
       }
       @media (prefers-color-scheme: dark){
-        :root:not([data-theme="light"]){
+        /* Apple-Inspired and Professional Light are fixed looks, not dark-
+           mode-aware variants — excluded here the same way an explicit
+           "light" choice already is, so a dark OS never quietly overrides
+           either of them one token at a time. */
+        :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]){
           --page-bg:#0b1220;
           --surface:#111c2e;
           --surface-rgb:17,28,46;
@@ -141,6 +153,8 @@
           --quiet:#64789a;
           --navy:#16314f;
           --navy-rgb:22,49,79;
+          --sidebar-bg-rgb:22,49,79;
+          --accent:#b8823f;
           --tint-blue:#132840;
           --tint-red:#2c1416;
           --tint-green:#0f2a1e;
@@ -179,6 +193,8 @@
         --muted:#93a4bb;
         --quiet:#64789a;
         --navy:#16314f;
+        --sidebar-bg-rgb:22,49,79;
+        --accent:#b8823f;
         --tint-blue:#132840;
         --tint-red:#2c1416;
         --tint-green:#0f2a1e;
@@ -198,6 +214,99 @@
         --text-indigo-deep:#a9b3f5;
         --surface-red-mid:#5c2020;
         --text-blue-deep:#a8c5f0;
+      }
+
+      /* ── Apple-Inspired ── a fixed light look, not a dark-mode variant of
+         anything above: off-white surfaces, SF Pro's real system stack
+         (renders natively on an iPhone/Mac, sane sans-serif fallback
+         elsewhere), a single blue accent, and a light frosted sidebar
+         (--sidebar-bg-rgb) instead of the default's dark navy one — closer
+         to how a Mac or iOS app organises a sidebar. --navy itself stays
+         the "statement card" masthead colour (Home, Awaits Submission) and
+         becomes this theme's blue rather than literal navy. */
+      :root[data-theme="apple"]{
+        color-scheme: light;
+        --page-bg:#f5f5f7;
+        --surface:#ffffff;
+        --surface-rgb:255,255,255;
+        --surface-2:#fbfbfd;
+        --surface-2-rgb:251,251,253;
+        --chip-bg:#f0f0f2;
+        --border:#d2d2d7;
+        --border-2:#e8e8ed;
+        --ink:#1d1d1f;
+        --muted:#6e6e73;
+        --quiet:#86868b;
+        --navy:#0071e3;
+        --navy-rgb:0,113,227;
+        --sidebar-bg-rgb:255,255,255;
+        --accent:#0071e3;
+        --app-font:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text',system-ui,sans-serif;
+        --tint-blue:#eaf4ff;
+        --tint-red:#fdeeee;
+        --tint-green:#eafbef;
+        --tint-green-2:#dcf7e3;
+        --tint-purple:#f2e9fb;
+        --tint-amber:#fff3e2;
+        --tint-amber-2:#ffe6c2;
+        --tint-teal:#e5f8f6;
+        --text-navy:#0071e3;
+        --text-red-deep:#d70015;
+        --text-green-deep:#1d7a34;
+        --text-purple-deep:#7a3fa0;
+        --text-amber-deep:#a35600;
+        --tint-blue-2:#d6ebff;
+        --tint-brass:#eaf4ff;
+        --tint-indigo:#eef0fd;
+        --text-indigo-deep:#4d4dc7;
+        --surface-red-mid:#ff8a80;
+        --text-blue-deep:#0058b0;
+      }
+
+      /* ── Professional Light ── quieter and denser: Inter, a flat slate
+         sidebar with no glow effect (sidebarGlow is unset for this theme in
+         App.jsx), tighter corners applied at the component level, and one
+         restrained teal accent standing in for the default's brass. --navy
+         drives both the masthead cards and the sidebar here (no need to
+         decouple them the way Apple's does), so --sidebar-bg-rgb just
+         mirrors --navy-rgb. */
+      :root[data-theme="professional"]{
+        color-scheme: light;
+        --page-bg:#f8fafc;
+        --surface:#ffffff;
+        --surface-rgb:255,255,255;
+        --surface-2:#f1f5f9;
+        --surface-2-rgb:241,245,249;
+        --chip-bg:#eef1f6;
+        --border:#e2e8f0;
+        --border-2:#e8ecf2;
+        --ink:#0f172a;
+        --muted:#475569;
+        --quiet:#64748b;
+        --navy:#111827;
+        --navy-rgb:17,24,39;
+        --sidebar-bg-rgb:17,24,39;
+        --accent:#0f766e;
+        --app-font:'Inter',system-ui,sans-serif;
+        --tint-blue:#eff6ff;
+        --tint-red:#fef2f2;
+        --tint-green:#f0fdf4;
+        --tint-green-2:#dcfce7;
+        --tint-purple:#f5f3ff;
+        --tint-amber:#fffbeb;
+        --tint-amber-2:#fef3c7;
+        --tint-teal:#f0fdfa;
+        --text-navy:#0f766e;
+        --text-red-deep:#991b1b;
+        --text-green-deep:#166534;
+        --text-purple-deep:#4c1d95;
+        --text-amber-deep:#92400e;
+        --tint-blue-2:#dbeafe;
+        --tint-brass:#f0fdfa;
+        --tint-indigo:#e0e7ff;
+        --text-indigo-deep:#4338ca;
+        --surface-red-mid:#fca5a5;
+        --text-blue-deep:#1e40af;
       }
       html,body,#root{background:var(--page-bg)}
 

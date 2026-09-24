@@ -22,7 +22,7 @@ import { useFocusTrap } from '../lib/useFocusTrap.js';
 // setters into each piece anyway.
 export function TabSettings({
   isWide, S, MONO, BRASS,
-  savedBadge, themeMode, setTheme,
+  savedBadge, themeMode, setTheme, pillShadow,
   configExpanded, setConfigExpanded, configShown, configSetupIncomplete,
   justCompletedSetup, setJustCompletedSetup,
   setupPopupRequested, setSetupPopupRequested,
@@ -162,11 +162,16 @@ export function TabSettings({
           <div style={{background:'var(--tint-amber)',padding:'6px',borderRadius:'11px',flexShrink:0}}><Ico n="sun" s={14} c={BRASS}/></div>
           <div>
             <div style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Appearance</div>
-            <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>Light, dark, or match your device</div>
+            <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>Light, dark, or a different look entirely</div>
           </div>
         </div>
-        <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px'}} indicatorStyle={{background:BRASS,borderRadius:'9px',boxShadow:'0 4px 11px rgba(184,130,63,0.35)'}}>
-          {[['system','Auto'],['light','Light'],['dark','Dark']].map(([v,lbl])=>(
+        {/* Apple and Pro are short for Apple-Inspired/Professional Light —
+            the sliding pill (SegSlider) measures each segment's own
+            offsetLeft/offsetWidth to animate between them, which only works
+            for a single non-wrapping row, so five segments need labels
+            compact enough to still fit one line at this card's width. */}
+        <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px'}} indicatorStyle={{background:BRASS,borderRadius:'9px',boxShadow:`0 4px 11px ${pillShadow}`}}>
+          {[['system','Auto'],['light','Light'],['dark','Dark'],['apple','Apple'],['professional','Pro']].map(([v,lbl])=>(
             <button key={v} data-seg-key={v} onClick={()=>setTheme(v)} style={{position:'relative',zIndex:1,flex:1,padding:'6px 4px',borderRadius:'9px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:themeMode===v?'#fff':'var(--muted)'}}>{lbl}</button>
           ))}
         </SegSlider>
