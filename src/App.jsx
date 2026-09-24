@@ -130,6 +130,24 @@ const THEME_PALETTES = {
     sidebarGlow:null, sidebarPill:'rgba(15,118,110,0.28)',
     sidebarBtnBg:'rgba(45,212,191,0.12)', sidebarBtnBorder:'rgba(45,212,191,0.35)', sidebarBtnSubtext:'rgba(45,212,191,0.6)',
   },
+  midnight: {
+    brass:'#22d3ee', brassLight:'#67e8f9', pillShadow:'rgba(34,211,238,0.35)',
+    sidebarText:'#5c7699', sidebarTextActive:'#e7ecf5', sidebarDivider:'rgba(255,255,255,0.08)',
+    sidebarGlow:'rgba(34,211,238,0.16)', sidebarPill:'rgba(34,211,238,0.16)',
+    sidebarBtnBg:'rgba(34,211,238,0.12)', sidebarBtnBorder:'rgba(34,211,238,0.32)', sidebarBtnSubtext:'rgba(103,232,249,0.6)',
+  },
+  sandstone: {
+    brass:'#b3562a', brassLight:'#d98a5c', pillShadow:'rgba(179,86,42,0.35)',
+    sidebarText:'#c9b28b', sidebarTextActive:'#fdf6e8', sidebarDivider:'rgba(255,255,255,0.08)',
+    sidebarGlow:'rgba(179,86,42,0.22)', sidebarPill:'rgba(179,86,42,0.22)',
+    sidebarBtnBg:'rgba(217,138,92,0.14)', sidebarBtnBorder:'rgba(217,138,92,0.35)', sidebarBtnSubtext:'rgba(217,138,92,0.6)',
+  },
+  terminal: {
+    brass:'#22c55e', brassLight:'#4ade80', pillShadow:'rgba(34,197,94,0.35)',
+    sidebarText:'#4d4d4d', sidebarTextActive:'#e6e6e6', sidebarDivider:'rgba(255,255,255,0.08)',
+    sidebarGlow:'rgba(34,197,94,0.14)', sidebarPill:'rgba(34,197,94,0.18)',
+    sidebarBtnBg:'rgba(34,197,94,0.12)', sidebarBtnBorder:'rgba(34,197,94,0.32)', sidebarBtnSubtext:'rgba(74,222,128,0.6)',
+  },
 };
 // Same check TabSummary's calendar swipe already makes before its own
 // snap-back — used by the pull-to-refresh indicator's settle transition
@@ -4341,14 +4359,16 @@ export default function App() {
         /* Same theme-detection pattern as every custom property in
            index.html — without this, the OS's native date-picker icon and
            popup stay light-themed even in dark mode, exactly the bug the
-           old TimeSelect had before it was rebuilt. Apple-Inspired and
-           Professional Light are fixed light looks, not dark-mode variants,
-           so they're excluded here the same way an explicit "light" choice
-           already is. */
+           old TimeSelect had before it was rebuilt. Apple-Inspired,
+           Professional Light and Sandstone are fixed light looks, not
+           dark-mode variants, so they're excluded here the same way an
+           explicit "light" choice already is. */
         @media (prefers-color-scheme: dark){
-          :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]) input[type=date]{color-scheme:dark}
+          :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]):not([data-theme="sandstone"]) input[type=date]{color-scheme:dark}
         }
         :root[data-theme="dark"] input[type=date]{color-scheme:dark}
+        :root[data-theme="midnight"] input[type=date]{color-scheme:dark}
+        :root[data-theme="terminal"] input[type=date]{color-scheme:dark}
         input[type=date]::-webkit-date-and-time-value{text-align:left}
         input[type=date]::-webkit-datetime-edit{padding:0}
         input[type=date]::-webkit-calendar-picker-indicator{background:transparent;cursor:pointer;opacity:0.55;padding:0;margin:0}

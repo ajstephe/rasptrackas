@@ -75,7 +75,11 @@
          Apple devices) are added alongside DM Sans/IBM Plex Mono so all
          four Appearance options beyond the default can load their type
          without a second request each. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <!-- Space Grotesk (Midnight) and Lora (Sandstone) added alongside the
+         rest for the same reason Inter was — so all Appearance options load
+         their type up front instead of on first pick. Terminal reuses
+         IBM Plex Mono, already loaded. -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Lora:wght@500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -135,11 +139,13 @@
         --text-blue-deep:#1e40af;
       }
       @media (prefers-color-scheme: dark){
-        /* Apple-Inspired and Professional Light are fixed looks, not dark-
-           mode-aware variants — excluded here the same way an explicit
+        /* Every custom theme below is a fixed look, not a dark-mode-aware
+           variant of the default — excluded here the same way an explicit
            "light" choice already is, so a dark OS never quietly overrides
-           either of them one token at a time. */
-        :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]){
+           any of them one token at a time. Midnight and Terminal are
+           dark-first designs in their own right, so this matters just as
+           much for them as it does for the three light ones. */
+        :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="sandstone"]):not([data-theme="terminal"]){
           --page-bg:#0b1220;
           --surface:#111c2e;
           --surface-rgb:17,28,46;
@@ -307,6 +313,145 @@
         --text-indigo-deep:#4338ca;
         --surface-red-mid:#fca5a5;
         --text-blue-deep:#1e40af;
+      }
+
+      /* ── Midnight ── a dark-first look, not a moodier version of the
+         default Dark theme: the whole page drops to near-black (not just
+         the sidebar), one electric-cyan accent stands in for brass, and
+         Space Grotesk's geometric character replaces DM Sans. --navy sits
+         one step above --page-bg rather than reusing it outright, so the
+         Home/Awaits Submission statement cards still read as distinct
+         surfaces against a page this dark. */
+      :root[data-theme="midnight"]{
+        color-scheme: dark;
+        --page-bg:#05080f;
+        --surface:#101722;
+        --surface-rgb:16,23,34;
+        --surface-2:#161f2d;
+        --surface-2-rgb:22,31,45;
+        --chip-bg:#1c2636;
+        --border:#263148;
+        --border-2:#1c2636;
+        --ink:#e7ecf5;
+        --muted:#8ea0bb;
+        --quiet:#5c6d88;
+        --navy:#0c121c;
+        --navy-rgb:12,18,28;
+        --sidebar-bg-rgb:5,8,15;
+        --accent:#22d3ee;
+        --app-font:'Space Grotesk',system-ui,sans-serif;
+        --tint-blue:#0f1f2e;
+        --tint-red:#2a1315;
+        --tint-green:#0f2a20;
+        --tint-green-2:#123a2c;
+        --tint-purple:#1e1830;
+        --tint-amber:#2a2013;
+        --tint-amber-2:#332813;
+        --tint-teal:#0d2626;
+        --text-navy:#7dd3f2;
+        --text-red-deep:#f3a9a9;
+        --text-green-deep:#86e0ae;
+        --text-purple-deep:#c4b5f7;
+        --text-amber-deep:#f2c579;
+        --tint-blue-2:#142c3f;
+        --tint-brass:#123a45;
+        --tint-indigo:#1c2040;
+        --text-indigo-deep:#b0b8f7;
+        --surface-red-mid:#5c2020;
+        --text-blue-deep:#8fd0f5;
+      }
+
+      /* ── Sandstone ── warm and paper-like rather than a tinted version of
+         the default light theme: a cream page, a dark brown sidebar/navy in
+         place of the classic navy, a terracotta accent instead of brass,
+         and Lora's serif standing in for DM Sans. Every "category" tint
+         (OT/PA/TOIL's blue/amber/purple) is re-hued toward the same warm
+         family so nothing clashes against the cream — only the genuine
+         danger red (delete/error states) stays a true red, since that one
+         needs to keep reading as a warning regardless of theme. */
+      :root[data-theme="sandstone"]{
+        color-scheme: light;
+        --page-bg:#ece1cb;
+        --surface:#fffbf3;
+        --surface-rgb:255,251,243;
+        --surface-2:#f6ecd8;
+        --surface-2-rgb:246,236,216;
+        --chip-bg:#f1e4c8;
+        --border:#e6d7ba;
+        --border-2:#efe4cd;
+        --ink:#2e2418;
+        --muted:#7a6a51;
+        --quiet:#a3907a;
+        --navy:#2e2418;
+        --navy-rgb:46,36,24;
+        --sidebar-bg-rgb:46,36,24;
+        --accent:#b3562a;
+        --app-font:'Lora',Georgia,serif;
+        --tint-blue:#eef1e8;
+        --tint-red:#f6e3df;
+        --tint-green:#eaf0e2;
+        --tint-green-2:#ddebd0;
+        --tint-purple:#f1e6e8;
+        --tint-amber:#f8e8d4;
+        --tint-amber-2:#f3d9b3;
+        --tint-teal:#e9f0e6;
+        --text-navy:#5b7553;
+        --text-red-deep:#9c3b28;
+        --text-green-deep:#5f7d4a;
+        --text-purple-deep:#9c5b66;
+        --text-amber-deep:#a3611f;
+        --tint-blue-2:#dde6d0;
+        --tint-brass:#f3ddc9;
+        --tint-indigo:#eee3e3;
+        --text-indigo-deep:#7a4a52;
+        --surface-red-mid:#c9846a;
+        --text-blue-deep:#435a34;
+      }
+
+      /* ── Terminal ── utilitarian and monochrome: true black, one
+         phosphor-green accent, and IBM Plex Mono used for every label and
+         heading, not just figures. Every category tint (OT/PA/TOIL) is
+         collapsed to the same green — deliberately, so nothing competes
+         with the numbers for attention — except the genuine danger red,
+         kept as a real red for the same reason Sandstone keeps one: a
+         delete confirmation shouldn't quietly turn green. */
+      :root[data-theme="terminal"]{
+        color-scheme: dark;
+        --page-bg:#000000;
+        --surface:#0a0a0a;
+        --surface-rgb:10,10,10;
+        --surface-2:#111111;
+        --surface-2-rgb:17,17,17;
+        --chip-bg:#161616;
+        --border:#242424;
+        --border-2:#1a1a1a;
+        --ink:#e6e6e6;
+        --muted:#8a8a8a;
+        --quiet:#57575a;
+        --navy:#0d0d0d;
+        --navy-rgb:13,13,13;
+        --sidebar-bg-rgb:0,0,0;
+        --accent:#22c55e;
+        --app-font:'IBM Plex Mono',ui-monospace,monospace;
+        --tint-blue:#0f1f15;
+        --tint-red:#2a1414;
+        --tint-green:#10241a;
+        --tint-green-2:#13301f;
+        --tint-purple:#0f1f15;
+        --tint-amber:#0f1f15;
+        --tint-amber-2:#13301f;
+        --tint-teal:#0f1f15;
+        --text-navy:#4ade80;
+        --text-red-deep:#f3a9a9;
+        --text-green-deep:#4ade80;
+        --text-purple-deep:#4ade80;
+        --text-amber-deep:#4ade80;
+        --tint-blue-2:#132a1c;
+        --tint-brass:#0f1f15;
+        --tint-indigo:#14201a;
+        --text-indigo-deep:#4ade80;
+        --surface-red-mid:#5c2020;
+        --text-blue-deep:#4ade80;
       }
       html,body,#root{background:var(--page-bg)}
 

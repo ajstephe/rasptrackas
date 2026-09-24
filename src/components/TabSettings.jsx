@@ -168,11 +168,15 @@ export function TabSettings({
         {/* Apple and Pro are short for Apple-Inspired/Professional Light —
             the sliding pill (SegSlider) measures each segment's own
             offsetLeft/offsetWidth to animate between them, which only works
-            for a single non-wrapping row, so five segments need labels
-            compact enough to still fit one line at this card's width. */}
-        <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px'}} indicatorStyle={{background:BRASS,borderRadius:'9px',boxShadow:`0 4px 11px ${pillShadow}`}}>
-          {[['system','Auto'],['light','Light'],['dark','Dark'],['apple','Apple'],['professional','Pro']].map(([v,lbl])=>(
-            <button key={v} data-seg-key={v} onClick={()=>setTheme(v)} style={{position:'relative',zIndex:1,flex:1,padding:'6px 4px',borderRadius:'9px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:themeMode===v?'#fff':'var(--muted)'}}>{lbl}</button>
+            for a single non-wrapping row. Eight options no longer fit at
+            equal width on a narrow phone, so segments size to their own
+            label (flexShrink:0) instead of splitting the row evenly, and
+            the track scrolls horizontally rather than wrapping — SegSlider's
+            offsetLeft/offsetWidth measurements are unaffected by scroll
+            position, so the pill still lands correctly either way. */}
+        <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px',overflowX:'auto',padding:'3px 1px'}} indicatorStyle={{background:BRASS,borderRadius:'9px',boxShadow:`0 4px 11px ${pillShadow}`}}>
+          {[['system','Auto'],['light','Light'],['dark','Dark'],['apple','Apple'],['professional','Pro'],['midnight','Midnight'],['sandstone','Sandstone'],['terminal','Terminal']].map(([v,lbl])=>(
+            <button key={v} data-seg-key={v} onClick={()=>setTheme(v)} style={{position:'relative',zIndex:1,flexShrink:0,whiteSpace:'nowrap',padding:'6px 12px',borderRadius:'9px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:themeMode===v?'#fff':'var(--muted)'}}>{lbl}</button>
           ))}
         </SegSlider>
       </div>
