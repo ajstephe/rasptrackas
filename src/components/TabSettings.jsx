@@ -10,6 +10,9 @@ import { SegSlider } from './SegSlider.jsx';
 import { useMountTransition } from '../lib/useMountTransition.js';
 import { useFocusTrap } from '../lib/useFocusTrap.js';
 
+// Matches the mobile theme row's track side padding, so arrow stops line
+// up the same way the row's two ends do.
+const THEME_ROW_PAD = 6;
 const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['apple','Apple'],['professional','Pro'],['midnight','Midnight'],['sandstone','Sandstone'],['flagship','Flagship']];
 
 // ─── More.. (settings) tab ───────────────────────────────────────────────────
@@ -156,11 +159,19 @@ export function TabSettings({
       if (cancelled) return;
       const btn = el.querySelector(`[data-seg-key="${themeMode}"]`);
       if (!btn) return;
-      const pad = 8, left = btn.offsetLeft - pad, right = btn.offsetLeft + btn.offsetWidth + pad;
+      const pad = THEME_ROW_PAD, left = btn.offsetLeft - pad, right = btn.offsetLeft + btn.offsetWidth + pad;
+      const max = el.scrollWidth - el.clientWidth;
       let target = null;
       if (left < el.scrollLeft) target = left;
       else if (right > el.scrollLeft + el.clientWidth) target = right - el.clientWidth;
-      if (target !== null) el.scrollTo({ left: Math.max(0, target), behavior: smooth ? 'smooth' : 'auto' });
+      if (target !== null) {
+        // A theme whose font makes the row a few px wider would otherwise
+        // leave it sitting a sliver off either end — stay on the end when
+        // the chosen theme is still fully visible there.
+        if (target < 2*pad && btn.offsetLeft + btn.offsetWidth <= el.clientWidth) target = 0;
+        if (target > max - 2*pad && btn.offsetLeft >= max) target = max;
+        el.scrollTo({ left: target, behavior: smooth ? 'smooth' : 'auto' });
+      }
       updateThemeRowEdges();
     };
     // One frame later so App has applied the new data-theme (a parent's
@@ -172,10 +183,37 @@ export function TabSettings({
     });
     return () => { cancelled = true; cancelAnimationFrame(raf); };
   }, [themeMode, isWide]);
+  // Pages by whole themes rather than a fixed distance, which used to stop
+  // part-way through one: › brings the first theme cut off on the right to
+  // the left edge, ‹ brings the one cut off on the left to the right edge.
+  // pad matches the track's own side padding, so every stop lines up the
+  // same way the row's two ends do.
+  // The arrows step through a fixed set of stops worked out from the row
+  // itself: each stop starts with the first theme the previous one cut
+  // off, so every theme is fully visible at some stop and ‹ retraces
+  // exactly the stops › went through. (Skipping ahead to the end instead,
+  // tried earlier, could jump clean past a theme.)
+  const themeRowStops = (el) => {
+    const items = [...el.querySelectorAll('[data-seg-key]')];
+    const max = el.scrollWidth - el.clientWidth;
+    const stops = [0];
+    let s = 0;
+    while (s < max - 1) {
+      const next = items.find(b => b.offsetLeft + b.offsetWidth > s + el.clientWidth + 1);
+      const t = next ? Math.min(next.offsetLeft - THEME_ROW_PAD, max) : max;
+      s = t > s + 1 ? t : max;
+      stops.push(s);
+    }
+    return stops;
+  };
   const scrollThemeRow = (dir) => {
     const el = themeRowRef.current;
     if (!el) return;
-    el.scrollBy({ left: dir*el.clientWidth*0.7, behavior: reduceMotion()?'auto':'smooth' });
+    const stops = themeRowStops(el), cur = el.scrollLeft;
+    const target = dir > 0
+      ? (stops.find(s => s > cur + 1) ?? stops[stops.length-1])
+      : (stops.slice().reverse().find(s => s < cur - 1) ?? 0);
+    el.scrollTo({ left: target, behavior: reduceMotion()?'auto':'smooth' });
   };
   const themeIndicator = {background:BRASS,borderRadius:'9px',boxShadow:`0 4px 11px ${pillShadow}`};
   const themeButtons = THEME_OPTIONS.map(([v,lbl])=>(
