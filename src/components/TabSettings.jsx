@@ -230,7 +230,7 @@ export function TabSettings({
         <div style={{display:'flex',alignItems:'center',gap:'9px',marginBottom:'9px'}}>
           <div style={{background:'var(--tint-amber)',padding:'6px',borderRadius:'11px',flexShrink:0}}><Ico n="sun" s={14} c={BRASS}/></div>
           <div>
-            <div style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Appearance</div>
+            <div style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Themes</div>
             <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>Light, dark, or a different look entirely</div>
           </div>
         </div>
