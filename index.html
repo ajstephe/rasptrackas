@@ -459,7 +459,13 @@
         --surface-red-mid:#f3a0a4;
         --text-blue-deep:#1f56b3;
       }
-      :root[data-theme="flagship"] body{font-variant-numeric:lining-nums tabular-nums}
+      /* font-size-adjust: Ysabeau Office's x-height is 0.43 of its size
+         against DM Sans' 0.50, so at the same px sizes it read noticeably
+         smaller than every other theme. 0.48 rather than the full 0.50
+         keeps its width in line with Lora and Space Grotesk (already known
+         to fit the sidebar, nav and tables); at 0.50 it runs ~11% wider
+         than DM Sans. Browsers without support just keep today's size. */
+      :root[data-theme="flagship"] body{font-variant-numeric:lining-nums tabular-nums;font-size-adjust:0.48}
       html,body,#root{background:var(--page-bg)}
 
       /* Native form elements (input/select/textarea) don't inherit
