@@ -70,16 +70,14 @@
          MONO+fontWeight:900 usages is at each of those call sites instead,
          switched to the real 700 they were already silently rendering as.
          See the round-7 audit for how both were confirmed. -->
-    <!-- Inter (Professional Light theme) and the system font stack (Apple-
-         Inspired theme, no webfont needed — it resolves to real SF Pro on
-         Apple devices) are added alongside DM Sans/IBM Plex Mono so all
-         four Appearance options beyond the default can load their type
-         without a second request each. -->
+    <!-- Inter (Professional Light) and Geist + Geist Mono (Corporate) are
+         added alongside DM Sans/IBM Plex Mono so every theme beyond the
+         default can load its type without a second request each. -->
     <!-- Space Grotesk (Midnight), Ysabeau Office (Flagship), Libre
          Franklin (Heritage) and Nunito + Roboto Mono (Heather) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Libre+Franklin:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Libre+Franklin:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&family=Roboto+Mono:wght@500;600;700&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -148,7 +146,7 @@
            any of them one token at a time. Midnight is a dark-first design
            in its own right, so this matters just as much for it as it does
            for the light ones. */
-        :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="heather"]){
+        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="heather"]){
           --page-bg:#0b1220;
           --surface:#111c2e;
           --surface-rgb:17,28,46;
@@ -227,51 +225,51 @@
         --text-blue-deep:#a8c5f0;
       }
 
-      /* ── Apple-Inspired ── a fixed light look, not a dark-mode variant of
-         anything above: off-white surfaces, SF Pro's real system stack
-         (renders natively on an iPhone/Mac, sane sans-serif fallback
-         elsewhere), a single blue accent, and a light frosted sidebar
-         (--sidebar-bg-rgb) instead of the default's dark navy one — closer
-         to how a Mac or iOS app organises a sidebar. --navy itself stays
-         the "statement card" masthead colour (Home, Awaits Submission) and
-         becomes this theme's blue rather than literal navy. */
-      :root[data-theme="apple"]{
+      /* ── Corporate ── sleek and modern: a crisp white sidebar with a
+         hairline edge (--sidebar-bg-rgb is white, decoupled from --navy),
+         graphite statement cards and save bar, cool grey neutrals and one
+         vivid cobalt accent. Geist for letters, Geist Mono for figures.
+         Replaced Apple-Inspired; a saved "apple" choice is migrated to
+         "corporate" when the app loads (see themeMode in App.jsx). */
+      :root[data-theme="corporate"]{
         color-scheme: light;
-        --page-bg:#f5f5f7;
+        --page-bg:#f4f5f7;
         --surface:#ffffff;
         --surface-rgb:255,255,255;
-        --surface-2:#fbfbfd;
-        --surface-2-rgb:251,251,253;
-        --chip-bg:#f0f0f2;
-        --border:#d2d2d7;
-        --border-2:#e8e8ed;
-        --ink:#1d1d1f;
-        --muted:#6e6e73;
-        --quiet:#86868b;
-        --navy:#0071e3;
-        --navy-rgb:0,113,227;
+        --surface-2:#f9fafb;
+        --surface-2-rgb:249,250,251;
+        --chip-bg:#eef0f3;
+        --border:#dcdfe5;
+        --border-2:#e9ebef;
+        --ink:#111318;
+        --muted:#5b616e;
+        --quiet:#858b97;
+        --navy:#16181d;
+        --savebar:#16181d;
+        --navy-rgb:22,24,29;
         --sidebar-bg-rgb:255,255,255;
-        --accent:#0071e3;
-        --app-font:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text',system-ui,sans-serif;
-        --tint-blue:#eaf4ff;
+        --accent:#0f62fe;
+        --app-font:'Geist',system-ui,sans-serif;
+        --num-font:'Geist Mono',ui-monospace,monospace;
+        --tint-blue:#edf3ff;
         --tint-red:#fdeeee;
-        --tint-green:#eafbef;
-        --tint-green-2:#dcf7e3;
-        --tint-purple:#f2e9fb;
-        --tint-amber:#fff3e2;
-        --tint-amber-2:#ffe6c2;
-        --tint-teal:#e5f8f6;
-        --text-navy:#0071e3;
-        --text-red-deep:#d70015;
-        --text-green-deep:#1d7a34;
-        --text-purple-deep:#7a3fa0;
-        --text-amber-deep:#a35600;
-        --tint-blue-2:#d6ebff;
-        --tint-brass:#eaf4ff;
-        --tint-indigo:#eef0fd;
-        --text-indigo-deep:#4d4dc7;
-        --surface-red-mid:#ff8a80;
-        --text-blue-deep:#0058b0;
+        --tint-green:#e9f8ef;
+        --tint-green-2:#d5f1df;
+        --tint-purple:#f2ecfb;
+        --tint-amber:#fff4e0;
+        --tint-amber-2:#ffe5b8;
+        --tint-teal:#e4f6f4;
+        --text-navy:#16181d;
+        --text-red-deep:#c8102e;
+        --text-green-deep:#17703f;
+        --text-purple-deep:#6b3fb0;
+        --text-amber-deep:#9a5500;
+        --tint-blue-2:#dbe7ff;
+        --tint-brass:#edf3ff;
+        --tint-indigo:#eceefd;
+        --text-indigo-deep:#4449c2;
+        --surface-red-mid:#f59a9a;
+        --text-blue-deep:#0043ce;
       }
 
       /* ── Professional Light ── quieter and denser: Inter, a flat slate
@@ -279,7 +277,7 @@
          App.jsx), tighter corners applied at the component level, and one
          restrained teal accent standing in for the default's brass. --navy
          drives both the masthead cards and the sidebar here (no need to
-         decouple them the way Apple's does), so --sidebar-bg-rgb just
+         decouple them the way Corporate's does), so --sidebar-bg-rgb just
          mirrors --navy-rgb. */
       :root[data-theme="professional"]{
         color-scheme: light;

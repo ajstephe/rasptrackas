@@ -106,10 +106,10 @@ idle(() => {
 // everywhere except Flagship, which sets numbers in the same face as its text.
 const MONO  = 'var(--num-font)';
 // One accent + desktop-sidebar palette per Appearance option beyond the
-// default light/dark pair — Apple-Inspired and Professional Light are
+// default light/dark pair — Corporate and Professional Light are
 // fixed looks (see the :not([data-theme=...]) guards in index.html), each
 // swapping the brass wayfinding colour for its own and, where the sidebar
-// needs to diverge from its usual dark-navy vibrancy (Apple's is light,
+// needs to diverge from its usual dark-navy vibrancy (Corporate's is light,
 // Professional's drops the glow entirely), carrying its own sidebar
 // text/pill/button colours too. 'classic' covers system/light/dark, which
 // all share today's brass-on-navy sidebar unchanged.
@@ -120,11 +120,11 @@ const THEME_PALETTES = {
     sidebarGlow:'rgba(184,130,63,0.5)', sidebarPill:'rgba(184,130,63,0.18)',
     sidebarBtnBg:'rgba(184,130,63,0.16)', sidebarBtnBorder:'rgba(184,130,63,0.4)', sidebarBtnSubtext:'rgba(227,189,133,0.65)',
   },
-  apple: {
-    brass:'#0071e3', brassLight:'#409cff', pillShadow:'rgba(0,113,227,0.35)',
-    sidebarText:'#6e6e73', sidebarTextActive:'#1d1d1f', sidebarDivider:'rgba(0,0,0,0.08)',
-    sidebarGlow:'rgba(0,113,227,0.14)', sidebarPill:'rgba(0,113,227,0.1)',
-    sidebarBtnBg:'rgba(0,113,227,0.08)', sidebarBtnBorder:'rgba(0,113,227,0.25)', sidebarBtnSubtext:'rgba(0,113,227,0.55)',
+  corporate: {
+    brass:'#0f62fe', brassLight:'#4589ff', navActiveIcon:'#0f62fe', pillShadow:'rgba(15,98,254,0.3)',
+    sidebarText:'#5b616e', sidebarTextActive:'#111318', sidebarDivider:'rgba(0,0,0,0.07)',
+    sidebarGlow:null, sidebarPill:'rgba(15,98,254,0.08)',
+    sidebarBtnBg:'rgba(15,98,254,0.06)', sidebarBtnBorder:'rgba(15,98,254,0.22)', sidebarBtnSubtext:'rgba(15,98,254,0.55)',
   },
   professional: {
     brass:'#0f766e', brassLight:'#2dd4bf', pillShadow:'rgba(15,118,110,0.35)',
@@ -160,7 +160,7 @@ const THEME_PALETTES = {
     sidebarBtnBg:'rgba(240,155,189,0.12)', sidebarBtnBorder:'rgba(240,155,189,0.35)', sidebarBtnSubtext:'rgba(240,155,189,0.65)',
   },
 };
-const THEME_IDS = ['system','light','dark','apple','professional','midnight','flagship','heritage','heather'];
+const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','heather'];
 // Same check TabSummary's calendar swipe already makes before its own
 // snap-back — used by the pull-to-refresh indicator's settle transition
 // below for the same reason: the live drag tracks the finger regardless
@@ -691,7 +691,8 @@ export default function App() {
   // all, so the plain CSS prefers-color-scheme rule in index.html drives it
   // (and keeps following the OS live, no listener needed here).
   // A saved theme that's since been removed (Terminal) falls back to Auto.
-  const [themeMode, setThemeMode] = useState(()=>{ const v = dualRead(KEYS.themeMode,'system'); return THEME_IDS.includes(v) ? v : 'system'; });
+  // Apple-Inspired was reworked into Corporate, so a saved 'apple' carries over.
+  const [themeMode, setThemeMode] = useState(()=>{ let v = dualRead(KEYS.themeMode,'system'); if (v==='apple') v='corporate'; return THEME_IDS.includes(v) ? v : 'system'; });
   useEffect(()=>{
     if(themeMode==='system') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', themeMode);
@@ -4071,10 +4072,10 @@ export default function App() {
            shadow flickering. Stops the instant justSaved flips true —
            .save-pulse's own one-shot green ring takes over from there. */
         @keyframes savePulseIdle{
-          0%,100%{box-shadow:0 3px 14px rgba(184,130,63,0.4),0 0 0 0 rgba(184,130,63,0)}
-          30%{box-shadow:0 3px 14px rgba(184,130,63,0.4),0 0 0 10px rgba(184,130,63,0.35)}
-          50%{box-shadow:0 3px 14px rgba(184,130,63,0.4),0 0 0 0 rgba(184,130,63,0)}
-          70%{box-shadow:0 3px 14px rgba(184,130,63,0.4),0 0 0 10px rgba(184,130,63,0.35)}
+          0%,100%{box-shadow:0 3px 14px color-mix(in srgb, ${BRASS} 40%, transparent),0 0 0 0 color-mix(in srgb, ${BRASS} 0%, transparent)}
+          30%{box-shadow:0 3px 14px color-mix(in srgb, ${BRASS} 40%, transparent),0 0 0 10px color-mix(in srgb, ${BRASS} 35%, transparent)}
+          50%{box-shadow:0 3px 14px color-mix(in srgb, ${BRASS} 40%, transparent),0 0 0 0 color-mix(in srgb, ${BRASS} 0%, transparent)}
+          70%{box-shadow:0 3px 14px color-mix(in srgb, ${BRASS} 40%, transparent),0 0 0 10px color-mix(in srgb, ${BRASS} 35%, transparent)}
         }
         @keyframes subtlePulse{0%{opacity:0.5}20%{opacity:1}40%{opacity:0.5}60%{opacity:1}80%,100%{opacity:0.5}}
         @keyframes entryFlash{0%{box-shadow:0 0 0 0 rgba(37,99,235,0.45)}60%{box-shadow:0 0 0 10px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}
@@ -4372,12 +4373,12 @@ export default function App() {
         /* Same theme-detection pattern as every custom property in
            index.html — without this, the OS's native date-picker icon and
            popup stay light-themed even in dark mode, exactly the bug the
-           old TimeSelect had before it was rebuilt. Apple-Inspired,
+           old TimeSelect had before it was rebuilt. Corporate,
            Professional Light, Flagship, Heritage and Heather are fixed light looks,
            not dark-mode variants, so they're excluded here the same way an
            explicit "light" choice already is. */
         @media (prefers-color-scheme: dark){
-          :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="heather"]) input[type=date]{color-scheme:dark}
+          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="heather"]) input[type=date]{color-scheme:dark}
         }
         :root[data-theme="dark"] input[type=date]{color-scheme:dark}
         :root[data-theme="midnight"] input[type=date]{color-scheme:dark}
@@ -5278,7 +5279,7 @@ export default function App() {
               Professional Light, which drops the glow entirely rather than
               tinting it — the flat, calmer look that theme is going for —
               and --sidebar-bg-rgb (not --navy-rgb) drives the vibrancy layer
-              itself so Apple-Inspired can go light here while its statement
+              itself so Corporate can go light here while its statement
               cards elsewhere stay on --navy. */}
           <div style={{position:'absolute',inset:0,background:tab==='add'?'radial-gradient(circle at 28% 15%,rgba(16,185,129,0.55),transparent 65%)':(THEME.sidebarGlow?`radial-gradient(circle at 28% 15%,${THEME.sidebarGlow},transparent 65%)`:'transparent'),transition:'background 0.4s ease',pointerEvents:'none'}}/>
           <div style={{position:'absolute',inset:0,background:'rgba(var(--sidebar-bg-rgb),0.86)',backdropFilter:'blur(22px) saturate(1.5)',WebkitBackdropFilter:'blur(22px) saturate(1.5)',pointerEvents:'none'}}/>

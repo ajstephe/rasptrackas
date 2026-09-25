@@ -36,7 +36,8 @@ export function TabLogOvertime({
   useEffect(() => { if (justSaved) setNotesOpen(false); }, [justSaved]);
 
   const dateLabel = d => new Date((d||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-  const pillShadow = '0 3px 9px rgba(184,130,63,0.35)';
+  // Glow in the theme's own accent (BRASS is each theme's accent hex).
+  const pillShadow = `0 3px 9px color-mix(in srgb, ${BRASS} 35%, transparent)`;
   // iOS Safari zooms the page into any focused input under 16px.
   const inputFont = isWide ? '14px' : '16px';
 
