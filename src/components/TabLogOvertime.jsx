@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { fmt, fmtHM, fmtGBP } from '../lib/format.js';
 import { toMinutesOfDay, shiftDurationMinutes, generateShiftTimesLine } from '../lib/shiftTimes.js';
 import { getRates, PA_LABELS, PA_RATES, RATE_TIER_MULT } from '../lib/payRates.js';
@@ -6,11 +7,15 @@ import { Ico } from './Icons.jsx';
 import { TimeSelect } from './TimeSelect.jsx';
 import { SegSlider } from './SegSlider.jsx';
 
+const TIERS = [['hours133','1.33×'],['hours150','1.5×'],['hours200','2×']];
+const PRESETS = [['07:00','15:00'],['07:00','19:00'],['08:00','20:00'],['13:00','23:00']];
+const hm = mins => { const h = Math.floor(mins/60), m = Math.round(mins%60); return `${h}h${m?` ${m}m`:''}`; };
+
 // ─── Log Overtime tab ────────────────────────────────────────────────────────
-// Extracted verbatim from App.jsx's tab==='add' block — no behaviour change.
-// The densest of the six tabs (live shift-time/rate/TOIL preview logic), so
-// everything it touches comes in as an explicit prop rather than trying to
-// bundle it into one opaque object.
+// Laid out as five numbered steps, top to bottom, in the order people think
+// about a shift: when it was, the hours, how it's paid, whether it's already
+// been submitted, then notes. Gross/net and Save share one bar that stays on
+// screen. Same fields and behaviour as before — only the arrangement changed.
 export function TabLogOvertime({
   editing, setEditing, setTab, goToConfigSetup, settings, isWide, S, MONO, BRASS,
   form, setForm, todayStr, notesRef, effectiveTier, preview, handleSave, justSaved,
@@ -19,13 +24,246 @@ export function TabLogOvertime({
 }) {
   // Every other headline money figure in the app (Net pay, Gross YTD, TOIL
   // balance, CARMS outstanding) counts up rather than jumping when it
-  // changes — this preview was the one exception. Shorter duration than
-  // those (400ms vs 700ms) since this one can change on every keystroke
-  // while actively filling the form in, not just once per data refresh.
+  // changes. Shorter duration than those (400ms vs 700ms) since this one can
+  // change on every keystroke while actively filling the form in.
   const animatedPreviewGross = useCountUp(preview.gross, 400);
   const animatedPreviewNet = useCountUp(preview.net, 400);
+
+  // Notes stay folded away until wanted — but the shift-times summary the
+  // app writes into them (syncShiftTimesIntoForm) counts as wanted, so they
+  // open by themselves once times are set. Folds again after each save.
+  const [notesOpen, setNotesOpen] = useState(false);
+  useEffect(() => { if (justSaved) setNotesOpen(false); }, [justSaved]);
+
+  const dateLabel = d => new Date((d||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  const pillShadow = '0 3px 9px rgba(184,130,63,0.35)';
+  // iOS Safari zooms the page into any focused input under 16px.
+  const inputFont = isWide ? '14px' : '16px';
+
+  const step = (n, title, body, opts={}) => (
+    <div ref={opts.ref} className={opts.className} style={{...S.card,padding:isWide?'16px 18px':'15px',marginBottom:'12px',...(opts.style||{})}}>
+      <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'4px'}}>
+        <span style={{width:'22px',height:'22px',borderRadius:'50%',background:'var(--text-navy)',color:'var(--surface)',fontSize:'11px',fontWeight:900,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{n}</span>
+        <span style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{title}</span>
+        {opts.optional&&<span style={{fontSize:'10.5px',fontWeight:700,color:'var(--quiet)'}}>optional</span>}
+      </div>
+      {body}
+    </div>
+  );
+
+  // Label beside the control on desktop, above it on mobile.
+  const row = (label, sub, body, opts={}) => (
+    <div style={{display:'grid',gridTemplateColumns:isWide?'150px minmax(0,1fr)':'minmax(0,1fr)',gap:isWide?'14px':'7px',alignItems:isWide&&!opts.top?'center':'start',padding:'11px 0',borderBottom:opts.last?'none':'1px solid var(--border-2)'}}>
+      <div style={{paddingTop:isWide&&opts.top?'10px':0}}>
+        <div style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>{label}</div>
+        {sub&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>{sub}</div>}
+      </div>
+      <div style={{minWidth:0}}>{body}</div>
+    </div>
+  );
+
+  // Every choice uses the same sliding brass pill: sized to its labels on
+  // desktop, full width with equal segments on mobile for easy tapping.
+  const seg = (activeKey, options, onPick) => (
+    <SegSlider activeKey={activeKey} trackStyle={{display:isWide?'inline-flex':'flex',gap:'2px',background:'var(--chip-bg)',borderRadius:'11px',padding:'3px',maxWidth:'100%'}} indicatorStyle={{background:BRASS,borderRadius:'9px',boxShadow:pillShadow}}>
+      {options.map(([k,lbl,sub])=>(
+        <button key={k} type="button" data-seg-key={k} aria-pressed={activeKey===k} onClick={()=>onPick(k)} style={{position:'relative',zIndex:1,flex:isWide?'0 0 auto':1,minWidth:0,border:'none',background:'transparent',padding:isWide?'8px 14px':'9px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'12px',color:activeKey===k?'#fff':'var(--muted)',cursor:'pointer',whiteSpace:'nowrap',transition:'color 0.14s'}}>
+          {lbl}{sub&&<span style={{display:isWide?'inline':'block',marginLeft:isWide?'5px':0,fontSize:'10px',fontWeight:700,opacity:activeKey===k?0.85:0.6}}>{sub}</span>}
+        </button>
+      ))}
+    </SegSlider>
+  );
+
+  const timePair = (sKey, eKey, sLbl, eLbl) => {
+    const s = form[sKey], e = form[eKey];
+    const dur = s&&e ? shiftDurationMinutes(s,e) : 0;
+    const overnight = s&&e&&toMinutesOfDay(e)<=toMinutesOfDay(s);
+    const extras = (dur>0||overnight) && (
+      <span style={{display:'inline-flex',gap:'8px',alignItems:'center'}}>
+        {dur>0&&<span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>{hm(dur)}</span>}
+        {overnight&&<span style={{fontSize:'10.5px',fontWeight:700,color:'#2563eb'}}>↷ Ends the next day</span>}
+      </span>
+    );
+    const box = {flex:isWide?'0 0 120px':1,minWidth:0};
+    return (
+      <>
+        <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+          <div style={box}><TimeSelect value={s} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,[sKey]:v}))} label={sLbl} BRASS={BRASS} MONO={MONO}/></div>
+          <span style={{fontSize:'12px',fontWeight:700,color:'var(--quiet)'}}>to</span>
+          <div style={box}><TimeSelect value={e} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,[eKey]:v}))} label={eLbl} BRASS={BRASS} MONO={MONO}/></div>
+          {isWide&&extras}
+        </div>
+        {!isWide&&extras&&<div style={{marginTop:'6px'}}>{extras}</div>}
+      </>
+    );
+  };
+
+  // ── step 2: hours ────────────────────────────────────────────────────────
+  // "From shift times" is the default; "Enter hours" is the classic free-entry
+  // grid for shifts that span more than one rate tier.
+  const setTimesMode = times => {
+    if (form.recordShiftTimes===times) return;
+    setForm(f=>syncShiftTimesIntoForm({...f, recordShiftTimes:times, otRateTier: times && !f.otRateTier ? 'hours133' : f.otRateTier}));
+  };
+  const modeBtn = (times, title, desc, icon) => {
+    const on = form.recordShiftTimes===times;
+    return (
+      <button type="button" role="radio" aria-checked={on} onClick={()=>setTimesMode(times)} style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'9px',textAlign:'left',border:'none',borderRadius:'9px',padding:isWide?'8px 10px':'9px 8px',cursor:'pointer',fontFamily:'inherit',background:on?'var(--surface)':'transparent',boxShadow:on?'0 1px 4px rgba(15,39,68,0.14)':'none',transition:'background 0.15s, box-shadow 0.15s'}}>
+        <span style={{width:'26px',height:'26px',borderRadius:'8px',background:on?BRASS:'var(--border)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n={icon} s={14} c={on?'#fff':'var(--muted)'} w={2.2}/></span>
+        <span style={{minWidth:0}}>
+          <span style={{display:'block',fontSize:'12.5px',fontWeight:800,color:on?'var(--ink)':'var(--muted)'}}>{title}</span>
+          {isWide&&<span style={{display:'block',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{desc}</span>}
+        </span>
+      </button>
+    );
+  };
+
+  const tier = form.otRateTier || 'hours133';
+  const formRates = getRates(settings.rank, settings.service, form.date||todayStr);
+
+  const hoursRows = (() => {
+    if (!form.recordShiftTimes) {
+      const total = TIERS.reduce((s,[k])=>s+(parseFloat(form[k])||0),0);
+      return row('Overtime hours','only the extra hours, not the whole shift',(
+        <>
+          <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(3,minmax(0,120px))':'repeat(3,minmax(0,1fr))',gap:'10px'}}>
+            {TIERS.map(([k,lbl],i)=>(
+              <label key={k} style={{background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'8px 10px',display:'block',cursor:'text'}}>
+                <span style={{display:'block',fontSize:'11px',fontWeight:900,color:'#2563eb'}}>{lbl}</span>
+                <input type="number" step="0.25" inputMode="decimal" placeholder="0" aria-label={`Hours at ${lbl}`} value={form[k]} onChange={e=>setForm({...form,[k]:e.target.value})} style={{width:'100%',border:'none',background:'transparent',fontFamily:MONO,fontWeight:700,fontSize:'17px',color:'var(--ink)',outline:'none',padding:'3px 0'}}/>
+                <span style={{display:'block',fontSize:'10px',fontWeight:700,color:'var(--quiet)'}}>£{(formRates[['r133','r150','r200'][i]]||0).toFixed(2)}/hr</span>
+              </label>
+            ))}
+          </div>
+          <div style={{fontSize:'11px',color:'var(--muted)',fontWeight:600,marginTop:'7px',lineHeight:1.45}}>{total>0?`Total ${hm(total*60)} overtime. `:''}Use this when a shift spans more than one rate.</div>
+        </>
+      ),{top:true,last:true});
+    }
+
+    const rdw = form.dutyType==='rdw';
+    const basisReady = rdw ? !!(form.actualStart&&form.actualEnd) : !!(form.rosteredStart&&form.rosteredEnd&&form.actualStart&&form.actualEnd);
+    const basis = !basisReady ? 'Set the times above to work out overtime'
+      : rdw ? 'Rest day: the whole shift counts'
+      : `${hm(shiftDurationMinutes(form.actualStart,form.actualEnd))} worked − ${hm(shiftDurationMinutes(form.rosteredStart,form.rosteredEnd))} rostered =`;
+    return (
+      <>
+        {row('Type of day','',seg(rdw?'rdw':'normal',[['normal','Normal duty'],['rdw','Rest day (RDW)']],k=>
+          k==='normal' ? setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'normal'}))
+                       : setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'rdw',rosteredStart:'',rosteredEnd:''}))
+        ))}
+        {!rdw && row('Rostered shift','as on CARMS',(
+          <>
+            {timePair('rosteredStart','rosteredEnd','Rostered Start','Rostered End')}
+            <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,auto)':'repeat(4,minmax(0,1fr))',justifyContent:'start',gap:'6px',marginTop:'8px'}}>
+              {PRESETS.map(([start,end])=>{
+                const on = form.rosteredStart===start && form.rosteredEnd===end;
+                return (
+                  <button key={start+end} type="button" aria-pressed={on} onClick={()=>setForm(f=>syncShiftTimesIntoForm(on ? {...f,rosteredStart:'',rosteredEnd:''} : {...f,rosteredStart:start,rosteredEnd:end}))} style={{padding:isWide?'5px 10px':'7px 2px',borderRadius:'8px',border:on?'1.5px solid #2563eb':'1px solid var(--border-2)',background:on?'var(--tint-blue)':'var(--surface)',color:on?'#2563eb':'var(--muted)',fontWeight:800,fontSize:'10.5px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
+                    {start}–{end}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ),{top:true})}
+        {row('Actually worked','',(
+          <>
+            {timePair('actualStart','actualEnd','Actual Start','Actual End')}
+            <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap',marginTop:'9px',fontSize:'11.5px',fontWeight:600,color:'var(--muted)'}}>
+              <span>{basis}</span>
+              <label style={{display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'4px 8px 4px 10px'}}>
+                <input type="number" step="0.25" inputMode="decimal" aria-label="Overtime hours" value={form[tier]} onChange={e=>setForm({...form, otAuto:false, [tier]:e.target.value})} style={{width:'54px',border:'none',background:'transparent',fontFamily:MONO,fontWeight:700,fontSize:inputFont,color:'var(--ink)',textAlign:'right',outline:'none'}}/>
+                <span style={{fontSize:'11px',fontWeight:700,color:'var(--text-blue-deep)'}}>h overtime</span>
+              </label>
+              {form.otAuto
+                ? <span style={{fontSize:'9.5px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-green-2)',color:'var(--text-green-deep)'}}>auto</span>
+                : <button type="button" onClick={()=>setForm({...form, otAuto:true})} style={{fontSize:'9.5px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',border:'none',background:'var(--tint-amber-2)',color:'var(--text-amber-deep)',cursor:'pointer',fontFamily:'inherit'}}>edited · reset</button>}
+            </div>
+          </>
+        ),{top:true,last:true})}
+      </>
+    );
+  })();
+
+  // ── step 3: pay ──────────────────────────────────────────────────────────
+  // Take As needs one clear rate to bank TOIL against — the chosen tier in
+  // shift-times mode, or the single filled-in box in manual mode.
+  const takeTier = effectiveTier && (parseFloat(form[effectiveTier])||0) > 0 ? effectiveTier : null;
+  const takeBody = (() => {
+    if (!takeTier) {
+      const anyHours = TIERS.some(([k])=>(parseFloat(form[k])||0)>0);
+      return <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',lineHeight:1.45}}>{anyHours?'Paid. TOIL is available when all the hours are at one rate.':'Enter your hours first.'}</div>;
+    }
+    const total = parseFloat(form[takeTier])||0;
+    const toilH = Math.min(total, parseFloat(form.toilHours)||0);
+    const payH = Math.max(0, total-toilH);
+    const splitBox = (label, colour, bg, value, onChange) => (
+      <label style={{display:'block',background:bg,borderRadius:'11px',padding:'8px 10px'}}>
+        <span style={{display:'block',fontSize:'10px',fontWeight:900,color:colour,textTransform:'uppercase',letterSpacing:'0.06em'}}>{label}</span>
+        <input type="number" step="0.25" inputMode="decimal" value={value} onChange={onChange} style={{width:'100%',border:'none',background:'transparent',fontFamily:MONO,fontWeight:700,fontSize:'17px',color:'var(--ink)',outline:'none',padding:'3px 0'}}/>
+      </label>
+    );
+    return (
+      <>
+        {seg(form.takeAs,[['pay','Pay'],['toil','TOIL'],['mix','Mix']],m=>setForm(f=>{
+          const t = parseFloat(f[takeTier])||0;
+          const th = m==='pay' ? 0 : m==='toil' ? t : (parseFloat(f.toilHours)||0);
+          return {...f, takeAs:m, toilHours: th?String(th):'0'};
+        }))}
+        {form.takeAs==='mix' && (
+          <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(2,minmax(0,130px))':'1fr 1fr',gap:'10px',marginTop:'10px'}}>
+            {splitBox('Pay hours','var(--text-blue-deep)','var(--tint-blue)',payH.toFixed(2).replace(/\.00$/,''),e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(total-v)}); })}
+            {splitBox('TOIL hours','#6d28d9','var(--tint-purple)',toilH.toFixed(2).replace(/\.00$/,''),e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(v)}); })}
+          </div>
+        )}
+        {toilH>0 && (
+          <div style={{marginTop:'8px',fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'#6d28d9'}}>{fmtHM(toilH)}h to TOIL → {fmtHM(toilH*RATE_TIER_MULT[takeTier])}h banked at {RATE_TIER_MULT[takeTier]}×</div>
+        )}
+      </>
+    );
+  })();
+
+  // ── step 4: submitted ────────────────────────────────────────────────────
+  const hasOTHours = TIERS.reduce((s,[k])=>s+(parseFloat(form[k])||0),0) > 0;
+  const hasPA = form.paRate!=='None';
+  const subDate = (field, which) => (
+    <div style={{display:'flex',alignItems:isWide?'center':'stretch',flexDirection:isWide?'row':'column',gap:isWide?'10px':'5px',marginTop:'9px'}}>
+      <span style={{fontSize:'10px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.06em'}}>Submitted on</span>
+      {isWide ? (
+        <button type="button" onClick={()=>{ setDatePickerMonth((form[field]||todayStr).slice(0,7)); setDatePickerFor(which); }} style={{display:'flex',alignItems:'center',gap:'8px',background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'8px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)',cursor:'pointer'}}>
+          <Ico n="cal" s={14} c="var(--quiet)"/>{dateLabel(form[field])}
+        </button>
+      ) : (
+        <input type="date" value={form[field]||todayStr} onChange={e=>setForm({...form,[field]:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
+      )}
+    </div>
+  );
+  // Switching one on asks for its submission date first (App's shared date
+  // picker sets both the flag and the date); switching off just clears it.
+  const subRow = (label, sub, on, enabled, flag, which, dateField, last) => (
+    <div style={{padding:'11px 0',borderBottom:last?'none':'1px solid var(--border-2)',opacity:enabled?1:0.5}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px'}}>
+        <div>
+          <div style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>{label}</div>
+          {sub&&<div style={{fontFamily:MONO,fontSize:'10px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>{sub}</div>}
+        </div>
+        <button type="button" role="switch" aria-checked={on} aria-label={label} disabled={!enabled} onClick={()=>{
+          if (form[flag]) { setForm({...form,[flag]:false}); return; }
+          setDatePickerMonth(todayStr.slice(0,7));
+          setDatePickerFor(which);
+        }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',border:'none',padding:0,cursor:enabled?'pointer':'default',flexShrink:0,background:on?'#059669':'var(--border)',transition:'background 0.15s cubic-bezier(.4,0,.2,1)'}}>
+          <span style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:on?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s cubic-bezier(.4,0,.2,1)'}}/>
+        </button>
+      </div>
+      {on && subDate(dateField, which)}
+    </div>
+  );
+
+  // ── step 5: notes ────────────────────────────────────────────────────────
+  const showNotes = notesOpen || !!(form.comments||'').trim();
+
   return (
-    <div className={animClass} style={{padding:'14px',paddingBottom:isWide?'110px':'calc(160px + env(safe-area-inset-bottom))'}}>
+    <div className={animClass} style={{padding:'14px',paddingBottom:isWide?'40px':'calc(100px + env(safe-area-inset-bottom))'}}>
       <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'18px'}}>
         {editing&&<button onClick={()=>{setEditing(null);setTab('months');}} aria-label="Cancel editing" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="back" s={16}/></button>}
         <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>{editing?'Edit Record':'Log Overtime'}</h2>
@@ -43,475 +281,95 @@ export function TabLogOvertime({
         </div>
       ) : (
       <>
-      {/* date + duty + notes */}
-      <div style={S.card}>
-        {isWide ? (
-          <div style={{display:'flex',gap:'12px',marginBottom:'13px'}}>
-            <div style={{flex:'0 0 calc(50% - 6px)',minWidth:0}}>
-              <label style={{...S.lbl,color:'var(--ink)'}}>Date</label>
-              <button onClick={()=>{ setDatePickerMonth((form.date||todayStr).slice(0,7)); setDatePickerFor('shift'); }} style={{...S.inp,display:'block',boxSizing:'border-box',width:'100%',height:'46px',textAlign:'left',cursor:'pointer',fontFamily:'inherit'}}>
-                {new Date((form.date||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
-              </button>
-            </div>
-            <div style={{flex:1,minWidth:0}}>
-              <label style={{...S.lbl,color:'var(--ink)'}}>Duty / Reason</label>
-              <input type="text" placeholder="e.g. MPL7XX, PXX" style={{...S.inp,width:'100%',boxSizing:'border-box'}} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/>
-            </div>
-          </div>
-        ) : (
+        {step(1,'When and what',(
           <>
-            <div style={{marginBottom:'13px'}}>
-              <label style={{...S.lbl,color:'var(--ink)'}}>Date</label>
-              <input type="date" style={{...S.inp,display:'block',boxSizing:'border-box',height:'46px'}} value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
-            </div>
-            <div style={{marginBottom:'13px'}}><label style={{...S.lbl,color:'var(--ink)'}}>Duty / Reason</label><input type="text" placeholder="e.g. MPL7XX, PXX" style={S.inp} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/></div>
+            {row('Date','', isWide ? (
+              <button type="button" onClick={()=>{ setDatePickerMonth((form.date||todayStr).slice(0,7)); setDatePickerFor('shift'); }} style={{...S.inp,display:'flex',alignItems:'center',gap:'9px',height:'44px',fontSize:inputFont,textAlign:'left',cursor:'pointer'}}>
+                <Ico n="cal" s={15} c="var(--quiet)"/>{dateLabel(form.date)}
+              </button>
+            ) : (
+              <input type="date" style={{...S.inp,display:'block',height:'46px'}} value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
+            ))}
+            {row('Duty / reason','',<input type="text" placeholder="e.g. MPL7XX, PXX" style={{...S.inp,fontSize:inputFont}} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/>,{last:true})}
           </>
-        )}
+        ))}
 
-        {(()=>{
-          // Desktop-only: Rostered/Actual (or, in manual-entry mode,
-          // a short explainer in its place) sits beside the rate
-          // section + Protection Allowance instead of everything
-          // stacking full-width one after another. Off on mobile.
-          const showTwoCol = isWide;
-
-          // Manual Override — auto-calculated shift times/rate is now
-          // the default; flip this on to fall back to the classic
-          // free-entry hours grid instead.
-          const rosteredActualBlock = (
-            <div style={{marginBottom:showTwoCol?0:'13px',display:'flex',flexDirection:'column',flex:showTwoCol?1:'none'}}>
-              <div style={{display:'flex',flexDirection:showTwoCol?'column':'row',alignItems:showTwoCol?'flex-start':'center',justifyContent:showTwoCol?'flex-start':'space-between',gap:showTwoCol?'8px':0,background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'12px 13px'}}>
-                <div style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>Rostered CARM Shift / Actual Shift</div>
-                <button role="switch" aria-checked={!form.recordShiftTimes} onClick={()=>{
-                    const switchingToManual = form.recordShiftTimes; // currently auto → about to go manual
-                    setForm(f=>syncShiftTimesIntoForm({...f, recordShiftTimes:!switchingToManual, otRateTier: !switchingToManual && !f.otRateTier ? 'hours133' : f.otRateTier}));
-                  }} style={{display:'flex',alignItems:'center',gap:'6px',background:'none',border:'none',padding:0,fontFamily:'inherit',cursor:'pointer',flexShrink:0}}>
-                  <span style={{fontSize:'9px',fontWeight:600,color:'var(--muted)'}}>Input Hours Manually</span>
-                  <div style={{width:'32px',height:'18px',borderRadius:'10px',position:'relative',flexShrink:0,transition:'background 0.2s cubic-bezier(.4,0,.2,1)',background:!form.recordShiftTimes?'#2563eb':'var(--border)'}}>
-                    <div style={{width:'14px',height:'14px',borderRadius:'50%',background:'#fff',position:'absolute',top:'2px',transition:'left 0.2s cubic-bezier(.4,0,.2,1)',left:!form.recordShiftTimes?'16px':'2px',boxShadow:'0 1px 2px rgba(0,0,0,0.3)'}}/>
-                  </div>
-                </button>
-              </div>
-
-              {form.recordShiftTimes&&(
-                <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderTop:'none',borderRadius:'0 0 13px 13px',marginTop:'-13px',padding:'15px 13px 13px',flex:showTwoCol?1:'none',display:'flex',flexDirection:'column',justifyContent:form.dutyType==='rdw'?'center':'flex-start'}}>
-                  <div style={{height:'2px'}}/>
-
-                  {/* Normal Duty vs Rest Day Working (RDW) — on RDW there's no
-                      roster to compare against, so the whole shift is overtime.
-                      Brass indicator + white/muted text, same convention as
-                      every other SegSlider in the app (O/T rate, Protection
-                      Allowance, PA rate, Calendar/List View, Appearance) — this
-                      one used to be a one-off white-pill/blue-text pairing with
-                      no reason for the difference, unlike this file's other
-                      hardcoded-colour SegSlider (Take Overtime As, below),
-                      which departs from brass deliberately and says so. */}
-                  <SegSlider activeKey={form.dutyType==='rdw'?'rdw':'normal'} trackStyle={{display:'flex',gap:'6px',background:'var(--tint-blue-2)',borderRadius:'13px',padding:'3px',marginBottom:'13px'}} indicatorStyle={{background:BRASS,borderRadius:'9px',boxShadow:'0 2px 6px rgba(184,130,63,0.35)'}}>
-                    <button data-seg-key="normal" onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'normal'}))} style={{position:'relative',zIndex:1,flex:1,border:'none',background:'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:form.dutyType==='rdw'?'var(--muted)':'#fff',cursor:'pointer'}}>Normal Duty</button>
-                    <button data-seg-key="rdw" onClick={()=>setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'rdw',rosteredStart:'',rosteredEnd:''}))} style={{position:'relative',zIndex:1,flex:1,border:'none',background:'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:form.dutyType==='rdw'?'#fff':'var(--muted)',cursor:'pointer'}}>Rest Day Working (RDW)</button>
-                  </SegSlider>
-
-                  {form.dutyType!=='rdw' && (
-                    <>
-                      <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>
-                        <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#2563eb'}}/>
-                        <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Rostered CARM Shift</div>
-                      </div>
-                      <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'5px'}}>Quick presets</div>
-                      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'5px',marginBottom:'12px'}}>
-                        {[['07:00','15:00'],['07:00','19:00'],['08:00','20:00'],['13:00','23:00']].map(([start,end])=>{
-                          const isSelected = form.rosteredStart===start && form.rosteredEnd===end;
-                          return (
-                            <button key={start+end} onClick={()=>setForm(f=>syncShiftTimesIntoForm(isSelected ? {...f,rosteredStart:'',rosteredEnd:''} : {...f,rosteredStart:start,rosteredEnd:end}))} style={{padding:'7px 2px',borderRadius:'9px',border:isSelected?'1.5px solid #2563eb':'1px solid var(--border-2)',background:isSelected?'var(--tint-blue)':'var(--surface)',color:isSelected?'#2563eb':'var(--muted)',fontWeight:800,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
-                              {start.replace(':','')}–{end.replace(':','')}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px',marginBottom:'5px'}}>
-                        <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
-                          <TimeSelect value={form.rosteredStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredStart:v}))} label="Rostered Start" BRASS={BRASS} MONO={MONO}/>
-                        </div>
-                        <div><label style={{...S.lbl,marginBottom:'5px'}}>End</label>
-                          <TimeSelect value={form.rosteredEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,rosteredEnd:v}))} label="Rostered End" BRASS={BRASS} MONO={MONO}/>
-                        </div>
-                      </div>
-                      {form.rosteredStart&&form.rosteredEnd&&toMinutesOfDay(form.rosteredEnd)<=toMinutesOfDay(form.rosteredStart)&&(
-                        <div style={{fontSize:'9.5px',fontWeight:700,color:'#2563eb',marginBottom:'12px'}}>↷ Ends the next day</div>
-                      )}
-                    </>
-                  )}
-
-                  {form.dutyType!=='rdw' && (
-                    <div style={{height:'1px',background:'var(--border)',margin:'14px 0'}}/>
-                  )}
-
-                  <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'8px'}}>
-                    <div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#2563eb'}}/>
-                    <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Actual Shift Worked</div>
-                  </div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px'}}>
-                    <div><label style={{...S.lbl,marginBottom:'5px'}}>Start</label>
-                      <TimeSelect value={form.actualStart} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualStart:v}))} label="Actual Start" BRASS={BRASS} MONO={MONO}/>
-                    </div>
-                    <div><label style={{...S.lbl,marginBottom:'5px'}}>End</label>
-                      <TimeSelect value={form.actualEnd} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,actualEnd:v}))} label="Actual End" BRASS={BRASS} MONO={MONO}/>
-                    </div>
-                  </div>
-                  {form.actualStart&&form.actualEnd&&toMinutesOfDay(form.actualEnd)<=toMinutesOfDay(form.actualStart)&&(
-                    <div style={{fontSize:'9.5px',fontWeight:700,color:'#2563eb',marginTop:'7px'}}>↷ Ends the next day</div>
-                  )}
-                  {form.dutyType==='rdw' && (
-                    <div style={{fontSize:'9.5px',fontWeight:600,color:'#3b82f6',marginTop:'10px',lineHeight:1.5}}>On a Rest Day Working (RDW) shift, the whole shift counts as overtime at the rate you select below — no rostered comparison needed.</div>
-                  )}
-                </div>
-              )}
-
-              {/* Manual entry mode has no Rostered/Actual times to show
-                  — on mobile that just means nothing renders here, same
-                  as before. On desktop, where this box now always sits
-                  beside the rate section, an empty box would leave an
-                  odd gap next to it, so it shows a short explainer
-                  instead, centred to fill the stretched height. */}
-              {!form.recordShiftTimes && showTwoCol && (
-                <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderTop:'none',borderRadius:'0 0 13px 13px',marginTop:'-13px',padding:'15px 13px 13px',flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
-                  <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'var(--tint-blue-2)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'12px'}}><Ico n="edit" s={20} c="#2563eb"/></div>
-                  <div style={{fontWeight:900,fontSize:'13.5px',color:'var(--text-navy)',marginBottom:'6px'}}>Manual Entry</div>
-                  <div style={{fontSize:'10.5px',color:'#3b82f6',fontWeight:600,lineHeight:1.6,maxWidth:'260px'}}>Recording overtime hours directly against each rate tier instead of comparing rostered vs actual shift times. Switch back if this shift fits a single tier.</div>
-                </div>
-              )}
+        {step(2,'Your hours',(
+          <>
+            <div role="radiogroup" aria-label="How to record hours" style={{display:'flex',gap:'3px',background:'var(--chip-bg)',borderRadius:'11px',padding:'3px',margin:'8px 0 2px'}}>
+              {modeBtn(true,'From shift times','Rostered vs worked, worked out for you','clock')}
+              {modeBtn(false,'Enter hours','Type the hours at each rate yourself','edit')}
             </div>
-          );
+            {hoursRows}
+          </>
+        ))}
 
-          const notesBlock = (
-            <div style={{marginBottom:'13px'}}><label style={{...S.lbl,color:'var(--ink)'}}>Notes</label><textarea ref={notesRef} rows="4" placeholder="Shift notes or incident details..." style={{...S.ta,lineHeight:1.5}} value={form.comments} onChange={e=>setForm({...form,comments:e.target.value})}
-              onFocus={e=>{
-                // Cursor lands on the blank line left after the auto-generated
-                // shift-times summary — but only on the person's own tap into
-                // the box, never forced automatically (that pops the keyboard
-                // up and blocks the screen right after picking a time).
-                const line = generateShiftTimesLine(form);
-                if (line) {
-                  const pos = line.length+2;
-                  const target = e.target;
-                  setTimeout(()=>{ try{ target.setSelectionRange(pos,pos); }catch(_){} },0);
-                }
-              }}/></div>
-          );
+        {step(3,"How it's paid",(
+          <>
+            {form.recordShiftTimes && row('Overtime rate','',seg(tier,TIERS,h=>setForm(f=>{
+              if (f.otRateTier===h) return f;
+              const val = f.otRateTier ? f[f.otRateTier] : '';
+              return {...f, otRateTier:h, hours133:'', hours150:'', hours200:'', [h]:val};
+            })))}
+            {row('Take it as','',takeBody)}
+            {row('Protection Allowance','',seg(form.paRate,['None','PA1','PA2','PA3'].map(pa=>[pa,pa,pa==='None'?null:PA_LABELS[pa]]),pa=>
+              setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})
+            ),{last:true})}
+          </>
+        ))}
 
-          const otRateBlock = (()=>{
-            const formRates = getRates(settings.rank, settings.service, form.date||todayStr);
+        {/* carmsToggleRef/focusCarmsToggle: arriving from Awaits Submission
+            scrolls here and pulses this card (see App.jsx). */}
+        {step(4,'Submitted yet?',(
+          <>
+            <div style={{fontSize:'11px',color:'var(--muted)',fontWeight:600,lineHeight:1.45,margin:'4px 0 2px'}}>Leave these off if you haven't claimed it yet. It'll wait for you in Awaits Submission.</div>
+            {subRow('Overtime submitted on CARMS', hasOTHours?null:'No overtime hours on this shift', hasOTHours&&form.otSubmitted, hasOTHours, 'otSubmitted', 'ot', 'otSubmittedDate', false)}
+            {subRow('PA submitted on PSOP', hasPA?`${form.paRate} — ${fmtGBP(PA_RATES[form.paRate]||0)}`:'No PA rate selected for this shift', hasPA&&form.paSubmitted, hasPA, 'paSubmitted', 'pa', 'paSubmittedDate', true)}
+          </>
+        ),{ref:carmsToggleRef,className:focusCarmsToggle?'carms-pulse':undefined,style:{border:focusCarmsToggle?'2px solid #2563eb':'1px solid var(--border-2)'}})}
 
-            if (!form.recordShiftTimes) {
-              // classic manual entry — unchanged, still the fallback for
-              // shifts that genuinely span more than one rate tier
-              return (
-                <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'14px 13px'}}>
-                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'4px'}}>Overtime Hours</div>
-                  <div style={{fontSize:'9px',fontWeight:600,color:'var(--muted)',textAlign:'center',marginBottom:'13px'}}>Record only the hours worked on overtime — not your whole shift</div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'9px'}}>
-                    {['hours133','hours150','hours200'].map((h,i)=>(
-                      <div key={h} style={{textAlign:'center'}}>
-                        <label style={{...S.lbl,color:'#3b82f6',textAlign:'center',display:'block'}}>{[1.33,1.5,2.0][i]}x</label>
-                        <input type="number" step="0.25" inputMode="decimal" placeholder="0" style={{...S.inp,textAlign:'center',fontWeight:900,background:'var(--surface)',fontSize:'17px',padding:'11px 6px'}} value={form[h]} onChange={e=>setForm({...form,[h]:e.target.value})}/>
-                        <div style={{fontSize:'9px',color:'#93c5fd',fontWeight:700,marginTop:'4px'}}>£{(formRates[['r133','r150','r200'][i]]||0).toFixed(2)}/hr</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
+        {step(5,'Notes',showNotes ? (
+          <textarea ref={notesRef} rows="4" placeholder="Shift notes or incident details..." style={{...S.ta,lineHeight:1.5,marginTop:'8px',fontSize:inputFont}} value={form.comments} onChange={e=>setForm({...form,comments:e.target.value})}
+            onFocus={e=>{
+              // Cursor lands on the blank line left after the auto-generated
+              // shift-times summary — but only on the person's own tap into
+              // the box, never forced automatically (that pops the keyboard
+              // up and blocks the screen right after picking a time).
+              const line = generateShiftTimesLine(form);
+              if (line) {
+                const pos = line.length+2;
+                const target = e.target;
+                setTimeout(()=>{ try{ target.setSelectionRange(pos,pos); }catch(_){} },0);
+              }
+            }}/>
+        ) : (
+          <button type="button" onClick={()=>{ setNotesOpen(true); setTimeout(()=>notesRef.current?.focus(),0); }} style={{background:'none',border:'none',padding:'4px 0 0',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'#2563eb',cursor:'pointer'}}>+ Add a note</button>
+        ),{optional:true})}
 
-            // Record Shift Times is on — one rate for the whole shift,
-            // hours calculated from rostered/actual times (still editable,
-            // for a recall the times themselves don't capture).
-            const tier = form.otRateTier || 'hours133';
-            const otHours = parseFloat(form[tier])||0;
-            const basisReady = form.dutyType==='rdw' ? !!(form.actualStart&&form.actualEnd) : !!(form.rosteredStart&&form.rosteredEnd&&form.actualStart&&form.actualEnd);
-            let basisText = 'Set your shift times above to calculate overtime';
-            if (basisReady) {
-              const actualDur = shiftDurationMinutes(form.actualStart, form.actualEnd)/60;
-              basisText = form.dutyType==='rdw'
-                ? `RDW — full ${actualDur.toFixed(2).replace(/\.00$/,'')}h actual shift counts as overtime`
-                : `${actualDur.toFixed(1)}h actual − ${(shiftDurationMinutes(form.rosteredStart,form.rosteredEnd)/60).toFixed(1)}h rostered = ${otHours.toFixed(2).replace(/\.00$/,'')}h overtime`;
-            }
-
-            return (
-              <div style={{background:'var(--tint-blue)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'12px 13px'}}>
-                <div className="hint-pulse" style={{fontSize:'10px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'9px'}}>Select O/T Rate for this Shift</div>
-                <SegSlider activeKey={tier} trackStyle={{display:'flex',gap:'6px',marginBottom:'9px'}} indicatorStyle={{background:BRASS,borderRadius:'10px',boxShadow:'0 4px 11px rgba(184,130,63,0.35)'}}>
-                  {['hours133','hours150','hours200'].map((h,i)=>(
-                    <button key={h} data-seg-key={h} onClick={()=>setForm(f=>{
-                      if (f.otRateTier===h) return f;
-                      const val = f.otRateTier ? f[f.otRateTier] : '';
-                      return {...f, otRateTier:h, hours133:'', hours150:'', hours200:'', [h]:val};
-                    })} style={{position:'relative',zIndex:1,flex:1,padding:'8px 4px',borderRadius:'10px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:tier===h?'#fff':'var(--muted)'}}>{[1.33,1.5,2.0][i]}x</button>
-                  ))}
-                </SegSlider>
-                <div style={{background:'var(--surface)',borderRadius:'10px',padding:'9px',textAlign:'center'}}>
-                  <label style={{...S.lbl,marginBottom:'4px',display:'block'}}>Overtime Hours</label>
-                  <input type="number" step="0.25" inputMode="decimal" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:600,fontSize:'17px',border:'none',background:'transparent',fontFamily:MONO,color:'var(--ink)'}}
-                    value={form[tier]}
-                    onChange={e=>setForm({...form, otAuto:false, [tier]:e.target.value})}/>
-                  {form.otAuto
-                    ? <span style={{display:'inline-block',fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'4px',background:'var(--tint-green-2)',color:'var(--text-green-deep)'}}>auto-calculated</span>
-                    : <span onClick={()=>setForm({...form, otAuto:true})} style={{display:'inline-block',fontSize:'8px',fontWeight:800,padding:'2px 6px',borderRadius:'6px',marginTop:'4px',background:'var(--tint-amber-2)',color:'var(--text-amber-deep)',cursor:'pointer'}}>edited — tap to reset</span>}
-                </div>
-                <div style={{fontSize:'9px',color:'var(--muted)',textAlign:'center',marginTop:'6px',lineHeight:1.4}}>{basisText}</div>
+        {/* One bar for the running total and Save, on both desktop and
+            mobile — sticky, so it stays in view the whole way down the form.
+            On mobile it sits just above the bottom nav. */}
+        <div style={{position:'sticky',bottom:isWide?'20px':'calc(84px + env(safe-area-inset-bottom))',zIndex:24,display:'flex',alignItems:'center',gap:isWide?'20px':'12px',background:'var(--savebar, var(--navy))',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'16px',padding:isWide?'12px 14px 12px 20px':'10px 10px 10px 15px',boxShadow:'0 10px 24px rgba(15,39,68,0.3)',marginTop:'4px'}}>
+          <div style={{minWidth:0}}>
+            <div style={{display:'flex',gap:isWide?'20px':'14px'}}>
+              <div>
+                <div style={{fontSize:'9.5px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.08em',color:'#93c5fd'}}>Gross</div>
+                <div style={{fontFamily:MONO,fontSize:isWide?'20px':'17px',fontWeight:600,color:'#fff'}}>{fmt(animatedPreviewGross)}</div>
               </div>
-            );
-          })();
-
-          // Take As — Pay / TOIL / Mix — shown whenever there's a single clear
-          // rate to bank TOIL against, whether that's from auto-calc
-          // (form.otRateTier) or manual entry (exactly one tier box filled in)
-          const takeAsBlock = effectiveTier && (parseFloat(form[effectiveTier])||0) > 0 && (()=>{
-            const tier = effectiveTier;
-            const total = parseFloat(form[tier])||0;
-            const toilH = Math.min(total, parseFloat(form.toilHours)||0);
-            const payH = Math.max(0, total-toilH);
-            return (
-              <div style={{background:'#6d28d9',border:'none',borderRadius:'13px',padding:'14px 13px',marginTop:showTwoCol?0:'13px'}}>
-                <div style={{fontSize:'10px',fontWeight:900,color:'#fff',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'13px'}}>Take Overtime As</div>
-                {/* This card and its sliding pill are hardcoded colours
-                    (purple card, white pill) that never move with theme —
-                    a deliberate branded accent, not an oversight. The
-                    three labels need the same treatment: 'toil' was
-                    already a literal, but 'pay' and 'mix' used to read
-                    var(--text-blue-deep)/var(--muted), which are tuned for
-                    text on a page background, not this fixed white pill.
-                    In dark mode that put a pale blue (#a8c5f0) meant for
-                    dark backgrounds directly on white — 1.76:1 contrast,
-                    badly under the 4.5:1 AA floor. Hardcoded now, same as
-                    'toil' already was. */}
-                <SegSlider activeKey={form.takeAs} trackStyle={{display:'flex',gap:'6px',background:'rgba(0,0,0,0.18)',borderRadius:'11px',padding:'3px'}} indicatorStyle={{background:'#fff',borderRadius:'9px',boxShadow:'0 2px 6px rgba(0,0,0,0.25)'}}>
-                  {[['pay','Pay','#1e40af'],['toil','TOIL','#6d28d9'],['mix','Mix','#475569']].map(([m,lbl,col])=>(
-                    <button key={m} data-seg-key={m} onClick={()=>setForm(f=>{
-                      const t = parseFloat(f[tier])||0;
-                      const th = m==='pay' ? 0 : m==='toil' ? t : (parseFloat(f.toilHours)||0);
-                      return {...f, takeAs:m, toilHours: th?String(th):'0'};
-                    })} style={{position:'relative',zIndex:1,flex:1,border:'none',background:'transparent',padding:'8px 4px',borderRadius:'9px',fontFamily:'inherit',fontWeight:800,fontSize:'11px',color:form.takeAs===m?col:'rgba(255,255,255,0.8)',cursor:'pointer'}}>{lbl}</button>
-                  ))}
-                </SegSlider>
-                {form.takeAs==='mix' && (
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'12px'}}>
-                    <div style={{background:'var(--tint-blue)',borderRadius:'13px',padding:'10px',textAlign:'center'}}>
-                      <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>Pay Hours</div>
-                      <input type="number" step="0.25" inputMode="decimal" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'var(--surface)',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'var(--ink)'}}
-                        value={payH.toFixed(2).replace(/\.00$/,'')}
-                        onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(total-v)}); }}/>
-                    </div>
-                    <div style={{background:'var(--tint-purple)',borderRadius:'13px',padding:'10px',textAlign:'center'}}>
-                      <div style={{fontSize:'10px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>TOIL Hours</div>
-                      <input type="number" step="0.25" inputMode="decimal" style={{width:'100%',boxSizing:'border-box',textAlign:'center',fontWeight:900,fontSize:'17px',border:'none',background:'var(--surface)',borderRadius:'8px',padding:'7px',fontFamily:'inherit',color:'var(--ink)'}}
-                        value={toilH.toFixed(2).replace(/\.00$/,'')}
-                        onChange={e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(v)}); }}/>
-                    </div>
-                  </div>
-                )}
-                {toilH>0 && (
-                  <div style={{marginTop:'12px',background:'var(--tint-purple)',borderRadius:'13px',padding:'10px 13px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <span style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#6d28d9'}}>{fmtHM(toilH)}h worked @ {RATE_TIER_MULT[tier]}x</span>
-                    <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHM(toilH*RATE_TIER_MULT[tier])}h banked</span>
-                  </div>
-                )}
+              <div>
+                <div style={{fontSize:'9.5px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.08em',color:'#6ee7b7'}}>Net</div>
+                <div style={{fontFamily:MONO,fontSize:isWide?'20px':'17px',fontWeight:600,color:'#34d399'}}>{fmt(animatedPreviewNet)}</div>
               </div>
-            );
-          })();
-
-          const paBlock = (
-            <div style={{...S.card,background:'var(--tint-amber)',border:'1px solid var(--border-2)',marginBottom:showTwoCol?0:'10px',flex:showTwoCol?1:'none',display:'flex',flexDirection:'column',justifyContent:'center'}}>
-              <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
-              <SegSlider activeKey={form.paRate} trackStyle={{display:'flex',gap:'6px'}} indicatorStyle={{background:BRASS,borderRadius:'11px',boxShadow:'0 4px 11px rgba(184,130,63,0.35)'}}>
-                {['None','PA1','PA2','PA3'].map(pa=>(
-                  <button key={pa} data-seg-key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{position:'relative',zIndex:1,flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'color 0.14s',background:'transparent',color:form.paRate===pa?'#fff':'#b45309',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
-                    <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
-                    <span style={{fontSize:'9px',fontWeight:700,opacity:form.paRate===pa?0.85:0.55}}>{PA_LABELS[pa]}</span>
-                  </button>
-                ))}
-              </SegSlider>
             </div>
-          );
-
-          return showTwoCol ? (
-            <>
-              <div style={{display:'grid',gridTemplateColumns:'400px 1fr',gap:'20px',alignItems:'stretch',marginBottom:'13px'}}>
-                {rosteredActualBlock}
-                <div style={{display:'flex',flexDirection:'column',gap:'13px'}}>
-                  {otRateBlock}
-                  {takeAsBlock}
-                  {paBlock}
-                </div>
-              </div>
-              {notesBlock}
-            </>
-          ) : (
-            <>
-              {rosteredActualBlock}
-              {notesBlock}
-              {otRateBlock}
-              {takeAsBlock}
-              {/* ── Protection Allowance — merged into this same card on
-                   mobile instead of sitting in its own separate card
-                   right below (still its own two-column card on
-                   desktop, inside showTwoCol above). Same PA1/2/3
-                   picker, same amber styling, just one fewer card to
-                   scroll past. ── */}
-              <div style={{borderTop:'1px solid var(--border-2)',marginTop:'13px',paddingTop:'13px'}}>
-                <div style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'13px'}}>
-                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'13px'}}>Protection Allowance</div>
-                  {/* Same SegSlider every other segmented control in the app
-                      uses (Duty Type, O/T Rate, Take As, desktop's own PA
-                      picker) — this mobile-merged card used to be the one
-                      exception, hand-rolling an instant background swap
-                      instead of the sliding brass pill. */}
-                  <SegSlider activeKey={form.paRate} trackStyle={{display:'flex',gap:'6px'}} indicatorStyle={{background:BRASS,borderRadius:'11px',boxShadow:'0 4px 11px rgba(184,130,63,0.35)'}}>
-                    {['None','PA1','PA2','PA3'].map(pa=>(
-                      <button key={pa} data-seg-key={pa} onClick={()=>setForm({...form,paRate:pa,paSubmitted:(form.paRate==='None'&&pa!=='None')?false:form.paSubmitted})} style={{position:'relative',zIndex:1,flex:1,paddingTop:'9px',paddingBottom:'9px',borderRadius:'11px',border:'none',fontFamily:'inherit',cursor:'pointer',transition:'color 0.14s',background:'transparent',color:form.paRate===pa?'#fff':'#b45309',display:'flex',flexDirection:'column',alignItems:'center',gap:'3px'}}>
-                        <span style={{fontSize:'12px',fontWeight:900}}>{pa}</span>
-                        <span style={{fontSize:'9px',fontWeight:700,opacity:form.paRate===pa?0.85:0.55}}>{PA_LABELS[pa]}</span>
-                      </button>
-                    ))}
-                  </SegSlider>
-                </div>
-              </div>
-            </>
-          );
-        })()}
-      </div>
-
-      {/* CARMS Submission — independent of logging the shift itself.
-          Both default to false via blankForm; editing an existing
-          entry reflects whatever it's already set to. PA toggle only
-          shown when there's actually a PA rate selected, since
-          otherwise there's nothing to track for that part. */}
-      <div ref={carmsToggleRef} className={focusCarmsToggle?'carms-pulse':''} style={{...S.card,marginBottom:'11px',border:focusCarmsToggle?'2px solid #2563eb':'1px solid var(--border-2)'}}>
-        <div style={{fontWeight:900,fontSize:'15px',color:'var(--ink)',marginBottom:'2px'}}>CARMS Submission</div>
-        <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginBottom:'4px'}}>Toggle when Overtime and/or PA claims have been submitted on the relevant system.</div>
-        {(()=>{
-          const hasOTHours = (parseFloat(form.hours133)||0) + (parseFloat(form.hours150)||0) + (parseFloat(form.hours200)||0) > 0;
-          return (
-        <div style={{padding:'11px 0',borderBottom:'1px solid var(--border-2)',opacity:hasOTHours?1:0.45}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            <div>
-              <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Overtime submitted on CARMS</div>
-            </div>
-                <button role="switch" aria-checked={hasOTHours&&form.otSubmitted} disabled={!hasOTHours} onClick={()=>{
-                  if (form.otSubmitted) { setForm({...form,otSubmitted:false}); return; }
-                  setDatePickerMonth(todayStr.slice(0,7));
-                  setDatePickerFor('ot');
-                }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',border:'none',padding:0,cursor:hasOTHours?'pointer':'default',flexShrink:0,background:(hasOTHours&&form.otSubmitted)?'#059669':'var(--border)',transition:'background 0.15s cubic-bezier(.4,0,.2,1)'}}>
-                  <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(hasOTHours&&form.otSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s cubic-bezier(.4,0,.2,1)'}}/>
-                </button>
+            {preview.toilBanked>0&&(
+              <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#c4b5fd',marginTop:'3px'}}>+ {fmtHM(preview.toilBanked)}h TOIL banked</div>
+            )}
           </div>
-          {form.otSubmitted&&(
-            <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'10px',marginTop:'9px'}}>
-              <div style={{fontSize:'10px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'5px'}}>Date submitted</div>
-              {isWide ? (
-                <button onClick={()=>{ setDatePickerMonth((form.otSubmittedDate||todayStr).slice(0,7)); setDatePickerFor('ot'); }} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer'}}>
-                  {new Date((form.otSubmittedDate||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
-                </button>
-              ) : (
-                // 16px, not 13px like its desktop <button> sibling above — this
-                // is a real, focusable form control, and iOS Safari auto-zooms
-                // the whole page in whenever a focused input's computed font
-                // size is under 16px. Buttons aren't subject to that rule, so
-                // the sibling stays at 13px; this one needs to be the app's
-                // usual zoom-safe input size instead (matches S.inp elsewhere).
-                <input type="date" value={form.otSubmittedDate||todayStr} onChange={e=>setForm({...form,otSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
-              )}
-            </div>
-          )}
+          <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':'save-pulse-idle'} style={{marginLeft:'auto',flexShrink:0,background:justSaved?'#059669':BRASS,color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':undefined,padding:isWide?'13px 26px':'12px 16px',borderRadius:'12px',border:'none',fontWeight:900,fontSize:isWide?'14px':'13px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',gap:'8px',transition:'background 0.3s'}}>
+            <Ico n={justSaved?'check':'save'} s={16} c="#fff"/>
+            {justSaved?'Saved':(editing?'Update Record':'Save Record')}
+          </button>
         </div>
-          );
-        })()}
-        <div style={{padding:'11px 0',opacity:form.paRate==='None'?0.45:1}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            <div>
-              <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>PA Submitted on PSOP</div>
-              <div style={{fontFamily:MONO,fontSize:'10px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{form.paRate==='None' ? 'No PA rate selected for this shift' : `${form.paRate} — ${fmtGBP(PA_RATES[form.paRate]||0)}`}</div>
-            </div>
-            <button role="switch" aria-checked={form.paRate!=='None'&&form.paSubmitted} disabled={form.paRate==='None'} onClick={()=>{
-              if (form.paSubmitted) { setForm({...form,paSubmitted:false}); return; }
-              setDatePickerMonth(todayStr.slice(0,7));
-              setDatePickerFor('pa');
-            }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',border:'none',padding:0,cursor:form.paRate==='None'?'default':'pointer',flexShrink:0,background:(form.paRate!=='None'&&form.paSubmitted)?'#059669':'var(--border)',transition:'background 0.15s cubic-bezier(.4,0,.2,1)'}}>
-              <div style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:(form.paRate!=='None'&&form.paSubmitted)?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s cubic-bezier(.4,0,.2,1)'}}/>
-            </button>
-          </div>
-          {form.paRate!=='None'&&form.paSubmitted&&(
-            <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'10px',marginTop:'9px'}}>
-              <div style={{fontSize:'10px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'5px'}}>Date submitted</div>
-              {isWide ? (
-                <button onClick={()=>{ setDatePickerMonth((form.paSubmittedDate||todayStr).slice(0,7)); setDatePickerFor('pa'); }} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer'}}>
-                  {new Date((form.paSubmittedDate||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}
-                </button>
-              ) : (
-                // Same fix as the OT field above — 16px, zoom-safe, unlike its
-                // desktop <button> sibling.
-                <input type="date" value={form.paSubmittedDate||todayStr} onChange={e=>setForm({...form,paSubmittedDate:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
-              )}
-            </div>
-          )}
-        </div>
-        <div style={{fontSize:'10.5px',color:'var(--quiet)',lineHeight:1.5,marginTop:'4px'}}>Toggles default to <b>off</b> when you log a new shift — you're recording that you worked it, not that you've claimed it on the relevant systems.</div>
-      </div>
-
-      {/* live preview — pinned just above the floating Save button on
-           mobile (via position:sticky within the scrollable form
-           area) once you've scrolled far enough to reach it, instead
-           of only being visible if you happen to have scrolled back
-           up to where it naturally sits. Desktop is unaffected — its
-           Save button is already in-flow at the end of the form. ── */}
-      {preview.has&&(
-        <div style={{background:'linear-gradient(135deg,#1e3a5f,#1d4ed8)',borderRadius:'15px',padding:'14px 18px',marginBottom:'11px',...(!isWide?{position:'sticky',bottom:'calc(88px + env(safe-area-inset-bottom))',zIndex:24,boxShadow:'0 10px 24px rgba(15,39,68,0.35)'}:{})}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom: preview.toilBanked>0?'10px':0}}>
-            <div style={{fontSize:'15px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'1px'}}>This Shift</div>
-            <div style={{display:'flex',gap:'18px',alignItems:'center'}}>
-              <div style={{textAlign:'right'}}><div style={{fontSize:'14px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.5px'}}>Gross</div><div style={{fontSize:'23px',fontWeight:900,color:'#fff'}}>{fmt(animatedPreviewGross)}</div></div>
-              <div style={{textAlign:'right'}}>
-                <div style={{fontSize:'14px',fontWeight:900,color:'#6ee7b7',textTransform:'uppercase',letterSpacing:'0.5px'}}>Net</div>
-                <div style={{fontSize:'23px',fontWeight:900,color:'#34d399'}}>{fmt(animatedPreviewNet)}</div>
-              </div>
-            </div>
-          </div>
-          {preview.toilBanked>0&&(
-            <div style={{borderTop:'1px solid rgba(255,255,255,0.1)',paddingTop:'8px',display:'flex',alignItems:'center',gap:'6px'}}>
-              <Ico n="clock" s={11} c="#c4b5fd"/>
-              <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'#c4b5fd'}}>+ {fmtHM(preview.toilBanked)}h TOIL banked (not included in Gross/Net above)</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* sticky save button — desktop only. Same handler, same look as the
-           floating mobile version below, just anchored via position:sticky
-           against <main>'s own scroll container (App.jsx's S.main is the
-           overflowY:auto element, not the page) instead of position:
-           absolute over a bottom nav that doesn't exist here. Previously
-           sat in-flow at the end of the form — easy to scroll straight
-           past on a long entry (start/end times, PA, notes, both CARMS
-           toggles) and only notice it was missing once looking for it.
-           Sits outside the preview's own conditional so it always shows
-           once rank/pay point are set, whether or not a preview happens to
-           be showing. The wrapper's own paddingBottom (top of this file)
-           is widened on desktop to match, so the sticky button has empty
-           space to settle into rather than ever overlapping the CARMS
-           Submission box scrolling past underneath it. */}
-      {isWide&&(
-        // Brass, not blue — matches the floating mobile button above (see
-        // its own comment for why: blue nearly merged into the "This
-        // Shift" preview card's own gradient sitting right above it). Not
-        // red either — red stays reserved for destructive/error states
-        // (delete, validation, tax deductions) elsewhere in the app. The
-        // idle-state pulse (save-pulse-idle) is the same one the mobile
-        // button uses, for the same reason — keeps the single most-pressed
-        // button in the app from ever fully blending into a long form.
-        <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':'save-pulse-idle'} style={{position:'sticky',bottom:'20px',width:'100%',background:justSaved?'#059669':BRASS,color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':undefined,padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',marginTop:'18px',transition:'background 0.3s'}}>
-          <Ico n={justSaved?'check':'save'} s={18} c="#fff"/>
-          {justSaved?'Saved':(editing?'Update Record':'Save Record')}
-        </button>
-      )}
       </>
       )}
     </div>

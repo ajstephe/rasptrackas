@@ -5218,28 +5218,6 @@ export default function App() {
         </div>
       )}
 
-      {/* floating save button — mobile only (Log Shift, once rank/pay point
-           are set). Desktop uses the in-flow button at the end of the form
-           instead. Brass, not blue — blue sat a shade away from the "This
-           Shift" preview card's own gradient (which ends at #1d4ed8)
-           directly above it, so the two nearly merged into one shape. Not
-           red either — red stays reserved for destructive/error states
-           elsewhere (delete, validation, tax deductions). The idle-state
-           double-pulse (save-pulse-idle, see savePulseIdle above) keeps it
-           from ever fully settling into the background the way a static
-           button — even a brass one — eventually can on a long form. Shadow
-           blur tightened (20px→14px, alpha 0.5→0.4) so the static glow
-           reads as a button glow rather than bleeding colour onto the
-           bottom nav docked just underneath it. */}
-      {tab==='add'&&!isWide&&settings.rank&&settings.service&&(
-        <div style={{position:'absolute',bottom:'72px',left:'14px',right:'14px',zIndex:25}}>
-          <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':'save-pulse-idle'} style={{width:'100%',background:justSaved?'#059669':BRASS,color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':undefined,padding:'17px',borderRadius:'16px',border:'none',fontWeight:900,fontSize:'15px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',letterSpacing:'-0.2px',transition:'background 0.3s'}}>
-            <Ico n={justSaved?'check':'save'} s={18} c="#fff"/>
-            {justSaved?'Saved':(editing?'Update Record':'Save Record')}
-          </button>
-        </div>
-      )}
-
       {/* Log Overtime's nudge pulse (below) is meant to point a first-time
            user at the one thing this app is for — it's meaningless (and,
            left running forever, just naggy) once they've actually logged a
