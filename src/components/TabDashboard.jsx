@@ -61,7 +61,12 @@ export function TabDashboard({
           <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}</span>
         </div>
         <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'12px',paddingLeft:compact?'42px':'46px'}}>
-          <div>
+          {/* The figure and trend pill keep their width; when a phone is
+              too narrow for both, the sparkline scales down rather than
+              squeezing the pill onto two lines. On the narrowest phones
+              (under 350px) it's hidden outright — see .net-spark in
+              index.html — as it would only be a sliver. */}
+          <div style={{flexShrink:0}}>
             <div style={{fontFamily:MONO,fontSize:compact?'22px':'25px',fontWeight:700,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.1}}>{fmtGBP(animatedNet)}</div>
             {/* Tapping the trend pill jumps straight to the period it's
                 actually comparing against (currPeriodIdx-1, not the
@@ -69,14 +74,14 @@ export function TabDashboard({
                 tap-to-go-deeper spot on this tab, applied to the one
                 figure here that was previously just decorative. */}
             {delta!=null&&(
-              <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx-1); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:600,color:delta>=0?'#059669':'var(--text-red-deep)',background:delta>=0?'var(--tint-green)':'var(--tint-red)',padding:'2px 6px 2px 8px',borderRadius:'20px',marginTop:'4px',border:'none',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
+              <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx-1); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:600,color:delta>=0?'#059669':'var(--text-red-deep)',background:delta>=0?'var(--tint-green)':'var(--tint-red)',padding:'2px 6px 2px 8px',borderRadius:'20px',marginTop:'4px',border:'none',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
                 <span style={{fontFamily:MONO}}>{delta>=0?'▲':'▼'} {fmtGBP(Math.abs(delta))} vs last period</span>
                 <Ico n="cR" s={9} c="currentColor" w={2.5}/>
               </button>
             )}
           </div>
           {pts.length>1&&(
-            <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{flexShrink:0,marginBottom:'2px'}}>
+            <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="net-spark" preserveAspectRatio="xMaxYMax meet" style={{flexShrink:1,minWidth:0,marginBottom:'2px'}}>
               <polyline points={pts.join(' ')} fill="none" stroke={BRASS} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <circle cx={pts[pts.length-1].split(',')[0]} cy={pts[pts.length-1].split(',')[1]} r="3" fill={BRASS}/>
             </svg>
