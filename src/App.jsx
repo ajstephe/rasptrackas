@@ -138,12 +138,6 @@ const THEME_PALETTES = {
     sidebarGlow:'rgba(34,211,238,0.16)', sidebarPill:'rgba(34,211,238,0.16)',
     sidebarBtnBg:'rgba(34,211,238,0.12)', sidebarBtnBorder:'rgba(34,211,238,0.32)', sidebarBtnSubtext:'rgba(103,232,249,0.6)',
   },
-  sandstone: {
-    brass:'#b3562a', brassLight:'#d98a5c', pillShadow:'rgba(179,86,42,0.35)',
-    sidebarText:'#c9b28b', sidebarTextActive:'#fdf6e8', sidebarDivider:'rgba(255,255,255,0.08)',
-    sidebarGlow:'rgba(179,86,42,0.22)', sidebarPill:'rgba(179,86,42,0.22)',
-    sidebarBtnBg:'rgba(217,138,92,0.14)', sidebarBtnBorder:'rgba(217,138,92,0.35)', sidebarBtnSubtext:'rgba(217,138,92,0.6)',
-  },
   // navActiveIcon (optional, falls back to brassLight) lets red mark only
   // the current tab — brassLight also colours Sync/Sign Out, where red
   // would read as an error.
@@ -153,8 +147,20 @@ const THEME_PALETTES = {
     sidebarGlow:'rgba(43,100,194,0.45)', sidebarPill:'rgba(43,100,194,0.38)',
     sidebarBtnBg:'rgba(143,180,240,0.12)', sidebarBtnBorder:'rgba(143,180,240,0.35)', sidebarBtnSubtext:'rgba(143,180,240,0.65)',
   },
+  heritage: {
+    brass:'#1f6b4a', brassLight:'#d9b45a', pillShadow:'rgba(31,107,74,0.35)',
+    sidebarText:'#a9c4b4', sidebarTextActive:'#fffdf6', sidebarDivider:'rgba(255,255,255,0.1)',
+    sidebarGlow:'rgba(217,180,90,0.35)', sidebarPill:'rgba(217,180,90,0.2)',
+    sidebarBtnBg:'rgba(217,180,90,0.14)', sidebarBtnBorder:'rgba(217,180,90,0.4)', sidebarBtnSubtext:'rgba(217,180,90,0.7)',
+  },
+  heather: {
+    brass:'#b8336a', brassLight:'#f09bbd', pillShadow:'rgba(184,51,106,0.33)',
+    sidebarText:'#bca7c6', sidebarTextActive:'#fff', sidebarDivider:'rgba(255,255,255,0.1)',
+    sidebarGlow:'rgba(184,51,106,0.4)', sidebarPill:'rgba(184,51,106,0.3)',
+    sidebarBtnBg:'rgba(240,155,189,0.12)', sidebarBtnBorder:'rgba(240,155,189,0.35)', sidebarBtnSubtext:'rgba(240,155,189,0.65)',
+  },
 };
-const THEME_IDS = ['system','light','dark','apple','professional','midnight','sandstone','flagship'];
+const THEME_IDS = ['system','light','dark','apple','professional','midnight','flagship','heritage','heather'];
 // Same check TabSummary's calendar swipe already makes before its own
 // snap-back — used by the pull-to-refresh indicator's settle transition
 // below for the same reason: the live drag tracks the finger regardless
@@ -4367,11 +4373,11 @@ export default function App() {
            index.html — without this, the OS's native date-picker icon and
            popup stay light-themed even in dark mode, exactly the bug the
            old TimeSelect had before it was rebuilt. Apple-Inspired,
-           Professional Light, Sandstone and Flagship are fixed light looks,
+           Professional Light, Flagship, Heritage and Heather are fixed light looks,
            not dark-mode variants, so they're excluded here the same way an
            explicit "light" choice already is. */
         @media (prefers-color-scheme: dark){
-          :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]):not([data-theme="sandstone"]):not([data-theme="flagship"]) input[type=date]{color-scheme:dark}
+          :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="heather"]) input[type=date]{color-scheme:dark}
         }
         :root[data-theme="dark"] input[type=date]{color-scheme:dark}
         :root[data-theme="midnight"] input[type=date]{color-scheme:dark}

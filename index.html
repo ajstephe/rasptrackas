@@ -75,11 +75,11 @@
          Apple devices) are added alongside DM Sans/IBM Plex Mono so all
          four Appearance options beyond the default can load their type
          without a second request each. -->
-    <!-- Space Grotesk (Midnight), Lora (Sandstone) and Ysabeau Office
-         (Flagship) added alongside the rest for the same reason Inter was —
+    <!-- Space Grotesk (Midnight), Ysabeau Office (Flagship), Libre
+         Franklin (Heritage) and Nunito + Roboto Mono (Heather) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Lora:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Libre+Franklin:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -148,7 +148,7 @@
            any of them one token at a time. Midnight is a dark-first design
            in its own right, so this matters just as much for it as it does
            for the light ones. */
-        :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="sandstone"]):not([data-theme="flagship"]){
+        :root:not([data-theme="light"]):not([data-theme="apple"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="heather"]){
           --page-bg:#0b1220;
           --surface:#111c2e;
           --surface-rgb:17,28,46;
@@ -367,53 +367,6 @@
         --text-blue-deep:#8fd0f5;
       }
 
-      /* ── Sandstone ── warm and paper-like rather than a tinted version of
-         the default light theme: a cream page, a dark brown sidebar/navy in
-         place of the classic navy, a terracotta accent instead of brass,
-         and Lora's serif standing in for DM Sans. Every "category" tint
-         (OT/PA/TOIL's blue/amber/purple) is re-hued toward the same warm
-         family so nothing clashes against the cream — only the genuine
-         danger red (delete/error states) stays a true red, since that one
-         needs to keep reading as a warning regardless of theme. */
-      :root[data-theme="sandstone"]{
-        color-scheme: light;
-        --page-bg:#ece1cb;
-        --surface:#fffbf3;
-        --surface-rgb:255,251,243;
-        --surface-2:#f6ecd8;
-        --surface-2-rgb:246,236,216;
-        --chip-bg:#f1e4c8;
-        --border:#e6d7ba;
-        --border-2:#efe4cd;
-        --ink:#2e2418;
-        --muted:#7a6a51;
-        --quiet:#a3907a;
-        --navy:#2e2418;
-        --navy-rgb:46,36,24;
-        --sidebar-bg-rgb:46,36,24;
-        --accent:#b3562a;
-        --app-font:'Lora',Georgia,serif;
-        --tint-blue:#eef1e8;
-        --tint-red:#f6e3df;
-        --tint-green:#eaf0e2;
-        --tint-green-2:#ddebd0;
-        --tint-purple:#f1e6e8;
-        --tint-amber:#f8e8d4;
-        --tint-amber-2:#f3d9b3;
-        --tint-teal:#e9f0e6;
-        --text-navy:#5b7553;
-        --text-red-deep:#9c3b28;
-        --text-green-deep:#5f7d4a;
-        --text-purple-deep:#9c5b66;
-        --text-amber-deep:#a3611f;
-        --tint-blue-2:#dde6d0;
-        --tint-brass:#f3ddc9;
-        --tint-indigo:#eee3e3;
-        --text-indigo-deep:#7a4a52;
-        --surface-red-mid:#c9846a;
-        --text-blue-deep:#435a34;
-      }
-
       /* ── Flagship ── inspired by British Airways' design language (not
          its name, logo or ribbon): a deep navy sidebar and statement cards,
          white cards on a cool grey page, an airline blue for every accent,
@@ -465,10 +418,99 @@
       /* font-size-adjust: Ysabeau Office's x-height is 0.43 of its size
          against DM Sans' 0.50, so at the same px sizes it read noticeably
          smaller than every other theme. 0.48 rather than the full 0.50
-         keeps its width in line with Lora and Space Grotesk (already known
+         keeps its width in line with Space Grotesk (already known
          to fit the sidebar, nav and tables); at 0.50 it runs ~11% wider
          than DM Sans. Browsers without support just keep today's size. */
       :root[data-theme="flagship"] body{font-variant-numeric:lining-nums tabular-nums;font-size-adjust:0.48}
+
+      /* ── Heritage ── racing green and gold on warm off-white. Green takes
+         the accent (buttons, choices), gold marks the active tab and
+         highlights via brassLight in App.jsx. Libre Franklin for letters;
+         numbers stay IBM Plex Mono, since wider monos wrapped the Home
+         figures on phones. */
+      :root[data-theme="heritage"]{
+        color-scheme: light;
+        --page-bg:#ebe8dd;
+        --surface:#fffdf6;
+        --surface-rgb:255,253,246;
+        --surface-2:#f5f2e8;
+        --surface-2-rgb:245,242,232;
+        --chip-bg:#ece8da;
+        --border:#dcd7c6;
+        --border-2:#e9e5d7;
+        --ink:#14261d;
+        --muted:#56655b;
+        --quiet:#839086;
+        --navy:#123b2c;
+        --navy-rgb:18,59,44;
+        --sidebar-bg-rgb:18,59,44;
+        --accent:#1f6b4a;
+        --app-font:'Libre Franklin',system-ui,sans-serif;
+        --tint-blue:#e9f1ec;
+        --tint-red:#f7e6e2;
+        --tint-green:#e6f2ea;
+        --tint-green-2:#d2e8d9;
+        --tint-purple:#efeaf4;
+        --tint-amber:#fbf1dc;
+        --tint-amber-2:#f6e2b5;
+        --tint-teal:#e3f1ee;
+        --text-navy:#123b2c;
+        --text-red-deep:#a3261d;
+        --text-green-deep:#17613f;
+        --text-purple-deep:#5b3f96;
+        --text-amber-deep:#8a5a08;
+        --tint-blue-2:#d4e6db;
+        --tint-brass:#f3ecd6;
+        --tint-indigo:#e8eaf6;
+        --text-indigo-deep:#3b4aa0;
+        --surface-red-mid:#eaa39c;
+        --text-blue-deep:#1f5f8b;
+      }
+
+      /* ── Heather ── deep plum chrome, soft lilac page, raspberry accent.
+         Raspberry rather than purple so it never gets confused with the
+         TOIL purple used across the app. Nunito letters, Roboto Mono
+         figures. */
+      :root[data-theme="heather"]{
+        color-scheme: light;
+        --page-bg:#efeaf1;
+        --surface:#ffffff;
+        --surface-rgb:255,255,255;
+        --surface-2:#f8f4f9;
+        --surface-2-rgb:248,244,249;
+        --chip-bg:#f0e9f2;
+        --border:#e2d8e6;
+        --border-2:#eee7f1;
+        --ink:#2a1730;
+        --muted:#6e5a75;
+        --quiet:#94839a;
+        --navy:#2e1a36;
+        --navy-rgb:46,26,54;
+        --sidebar-bg-rgb:46,26,54;
+        --accent:#b8336a;
+        --app-font:'Nunito',system-ui,sans-serif;
+        --num-font:'Roboto Mono',monospace;
+        --tint-blue:#edf1fb;
+        --tint-red:#fbe8ec;
+        --tint-green:#e8f6ee;
+        --tint-green-2:#d3eedd;
+        --tint-purple:#f3ecfa;
+        --tint-amber:#fdf2e1;
+        --tint-amber-2:#fbe3bd;
+        --tint-teal:#e5f4f2;
+        --text-navy:#2e1a36;
+        --text-red-deep:#b0213b;
+        --text-green-deep:#17703f;
+        --text-purple-deep:#6a2f9a;
+        --text-amber-deep:#9a5a07;
+        --tint-blue-2:#e2e7f7;
+        --tint-brass:#fbe8f0;
+        --tint-indigo:#ebeafb;
+        --text-indigo-deep:#4a3fb0;
+        --surface-red-mid:#f0a3b5;
+        --text-blue-deep:#2f59b0;
+      }
+
       html,body,#root{background:var(--page-bg)}
 
       /* Native form elements (input/select/textarea) don't inherit

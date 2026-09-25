@@ -13,7 +13,7 @@ import { useFocusTrap } from '../lib/useFocusTrap.js';
 // Matches the mobile theme row's track side padding, so arrow stops line
 // up the same way the row's two ends do.
 const THEME_ROW_PAD = 6;
-const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['apple','Apple'],['professional','Pro'],['midnight','Midnight'],['sandstone','Sandstone'],['flagship','Flagship']];
+const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['apple','Apple'],['professional','Pro'],['midnight','Midnight'],['flagship','Flagship'],['heritage','Heritage'],['heather','Heather']];
 
 // ─── More.. (settings) tab ───────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='settings' block — no behaviour
