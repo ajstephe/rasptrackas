@@ -153,8 +153,7 @@ export function TabLogOvertime({
         ))}
         {!rdw && row('Rostered shift','as on CARMS',(
           <>
-            {timePair('rosteredStart','rosteredEnd','Rostered Start','Rostered End')}
-            <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,auto)':'repeat(4,minmax(0,1fr))',justifyContent:'start',gap:'6px',marginTop:'8px'}}>
+            <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,auto)':'repeat(4,minmax(0,1fr))',justifyContent:'start',gap:'6px',marginBottom:'8px'}}>
               {PRESETS.map(([start,end])=>{
                 const on = form.rosteredStart===start && form.rosteredEnd===end;
                 return (
@@ -164,6 +163,7 @@ export function TabLogOvertime({
                 );
               })}
             </div>
+            {timePair('rosteredStart','rosteredEnd','Rostered Start','Rostered End')}
           </>
         ),{top:true})}
         {row('Actually worked','',(
