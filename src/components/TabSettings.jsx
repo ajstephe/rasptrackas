@@ -49,6 +49,9 @@ export function TabSettings({
   animClass='fi',
 }) {
   const [privacyNoticeOpen, setPrivacyNoticeOpen] = useState(false);
+  // Pay scales table in Config: just your own rank around your pay point
+  // until "Show all pay scales" is tapped.
+  const [showAllScales, setShowAllScales] = useState(false);
   // Mirrored exit for the two destructive confirm cards below (Wipe All
   // Data, Delete Account) — same useMountTransition trick as App.jsx's
   // overlays: cancelling one of these used to hard-cut it away instantly
@@ -440,24 +443,47 @@ export function TabSettings({
               </div>
 
               <div style={{borderTop:'1px solid var(--border-2)',marginTop:'16px',paddingTop:'14px'}}>
-                <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'10px'}}>Published Pay Scales</div>
-                {['Constable','Sergeant'].map(rank=>(
-                  <div key={rank} style={{marginBottom: rank==='Constable' ? '16px' : 0}}>
+                <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'10px'}}>Published pay scales</div>
+                {/* With a rank and pay point set, show that rank only, your own
+                    row highlighted plus the pay points either side; "Show all
+                    pay scales" brings back both full tables. */}
+                {(()=>{
+                  const mine = settings.rank && settings.service && PAY_RATES[settings.rank]?.[settings.service];
+                  const ranks = (mine && !showAllScales) ? [settings.rank] : ['Constable','Sergeant'];
+                  const visiblePoints = rank => {
+                    const pts = Object.keys(PAY_RATES[rank]);
+                    if (!mine || showAllScales || rank!==settings.rank) return pts;
+                    const i = pts.indexOf(settings.service);
+                    return pts.slice(Math.max(0,i-1), i+2);
+                  };
+                  return (<>
+                {ranks.map(rank=>(
+                  <div key={rank} style={{marginBottom: rank==='Constable' && ranks.length>1 ? '16px' : 0}}>
                     <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-navy)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'}}>{rank}</div>
                     <div style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',gap:'2px 8px',alignItems:'center'}}>
                       <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Pay Point</div>
                       <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Pre-Sept</div>
                       <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Post-Sept</div>
-                      {Object.entries(PAY_RATES[rank]).map(([point,data])=>(
+                      {visiblePoints(rank).map(point=>{
+                        const data = PAY_RATES[rank][point];
+                        const me = rank===settings.rank && point===settings.service;
+                        const cell = {fontSize:'11px',padding:'6px 4px',background:me?'var(--tint-brass)':'transparent'};
+                        return (
                         <div key={point} style={{display:'contents'}}>
-                          <div style={{fontSize:'11px',fontWeight:700,color:'var(--ink)',padding:'5px 0'}}>{point}</div>
-                          <div style={{fontSize:'11px',fontWeight:700,color:'var(--muted)',textAlign:'right',padding:'5px 0'}}>£{data.salary.pre.toLocaleString('en-GB')}</div>
-                          <div style={{fontSize:'11px',fontWeight:900,color:'var(--text-navy)',textAlign:'right',padding:'5px 0'}}>£{data.salary.post.toLocaleString('en-GB')}</div>
+                          <div style={{...cell,fontWeight:me?900:700,color:'var(--ink)',boxShadow:me?`inset 3px 0 0 ${BRASS}`:'none',paddingLeft:me?'8px':'4px'}}>{point}{me&&<span style={{fontWeight:700,color:'var(--muted)'}}> · you</span>}</div>
+                          <div style={{...cell,fontWeight:700,color:'var(--muted)',textAlign:'right'}}>£{data.salary.pre.toLocaleString('en-GB')}</div>
+                          <div style={{...cell,fontWeight:900,color:'var(--text-navy)',textAlign:'right'}}>£{data.salary.post.toLocaleString('en-GB')}</div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
+                {mine&&(
+                  <button type="button" onClick={()=>setShowAllScales(v=>!v)} style={{display:'block',width:'100%',marginTop:'10px',background:'none',border:'none',padding:'6px',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>{showAllScales?'Show fewer':'Show all pay scales'}</button>
+                )}
+                  </>);
+                })()}
                 <div style={{marginTop:'12px',fontSize:'9px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Excludes London Weighting (£3,150 pre-Sept / £3,260 post-Sept) and London Allowance (£6,588), which are added separately.</div>
               </div>
             </div>
@@ -567,7 +593,7 @@ export function TabSettings({
                   <Ico n="shield" s={13} c="#94a3b8"/>
                   <span style={{fontSize:'11px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>Tax is calculated automatically using real UK income tax bands, applied cumulatively across your salary, allowances and overtime — no manual rate needed.</span>
                 </div>
-                <button onClick={()=>setTaxPrintOpen(true)} style={{width:'100%',marginBottom:'13px',background:'#2563eb',color:'#fff',border:'none',borderRadius:'10px',padding:'10px',fontWeight:900,fontSize:'11px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
+                <button onClick={()=>setTaxPrintOpen(true)} style={{width:'100%',marginBottom:'13px',background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'11px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="dl" s={14} c="#fff"/> Print or save as PDF</button>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
                   <div style={{fontSize:'10px',fontWeight:900,color:overA?'#dc2626':'#059669',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',background:overA?'var(--tint-red)':'var(--tint-green)',borderRadius:'8px',padding:'5px 0'}}>Actual (YTD)</div>
                   <div style={{fontSize:'10px',fontWeight:900,color:overF?'#dc2626':'#059669',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',background:overF?'var(--tint-red)':'var(--tint-green)',borderRadius:'8px',padding:'5px 0'}}>Forecast</div>
@@ -618,7 +644,7 @@ export function TabSettings({
                     ) : (
                       <div style={{fontSize:'9.5px',color:'var(--text-green-deep)',lineHeight:1.7}}>Under £100k so far this year (after pension) — no allowance used yet.</div>
                     )}
-                    <div style={{fontSize:'8.5px',fontWeight:800,color:overA?'#dc2626':'#059669',textDecoration:'underline',marginTop:'8px',textAlign:'center'}}>{taxCalcActualDetailOpen?'Showing full breakdown below':'Tap to see full breakdown'}</div>
+                    <div style={{fontSize:'10.5px',fontWeight:800,color:overA?'#dc2626':'#059669',marginTop:'8px',textAlign:'center'}}>{taxCalcActualDetailOpen?'Showing full breakdown below':'Full breakdown ›'}</div>
                   </button>
                   <button onClick={()=>{ setTaxCalcForecastDetailOpen(v=>!v); setTaxCalcActualDetailOpen(false); }} style={{background:overF?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overF?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'10px',width:'100%',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
                     <div style={{fontSize:'10px',fontWeight:900,color:overF?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>Calculations</div>
@@ -632,7 +658,7 @@ export function TabSettings({
                     ) : (
                       <div style={{fontSize:'9.5px',color:'var(--text-green-deep)',lineHeight:1.7}}>Projected to stay under £100k (after pension) — {fmtGBP(100000-taxableGrossF)} of headroom at this pace.</div>
                     )}
-                    <div style={{fontSize:'8.5px',fontWeight:800,color:overF?'#dc2626':'#059669',textDecoration:'underline',marginTop:'8px',textAlign:'center'}}>{taxCalcForecastDetailOpen?'Showing full breakdown below':'Tap to see full breakdown'}</div>
+                    <div style={{fontSize:'10.5px',fontWeight:800,color:overF?'#dc2626':'#059669',marginTop:'8px',textAlign:'center'}}>{taxCalcForecastDetailOpen?'Showing full breakdown below':'Full breakdown ›'}</div>
                   </button>
                 </div>
 
@@ -750,7 +776,7 @@ export function TabSettings({
               <div className="payslip-print-area" style={{position:'fixed',inset:0,background:'#fff',zIndex:80,overflowY:'auto',padding:'20px'}}>
                 <div className="no-print" style={{display:'flex',gap:'8px',marginBottom:'18px',maxWidth:'640px',margin:'0 auto 18px'}}>
                   <button onClick={()=>setTaxPrintOpen(false)} aria-label="Back" style={{background:'#f1f5f9',border:'none',borderRadius:'11px',padding:'12px 16px',fontWeight:800,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',color:'#0f172a'}}><Ico n="back" s={13} c="#0f172a"/></button>
-                  <button onClick={()=>window.print()} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
+                  <button onClick={()=>window.print()} style={{flex:1,background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="dl" s={14} c="#fff"/> Print or save as PDF</button>
                 </div>
                 <div className="payslip-print-doc" style={{maxWidth:'640px',margin:'0 auto',background:'#fff'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'6px'}}>
@@ -797,7 +823,7 @@ export function TabSettings({
                       <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>{yPeriods[0].month} – {yPeriods[11].month}</div>
                     </div>
                     {isCurrent
-                      ? <span style={{fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1px',padding:'2px 7px',borderRadius:'20px',background:'#2563eb',color:'#fff'}}>Current</span>
+                      ? <span style={{fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1px',padding:'2px 7px',borderRadius:'20px',background:BRASS,color:'#fff'}}>Current</span>
                       : <Ico n="cR" s={14} c="#94a3b8"/>}
                   </div>
                 );
@@ -837,7 +863,7 @@ export function TabSettings({
         );
         const cardBody = exportDataExpanded&&(
           <>
-            <button onClick={()=>{setExportFormat(null);setPayslipMode('period');setPayslipPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);setPayslipFYYear(CURRENT_FY_YEAR);setPayslipModalOpen(true);}} disabled={entries.length===0} style={{width:'100%',padding:'12px',background: entries.length===0 ? 'var(--chip-bg)' : '#2563eb',border:'none',borderRadius:'11px',color: entries.length===0 ? 'var(--quiet)' : '#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor: entries.length===0 ? 'default' : 'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',textTransform:'uppercase',letterSpacing:'0.06em',boxShadow: entries.length===0 ? 'none' : '0 4px 14px rgba(37,99,235,0.3)'}}><Ico n="share" s={13} c={entries.length===0?'var(--quiet)':'#fff'}/> Export to PDF or Spreadsheet</button>
+            <button onClick={()=>{setExportFormat(null);setPayslipMode('period');setPayslipPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);setPayslipFYYear(CURRENT_FY_YEAR);setPayslipModalOpen(true);}} disabled={entries.length===0} style={{width:'100%',padding:'12px',background: entries.length===0 ? 'var(--chip-bg)' : BRASS,border:'none',borderRadius:'11px',color: entries.length===0 ? 'var(--quiet)' : '#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor: entries.length===0 ? 'default' : 'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="share" s={14} c={entries.length===0?'var(--quiet)':'#fff'}/> Export to PDF or spreadsheet</button>
             {entries.length===0&&<div style={{fontSize:'10px',color:'var(--quiet)',textAlign:'center',marginTop:'8px',fontWeight:600}}>Log a shift first to enable export</div>}
             <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'8px',lineHeight:1.5}}>Archived data is only retained for 4 years.</div>
           </>
@@ -883,7 +909,7 @@ export function TabSettings({
             {session&&(
               <div style={{marginBottom:'11px'}}>
                 {!changePwMounted ? (
-                  <button onClick={()=>setChangePwOpen(true)} style={{width:'100%',padding:'10px',background:'var(--chip-bg)',border:'1px solid var(--border)',borderRadius:'13px',color:'var(--ink)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'0.06em'}}><Ico n="lock" s={12} c="var(--muted)"/> Change Password</button>
+                  <button onClick={()=>setChangePwOpen(true)} style={{width:'100%',padding:'10px',background:'var(--surface)',border:'1.5px solid var(--border)',borderRadius:'11px',color:'var(--ink)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="lock" s={13} c="var(--muted)"/> Change password</button>
                 ) : (
                   <div className={'alert-pop'+(changePwOpen?'':' pop-out')} style={{background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px'}}>
                     <div style={{fontSize:'11px',color:'var(--muted)',lineHeight:1.5,fontWeight:600,marginBottom:'10px'}}>Choose a new password for your account.</div>
@@ -899,7 +925,7 @@ export function TabSettings({
                     />
                     {changePwError && <div style={{fontSize:'11.5px',color:'#dc2626',fontWeight:700,marginBottom:'8px'}}>{changePwError}</div>}
                     <div style={{display:'flex',gap:'6px'}}>
-                      <button onClick={handleChangePassword} disabled={changingPw} style={{flex:1,padding:'9px',background:'#2563eb',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:changingPw?'not-allowed':'pointer',textTransform:'uppercase',letterSpacing:'0.06em',opacity:changingPw?0.7:1}}>{changingPw?'Saving…':'Save New Password'}</button>
+                      <button onClick={handleChangePassword} disabled={changingPw} style={{flex:1,padding:'9px',background:BRASS,border:'none',borderRadius:'9px',color:'#fff',fontWeight:800,fontSize:'12.5px',fontFamily:'inherit',cursor:changingPw?'not-allowed':'pointer',opacity:changingPw?0.7:1}}>{changingPw?'Saving…':'Save new password'}</button>
                       <button onClick={()=>{ setChangePwOpen(false); setNewPw(''); setNewPw2(''); setChangePwError(''); }} disabled={changingPw} style={{flex:1,padding:'9px',background:'transparent',border:'1px solid var(--border)',borderRadius:'8px',color:'var(--muted)',fontWeight:700,fontSize:'12px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
                     </div>
                   </div>
@@ -907,20 +933,33 @@ export function TabSettings({
               </div>
             )}
 
-            <div style={{fontSize:'11px',color:'var(--muted)',marginBottom:'11px',lineHeight:1.5}}>Data is automatically synced and backed up to a secure cloud. To create a hard downloadable backup, select BACKUP. To restore from a previous hard copy, select RESTORE.</div>
-            <div style={{display:'flex',gap:'6px',marginBottom:'11px'}}>
-              <button onClick={handleExport} className={pulseBackupBtn?'backup-pulse':''} style={{flex:1,padding:'10px',background:'#2563eb',border:'none',borderRadius:'10px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'0.06em'}}><Ico n="dl" s={12} c="#fff"/> Backup</button>
-              <button onClick={()=>setRestoreConfirmOpen(true)} style={{flex:1,padding:'10px',background:'var(--chip-bg)',border:'1px solid var(--border)',borderRadius:'10px',color:'var(--muted)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'0.06em'}}><Ico n="ul" s={12} c="#475569"/> Restore</button>
+            {/* Backup and Restore each say what they do; Wipe all data sits
+                apart at the bottom with a sentence on what it removes. The
+                actions and their confirmations are unchanged. */}
+            <div style={{fontSize:'12px',color:'var(--muted)',marginBottom:'11px',lineHeight:1.5}}>{session?'Your data syncs to the cloud automatically. A backup is an extra copy saved to this device.':'Your data is stored on this device. A backup is a copy saved as a file you can keep.'}</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'14px'}}>
+              <div>
+                <button onClick={handleExport} className={pulseBackupBtn?'backup-pulse':''} style={{width:'100%',padding:'10px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Backup</button>
+                <div style={{fontSize:'10.5px',color:'var(--quiet)',textAlign:'center',marginTop:'4px'}}>Save a copy as a file</div>
+              </div>
+              <div>
+                <button onClick={()=>setRestoreConfirmOpen(true)} style={{width:'100%',padding:'10px',background:'var(--surface)',border:'1.5px solid var(--border)',borderRadius:'11px',color:'var(--ink)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="ul" s={13} c="var(--muted)"/> Restore</button>
+                <div style={{fontSize:'10.5px',color:'var(--quiet)',textAlign:'center',marginTop:'4px'}}>Load a saved copy</div>
+              </div>
               <input type="file" ref={fileRef} style={{display:'none'}} accept=".json" onChange={handleImport}/>
             </div>
 
-            <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'11px'}}>
+            <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'12px'}}>
               {!wipeMounted
-                ?<button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'0.06em'}}><Ico n="trash" s={12} c="#b91c1c"/> Wipe All Data</button>
+                ?<>
+                  <div style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>Start again</div>
+                  <div style={{fontSize:'11.5px',color:'var(--muted)',lineHeight:1.45,margin:'2px 0 9px'}}>{session?'Removes every shift, all TOIL, and your rank and pay point, from this device and the cloud.':'Removes every shift, all TOIL, and your rank and pay point from this device.'} You'll be asked to confirm.</div>
+                  <button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'transparent',border:'1.5px solid var(--surface-red-mid)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="trash" s={13} c="#b91c1c"/> Wipe all data</button>
+                </>
                 :<div className={'alert-pop'+(wipeConf?'':' pop-out')} style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px'}}>
                     <div style={{textAlign:'center',color:'var(--text-red-deep)',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'#dc2626'}}>{session ? 'Deletes every logged shift and all TOIL data — on this device and in the cloud. ' : 'Deletes every logged shift and all TOIL data on this device. '}This cannot be undone unless you have downloaded a backup file to your device.</span></div>
                     <div style={{display:'flex',gap:'6px'}}>
-                      <button onClick={handleWipe} disabled={wipingData} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:wipingData?'not-allowed':'pointer',textTransform:'uppercase',letterSpacing:'0.06em',opacity:wipingData?0.7:1}}>{wipingData?'Wiping…':'Yes, Delete'}</button>
+                      <button onClick={handleWipe} disabled={wipingData} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'9px',color:'#fff',fontWeight:800,fontSize:'12.5px',fontFamily:'inherit',cursor:wipingData?'not-allowed':'pointer',opacity:wipingData?0.7:1}}>{wipingData?'Wiping…':'Yes, wipe everything'}</button>
                       <button onClick={()=>setWipeConf(false)} disabled={wipingData} style={{flex:1,padding:'9px',background:'transparent',border:'1px solid var(--border)',borderRadius:'8px',color:'var(--muted)',fontWeight:700,fontSize:'12px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
                     </div>
                   </div>
@@ -930,7 +969,7 @@ export function TabSettings({
             {session&&(
               <div style={{borderTop:'1px solid var(--border-2)',marginTop:'11px',paddingTop:'11px'}}>
                 {!deleteAcctMounted ? (
-                  <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',textTransform:'uppercase',letterSpacing:'0.06em'}}><Ico n="trash" s={12} c="#b91c1c"/> Delete Account</button>
+                  <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'transparent',border:'1.5px solid var(--surface-red-mid)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="trash" s={13} c="#b91c1c"/> Delete account</button>
                 ) : (
                   <div className={'alert-pop'+(deleteAcctConf?'':' pop-out')} style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px'}}>
                     <div style={{fontSize:'11.5px',color:'var(--text-red-deep)',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>

@@ -24,7 +24,7 @@ import {
   getTaxBand, applyBandTax, splitAcrossBands,
   monthlySteppedAmount, monthlySteppedSplitBySept, periodBaseAmount, periodPensionablePay,
 } from './lib/tax.js';
-import { fmt, fmtHM, fmtHrs, fmtGBP, fmtD, fmtRelTime } from './lib/format.js';
+import { fmt, fmtHM, fmtHrs, fmtGBP, fmtD, fmtRelTime, payLabel, shiftSpan } from './lib/format.js';
 import {
   calcAutoOTHours, syncShiftTimesIntoForm,
 } from './lib/shiftTimes.js';
@@ -1828,7 +1828,7 @@ export default function App() {
             const isSelected = dateStr===currentValue;
             const isToday = dateStr===todayStr;
             return (
-              <button key={i} onClick={()=>{ onSelect(dateStr); setDatePickerFor(null); }} style={{aspectRatio:'1',border:isToday&&!isSelected?'1.5px solid #2563eb':'none',borderRadius:'10px',background:isSelected?'#2563eb':'transparent',color:isSelected?'#fff':'var(--ink)',fontWeight:isSelected?900:700,fontSize:'14.5px',cursor:'pointer',fontFamily:'inherit'}}>{d}</button>
+              <button key={i} onClick={()=>{ onSelect(dateStr); setDatePickerFor(null); }} style={{aspectRatio:'1',border:isToday&&!isSelected?`1.5px solid ${BRASS}`:'none',borderRadius:'10px',background:isSelected?BRASS:'transparent',color:isSelected?'#fff':'var(--ink)',fontWeight:isSelected?900:700,fontSize:'14.5px',cursor:'pointer',fontFamily:'inherit'}}>{d}</button>
             );
           })}
         </div>
@@ -4423,7 +4423,7 @@ export default function App() {
             <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>Sign out?</div>
             <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>You'll need your password again to get back in. Data already synced stays exactly as it is.</div>
             <div style={{display:'flex',gap:'8px'}}>
-              <button onClick={()=>{ setSignOutConfirmOpen(false); handleSignOut(); }} style={{flex:1,padding:'12px',background:'#2563eb',border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Sign out</button>
+              <button onClick={()=>{ setSignOutConfirmOpen(false); handleSignOut(); }} style={{flex:1,padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Sign out</button>
               <button onClick={()=>setSignOutConfirmOpen(false)} style={{flex:1,padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--muted)',fontWeight:700,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>
@@ -4472,7 +4472,7 @@ export default function App() {
             <div style={{fontWeight:900,fontSize:'12px',color:'var(--text-navy)',marginBottom:'2px'}}>Time for a backup</div>
             <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>It's been a couple of weeks — worth downloading a fresh backup of your records.</div>
             <div style={{display:'flex',gap:'7px'}}>
-              <button onClick={goBackupNow} style={{background:'#2563eb',border:'none',borderRadius:'8px',padding:'6px 13px',fontWeight:900,fontSize:'10px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Back Up Now</button>
+              <button onClick={goBackupNow} style={{background:BRASS,border:'none',borderRadius:'8px',padding:'6px 13px',fontWeight:800,fontSize:'11.5px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Back up now</button>
               <button onClick={dismissBackupReminder} style={{background:'none',border:'none',padding:'6px 4px',fontWeight:700,fontSize:'10px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Not now</button>
             </div>
           </div>
@@ -4488,7 +4488,7 @@ export default function App() {
             <div style={{fontWeight:900,fontSize:'12px',color:'var(--text-navy)',marginBottom:'2px'}}>Welcome to FY {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
             <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>Your {CURRENT_FY_YEAR-1}/{CURRENT_FY_YEAR.toString().slice(-2)} year is complete — find it any time under Financial Years in Options.</div>
             <div style={{display:'flex',gap:'7px'}}>
-              <button onClick={()=>{dismissFYRollover();setTab('settings');}} style={{background:'#2563eb',border:'none',borderRadius:'8px',padding:'6px 13px',fontWeight:900,fontSize:'10px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>View Last Year</button>
+              <button onClick={()=>{dismissFYRollover();setTab('settings');}} style={{background:BRASS,border:'none',borderRadius:'8px',padding:'6px 13px',fontWeight:800,fontSize:'11.5px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>View last year</button>
               <button onClick={dismissFYRollover} style={{background:'none',border:'none',padding:'6px 4px',fontWeight:700,fontSize:'10px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Got it</button>
             </div>
           </div>
@@ -4642,7 +4642,8 @@ export default function App() {
             const pb = glancePb;
             return (
               <div style={{padding:'14px 0',borderBottom:'1px solid var(--border-2)'}}>
-                <div style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Gross &amp; Net OT — Current Period</div>
+                <div style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>{pb?payLabel(pb.month):'This pay period'}</div>
+                <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'2px',marginBottom:'8px'}}>{pb?`${shiftSpan(pb.start,pb.end)} · submitted only`:'Submitted overtime only'}</div>
                 <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
                   <div>
                     <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</div>
@@ -4653,7 +4654,6 @@ export default function App() {
                     <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'#059669',marginTop:'2px'}}>{pb?fmtGBP(animatedGlanceNet):'£0.00'}</div>
                   </div>
                 </div>
-                <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'8px'}}>{pb?pb.month:'—'} · submitted only</div>
               </div>
             );
           })()}
@@ -4756,9 +4756,9 @@ export default function App() {
               <div style={{fontSize:'11px',color:'var(--quiet)',marginBottom:'16px'}}>Choose a period, or set your own date range</div>
 
               <div style={{display:'flex',gap:'6px',background:'var(--chip-bg)',borderRadius:'12px',padding:'3px',marginBottom:'16px'}}>
-                <button onClick={()=>setPayslipMode('period')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='period'?'#fff':'transparent',color:payslipMode==='period'?'#2563eb':'var(--muted)',boxShadow:payslipMode==='period'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Pay Period</button>
-                <button onClick={()=>setPayslipMode('custom')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='custom'?'#fff':'transparent',color:payslipMode==='custom'?'#2563eb':'var(--muted)',boxShadow:payslipMode==='custom'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Custom Range</button>
-                <button onClick={()=>setPayslipMode('financialYear')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='financialYear'?'#fff':'transparent',color:payslipMode==='financialYear'?'#2563eb':'var(--muted)',boxShadow:payslipMode==='financialYear'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Financial Year</button>
+                <button onClick={()=>setPayslipMode('period')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='period'?'var(--surface)':'transparent',color:payslipMode==='period'?BRASS:'var(--muted)',boxShadow:payslipMode==='period'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Pay Period</button>
+                <button onClick={()=>setPayslipMode('custom')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='custom'?'var(--surface)':'transparent',color:payslipMode==='custom'?BRASS:'var(--muted)',boxShadow:payslipMode==='custom'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Custom Range</button>
+                <button onClick={()=>setPayslipMode('financialYear')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='financialYear'?'var(--surface)':'transparent',color:payslipMode==='financialYear'?BRASS:'var(--muted)',boxShadow:payslipMode==='financialYear'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Financial Year</button>
               </div>
 
               <button role="checkbox" aria-checked={sanitiseNotes} onClick={()=>setSanitiseNotes(v=>!v)} style={{display:'flex',alignItems:'flex-start',gap:'10px',width:'100%',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px 14px',marginBottom:'16px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
@@ -4782,7 +4782,7 @@ export default function App() {
                           <div style={{fontFamily:MONO,fontSize:'9.5px',color:'var(--quiet)',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
                         </div>
                         <div style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${p.idx===payslipPeriodIdx?'#2563eb':'#cbd5e1'}`,flexShrink:0,position:'relative'}}>
-                          {p.idx===payslipPeriodIdx&&<div style={{position:'absolute',inset:'3px',background:'#2563eb',borderRadius:'50%'}}/>}
+                          {p.idx===payslipPeriodIdx&&<div style={{position:'absolute',inset:'3px',background:BRASS,borderRadius:'50%'}}/>}
                         </div>
                       </div>
                     ))}
@@ -4817,7 +4817,7 @@ export default function App() {
                             <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>{yPeriods[0].month} – {yPeriods[11].month}{!isCurrent&&exportFormat==='pdf'&&' · gross only, no tax/NI'}</div>
                           </div>
                           <div style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${y===payslipFYYear?'#2563eb':'#cbd5e1'}`,flexShrink:0,position:'relative'}}>
-                            {y===payslipFYYear&&<div style={{position:'absolute',inset:'3px',background:'#2563eb',borderRadius:'50%'}}/>}
+                            {y===payslipFYYear&&<div style={{position:'absolute',inset:'3px',background:BRASS,borderRadius:'50%'}}/>}
                           </div>
                         </div>
                       );
@@ -4834,7 +4834,7 @@ export default function App() {
                     : (rangeValid ? `${fmtD(payslipStart)} – ${fmtD(payslipEnd)}` : 'Pick a valid start and end date')}
               </div>
 
-              <button onClick={handleGenerateExport} disabled={!canGenerate} style={{width:'100%',background:canGenerate?'#2563eb':'#cbd5e1',color:'#fff',border:'none',borderRadius:'12px',padding:'14px',fontWeight:900,fontSize:'13px',cursor:canGenerate?'pointer':'default',fontFamily:'inherit'}}>{exportFormat==='csv' ? 'Export Spreadsheet' : payslipMode==='financialYear'&&payslipFYYear!=null&&payslipFYYear!==CURRENT_FY_YEAR ? 'View Year Summary' : 'Generate Payslip'}</button>
+              <button onClick={handleGenerateExport} disabled={!canGenerate} style={{width:'100%',background:canGenerate?BRASS:'var(--border)',color:'#fff',border:'none',borderRadius:'12px',padding:'14px',fontWeight:900,fontSize:'13px',cursor:canGenerate?'pointer':'default',fontFamily:'inherit'}}>{exportFormat==='csv' ? 'Export Spreadsheet' : payslipMode==='financialYear'&&payslipFYYear!=null&&payslipFYYear!==CURRENT_FY_YEAR ? 'View Year Summary' : 'Generate Payslip'}</button>
               <div style={{display:'flex',gap:'6px',marginTop:'4px'}}>
                 <button onClick={()=>setExportFormat(null)} style={{flex:1,background:'none',border:'none',padding:'12px',fontWeight:800,fontSize:'12px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>‹ Back</button>
                 <button onClick={()=>setPayslipModalOpen(false)} style={{flex:1,background:'none',border:'none',padding:'12px',fontWeight:800,fontSize:'12px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
@@ -4864,7 +4864,7 @@ export default function App() {
         return (
           <div className="payslip-print-area" style={{position:'absolute',inset:0,background:'#e2e8f0',zIndex:70,overflowY:'auto',overscrollBehavior:'contain',padding:'16px'}}>
             <div className="no-print" style={{display:'flex',gap:'8px',marginBottom:'14px',maxWidth:'560px',margin:'0 auto 14px'}}>
-              <button onClick={()=>window.print()} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
+              <button onClick={()=>window.print()} style={{flex:1,background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="dl" s={14} c="#fff"/> Print or save as PDF</button>
               <button onClick={()=>setPayslipPreview(null)} style={{background:'#ffffff',color:'#64748b',border:'1px solid #e2e8f0',borderRadius:'11px',padding:'12px 18px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit'}}>Close</button>
             </div>
 
@@ -4984,13 +4984,13 @@ export default function App() {
             <div className="no-print" style={{background:'var(--tint-amber-2)',padding:'8px',fontSize:'10px',fontWeight:800,color:'var(--text-amber-deep)',textAlign:'center'}}>📁 Archived — {label} is read-only</div>
             {!fySummaryPrintMode&&(
               <div className="no-print" style={{display:'flex',gap:'8px',padding:'12px 12px 0'}}>
-                <button onClick={()=>setFySummaryPrintMode(true)} style={{flex:1,background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="doc" s={13} c="#fff"/> PDF</button>
+                <button onClick={()=>setFySummaryPrintMode(true)} style={{flex:1,background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="doc" s={13} c="#fff"/> PDF</button>
                 <button onClick={()=>handleExportSpreadsheet(y.start, y.end, sanitiseNotes)} style={{flex:1,background:'var(--tint-green)',color:'#059669',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="table" s={13} c="#059669"/> Spreadsheet</button>
               </div>
             )}
             {fySummaryPrintMode&&(
               <div className="no-print" style={{padding:'12px 12px 0'}}>
-                <button onClick={()=>window.print()} style={{width:'100%',background:'#2563eb',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="dl" s={13} c="#fff"/> Print / Save as PDF</button>
+                <button onClick={()=>window.print()} style={{width:'100%',background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="dl" s={14} c="#fff"/> Print or save as PDF</button>
               </div>
             )}
             <div className={fySummaryPrintMode?'payslip-print-doc':''} style={{background:c('#0f2744','var(--navy)'),color:'#fff',padding:'16px',margin:fySummaryPrintMode?'12px':0,borderRadius:fySummaryPrintMode?'12px':0}}>
@@ -5076,12 +5076,12 @@ export default function App() {
           silently drop you into Log Overtime */}
       {confirmCreateDayMounted&&(
         <div onClick={()=>setConfirmCreateDay(null)} className={confirmCreateDay?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:41,padding:'20px'}}>
-          <div ref={confirmCreateDayTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Add an entry" onClick={e=>e.stopPropagation()} className={'alert-pop'+(confirmCreateDay?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'18px',padding:'22px',width:'100%',maxWidth:'320px',textAlign:'center'}}>
-            <div style={{fontWeight:900,fontSize:'15px',color:'var(--ink)',marginBottom:'6px'}}>Create an entry for this day?</div>
-            <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginBottom:'18px'}}>{new Date(confirmCreateDayV+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
+          <div ref={confirmCreateDayTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Log overtime for this day" onClick={e=>e.stopPropagation()} className={'alert-pop'+(confirmCreateDay?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'18px',padding:'22px',width:'100%',maxWidth:'320px',textAlign:'center'}}>
+            <div style={{fontWeight:900,fontSize:'16px',color:'var(--ink)',marginBottom:'6px'}}>Log overtime for {new Date(confirmCreateDayV+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}?</div>
+            <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginBottom:'18px'}}>Opens Log Overtime with this date filled in.</div>
             <div style={{display:'flex',gap:'8px'}}>
-              <button onClick={()=>setConfirmCreateDay(null)} style={{flex:1,padding:'11px',background:'var(--chip-bg)',border:'none',borderRadius:'10px',fontWeight:900,fontSize:'12px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>No</button>
-              <button onClick={()=>{ setForm({...blankForm,date:confirmCreateDayV}); setEditing(null); setTab('add'); setConfirmCreateDay(null); }} style={{flex:1,padding:'11px',background:'#2563eb',border:'none',borderRadius:'10px',fontWeight:900,fontSize:'12px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Yes</button>
+              <button onClick={()=>setConfirmCreateDay(null)} style={{flex:1,padding:'11px',background:'var(--surface)',border:'1.5px solid var(--border)',borderRadius:'11px',fontWeight:800,fontSize:'13px',color:'var(--ink)',cursor:'pointer',fontFamily:'inherit'}}>Not now</button>
+              <button onClick={()=>{ setForm({...blankForm,date:confirmCreateDayV}); setEditing(null); setTab('add'); setConfirmCreateDay(null); }} style={{flex:1.3,padding:'11px',background:BRASS,border:'none',borderRadius:'11px',fontWeight:800,fontSize:'13px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Log overtime</button>
             </div>
           </div>
         </div>
@@ -5104,11 +5104,20 @@ export default function App() {
               const eNet = eOTNet+ePANet;
               return (
                 <div key={e.id} style={{background:'var(--surface-2)',borderRadius:'13px',padding:isWide?'17px':'13px',marginBottom:'8px'}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'8px'}}>
-                    <div style={{flex:1,paddingRight:'8px'}}>
-                      <div style={{fontWeight:900,fontSize:isWide?'15px':'12px',color:'#3b82f6',textTransform:'uppercase'}}>Duty / Reason: {e.reason||'Shift'}</div>
-                      {e.takeAs==='toil'&&<div style={{display:'inline-block',fontSize:isWide?'10px':'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-purple)',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>TOIL</div>}
-                      {e.takeAs==='mix'&&<div style={{display:'inline-block',fontSize:isWide?'10px':'8px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-purple)',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.5px'}}>Mix — Pay + TOIL</div>}
+                  {/* The pop-up's title is already the date, so each shift here
+                      leads with its reason in normal letters (matching the
+                      Shifts view), then its tags and status. Delete is a
+                      quieter icon set apart from Edit and still asks first. */}
+                  <div style={{marginBottom:'8px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                      <span style={{fontWeight:900,fontSize:isWide?'16px':'14.5px',color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.reason||'Shift'}</span>
+                      {e.takeAs==='toil'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'#6d28d9',flexShrink:0}}>TOIL</span>}
+                      {e.takeAs==='mix'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'#6d28d9',flexShrink:0}}>Mix</span>}
+                      <span style={{flex:1}}/>
+                      <Tooltip label="Edit entry"><button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} aria-label="Edit this record" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button></Tooltip>
+                      <Tooltip label="Delete entry"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this record" style={{marginLeft:'6px',background:confirmDel===e.id?'var(--tint-red)':'transparent',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button></Tooltip>
+                    </div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
                       {carmsBadge(e, (isWide?15:12)-1)}
                       {/* Grey record-only pill — shown only here in the calendar
                           day view, not in List View, CARMS/PA, or any export.
@@ -5122,10 +5131,6 @@ export default function App() {
                       {(()=>{ const xp = crossPeriodInfo(e); return xp && (
                         <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-indigo)',color:'var(--text-indigo-deep)',textTransform:'uppercase',letterSpacing:'0.5px'}}>↷ {xp.both?'OT & PA':xp.ot?'OT':'PA'} Counted in {xp.label}</div>
                       ); })()}
-                    </div>
-                    <div style={{display:'flex',gap:'10px',alignItems:'center',flexShrink:0}}>
-                      <Tooltip label="Edit entry"><button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} aria-label="Edit this record" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button></Tooltip>
-                      <Tooltip label="Delete entry"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this record" style={{background:confirmDel===e.id?'var(--tint-red)':'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button></Tooltip>
                     </div>
                   </div>
 

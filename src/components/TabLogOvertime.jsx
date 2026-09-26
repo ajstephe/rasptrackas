@@ -175,6 +175,12 @@ export function TabLogOvertime({
         {row('Actually worked','',(
           <>
             {timePair('actualStart','actualEnd','Actual Start','Actual End')}
+            {/* Until both times are in (and nothing's been typed into the
+                box by hand), there's no figure to show — a plain hint reads
+                better than an empty "h overtime" box with an "auto" badge. */}
+            {!basisReady && !String(form[tier]||'').trim() ? (
+              <div style={{marginTop:'9px',border:'1.5px dashed var(--border)',borderRadius:'10px',padding:'8px 11px',fontSize:'11.5px',fontWeight:600,color:'var(--muted)'}}>Set the times above and your overtime is worked out here.</div>
+            ) : (
             <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap',marginTop:'9px',fontSize:'11.5px',fontWeight:600,color:'var(--muted)'}}>
               <span>{basis}</span>
               <label style={{display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'4px 8px 4px 10px'}}>
@@ -185,6 +191,7 @@ export function TabLogOvertime({
                 ? <span style={{fontSize:'9.5px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-green-2)',color:'var(--text-green-deep)'}}>auto</span>
                 : <button type="button" onClick={()=>setForm({...form, otAuto:true})} style={{fontSize:'9.5px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',border:'none',background:'var(--tint-amber-2)',color:'var(--text-amber-deep)',cursor:'pointer',fontFamily:'inherit'}}>edited · reset</button>}
             </div>
+            )}
           </>
         ),{top:true,last:true})}
       </>

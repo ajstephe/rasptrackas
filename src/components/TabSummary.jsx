@@ -82,6 +82,77 @@ export function TabSummary({
     el.addEventListener('touchmove', onMove, { passive: false });
     return () => el.removeEventListener('touchmove', onMove);
   }, [isWide, calSwipeStartX]);
+  // One breakdown layout for a pay period — overtime by rate (with the dates
+  // each came from), PSOP allowance, TOIL, and anything still to submit —
+  // shared by the Calendar's totals card and an opened month in Months view,
+  // so the two always read the same way.
+  const periodBreakdownRows = ({pb, tierHours, tierGross, tierDates, paCount, paGross, paDates, toilWorked, toilBanked, carmsGroup, periodIdx}) => {
+    const lineRow = {display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',fontSize:'12.5px',fontWeight:700};
+    const tier = (key,lbl) => tierHours[key]>0 && (
+      <div key={key} style={{padding:'7px 0'}}>
+        <div style={{...lineRow,color:'var(--ink)'}}><span>{fmtHrs(tierHours[key])} at {lbl}</span><span style={{fontFamily:MONO}}>{fmt(tierGross[key])}</span></div>
+        <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'2px'}}>{renderDatePills(tierDates[key],'var(--muted)')}</div>
+      </div>
+    );
+    const paLine = k => paCount[k]>0 && (
+      <div key={k} style={{padding:'7px 0'}}>
+        <div style={{...lineRow,color:'var(--text-amber-deep)'}}><span>{k} × {paCount[k]}</span><span style={{fontFamily:MONO}}>{fmt(paGross[k])}</span></div>
+        <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'2px'}}>{renderDatePills(paDates[k],'#b45309')}</div>
+      </div>
+    );
+    const section = {borderTop:'1px solid var(--border-2)',padding:'8px 0 2px'};
+    const secHead = (lbl,col,gross,net) => (
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px'}}>
+        <span style={{fontSize:'10px',fontWeight:900,color:col,textTransform:'uppercase',letterSpacing:'0.06em'}}>{lbl}</span>
+        <span style={{fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>{fmt(gross)} gross · <span style={{color:'#059669'}}>{fmt(net)} net</span></span>
+      </div>
+    );
+    const linkRow = (onClick, icon, iconCol, label, value, valueCol) => (
+      <button onClick={onClick} className="tap-row" style={{display:'flex',alignItems:'center',gap:'10px',width:'100%',background:'none',border:'none',borderTop:'1px solid var(--border-2)',padding:'11px 0 4px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
+        <Ico n={icon} s={14} c={iconCol}/>
+        <span style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>{label}</span>
+        {value&&<span style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:valueCol}}>{value}</span>}
+        <Ico n="cR" s={13} c="var(--quiet)" w={2.2}/>
+      </button>
+    );
+    const noOT = tierHours.t133+tierHours.t150+tierHours.t200===0;
+    const noPA = paCount.PA1+paCount.PA2+paCount.PA3===0;
+    return (<>
+      <div style={section}>
+        {secHead('Overtime','var(--text-blue-deep)',pb.ot,pb.otResult.net)}
+        {tier('t133','1.33×')}{tier('t150','1.5×')}{tier('t200','2.0×')}
+        {noOT&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this period</div>}
+      </div>
+      <div style={section}>
+        {secHead('PSOP allowance','var(--text-amber-deep)',pb.pa,pb.paResult.net)}
+        {paLine('PA1')}{paLine('PA2')}{paLine('PA3')}
+        {noPA&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this period</div>}
+      </div>
+      {linkRow(()=>setTab('graph'),'clock','#7c3aed',<>TOIL <span style={{fontFamily:MONO,fontWeight:600,color:'var(--text-purple-deep)',marginLeft:'4px'}}>{fmtHrs(toilWorked)} worked → {fmtHrs(toilBanked)} banked</span></>,null,null)}
+      {carmsGroup&&linkRow(ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(periodIdx); },'checklist',BRASS,'CARMS & PSOP to submit',fmtGBP(carmsGroup.periodTotal),BRASS)}
+    </>);
+  };
+
+  // A shift's own heading block — the date as the heading, any TOIL/Mix tag,
+  // then the reason in normal letters, the submission status and any
+  // cross-period note. Edit sits beside the date; delete is a quieter icon
+  // set apart from it (and still asks first). Used by the Shifts view,
+  // an opened month in Months view, and matches the calendar day pop-up.
+  const shiftHead = (e, {onEdit, onDelete, deleting, showDate=true, extra=null}) => (
+    <>
+      <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+        <span style={{fontWeight:900,fontSize:'14px',color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{showDate ? new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}) : (e.reason||'Shift')}</span>
+        {e.takeAs==='toil'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'#6d28d9',flexShrink:0}}>TOIL</span>}
+        {e.takeAs==='mix'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'#6d28d9',flexShrink:0}}>Mix</span>}
+        <span style={{flex:1}}/>
+        {extra}
+        <Tooltip label="Edit entry"><button onClick={onEdit} aria-label="Edit this record" style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',borderRadius:'8px',background:'var(--chip-bg)',border:'none',cursor:'pointer',padding:0}}><Ico n="edit" s={13} c="#64748b"/></button></Tooltip>
+        <Tooltip label="Delete entry"><button onClick={onDelete} aria-label="Delete this record" style={{flexShrink:0,marginLeft:'6px',display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',borderRadius:'8px',background:deleting?'var(--tint-red)':'transparent',border:'none',cursor:'pointer',padding:0,transition:'all 0.15s'}}><Ico n="trash" s={13} c="#ef4444"/></button></Tooltip>
+      </div>
+      {showDate&&<div style={{fontSize:'12.5px',fontWeight:600,color:'var(--muted)',marginTop:'1px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.reason||'Shift'}</div>}
+    </>
+  );
+
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       {/* Heading sits in normal flow, like every other tab's — it scrolls
@@ -355,46 +426,21 @@ export function TabSummary({
                   </button>
                 );
               })()}
-              <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'4px',fontSize:'11.5px',fontWeight:700,color:BRASS,marginTop:'11px'}}>
-                {isExp?'Tap to collapse':'Tap to see more'}
+              {!isExp&&<div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'4px',fontSize:'11.5px',fontWeight:700,color:BRASS,marginTop:'11px'}}>
+                Tap to see more
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={BRASS} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:isExp?'rotate(180deg)':'rotate(0deg)',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
+              </div>}
             </div>
 
             {isExp&&(
               <div className="accordion-in" style={{background:'var(--surface-2)',borderTop:'1px solid var(--border-2)',padding:'13px'}}>
-                {/* month summary — net figures now use cumulative marginal tax, rate shown.
-                    Desktop: OT Pay and PA keep their own bordered boxes side by side (this
-                    card already spans both grid columns once expanded, so there's room).
-                    Mobile: same figures, merged into one card with a divider instead of
-                    three separate boxes. ── */}
-                {isWide ? (
-                  <>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px',marginBottom:'9px'}}>
-                      <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid var(--border-2)'}}>{otPayInner}</div>
-                      <div style={{background:'var(--surface)',borderRadius:'13px',padding:'13px',border:'1px solid var(--border-2)'}}>{paInner}</div>
-                    </div>
-                    <button onClick={()=>setTab('graph')} style={{background:'var(--tint-purple)',borderRadius:'13px',padding:'11px',width:'100%',border:'1px solid var(--border-2)',textAlign:'left',fontFamily:'inherit',cursor:'pointer',marginBottom:'9px'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'10px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em'}}>TOIL</div></div>
-                      <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)',marginBottom:'6px'}}>{fmtHrs(totalToilWorked)} worked → {fmtHrs(totalToilBanked)} banked</div>
-                      <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
-                    </button>
-                  </>
-                ) : (
-                  <div style={{background:'var(--surface)',borderRadius:'13px',border:'1px solid var(--border-2)',padding:'13px',marginBottom:'9px'}}>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'13px'}}>
-                      <div>{otPayInner}</div>
-                      <div style={{borderLeft:'1px solid var(--border-2)',paddingLeft:'13px'}}>{paInner}</div>
-                    </div>
-                    <button onClick={()=>setTab('graph')} style={{marginTop:'13px',paddingTop:'12px',width:'100%',background:'none',border:'none',borderTopWidth:'1px',borderTopStyle:'solid',borderTopColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px',marginBottom:'5px'}}><Ico n="clock" s={11} c="#7c3aed"/><div style={{fontSize:'10px',fontWeight:900,color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em'}}>TOIL</div></div>
-                      <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)',marginBottom:'2px'}}>{fmtHrs(totalToilWorked)} worked → {fmtHrs(totalToilBanked)} banked</div>
-                      <div style={{fontSize:'11px',fontWeight:700,color:'#8b5cf6'}}>See TOIL Tab</div>
-                    </button>
-                  </div>
-                )}
+                {/* Same breakdown as the Calendar's totals card (the Gross,
+                    Net and Hours above already cover its top row). */}
+                <div style={{...S.card,marginBottom:'10px',paddingTop:'6px'}}>
+                  {periodBreakdownRows({pb, tierHours:{t133:tierHours.t133,t150:tierHours.t150,t200:tierHours.t200}, tierGross, tierDates, paCount:{PA1:pa1,PA2:pa2,PA3:pa3}, paGross, paDates, toilWorked:totalToilWorked, toilBanked:totalToilBanked, carmsGroup:null, periodIdx:idx})}
+                </div>
 
-                <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'9px'}}>Individual Records</div>
+                <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'9px'}}>Shifts</div>
 
                 {pE.length===0
                   ?<div style={{textAlign:'center',padding:'20px 10px 24px'}}>
@@ -414,12 +460,9 @@ export function TabSummary({
                     return(
                       <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:'13px',marginBottom:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
                         {isFut&&<div style={{position:'absolute',top:'-6px',right:'9px',background:'#2563eb',color:'#fff',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Planned</div>}
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'7px'}}>
-                          <div>
-                            <div style={{fontWeight:900,fontSize:'15px',color:'var(--ink)'}}>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB')}</div>
-                            <div style={{fontSize:'10px',fontWeight:900,color:'#3b82f6',marginTop:'2px',textTransform:'uppercase'}}>Duty / Reason: {e.reason||'Shift'}</div>
-                            {e.takeAs==='toil'&&<div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-purple)',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em'}}>TOIL</div>}
-                            {e.takeAs==='mix'&&<div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-purple)',color:'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em'}}>Mix — Pay + TOIL</div>}
+                        <div style={{marginBottom:'8px'}}>
+                          {shiftHead(e,{onEdit:()=>{setConfirmDel(null);startEdit(e);}, onDelete:()=>setConfirmDel(confirmDel===e.id?null:e.id), deleting:confirmDel===e.id})}
+                          <div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
                             {carmsBadge(e, 10)}
                             {/* Same neutral record-only indicator as the calendar day
                                 view — an entry with no claimable OT hours and no PA has
@@ -431,10 +474,6 @@ export function TabSummary({
                             {(()=>{ const xp = crossPeriodInfo(e); return xp && (
                               <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-indigo)',color:'var(--text-indigo-deep)',textTransform:'uppercase',letterSpacing:'0.06em'}}>↷ {xp.both?'OT & PA':xp.ot?'OT':'PA'} Counted in {xp.label}</div>
                             ); })()}
-                          </div>
-                          <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
-                            <Tooltip label="Edit entry"><button onClick={()=>{setConfirmDel(null);startEdit(e);}} aria-label="Edit this record" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={14} c="#64748b"/></button></Tooltip>
-                            <Tooltip label="Delete entry"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this record" style={{background:confirmDel===e.id?'var(--tint-red)':'var(--tint-red)',border:confirmDel===e.id?'1.5px solid var(--border-2)':'1.5px solid transparent',borderRadius:'8px',padding:'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={14} c="#ef4444"/></button></Tooltip>
                           </div>
                         </div>
 
@@ -499,8 +538,8 @@ export function TabSummary({
                     );
                   })
                 }
-                <button onClick={()=>setExpanded(null)} style={{width:'100%',marginTop:'4px',padding:'9px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'11px',fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'4px'}}>
-                  Close <Ico n="cU" s={12} c="#94a3b8"/>
+                <button onClick={()=>setExpanded(null)} style={{width:'100%',marginTop:'4px',padding:'9px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'11px',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'4px'}}>
+                  Close <Ico n="cU" s={12} c={BRASS}/>
                 </button>
               </div>
             )}
@@ -568,20 +607,12 @@ export function TabSummary({
                       apart from it so it's harder to hit by mistake (and
                       still asks first). Each button stops the click from
                       also reaching the card's own notes toggle. */}
-                  <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                    <span style={{fontWeight:900,fontSize:'14px',color:'var(--ink)',whiteSpace:'nowrap'}}>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</span>
-                    {e.takeAs==='toil'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'#6d28d9'}}>TOIL</span>}
-                    {e.takeAs==='mix'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'#6d28d9'}}>Mix</span>}
-                    <span style={{flex:1}}/>
-                    {e.comments&&(
+                  {shiftHead(e,{onEdit:ev=>{ev.stopPropagation();setConfirmDel(null);startEdit(e);}, onDelete:ev=>{ev.stopPropagation();setConfirmDel(confirmDel===e.id?null:e.id);}, deleting:confirmDel===e.id,
+                    extra: e.comments&&(
                       <button onClick={ev=>{ev.stopPropagation();toggleNotes(e.id);}} aria-label={notesOpen?'Hide notes':'Show notes'} style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',borderRadius:'8px',background:'var(--chip-bg)',border:'none',cursor:'pointer',padding:0}}>
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.2s',transform:notesOpen?'rotate(180deg)':'none'}}><polyline points="6 9 12 15 18 9"/></svg>
                       </button>
-                    )}
-                    <Tooltip label="Edit entry"><button onClick={ev=>{ev.stopPropagation();setConfirmDel(null);startEdit(e);}} aria-label="Edit this record" style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',borderRadius:'8px',background:'var(--chip-bg)',border:'none',cursor:'pointer',padding:0}}><Ico n="edit" s={13} c="#64748b"/></button></Tooltip>
-                    <Tooltip label="Delete entry"><button onClick={ev=>{ev.stopPropagation();setConfirmDel(confirmDel===e.id?null:e.id);}} aria-label="Delete this record" style={{flexShrink:0,marginLeft:'6px',display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',borderRadius:'8px',background:confirmDel===e.id?'var(--tint-red)':'transparent',border:'none',cursor:'pointer',padding:0,transition:'all 0.15s'}}><Ico n="trash" s={13} c="#ef4444"/></button></Tooltip>
-                  </div>
-                  <div style={{fontSize:'12.5px',fontWeight:600,color:'var(--muted)',marginTop:'1px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.reason||'Shift'}</div>
+                    )})}
                   {/* delete confirmation — same shape as List View's own */}
                   {confirmDel===e.id&&(
                     <div onClick={ev=>ev.stopPropagation()} style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'8px 10px',marginTop:'7px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
@@ -910,34 +941,6 @@ export function TabSummary({
                 own tab, as the separate boxes used to. */}
             {(()=>{
               const g = carmsOutstanding.groups.find(g=>g.periodIdx===cIdx);
-              const lineRow = {display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',fontSize:'12.5px',fontWeight:700};
-              const tier = (h,lbl,gross,dates) => h>0 && (
-                <div style={{padding:'7px 0'}}>
-                  <div style={{...lineRow,color:'var(--ink)'}}><span>{fmtHrs(h)} at {lbl}</span><span style={{fontFamily:MONO}}>{fmt(gross)}</span></div>
-                  <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'2px'}}>{renderDatePills(dates,'var(--muted)')}</div>
-                </div>
-              );
-              const paLine = (n,k) => n>0 && (
-                <div style={{padding:'7px 0'}}>
-                  <div style={{...lineRow,color:'var(--text-amber-deep)'}}><span>{k} × {n}</span><span style={{fontFamily:MONO}}>{fmt(pPaGross[k])}</span></div>
-                  <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'2px'}}>{renderDatePills(pPaDates[k],'#b45309')}</div>
-                </div>
-              );
-              const section = {borderTop:'1px solid var(--border-2)',padding:'8px 0 2px'};
-              const secHead = (lbl,col,gross,net) => (
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px'}}>
-                  <span style={{fontSize:'10px',fontWeight:900,color:col,textTransform:'uppercase',letterSpacing:'0.06em'}}>{lbl}</span>
-                  <span style={{fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>{fmt(gross)} gross · <span style={{color:'#059669'}}>{fmt(net)} net</span></span>
-                </div>
-              );
-              const linkRow = (onClick, icon, iconCol, label, value, valueCol) => (
-                <button onClick={onClick} className="tap-row" style={{display:'flex',alignItems:'center',gap:'10px',width:'100%',background:'none',border:'none',borderTop:'1px solid var(--border-2)',padding:'11px 0 4px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
-                  <Ico n={icon} s={14} c={iconCol}/>
-                  <span style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>{label}</span>
-                  {value&&<span style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:valueCol}}>{value}</span>}
-                  <Ico n="cR" s={13} c="var(--quiet)" w={2.2}/>
-                </button>
-              );
               return (
                 <div style={{...S.card,marginTop:'2px'}}>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',textAlign:'center',marginBottom:'10px'}}>
@@ -948,20 +951,7 @@ export function TabSummary({
                       </div>
                     ))}
                   </div>
-                  <div style={section}>
-                    {secHead('Overtime','var(--text-blue-deep)',pb.ot,pb.otResult.net)}
-                    {tier(pTierHours.t133,'1.33×',pTierGross.t133,pTierDates.t133)}
-                    {tier(pTierHours.t150,'1.5×',pTierGross.t150,pTierDates.t150)}
-                    {tier(pTierHours.t200,'2.0×',pTierGross.t200,pTierDates.t200)}
-                    {pTierHours.t133+pTierHours.t150+pTierHours.t200===0&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this period</div>}
-                  </div>
-                  <div style={section}>
-                    {secHead('PSOP allowance','var(--text-amber-deep)',pb.pa,pb.paResult.net)}
-                    {paLine(ppa1,'PA1')}{paLine(ppa2,'PA2')}{paLine(ppa3,'PA3')}
-                    {ppa1===0&&ppa2===0&&ppa3===0&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this period</div>}
-                  </div>
-                  {linkRow(()=>setTab('graph'),'clock','#7c3aed',<>TOIL <span style={{fontFamily:MONO,fontWeight:600,color:'var(--text-purple-deep)',marginLeft:'4px'}}>{fmtHrs(pToilWorked)} worked → {fmtHrs(pToilBanked)} banked</span></>,null,null)}
-                  {g&&linkRow(ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(cIdx); },'checklist',BRASS,'CARMS & PSOP to submit',fmtGBP(g.periodTotal),BRASS)}
+                  {periodBreakdownRows({pb, tierHours:pTierHours, tierGross:pTierGross, tierDates:pTierDates, paCount:{PA1:ppa1,PA2:ppa2,PA3:ppa3}, paGross:pPaGross, paDates:pPaDates, toilWorked:pToilWorked, toilBanked:pToilBanked, carmsGroup:g, periodIdx:cIdx})}
                 </div>
               );
             })()}
