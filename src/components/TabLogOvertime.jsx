@@ -100,20 +100,25 @@ export function TabLogOvertime({
   };
 
   // ── step 2: hours ────────────────────────────────────────────────────────
-  // "From shift times" is the default; "Enter hours" is the classic free-entry
+  // "Shift Time Input" is the default; "Enter Hours" is the classic free-entry
   // grid for shifts that span more than one rate tier.
   const setTimesMode = times => {
     if (form.recordShiftTimes===times) return;
     setForm(f=>syncShiftTimesIntoForm({...f, recordShiftTimes:times, otRateTier: times && !f.otRateTier ? 'hours133' : f.otRateTier}));
   };
+  // The two options sit in one grey track with a round "OR" badge on the
+  // join, so it reads as a choice of one or the other. Each side keeps
+  // clear of the badge (the extra padding on the inner edge). On a phone
+  // the icon sits above the text so the explanation line has room.
   const modeBtn = (times, title, desc, icon) => {
     const on = form.recordShiftTimes===times;
+    const inner = isWide ? '22px' : '18px';
     return (
-      <button type="button" role="radio" aria-checked={on} onClick={()=>setTimesMode(times)} style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'9px',textAlign:'left',border:'none',borderRadius:'9px',padding:isWide?'8px 10px':'9px 8px',cursor:'pointer',fontFamily:'inherit',background:on?'var(--surface)':'transparent',boxShadow:on?'0 1px 4px rgba(15,39,68,0.14)':'none',transition:'background 0.15s, box-shadow 0.15s'}}>
+      <button type="button" role="radio" aria-checked={on} onClick={()=>setTimesMode(times)} style={{flex:1,minWidth:0,display:'flex',flexDirection:isWide?'row':'column',alignItems:isWide?'center':'flex-start',gap:isWide?'9px':'6px',textAlign:'left',border:'none',borderRadius:'9px',padding:isWide?'8px 10px':'9px 8px',[times?'paddingRight':'paddingLeft']:inner,cursor:'pointer',fontFamily:'inherit',background:on?'var(--surface)':'transparent',boxShadow:on?'0 1px 4px rgba(15,39,68,0.14)':'none',transition:'background 0.15s, box-shadow 0.15s'}}>
         <span style={{width:'26px',height:'26px',borderRadius:'8px',background:on?BRASS:'var(--border)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n={icon} s={14} c={on?'#fff':'var(--muted)'} w={2.2}/></span>
         <span style={{minWidth:0}}>
           <span style={{display:'block',fontSize:'12.5px',fontWeight:800,color:on?'var(--ink)':'var(--muted)'}}>{title}</span>
-          {isWide&&<span style={{display:'block',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{desc}</span>}
+          <span style={{display:'block',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'1px',lineHeight:1.35}}>{desc}</span>
         </span>
       </button>
     );
@@ -297,9 +302,10 @@ export function TabLogOvertime({
 
         {step(2,'Your hours',(
           <>
-            <div role="radiogroup" aria-label="How to record hours" style={{display:'flex',gap:'3px',background:'var(--chip-bg)',borderRadius:'11px',padding:'3px',margin:'8px 0 2px'}}>
-              {modeBtn(true,'Shift Time Input','Rostered vs Worked, automatically calculated','clock')}
+            <div role="radiogroup" aria-label="How to record hours" style={{position:'relative',display:'flex',gap:'3px',background:'var(--chip-bg)',borderRadius:'11px',padding:'3px',margin:'8px 0 2px'}}>
+              {modeBtn(true,'Shift Time Input','Rostered vs Worked, auto calculated','clock')}
               {modeBtn(false,'Enter Hours','Manually enter hours','edit')}
+              <span aria-hidden="true" style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',width:'26px',height:'26px',borderRadius:'50%',background:'var(--surface)',border:'1.5px solid var(--border)',boxShadow:'0 1px 4px rgba(15,23,42,0.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'9px',fontWeight:900,letterSpacing:'0.04em',color:'var(--muted)',pointerEvents:'none',zIndex:1}}>OR</span>
             </div>
             {hoursRows}
           </>
