@@ -75,6 +75,19 @@ export function TabLogOvertime({
     </SegSlider>
   );
 
+  // Where each empty time box's picker opens, so the usual shift is one tap
+  // on Done: 07:00 for both start times, and the rostered end 8 hours after
+  // the rostered start (15:00 if the start isn't set yet). Only applies
+  // while the box is empty; a set time always opens on itself.
+  const startTimeFor = key => {
+    if (key==='rosteredStart' || key==='actualStart') return '07:00';
+    if (key==='rosteredEnd') {
+      const [h,m] = (form.rosteredStart||'07:00').split(':').map(Number);
+      return `${String((h+8)%24).padStart(2,'0')}:${String(m||0).padStart(2,'0')}`;
+    }
+    return undefined;
+  };
+
   const timePair = (sKey, eKey, sLbl, eLbl) => {
     const s = form[sKey], e = form[eKey];
     const dur = s&&e ? shiftDurationMinutes(s,e) : 0;
@@ -89,9 +102,9 @@ export function TabLogOvertime({
     return (
       <>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          <div style={box}><TimeSelect value={s} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,[sKey]:v}))} label={sLbl} startAt={sKey==='rosteredStart'?'07:00':undefined} BRASS={BRASS} MONO={MONO}/></div>
+          <div style={box}><TimeSelect value={s} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,[sKey]:v}))} label={sLbl} startAt={startTimeFor(sKey)} BRASS={BRASS} MONO={MONO}/></div>
           <span style={{fontSize:'12px',fontWeight:700,color:'var(--quiet)'}}>to</span>
-          <div style={box}><TimeSelect value={e} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,[eKey]:v}))} label={eLbl} BRASS={BRASS} MONO={MONO}/></div>
+          <div style={box}><TimeSelect value={e} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,[eKey]:v}))} label={eLbl} startAt={startTimeFor(eKey)} BRASS={BRASS} MONO={MONO}/></div>
           {isWide&&extras}
         </div>
         {!isWide&&extras&&<div style={{marginTop:'6px'}}>{extras}</div>}
