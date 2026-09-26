@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fmt, fmtHM, fmtGBP } from '../lib/format.js';
+import { fmt, fmtHrs, fmtGBP } from '../lib/format.js';
 import { toMinutesOfDay, shiftDurationMinutes, generateShiftTimesLine } from '../lib/shiftTimes.js';
 import { getRates, PA_LABELS, PA_RATES, RATE_TIER_MULT } from '../lib/payRates.js';
 import { useCountUp } from '../lib/useCountUp.js';
@@ -223,7 +223,7 @@ export function TabLogOvertime({
           </div>
         )}
         {toilH>0 && (
-          <div style={{marginTop:'8px',fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'#6d28d9'}}>{fmtHM(toilH)}h to TOIL → {fmtHM(toilH*RATE_TIER_MULT[takeTier])}h banked at {RATE_TIER_MULT[takeTier]}×</div>
+          <div style={{marginTop:'8px',fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'#6d28d9'}}>{fmtHrs(toilH)} to TOIL → {fmtHrs(toilH*RATE_TIER_MULT[takeTier])} banked at {RATE_TIER_MULT[takeTier]}×</div>
         )}
       </>
     );
@@ -369,7 +369,7 @@ export function TabLogOvertime({
               </div>
             </div>
             {preview.toilBanked>0&&(
-              <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#c4b5fd',marginTop:'3px'}}>+ {fmtHM(preview.toilBanked)}h TOIL banked</div>
+              <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#c4b5fd',marginTop:'3px'}}>+ {fmtHrs(preview.toilBanked)} TOIL banked</div>
             )}
           </div>
           <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':'save-pulse-idle'} style={{marginLeft:'auto',flexShrink:0,background:justSaved?'#059669':BRASS,color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':undefined,padding:isWide?'13px 26px':'12px 16px',borderRadius:'12px',border:'none',fontWeight:900,fontSize:isWide?'14px':'13px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',gap:'8px',transition:'background 0.3s'}}>

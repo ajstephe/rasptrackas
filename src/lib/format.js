@@ -17,6 +17,28 @@ export const fmtHM  = n=>{
   if (m===60) { h+=1; m=0; }
   return `${sign}${h}.${String(m).padStart(2,'0')}`;
 };
+// Decimal hours → words people read without thinking: 1.25 → "1h 15m",
+// 2 → "2h", 0.667 → "40m", -1.683 → "−1h 41m". fmtHM's "1.15" looked like a
+// decimal (1.15 hours) when it meant 1h 15m, so every on-screen hours figure
+// now goes through this instead.
+export const fmtHrs = n=>{
+  if (Math.abs(n) < 1e-6) n = 0;
+  const sign = n<0 ? '\u2212' : '';
+  const abs = Math.abs(n);
+  let h = Math.floor(abs);
+  let m = Math.round((abs-h)*60);
+  if (m===60) { h+=1; m=0; }
+  if (m===0) return `${sign}${h}h`;
+  if (h===0) return `${sign}${m}m`;
+  return `${sign}${h}h ${m}m`;
+};
+// A pay period is named after the month it's paid in ("November 2026"), but
+// covers shifts worked weeks earlier — on 26 Sept the current period is
+// "November 2026", which read like a wrong date. These two put the pay month
+// and the shift dates side by side: "November pay" · "Shifts 7 Sept – 11 Oct".
+export const payLabel = month => `${String(month||'').split(' ')[0]} pay`;
+export const shiftSpan = (start, end) => `Shifts ${fmtDShort(start)} – ${fmtDShort(end)}`;
+const fmtDShort = d=>new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
 export const fmtGBP = n=>`£${n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 export const fmtD   = d=>new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
 export const fmtDDMM = d=>{ const dt=new Date(d+'T12:00:00'); return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`; };

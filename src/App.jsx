@@ -24,7 +24,7 @@ import {
   getTaxBand, applyBandTax, splitAcrossBands,
   monthlySteppedAmount, monthlySteppedSplitBySept, periodBaseAmount, periodPensionablePay,
 } from './lib/tax.js';
-import { fmt, fmtHM, fmtGBP, fmtD, fmtRelTime } from './lib/format.js';
+import { fmt, fmtHM, fmtHrs, fmtGBP, fmtD, fmtRelTime } from './lib/format.js';
 import {
   calcAutoOTHours, syncShiftTimesIntoForm,
 } from './lib/shiftTimes.js';
@@ -181,7 +181,7 @@ const NAV_TABS = [
   {id:'dashboard',n:'home', lbl:'Home'},
   {id:'add',      n:'plus', lbl:'Log Overtime'},
   {id:'months',   n:'cal',  lbl:'Summary'},
-  {id:'carms',    n:'send',  lbl:'Awaits Submission'},
+  {id:'carms',    n:'send',  lbl:'Awaits Submission', short:'Awaits'},
   {id:'graph',    n:'clock', lbl:'TOIL'},
   {id:'settings', n:'cog',  lbl:'More..'},
 ];
@@ -2371,7 +2371,7 @@ export default function App() {
         return {
           id:'earn-'+e.id, date:e.date, type:'earned',
           hours: calcEntry(e).toilBanked,
-          note: `${fmtHM(worked)}h OT @ ${RATE_TIER_MULT[e.otRateTier]}x — ${e.reason||'shift'} ${dLabel}`,
+          note: `${e.reason||'Shift'}`, detail: `${fmtHrs(worked)} at ${RATE_TIER_MULT[e.otRateTier]}×`,
         };
       });
     const taken = toilTaken.map(t=>({
@@ -2598,7 +2598,7 @@ export default function App() {
     setToilTakenForm({date:todayStr, hours:'', minutes:'00', note:''});
     haptic();
     if (resultingBalance < 0) {
-      addToast(`Logged — balance is now ${fmtHM(resultingBalance)} h (more taken than earned)`,'warn');
+      addToast(`Logged — balance is now ${fmtHrs(resultingBalance)} (more taken than earned)`,'warn');
     } else {
       addToast('TOIL taken logged');
     }
@@ -3081,7 +3081,7 @@ export default function App() {
         sws.getCell(r,1).value = fmtDDMMYYYY(row.date);
         sws.getCell(r,2).value = row.type==='earned' ? 'Banked' : 'Taken';
         sws.getCell(r,3).value = Math.round(row.hours*100)/100;
-        sws.getCell(r,4).value = row.note;
+        sws.getCell(r,4).value = row.detail ? `${row.note} — ${row.detail}` : row.note;
         sws.getCell(r,5).value = Math.round(row.balanceAfter*100)/100;
         if (i%2===1) [1,2,3,4,5].forEach(c=>{ sws.getCell(r,c).fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} }; });
         r++;
@@ -3749,23 +3749,14 @@ export default function App() {
   // Home, now shown at the end of both Summary views instead, since it's a
   // whole-year figure and belongs alongside the rest of the year's detail
   // rather than competing with Home's day-to-day figures.
+  // The tax-year totals, as a quiet strip in the theme's own colours (it
+  // used to be a bright blue card that ignored the theme).
   const renderFYTotalsCard = () => (
-    <div style={{...S.card,background:'#2563eb',border:'none',marginTop:'9px',boxShadow:'0 6px 20px rgba(37,99,235,0.28)'}}>
-      <div style={{fontSize:'10px',fontWeight:900,color:'#dbeafe',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'10px'}}>Overtime & PA — FY {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'10px'}}>
-        <div>
-          <div style={{fontSize:'10px',fontWeight:900,color:'#bfdbfe',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Gross OT</div>
-          <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#fff'}}>{fmt(totals.totalGross)}</div>
-        </div>
-        <div>
-          <div style={{fontSize:'10px',fontWeight:900,color:'var(--border-2)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Net OT</div>
-          <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#dcfce7'}}>{fmt(totals.totalNet)}</div>
-        </div>
-        <div>
-          <div style={{fontSize:'10px',fontWeight:900,color:'#bfdbfe',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Hours</div>
-          <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#fff',display:'flex',alignItems:'center',gap:'5px'}}><Ico n="clock" s={13} c="rgba(255,255,255,0.6)"/>{totals.totalHrs.toFixed(1)}</div>
-        </div>
-      </div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',flexWrap:'wrap',background:'var(--surface-2)',border:'1px dashed var(--border)',borderRadius:'14px',padding:'11px 14px',marginTop:'10px'}}>
+      <span style={{fontSize:'11px',fontWeight:800,color:'var(--muted)'}}>Tax year {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)} · overtime &amp; PA</span>
+      <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>
+        <span style={{fontFamily:MONO,color:'var(--ink)'}}>{fmtGBP(totals.totalGross)}</span> gross · <span style={{fontFamily:MONO,color:'#059669'}}>{fmtGBP(totals.totalNet)}</span> net · <span style={{fontFamily:MONO,color:'var(--ink)'}}>{fmtHrs(totals.totalHrs)}</span>
+      </span>
     </div>
   );
 
@@ -4636,13 +4627,10 @@ export default function App() {
 
       {/* ── Desktop secondary column — gives the empty space beside the
            main column on a wide screen an actual job, rather than just
-           being padding around a phone-width layout. Shown on every tab
-           for continuity, including CARMS/PA and TOIL themselves — even
-           though some of what it shows overlaps with the main content on
-           those two, having the column consistently present throughout
-           the app was judged more valuable than trimming a duplicate
-           figure on two screens. ── */}
-      {isWide && (
+           being padding around a phone-width layout. Left off Home and
+           Awaits Submission, where every figure it shows is already on
+           screen; those two use the full width instead. ── */}
+      {isWide && tab!=='dashboard' && tab!=='carms' && (
         <aside className="no-print" style={{width:'320px',flexShrink:0,padding:'24px 24px 24px 0',overflowY:'auto'}}>
           {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 cut; this
               was silently rendering as 700 already (confirmed by pixel
@@ -4672,7 +4660,7 @@ export default function App() {
 
           <div style={{padding:'14px 0 4px'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}}>
-              <span style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>CARMS/PA Awaiting Submission</span>
+              <span style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>CARMS &amp; PSOP to submit</span>
               {carmsOutstanding.totalClaims>0&&<span onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:700,color:BRASS,cursor:'pointer'}}>View all →</span>}
             </div>
             {carmsOutstanding.totalClaims===0
@@ -4943,7 +4931,7 @@ export default function App() {
                         <div style={sectionTitle}>TOIL Banked This Period</div>
                         <div style={{background:'#f5f3ff',border:'1px solid #f1f5f9',borderRadius:'13px',padding:'11px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#6d28d9'}}>
                           <span>Not included in the totals below</span>
-                          <strong style={{fontFamily:MONO,fontWeight:600}}>+{fmtHM(d.toilBanked)}h</strong>
+                          <strong style={{fontFamily:MONO,fontWeight:600}}>+{fmtHrs(d.toilBanked)}</strong>
                         </div>
                       </>
                     )}
@@ -5166,26 +5154,26 @@ export default function App() {
                     <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
                       {c.payH1>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{c.payH1}h @ 1.33x {c.toilH>0&&c.otRateTier==='hours133'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r133.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH1)} @ 1.33x {c.toilH>0&&c.otRateTier==='hours133'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r133.toFixed(2)}/hr)</span></span>
                           <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot1.toFixed(2)}</span>
                         </div>
                       )}
                       {c.payH2>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{c.payH2}h @ 1.5x {c.toilH>0&&c.otRateTier==='hours150'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r150.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH2)} @ 1.5x {c.toilH>0&&c.otRateTier==='hours150'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r150.toFixed(2)}/hr)</span></span>
                           <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot2.toFixed(2)}</span>
                         </div>
                       )}
                       {c.payH3>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{c.payH3}h @ 2.0x {c.toilH>0&&c.otRateTier==='hours200'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r200.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH3)} @ 2.0x {c.toilH>0&&c.otRateTier==='hours200'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r200.toFixed(2)}/hr)</span></span>
                           <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot3.toFixed(2)}</span>
                         </div>
                       )}
                       {c.toilH>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:600,color:'#6d28d9'}}>{fmtHM(c.toilH)}h @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
-                          <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHM(c.toilBanked)}h banked</span>
+                          <span style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:600,color:'#6d28d9'}}>{fmtHrs(c.toilH)} @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
+                          <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} banked</span>
                         </div>
                       )}
                       {e.paRate!=='None'&&(
@@ -5244,17 +5232,15 @@ export default function App() {
             {t.id==='add' ? (
               <span className={`nav-ico-add${showAddNudge&&tab!==t.id?' nav-add-pulse':''}`} style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
             ) : (
-              <span className={`nav-ico${tab===t.id?' active':''}`} style={{display:'flex'}}><Ico n={t.n} s={t.id==='carms'?14:18} c={tab===t.id?BRASS:'var(--quiet)'} w={tab===t.id?2.5:2}/></span>
+              <span className={`nav-ico${tab===t.id?' active':''}`} style={{display:'flex'}}><Ico n={t.n} s={18} c={tab===t.id?BRASS:'var(--quiet)'} w={tab===t.id?2.5:2}/></span>
             )}
             {/* the pulse is a "come tap this" nudge — it stops once you're
                 actually on the tab it's pointing at, rather than nagging
                 the whole time you're using it */}
-            {/* CARMS/PA is the one nav label long enough to need two lines
-                ("Awaits Submission" vs. everything else's one short word) —
-                nLbl's nowrap would otherwise spill it into Summary and TOIL
-                on either side. The negative margin-top tucks it back up
-                under its now-smaller icon rather than leaving a gap. */}
-            <span style={t.id==='carms'?{...S.nLbl,whiteSpace:'normal',textAlign:'center',lineHeight:1.25,marginTop:'-5px'}:S.nLbl} className={`nav-lbl${showAddNudge&&t.id==='add'&&tab!==t.id?' nav-add-pulse':''}`}>{t.lbl}</span>
+            {/* Phones show the short label ("Awaits" rather than "Awaits
+                Submission") so every item fits on one line; the desktop
+                sidebar keeps the full name. */}
+            <span style={S.nLbl} className={`nav-lbl${showAddNudge&&t.id==='add'&&tab!==t.id?' nav-add-pulse':''}`}>{t.short||t.lbl}</span>
           </button>
         ))}
       </nav>

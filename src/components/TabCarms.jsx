@@ -1,15 +1,15 @@
 import { useRef, useState, useEffect } from 'react';
-import { fmtGBP, fmtD } from '../lib/format.js';
+import { fmtGBP, fmtD, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
 import { SegSlider } from './SegSlider.jsx';
 import { useMountTransition } from '../lib/useMountTransition.js';
 import { countSelectedClaims } from '../lib/carms.js';
 
-// ─── CARMS & PA Outstanding tab — "Table View" ───────────────────────────────
+// ─── CARMS & PSOP Awaiting Submission tab — "Table View" ───────────────────────────────
 // Desktop gets a real sortable table (click Date/Amount to reorder, a
-// checkbox on every row from the start, a hover "Mark submitted" quick
-// action) instead of the old single narrow column of cards. Mobile keeps
+// checkbox on every row from the start, and a Submit button on every row,
+// same as phones) instead of the old single narrow column of cards. Mobile keeps
 // the period-grouped list it always had, but each row now carries the same
 // always-visible checkbox and quick-submit action as desktop — no "Select
 // Multiple Entries" mode to enter first, on either platform.
@@ -152,7 +152,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
         id: it.entry.id+'-toil', entry: it.entry, entryId: it.entry.id, claimKey:'ot', kind:'toil',
         date: it.entry.date, reason: it.entry.reason||'Shift', periodIdx,
         typeLabel: 'TOIL',
-        amount: it.toilHrs, amountDisplay: `${it.toilHrs.toFixed(1)}h`, toilHrs: it.toilHrs,
+        amount: it.toilHrs, amountDisplay: fmtHrs(it.toilHrs), toilHrs: it.toilHrs,
         claimNo: carmsClaimNumbers.get(it.entry.id+'-toil'),
       });
     }
@@ -217,7 +217,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
 
     return (
       <div style={{background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'14px',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
-        <style>{`.awaits-table tr:last-child td{border-bottom:none;}.awaits-quick{opacity:0;transition:opacity .12s ease;}.awaits-tr:hover .awaits-quick{opacity:1;}`}</style>
+        <style>{`.awaits-table tr:last-child td{border-bottom:none;}`}</style>
         <table className="awaits-table" style={{width:'100%',borderCollapse:'collapse'}}>
           <thead>
             <tr>
@@ -225,7 +225,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
               <th style={{...thStyle,cursor:'pointer'}} onClick={()=>toggleSort('date')}>Date {sortKey==='date'&&(sortDir==='desc'?'▾':'▴')}</th>
               <th style={thStyle}>Shift / Reason</th>
               <th style={thStyle}>Type</th>
-              <th style={thStyle}>Period</th>
+              <th style={thStyle}>Pay month</th>
               <th style={{...thStyle,textAlign:'right',cursor:'pointer'}} onClick={()=>toggleSort('amount')}>Amount {sortKey==='amount'&&(sortDir==='desc'?'▾':'▴')}</th>
               <th style={thStyle}></th>
             </tr>
@@ -248,15 +248,15 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                   </td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)'}}>{row.reason}</td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)'}}>{typeBadge(row)}</td>
-                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',color:'var(--quiet)',fontWeight:700,whiteSpace:'nowrap'}}>{periodMonthByIdx.get(row.periodIdx)}</td>
+                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',color:'var(--quiet)',fontWeight:700,whiteSpace:'nowrap'}}>{payLabel(periodMonthByIdx.get(row.periodIdx))}</td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',fontFamily:MONO,textAlign:'right',whiteSpace:'nowrap'}}>
                     {row.amountDisplay}
-                    {row.kind==='ot+toil'&&<div style={{fontSize:'10px',fontWeight:700,color:'#7c3aed',marginTop:'2px'}}>+ {row.toilHrs.toFixed(1)}h TOIL</div>}
+                    {row.kind==='ot+toil'&&<div style={{fontSize:'10px',fontWeight:700,color:'#7c3aed',marginTop:'2px'}}>+ {fmtHrs(row.toilHrs)} TOIL</div>}
                   </td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',textAlign:'right'}}>
                     <button className="awaits-quick" onClick={e=>{ e.stopPropagation(); selectCarmsClaim(row.entryId,row.claimKey); openCarmsBulkConfirm(); }}
                       style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:800,color:'var(--text-green-deep)',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'7px',padding:'4px 9px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
-                      <Ico n="check" s={10} c="var(--text-green-deep)" w={3}/> Mark submitted
+                      <Ico n="check" s={10} c="var(--text-green-deep)" w={3}/> Submit
                     </button>
                   </td>
                 </tr>
@@ -275,7 +275,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
     const visibleItems = g.items.filter(matchesFilter);
     if (visibleItems.length===0) return null;
     const groupTotalLabel = (() => {
-      if (carmsFilter==='toil') return `${visibleItems.reduce((s,it)=>s+it.toilHrs,0).toFixed(1)}h`;
+      if (carmsFilter==='toil') return fmtHrs(visibleItems.reduce((s,it)=>s+it.toilHrs,0));
       const total = visibleItems.reduce((s,it)=>{
         if (carmsFilter==='ot') return s+it.otAmt;
         if (carmsFilter==='pa') return s+it.paAmt;
@@ -286,9 +286,9 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
     const rows = sortRows(visibleItems.flatMap(it=>flattenItem(it, g.periodIdx)));
     return (
       <div key={g.periodIdx} ref={el=>periodGroupRefs.current[g.periodIdx]=el} className={pulsePeriodIdx===g.periodIdx?'carms-pulse':''} style={{marginBottom:'14px',borderRadius:'14px',border:pulsePeriodIdx===g.periodIdx?'2px solid #2563eb':'2px solid transparent'}}>
-        <div style={{display:'flex',justifyContent:'space-between',padding:'8px 4px',fontSize:'12.5px',fontWeight:800,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.6px',borderBottom:'1px solid var(--border-2)'}}>
-          <span>{g.period.short} · {g.period.month} · {fmtD(g.period.start)} – {fmtD(g.period.end)}</span>
-          <span style={{fontFamily:MONO,color:BRASS}}>{groupTotalLabel}</span>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'8px 4px',borderBottom:'1px solid var(--border-2)'}}>
+          <span><span style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{payLabel(g.period.month)}</span> <span style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>· {shiftSpan(g.period.start,g.period.end).replace('Shifts','shifts')}</span></span>
+          <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:BRASS}}>{groupTotalLabel}</span>
         </div>
         <div style={{padding:'10px 0 2px'}}>
           {rows.map((row,i)=>{
@@ -303,7 +303,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                 </div>
                 <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'5px',flexShrink:0}}>
                   <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--ink)'}}>{row.amountDisplay}</div>
-                  {row.kind==='ot+toil'&&<div style={{fontFamily:MONO,fontSize:'9px',fontWeight:700,color:'#7c3aed'}}>+{row.toilHrs.toFixed(1)}h TOIL</div>}
+                  {row.kind==='ot+toil'&&<div style={{fontFamily:MONO,fontSize:'9px',fontWeight:700,color:'#7c3aed'}}>+{fmtHrs(row.toilHrs)} TOIL</div>}
                   <button onClick={e=>{ e.stopPropagation(); selectCarmsClaim(row.entryId,row.claimKey); openCarmsBulkConfirm(); }}
                     style={{display:'flex',alignItems:'center',gap:'3px',fontSize:'8.5px',fontWeight:800,color:'var(--text-green-deep)',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'6px',padding:'3px 6px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
                     <Ico n="check" s={8} c="var(--text-green-deep)" w={3}/> Submit
@@ -319,34 +319,31 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
 
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
-      <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 18px',letterSpacing:'-0.5px'}}>CARMS &amp; PA Awaiting Submission</h2>
+      <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 18px',letterSpacing:'-0.5px'}}>CARMS &amp; PSOP Awaiting Submission</h2>
 
-      {/* ── navy statement header ── */}
-      <div style={{background:'var(--navy)',borderRadius:'18px',padding:'22px 20px',position:'relative',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
-        <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f',marginBottom:'10px'}}>Outstanding</div>
-        <div style={{fontFamily:MONO,fontSize:'28px',fontWeight:600,color:'#fff',letterSpacing:'-0.02em',marginBottom:'9px'}}>{fmtGBP(animatedTotal)}</div>
-        <div style={{width:'38px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'12px'}}/>
-        <div style={{fontSize:'11px',color:'#93c5fd',fontWeight:600,lineHeight:1.5}}>Spacing out your overtime for a steadier payday, or quietly dodging the taxman as £100k creeps closer — either way, good thinking. This is everything still sitting unclaimed in CARMS and PA, so nothing gets left behind.</div>
+      {/* ── one summary card: the total, what it's made of, and the one
+           thing to know about it (it isn't in your gross yet) ── */}
+      <div style={{background:'var(--navy)',borderRadius:'18px',padding:isWide?'20px 22px':'18px',position:'relative',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',display:isWide?'flex':'block',justifyContent:'space-between',alignItems:'flex-end',gap:'18px',flexWrap:'wrap'}}>
+        <div>
+          <div style={{fontSize:'11.5px',fontWeight:800,color:'#93c5fd',marginBottom:'4px'}}>Still to claim on CARMS &amp; PSOP</div>
+          <div style={{fontFamily:MONO,fontSize:isWide?'30px':'28px',fontWeight:600,color:'#fff',letterSpacing:'-0.02em',marginBottom:'4px'}}>{fmtGBP(animatedTotal)}</div>
+          {anyOutstanding&&(
+            <div style={{fontSize:'12px',color:'#cbd5e1',fontWeight:600}}>
+              {carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · Overtime <span style={{fontFamily:MONO,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span> · PSOP <span style={{fontFamily:MONO,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span>
+            </div>
+          )}
+        </div>
+        <div style={{fontSize:'11px',color:'#fcd34d',fontWeight:600,lineHeight:1.5,marginTop:isWide?0:'10px',maxWidth:isWide?'330px':'none'}}>
+          {anyOutstanding
+            ? <>Not counted in your gross pay until you mark it submitted. Spacing claims out can keep a payday steadier.</>
+            : <>Everything logged has been claimed.</>}
+        </div>
       </div>
 
       {!anyOutstanding ? (
         emptyState('All caught up', 'Every logged claim has been marked as submitted')
       ) : (
         <div style={{marginTop:'14px'}}>
-          {/* ── condensed OT / PA / Claims strip — one line, not three
-               repeating hairline rows ── */}
-          <div style={{display:'flex',gap:'18px',alignItems:'baseline',flexWrap:'wrap',margin:'2px 2px 12px'}}>
-            <span style={{fontFamily:MONO,fontSize:'20px',fontWeight:600,color:'var(--ink)'}}>{carmsOutstanding.totalClaims}</span>
-            <span style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>Claim{carmsOutstanding.totalClaims!==1?'s':''} outstanding</span>
-            <span style={{color:'var(--border)'}}>|</span>
-            <span style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:700}}>OT <span style={{fontFamily:MONO,color:'var(--ink)'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span></span>
-            <span style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:700}}>PA <span style={{fontFamily:MONO,color:'var(--ink)'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span></span>
-          </div>
-
-          <div style={{background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'9px 12px',fontSize:'11px',color:'var(--text-amber-deep)',lineHeight:1.5,marginBottom:'14px'}}>
-            This {fmtGBP(carmsOutstanding.totalAmount)} isn't in your Total Gross YTD yet — it only counts once it's been marked as submitted on the Log Overtime screen.
-          </div>
-
           <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'14px'}}>
             {filterSeg(!isWide)}
             {!isWide&&(

@@ -1,4 +1,4 @@
-import { fmtGBP, fmtHM, fmtD } from '../lib/format.js';
+import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
 
@@ -32,6 +32,35 @@ export function TabDashboard({
   // a different job). All of it comes from totals.periodBreakdown,
   // which already carries every period's combinedNet in order —
   // no new calculation, just reading neighbouring entries.
+  // Rows that open another screen end in a small arrow, so it's clear they
+  // can be tapped (they always could; nothing said so).
+  const chev = <Ico n="cR" s={14} c="var(--quiet)" w={2.2}/>;
+  const days = Math.abs(toilLedger.balance/8).toFixed(1);
+  const toilSub = `About ${days} ${days==='1.0'?'day':'days'}${toilLedger.balance<0?' overdrawn':''} at 8h a day`;
+  const taxYearLine = settings.rank&&settings.service
+    ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)}`
+    : 'Set your rank & pay point in More..';
+  // The statement masthead: one plain label, the figure, how far into the
+  // tax year, and — when there's anything unclaimed — a pill that says
+  // where tapping it goes.
+  const masthead = (compact) => (
+    <div style={{background:'var(--navy)',padding:compact?'18px':'22px 26px',position:'relative',overflow:'hidden',display:compact?'block':'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'16px',flexWrap:'wrap'}}>
+      <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
+      <div>
+        <div style={{fontSize:compact?'11px':'11.5px',fontWeight:800,color:'#93c5fd',marginBottom:'5px'}}>Gross pay this tax year</div>
+        <div style={{fontFamily:MONO,fontSize:compact?'28px':'32px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'5px'}}>
+          {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
+        </div>
+        <div style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'#7c93b3'}}>{taxYearLine}</div>
+      </div>
+      {carmsOutstanding.totalAmount>0&&(
+        <button onClick={()=>setTab('carms')} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'6px',marginTop:compact?'12px':0,fontSize:'11.5px',fontWeight:800,color:'#fbbf24',background:'rgba(251,191,36,0.14)',border:'none',borderRadius:'20px',padding:'6px 12px',cursor:'pointer',fontFamily:'inherit',position:'relative'}}>
+          {fmtGBP(carmsOutstanding.totalAmount)} not yet submitted · Review <Ico n="cR" s={11} c="#fbbf24" w={2.5}/>
+        </button>
+      )}
+    </div>
+  );
+
   const netHeroRow = (compact) => {
     const prevPb = currPeriodIdx>0  ? totals.periodBreakdown[currPeriodIdx-1] : null;
     const delta  = (pb&&prevPb) ? (pb.combinedNet - prevPb.combinedNet) : null;
@@ -56,7 +85,7 @@ export function TabDashboard({
                 PSOP Outstanding, below) — this was the one header still
                 set as a small uppercase mono eyebrow instead, which read
                 as a different kind of label sitting in the same list. */}
-            <span style={{fontSize:compact?'12px':'13px',fontWeight:700,color:'var(--ink)'}}>Net Pay · This Period</span>
+            <span style={{fontSize:compact?'13px':'14px',fontWeight:800,color:'var(--ink)'}}>Net pay this period</span>
           </div>
           <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}</span>
         </div>
@@ -106,15 +135,18 @@ export function TabDashboard({
         <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
           <div style={{background:'var(--tint-brass)',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c={BRASS}/></div>
           <div>
-            <div style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Salary Breakdown &amp; Overtime Forecast</div>
+            <div style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>Salary breakdown &amp; forecast</div>
             <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'1px'}}>Base, allowances, overtime, full-year projection</div>
           </div>
         </div>
-        {!isWide&&<span style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',flexShrink:0}}>{salaryBreakdownExpanded?'Tap to Close':'Tap to expand'}</span>}
+        {!isWide&&<span aria-hidden="true" style={{display:'flex',flexShrink:0,transform:salaryBreakdownExpanded?'rotate(-90deg)':'rotate(90deg)',transition:'transform 0.2s'}}><Ico n="cR" s={16} c="var(--quiet)" w={2.2}/></span>}
       </button>
 
       {salaryBreakdownExpanded&&(
-        <div className="accordion-in" style={{cursor:'default'}}>
+        <div className="accordion-in" style={{cursor:'default',...(isWide?{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',gap:'28px',alignItems:'start'}:{})}}>
+          {/* Desktop: figures and tax bars on the left, the monthly chart on
+              the right, so the whole card fits on screen. Phones stack them. */}
+          <div>
           {/* breakdown rows — London Weighting/Allowance shown as YTD out of full year */}
           <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',display:'flex',flexDirection:'column',gap:'6px'}}>
             {[
@@ -243,7 +275,8 @@ export function TabDashboard({
                where the gauge bars end and the chart begins,
                since on a wide desktop card the two sections sat
                close enough to read as one continuous block. ── */}
-          <div style={{borderTop:'2px solid var(--border)',marginTop:'22px',paddingTop:'20px'}}>
+          </div>
+          <div style={isWide?{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}:{borderTop:'2px solid var(--border)',marginTop:'22px',paddingTop:'20px'}}>
             <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'12px'}}>Monthly OT Gross/Net</div>
             {/* Desktop passes wide=true so renderMonthlyChart
                 itself uses a wider internal coordinate system
@@ -254,7 +287,7 @@ export function TabDashboard({
                 weight or text the way forcing a mismatched
                 height did. */}
             <div style={{maxWidth:'100%',margin:'0 auto'}}>
-              {renderMonthlyChart(false, false, isWide)}
+              {renderMonthlyChart(false, false, false)}
             </div>
             <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
               <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</span></div>
@@ -296,56 +329,33 @@ export function TabDashboard({
          mockup this implements; git branch ledger-redesign is the
          undo path if this doesn't land well. ── */}
     <div style={{background:'var(--surface)',borderRadius:'18px',border:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',overflow:'hidden',marginBottom:'16px'}}>
-      <div style={{background:'var(--navy)',padding:'22px 26px',position:'relative',overflow:'hidden'}}>
-        <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'14px'}}>
-          {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 ("Black")
-              cut at all, so a 900 request here was silently rendering as
-              700 anyway (confirmed by rasterizing both and diffing pixels:
-              zero difference). This just makes the code say what is
-              actually on screen. */}
-          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
-          {totals.curr&&<div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month} · {fmtD(totals.curr.start)}–{fmtD(totals.curr.end)}</div>}
-        </div>
-        <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Total Gross YTD</div>
-        <div style={{fontFamily:MONO,fontSize:'32px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'9px'}}>
-          {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
-        </div>
-        <div style={{width:'44px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'9px'}}/>
-        <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#7c93b3',marginBottom:carmsOutstanding.totalAmount>0?'12px':0}}>
-          {settings.rank&&settings.service
-            ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)} tax year`
-            : 'Set your rank & pay point in More..'}
-        </div>
-        {carmsOutstanding.totalAmount>0&&(
-          <button onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',cursor:'pointer',background:'none',border:'none',padding:0,fontFamily:'inherit'}}>
-            <Ico n="clock" s={11} c="#fbbf24"/>+{fmtGBP(carmsOutstanding.totalAmount)} not yet submitted to CARMS
-          </button>
-        )}
-      </div>
+      {masthead(false)}
 
       <div style={{padding:'4px 26px'}}>
         {totals.curr&&(
           <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
-              <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>Current Pay Period</div>
+              <div>
+                <div style={{fontSize:'14px',fontWeight:800,color:'var(--ink)'}}>{payLabel(totals.curr.month)}</div>
+                <div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{shiftSpan(totals.curr.start,totals.curr.end)}</div>
+              </div>
             </div>
-            <div style={{textAlign:'right'}}>
-              <div style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{totals.curr.month}</div>
-              <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{fmtD(totals.curr.start)} – {fmtD(totals.curr.end)}</div>
-            </div>
+            {chev}
           </button>
         )}
         {netHeroRow(false)}
         <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
           <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
-            <div style={{fontSize:'13px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL Balance{toilLedger.balance<0?' — overdrawn':''}</div>
+            <div>
+              <div style={{fontSize:'14px',fontWeight:800,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL balance{toilLedger.balance<0?' · overdrawn':''}</div>
+              <div style={{fontSize:'11px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'var(--quiet)',marginTop:'1px'}}>{toilSub}</div>
+            </div>
           </div>
-          <div style={{textAlign:'right'}}>
-            <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>{fmtHM(toilLedger.balance)} h</div>
-            <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'var(--quiet)',marginTop:'1px'}}>≈ {(toilLedger.balance/8).toFixed(1)} days at 8h/day</div>
+          <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+            <div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>{fmtHrs(toilLedger.balance)}</div>
+            {chev}
           </div>
         </button>
         {carmsOutstanding.totalClaims>0&&(
@@ -353,11 +363,11 @@ export function TabDashboard({
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
               <div>
-                <div style={{fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; PSOP Outstanding</div>
+                <div style={{fontSize:'14px',fontWeight:800,color:'var(--ink)'}}>CARMS &amp; PSOP to submit</div>
                 <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             </div>
-            <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+            <div style={{display:'flex',alignItems:'center',gap:'10px'}}><div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>
           </button>
         )}
       </div>
@@ -371,56 +381,33 @@ export function TabDashboard({
          disconnected stat tiles. Salary Breakdown keeps its own
          card below, same reasoning as desktop. ── */}
     <div style={{background:'var(--surface)',borderRadius:'18px',border:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',overflow:'hidden',marginBottom:'10px'}}>
-      <div style={{background:'var(--navy)',padding:'20px 18px',position:'relative',overflow:'hidden'}}>
-        <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'12px'}}>
-          {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 ("Black")
-              cut at all, so a 900 request here was silently rendering as
-              700 anyway (confirmed by rasterizing both and diffing pixels:
-              zero difference). This just makes the code say what is
-              actually on screen. */}
-          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'#c9a35f'}}>Statement</div>
-          {totals.curr&&<div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:600,color:'#7c93b3'}}>{totals.curr.month}</div>}
-        </div>
-        <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'}}>Total Gross YTD</div>
-        <div style={{fontFamily:MONO,fontSize:'27px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'8px'}}>
-          {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
-        </div>
-        <div style={{width:'38px',height:'3px',background:BRASS,borderRadius:'2px',marginBottom:'8px'}}/>
-        <div style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:600,color:'#7c93b3',marginBottom:carmsOutstanding.totalAmount>0?'10px':0}}>
-          {settings.rank&&settings.service
-            ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)} tax year`
-            : 'Set your rank & pay point in More..'}
-        </div>
-        {carmsOutstanding.totalAmount>0&&(
-          <button onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'11px',fontWeight:800,color:'#fbbf24',cursor:'pointer',background:'none',border:'none',padding:0,fontFamily:'inherit'}}>
-            <Ico n="clock" s={11} c="#fbbf24"/>+{fmtGBP(carmsOutstanding.totalAmount)} not yet submitted to CARMS
-          </button>
-        )}
-      </div>
+      {masthead(true)}
 
       <div style={{padding:'2px 18px'}}>
         {totals.curr&&(
           <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'14px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
               <div style={{background:'var(--tint-teal)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={16} c="#0d9488"/></div>
-              <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>Current period</div>
+              <div>
+                <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>{payLabel(totals.curr.month)}</div>
+                <div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{shiftSpan(totals.curr.start,totals.curr.end)}</div>
+              </div>
             </div>
-            <div style={{textAlign:'right'}}>
-              <div style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>{totals.curr.month}</div>
-              <div style={{fontFamily:MONO,fontSize:'9px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{fmtD(totals.curr.start)}–{fmtD(totals.curr.end)}</div>
-            </div>
+            {chev}
           </button>
         )}
         {netHeroRow(true)}
         <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'14px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
           <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="clock" s={16} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
-            <div style={{fontSize:'12px',fontWeight:700,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL Balance{toilLedger.balance<0?' — overdrawn':''}</div>
+            <div>
+              <div style={{fontSize:'13px',fontWeight:800,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL balance{toilLedger.balance<0?' · overdrawn':''}</div>
+              <div style={{fontSize:'10.5px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'var(--quiet)',marginTop:'1px'}}>{toilSub}</div>
+            </div>
           </div>
-          <div style={{textAlign:'right'}}>
-            <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>{fmtHM(toilLedger.balance)} h</div>
-            <div style={{fontFamily:MONO,fontSize:'9px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'var(--quiet)',marginTop:'1px'}}>≈ {(toilLedger.balance/8).toFixed(1)}d at 8h/day</div>
+          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+            <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>{fmtHrs(toilLedger.balance)}</div>
+            {chev}
           </div>
         </button>
         {carmsOutstanding.totalClaims>0&&(
@@ -428,11 +415,11 @@ export function TabDashboard({
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
               <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
               <div>
-                <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>CARMS &amp; PSOP Outstanding</div>
+                <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>CARMS &amp; PSOP to submit</div>
                 <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             </div>
-            <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>
+            <div style={{display:'flex',alignItems:'center',gap:'8px'}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>
           </button>
         )}
       </div>
