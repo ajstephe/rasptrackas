@@ -89,7 +89,7 @@ export function TabLogOvertime({
     return (
       <>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          <div style={box}><TimeSelect value={s} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,[sKey]:v}))} label={sLbl} BRASS={BRASS} MONO={MONO}/></div>
+          <div style={box}><TimeSelect value={s} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,[sKey]:v}))} label={sLbl} startAt={sKey==='rosteredStart'?'07:00':undefined} BRASS={BRASS} MONO={MONO}/></div>
           <span style={{fontSize:'12px',fontWeight:700,color:'var(--quiet)'}}>to</span>
           <div style={box}><TimeSelect value={e} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,[eKey]:v}))} label={eLbl} BRASS={BRASS} MONO={MONO}/></div>
           {isWide&&extras}
@@ -152,7 +152,7 @@ export function TabLogOvertime({
           k==='normal' ? setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'normal'}))
                        : setForm(f=>syncShiftTimesIntoForm({...f,dutyType:'rdw',rosteredStart:'',rosteredEnd:''}))
         ))}
-        {!rdw && row('Rostered shift','as on CARMS',(
+        {!rdw && row('Rostered shift','Shown on CARMS',(
           <>
             <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,auto)':'repeat(4,minmax(0,1fr))',justifyContent:'start',gap:'6px',marginBottom:'8px'}}>
               {PRESETS.map(([start,end])=>{
@@ -298,8 +298,8 @@ export function TabLogOvertime({
         {step(2,'Your hours',(
           <>
             <div role="radiogroup" aria-label="How to record hours" style={{display:'flex',gap:'3px',background:'var(--chip-bg)',borderRadius:'11px',padding:'3px',margin:'8px 0 2px'}}>
-              {modeBtn(true,'From shift times','Rostered vs worked, worked out for you','clock')}
-              {modeBtn(false,'Enter hours','Type the hours at each rate yourself','edit')}
+              {modeBtn(true,'Shift Time Input','Rostered vs Worked, automatically calculated','clock')}
+              {modeBtn(false,'Enter Hours','Manually enter hours','edit')}
             </div>
             {hoursRows}
           </>

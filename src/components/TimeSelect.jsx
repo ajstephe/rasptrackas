@@ -91,9 +91,13 @@ function WheelColumn({ values, selected, onSettle, brass, mono }) {
 // default just below. TabLogOvertime, the only current caller, does pass its
 // own MONO prop through, so this default only matters for a future caller
 // that doesn't.
-export function TimeSelect({ value, onChange, label, BRASS='#b8823f', MONO="'IBM Plex Mono',monospace" }) {
+// startAt (optional, 'HH:MM'): when the box is still empty, opening the
+// picker fills it with this time instead of leaving the wheels on 00:00, so
+// the common case is one tap on Done and anything else is a short scroll.
+export function TimeSelect({ value, onChange, label, startAt, BRASS='#b8823f', MONO="'IBM Plex Mono',monospace" }) {
   const [open, setOpen] = useState(false);
   const [h,m] = value ? value.split(':') : ['',''];
+  const openPicker = () => { if (!value && startAt) onChange(startAt); setOpen(true); };
 
   useEffect(() => {
     if (!open) return;
@@ -108,7 +112,7 @@ export function TimeSelect({ value, onChange, label, BRASS='#b8823f', MONO="'IBM
 
   return (
     <>
-      <button type="button" onClick={()=>setOpen(true)} style={{width:'100%',boxSizing:'border-box',height:'42px',display:'flex',alignItems:'center',gap:'8px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'0 12px',fontFamily:MONO,fontWeight:700,fontSize:'15px',color:'var(--ink)',cursor:'pointer'}}>
+      <button type="button" onClick={openPicker} style={{width:'100%',boxSizing:'border-box',height:'42px',display:'flex',alignItems:'center',gap:'8px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'0 12px',fontFamily:MONO,fontWeight:700,fontSize:'15px',color:'var(--ink)',cursor:'pointer'}}>
         <Ico n="clock" s={14} c="var(--quiet)"/>
         {value ? `${h}:${m}` : <span style={{color:'var(--quiet)',fontWeight:600,fontSize:'13px',fontFamily:'inherit'}}>Set time</span>}
       </button>
