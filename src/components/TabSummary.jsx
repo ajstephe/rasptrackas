@@ -134,7 +134,7 @@ export function TabSummary({
         // Unsubmitted TOIL isn't in the balance yet (TOIL page) — say how
         // much of this period's figure that is, so the two pages agree.
         toilWaiting>0 ? `${toilBanked-toilWaiting>1e-6?`${fmtHrs(toilBanked-toilWaiting)} in your balance · `:''}${fmtHrs(toilWaiting)} waiting to submit` : null)}
-      {carmsGroup&&linkRow(ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(periodIdx); },'checklist',BRASS,'CARMS & PSOP to submit',fmtGBP(carmsGroup.periodTotal),BRASS)}
+      {carmsGroup&&linkRow(ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(periodIdx); },'checklist',BRASS,'Overtime & PA to submit',fmtGBP(carmsGroup.periodTotal),BRASS)}
     </>);
   };
 
@@ -538,25 +538,25 @@ export function TabSummary({
                           <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
                             {c.payH1>0&&(
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH1)} @ 1.33x {c.toilH>0&&c.otRateTier==='hours133'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r133.toFixed(2)}/hr)</span></span>
+                                <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH1)} at 1.33× <span style={{color:'var(--quiet)'}}>· £{c.r.r133.toFixed(2)}/hr</span></span>
                                 <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot1.toFixed(2)}</span>
                               </div>
                             )}
                             {c.payH2>0&&(
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH2)} @ 1.5x {c.toilH>0&&c.otRateTier==='hours150'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r150.toFixed(2)}/hr)</span></span>
+                                <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH2)} at 1.5× <span style={{color:'var(--quiet)'}}>· £{c.r.r150.toFixed(2)}/hr</span></span>
                                 <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot2.toFixed(2)}</span>
                               </div>
                             )}
                             {c.payH3>0&&(
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH3)} @ 2.0x {c.toilH>0&&c.otRateTier==='hours200'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r200.toFixed(2)}/hr)</span></span>
+                                <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH3)} at 2× <span style={{color:'var(--quiet)'}}>· £{c.r.r200.toFixed(2)}/hr</span></span>
                                 <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot3.toFixed(2)}</span>
                               </div>
                             )}
                             {c.toilH>0&&(
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} @ {RATE_TIER_LABEL[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
+                                <span style={{fontSize:'13px',fontWeight:700,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} at {RATE_TIER_LABEL[c.otRateTier]}× · TOIL</span>
                                 <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} banked</span>
                               </div>
                             )}
@@ -567,10 +567,18 @@ export function TabSummary({
                               </div>
                             )}
                           </div>
+                          {c.gross<0.005&&c.toilBanked>0 ? (
+                            // Taken wholly as TOIL: no pay to total up, so say so rather than
+                            // ending the card on Gross £0.00 · Net £0.00.
+                            <div style={{display:'flex',alignItems:'center',gap:'8px',background:'var(--tint-purple)',borderRadius:'10px',padding:'9px 11px',marginTop:'8px',fontSize:'12.5px',fontWeight:800,color:'var(--tag-purple)'}}>
+                              <Ico n="clock" s={13} c="var(--tag-purple)" w={2.2}/>Taken as TOIL<span style={{marginLeft:'auto',fontWeight:700}}>no pay</span>
+                            </div>
+                          ) : (
                           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'5px',borderTop:'1px solid var(--border-2)',paddingTop:'8px',marginTop:'8px'}}>
                             <div><div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'15px',color:'var(--text-navy)'}}>{fmt(c.gross)}</div></div>
                             <div style={{textAlign:'right'}}><div style={{fontSize:'10px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'15px',color:'#059669'}}>{fmt(eNet)}</div></div>
                           </div>
+                          )}
                         </div>
                       </div>
                     );

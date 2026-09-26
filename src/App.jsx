@@ -4671,7 +4671,7 @@ export default function App() {
 
           <div style={{padding:'14px 0 4px'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}}>
-              <span style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>CARMS &amp; PSOP to submit</span>
+              <span style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Overtime &amp; PA to submit</span>
               {carmsOutstanding.totalClaims>0&&<span onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:700,color:BRASS,cursor:'pointer'}}>View all →</span>}
             </div>
             {carmsOutstanding.totalClaims===0
@@ -5172,25 +5172,25 @@ export default function App() {
                     <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
                       {c.payH1>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH1)} @ 1.33x {c.toilH>0&&c.otRateTier==='hours133'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r133.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH1)} at 1.33× <span style={{color:'var(--quiet)'}}>· £{c.r.r133.toFixed(2)}/hr</span></span>
                           <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot1.toFixed(2)}</span>
                         </div>
                       )}
                       {c.payH2>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH2)} @ 1.5x {c.toilH>0&&c.otRateTier==='hours150'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r150.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH2)} at 1.5× <span style={{color:'var(--quiet)'}}>· £{c.r.r150.toFixed(2)}/hr</span></span>
                           <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot2.toFixed(2)}</span>
                         </div>
                       )}
                       {c.payH3>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH3)} @ 2.0x {c.toilH>0&&c.otRateTier==='hours200'?'(Pay)':''} <span style={{color:'var(--quiet)'}}>(£{c.r.r200.toFixed(2)}/hr)</span></span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH3)} at 2× <span style={{color:'var(--quiet)'}}>· £{c.r.r200.toFixed(2)}/hr</span></span>
                           <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot3.toFixed(2)}</span>
                         </div>
                       )}
                       {c.toilH>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:600,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} @ {RATE_TIER_LABEL[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} at {RATE_TIER_LABEL[c.otRateTier]}× · TOIL</span>
                           <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} banked</span>
                         </div>
                       )}
@@ -5201,10 +5201,18 @@ export default function App() {
                         </div>
                       )}
                     </div>
+                    {c.gross<0.005&&c.toilBanked>0 ? (
+                      // Taken wholly as TOIL: no pay to total up, so say so rather than
+                      // ending the card on Gross £0.00 · Net £0.00.
+                      <div style={{display:'flex',alignItems:'center',gap:'8px',background:'var(--tint-purple)',borderRadius:'10px',padding:'9px 11px',marginTop:'8px',fontSize:isWide?'12.5px':'11px',fontWeight:800,color:'var(--tag-purple)'}}>
+                        <Ico n="clock" s={13} c="var(--tag-purple)" w={2.2}/>Taken as TOIL<span style={{marginLeft:'auto',fontWeight:700}}>no pay</span>
+                      </div>
+                    ) : (
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px',borderTop:'1px solid var(--border-2)',paddingTop:'8px',marginTop:'8px'}}>
                       <div><div style={{fontSize:isWide?'11px':'9px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'1px'}}>Gross</div><div style={{fontWeight:900,fontSize:isWide?'16px':'13px',color:'var(--text-navy)'}}>{fmt(c.gross)}</div></div>
                       <div style={{textAlign:'right'}}><div style={{fontSize:isWide?'11px':'9px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'1px'}}>Net</div><div style={{fontWeight:900,fontSize:isWide?'16px':'13px',color:'#059669'}}>{fmt(eNet)}</div></div>
                     </div>
+                    )}
                   </div>
                 </div>
               );
