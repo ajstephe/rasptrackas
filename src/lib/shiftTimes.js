@@ -44,6 +44,10 @@ export const calcAutoOTHours = f => {
   const actualDur = shiftDurationMinutes(f.actualStart, f.actualEnd);
   if (f.dutyType === 'rdw') return actualDur / 60;
   const rosteredDur = shiftDurationMinutes(f.rosteredStart, f.rosteredEnd);
+  // On a normal duty the overtime is actual minus rostered — with no
+  // rostered times yet there's nothing to take away, so no overtime yet
+  // (rather than counting the whole shift).
+  if (!rosteredDur) return 0;
   return Math.max(0, (actualDur - rosteredDur) / 60);
 };
 

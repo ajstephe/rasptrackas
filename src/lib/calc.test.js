@@ -160,7 +160,7 @@ describe('submittedGross', () => {
     expect(submittedGross(e, SETTINGS)).toBe(48);
   });
 
-  it('always counts an entry that has no overtime hours at all as its (zero) night contribution', () => {
+  it('counts nothing for an entry with no overtime hours and no PA', () => {
     const e = baseEntry({ paRate:'None' });
     expect(submittedGross(e, SETTINGS)).toBe(0);
   });

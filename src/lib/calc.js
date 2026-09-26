@@ -1,27 +1,22 @@
-import { getRates, RATE_TIER_MULT, PA_RATES } from './payRates.js';
-import { PAY_PERIODS } from './payPeriods.js';
+import { getRates, RATE_TIER_MULT, PA_RATES, payPointOn } from './payRates.js';
+import { PAY_PERIODS, getFYStartYearFor, generateFYPeriods } from './payPeriods.js';
 
 // ── entry calculator ───────────────────────────────────────────────────────
 // Returns the gross pay components for a single entry using date-correct rates.
-// Net is NOT calculated here — tax is applied per pay period on a cumulative
-// marginal basis (see periodBreakdown in App.jsx), since a flat personal
-// tax rate can't correctly reflect where each pound sits in the tax bands.
+// Net is NOT calculated here — each pay month is taxed as a PAYE month,
+// cumulatively, in lib/payroll.js, since a flat personal tax rate can't
+// reflect where each pound sits in the tax bands.
 //
 // Takes `settings` (rank/service) explicitly rather than closing over
 // component state — this is what makes it a plain, unit-testable function.
 // App.jsx wraps this in a `useCallback` that supplies the current settings,
 // so every existing call site there is unaffected.
 export const calcEntry = (e, settings) => {
-  const r  = getRates(settings?.rank, settings?.service, e.date);
+  const pp = payPointOn(settings, e.date);   // the pay point in force on the shift's date
+  const r  = getRates(pp.rank, pp.service, e.date);
   const h1 = parseFloat(e.hours133)||0;
   const h2 = parseFloat(e.hours150)||0;
   const h3 = parseFloat(e.hours200)||0;
-  // Night hours no longer factor into any calculation — kept as a fixed
-  // zero here (rather than removed from the returned shape entirely) so
-  // every downstream site that reads c.nh/c.night keeps working exactly
-  // as before, just always contributing nothing, instead of needing every
-  // one of those call sites updated individually.
-  const nh = 0;
   // TOIL hours (worked at e.otRateTier's rate, taken as time instead of
   // pay) reduce the CASH overtime calculation only — h1/h2/h3 still
   // reflect hours actually worked, so hours-worked totals stay correct.
@@ -31,14 +26,16 @@ export const calcEntry = (e, settings) => {
   const payH3 = e.otRateTier==='hours200' ? Math.max(0,h3-toilH) : h3;
   // Each rate's pay is rounded to the penny, as a claim is paid, so every
   // total built from these adds up to exactly the pence shown on screen.
-  const pence = x => Math.round(x*100)/100;
-  const ot1 = pence(payH1*r.r133), ot2 = pence(payH2*r.r150), ot3 = pence(payH3*r.r200);
+  // Worked in whole pence, so a half penny always rounds up (1.5h at £22.43
+  // is £33.645 → £33.65) rather than falling foul of binary decimals.
+  const pay = (h, rate) => Math.round(h * Math.round(rate*100) + 1e-6) / 100;
+  const pence = x => Math.round(x*100 + 1e-6)/100;
+  const ot1 = pay(payH1, r.r133), ot2 = pay(payH2, r.r150), ot3 = pay(payH3, r.r200);
   const ot  = pence(ot1+ot2+ot3);
   const toilBanked = e.otRateTier ? toilH * RATE_TIER_MULT[e.otRateTier] : 0;
-  const night = 0;
   const pa    = PA_RATES[e.paRate]||0;
-  const gross = pence(ot + night + pa);
-  return { h1, h2, h3, payH1, payH2, payH3, ot1, ot2, ot3, nh, ot, night, pa, gross, r, toilH, toilBanked, otRateTier:e.otRateTier, takeAs:e.takeAs };
+  const gross = pence(ot + pa);
+  return { h1, h2, h3, payH1, payH2, payH3, ot1, ot2, ot3, ot, pa, gross, r, toilH, toilBanked, otRateTier:e.otRateTier, takeAs:e.takeAs };
 };
 
 // Whether a component counts as submitted — defensive against undefined
@@ -56,13 +53,7 @@ export const isPaSubmitted = e => e.paSubmitted !== false;
 export const submittedGross = (e, settings) => {
   const c = calcEntry(e, settings);
   const hasPA = e.paRate && e.paRate!=='None';
-  // Night allowance is paid automatically — it never needs its own CARMS
-  // submission. It only rides on the OT toggle when the entry also has
-  // genuine overtime hours (the toggle covers both together, since
-  // they're the same worked hours). An entry with only night hours has
-  // nothing to submit, so its night pay always counts.
-  const hasOTHours = c.h1 + c.h2 + c.h3 > 0;
-  const otPart = hasOTHours ? (isOtSubmitted(e) ? c.ot + c.night : 0) : c.night;
+  const otPart = c.h1+c.h2+c.h3 > 0 && isOtSubmitted(e) ? c.ot : 0;
   return otPart + ((hasPA && isPaSubmitted(e)) ? c.pa : 0);
 };
 
@@ -89,22 +80,24 @@ export const periodIdxForDate = d => PAY_PERIODS.findIndex(p=>d>=p.start&&d<=p.e
 // label so the UI can say where it actually counts.
 export const crossPeriodInfo = (e, settings) => {
   const c = calcEntry(e, settings);
-  const ownIdx = periodIdxForDate(e.date);
   const hasOTHours = c.h1+c.h2+c.h3 > 0;
   const hasPA = e.paRate && e.paRate!=='None';
-  const otMoved = hasOTHours && isOtSubmitted(e) && periodIdxForDate(effectiveOtDate(e)) !== ownIdx;
-  const paMoved = hasPA && isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e)) !== ownIdx;
+  // Pay months are looked up in each date's own pay year, so a claim made
+  // across the year end still gets its month's name.
+  const monthOf = d => {
+    const fy = getFYStartYearFor(d);
+    return generateFYPeriods(fy).find(p=>d>=p.start&&d<=p.end);
+  };
+  const own = monthOf(e.date);
+  const otP = hasOTHours && isOtSubmitted(e) ? monthOf(effectiveOtDate(e)) : null;
+  const paP = hasPA && isPaSubmitted(e) ? monthOf(effectivePaDate(e)) : null;
+  const otMoved = !!otP && otP.month !== own?.month;
+  const paMoved = !!paP && paP.month !== own?.month;
   if (!otMoved && !paMoved) return null;
-  const otIdx = otMoved ? periodIdxForDate(effectiveOtDate(e)) : null;
-  const paIdx = paMoved ? periodIdxForDate(effectivePaDate(e)) : null;
-  // Common case: everything that moved, moved to the same period —
-  // one combined label. The rare case (OT and PA submitted weeks apart,
-  // landing in two different other periods) falls back to a slightly
-  // longer combined label rather than needing two separate pills.
-  if (otMoved && paMoved && otIdx===paIdx) {
-    return { label: PAY_PERIODS[otIdx]?.short || PAY_PERIODS[otIdx]?.month, both: true };
-  }
-  if (otMoved && !paMoved) return { label: PAY_PERIODS[otIdx]?.short || PAY_PERIODS[otIdx]?.month, ot: true };
-  if (paMoved && !otMoved) return { label: PAY_PERIODS[paIdx]?.short || PAY_PERIODS[paIdx]?.month, pa: true };
-  return { label: `${PAY_PERIODS[otIdx]?.short||PAY_PERIODS[otIdx]?.month} / ${PAY_PERIODS[paIdx]?.short||PAY_PERIODS[paIdx]?.month}`, both: true };
+  // Name the month; add its year when it isn't the shift's own pay year.
+  const name = p => getFYStartYearFor(p.start)!==getFYStartYearFor(e.date) ? `${p.short} ${p.month.split(' ')[1]}` : p.short;
+  if (otMoved && paMoved && otP.month===paP.month) return { label: name(otP), both: true };
+  if (otMoved && !paMoved) return { label: name(otP), ot: true };
+  if (paMoved && !otMoved) return { label: name(paP), pa: true };
+  return { label: `${name(otP)} / ${name(paP)}`, both: true };
 };

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   generateFYPeriods, getFYStartYearFor, addDaysToISO,
   daysInclusive, buildCalendarWeeks,
-  getUKTaxYearStart, addYearMinusOneDay, taxYearFractionForDate,
+  getUKTaxYearStart,
   FY_ANCHOR_START, FY_ANCHOR_YEAR,
 } from './payPeriods.js';
 
@@ -96,22 +96,5 @@ describe('UK tax year helpers', () => {
   it('getUKTaxYearStart returns 6 April of the PREVIOUS calendar year before that date', () => {
     expect(getUKTaxYearStart('2026-04-05')).toBe('2025-04-06');
     expect(getUKTaxYearStart('2026-01-01')).toBe('2025-04-06');
-  });
-
-  it('addYearMinusOneDay gives the day before the same date next year', () => {
-    expect(addYearMinusOneDay('2026-04-06')).toBe('2027-04-05');
-  });
-
-  it('taxYearFractionForDate is ~0 just after 6 April and ~1 just before the following 5 April', () => {
-    expect(taxYearFractionForDate('2026-04-06')).toBeCloseTo(1/365, 2);
-    expect(taxYearFractionForDate('2027-04-05')).toBeCloseTo(1, 2);
-  });
-
-  it('taxYearFractionForDate is always clamped between 1/365 and 1', () => {
-    for (const d of ['2026-04-06','2026-07-15','2026-12-31','2027-04-05']) {
-      const f = taxYearFractionForDate(d);
-      expect(f).toBeGreaterThanOrEqual(1/365);
-      expect(f).toBeLessThanOrEqual(1);
-    }
   });
 });

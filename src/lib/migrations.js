@@ -1,15 +1,30 @@
 import { PAY_RATES } from './payRates.js';
 
 // Migrate settings if they contain old rank names from a previous version
+const validDate = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
+const validPayPoint = (rank, service) => !!PAY_RATES[rank]?.[service];
+
 export const migrateSettings = s => {
   const def = { rank:'', service:'' };
-  if (!s) return def;
-  const validRanks = Object.keys(PAY_RATES);
-  if (!validRanks.includes(s.rank)) return def;
-  const validServices = Object.keys(PAY_RATES[s.rank]||{});
-  if (!validServices.includes(s.service)) return def;
-  return { rank:s.rank, service:s.service };
+  if (!s || typeof s !== 'object') return def;
+  if (!validPayPoint(s.rank, s.service)) return def;
+  const out = { rank:s.rank, service:s.service };
+  // Dated pay point changes (see payPointOn in payRates.js), kept only if
+  // every step is a real pay point with a sensible date.
+  if (Array.isArray(s.payHistory)) {
+    const h = s.payHistory.filter(x => x && typeof x === 'object' && validPayPoint(x.rank, x.service) && (x.from === '' || validDate(x.from)));
+    if (h.length) out.payHistory = h.map(x => ({ from:x.from, rank:x.rank, service:x.service }));
+  }
+  return out;
 };
+
+// Records that could crash the app (not an object, no id, or no proper
+// date) are dropped rather than trusted — whether they come from this
+// device's storage, a backup file or the cloud.
+const isRecord = x => x && typeof x === 'object' && x.id != null && validDate(x.date);
+export const cleanToilTaken = list => (Array.isArray(list) ? list : [])
+  .filter(t => isRecord(t) && Number.isFinite(Number(t.hours)))
+  .map(t => ({ ...t, hours: Number(t.hours), note: typeof t.note === 'string' ? t.note : '' }));
 
 // CARMS submission tracking predates this migration for any entry already
 // on the device — defaulting those to "submitted" rather than suddenly
@@ -19,12 +34,12 @@ export const migrateSettings = s => {
 // record of when a pre-existing entry was actually submitted, and falling
 // back to the shift date keeps historical period attribution exactly where
 // it already was rather than silently reshuffling old pay periods.
-export const migrateEntries = list => (list||[]).map(e => ({
+export const migrateEntries = list => (Array.isArray(list) ? list : []).filter(isRecord).map(e => ({
   ...e,
   otSubmitted: e.otSubmitted===undefined ? true : e.otSubmitted,
   paSubmitted: e.paSubmitted===undefined ? true : e.paSubmitted,
-  otSubmittedDate: e.otSubmittedDate || e.date,
-  paSubmittedDate: e.paSubmittedDate || e.date,
+  otSubmittedDate: validDate(e.otSubmittedDate) ? e.otSubmittedDate : e.date,
+  paSubmittedDate: validDate(e.paSubmittedDate) ? e.paSubmittedDate : e.date,
 }));
 
 // Parses and validates an uploaded backup file before any of it reaches
@@ -47,10 +62,16 @@ export const parseBackupFile = jsonText => {
   if (!d || typeof d !== 'object' || !Array.isArray(d.entries)) {
     return { ok:false, error:"That doesn't look like an Overtime & Shift Tracker backup file." };
   }
+  const entries = migrateEntries(d.entries);
+  const toilTaken = cleanToilTaken(d.toilTaken);
+  const skipped = (d.entries.length - entries.length) + ((Array.isArray(d.toilTaken) ? d.toilTaken.length : 0) - toilTaken.length);
   return {
     ok: true,
-    entries: migrateEntries(d.entries),
-    settings: migrateSettings(d.settings),
-    toilTaken: Array.isArray(d.toilTaken) ? d.toilTaken : [],
+    entries,
+    // An older backup without settings keeps the rank and pay point you
+    // already have, rather than blanking them.
+    settings: d.settings ? migrateSettings(d.settings) : null,
+    toilTaken,
+    skipped,
   };
 };

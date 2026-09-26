@@ -83,3 +83,23 @@ export const getRates = (rank, service, date) => {
   if (!svc) return empty;
   return date >= RATE_CHANGE_DATE ? svc.post : svc.pre;
 };
+
+// ─── pay point on a date ──────────────────────────────────────────────────────
+// Rank and pay point can change during a career. settings.payHistory records
+// each change with the date it took effect ({ from, rank, service }; the
+// first entry's `from` is '' so it covers everything before). Without a
+// history, the current rank and pay point apply to every date.
+export const payPointOn = (settings, date) => {
+  const h = settings?.payHistory;
+  if (Array.isArray(h) && h.length) {
+    let pick = null;
+    for (const x of h) if ((x.from||'') <= (date||'') && (!pick || (x.from||'') >= (pick.from||''))) pick = x;
+    if (!pick) pick = [...h].sort((a,b)=>(a.from||'').localeCompare(b.from||''))[0];
+    return { rank: pick.rank, service: pick.service };
+  }
+  return { rank: settings?.rank, service: settings?.service };
+};
+export const svcDataOn = (settings, date) => {
+  const pp = payPointOn(settings, date);
+  return pp.rank && pp.service ? (PAY_RATES[pp.rank]?.[pp.service] || null) : null;
+};

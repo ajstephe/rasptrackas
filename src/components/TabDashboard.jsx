@@ -25,7 +25,7 @@ export function TabDashboard({
   // ── Net-pay hero row ──────────────────────────────────────────────
   // Replaces the old cramped "Gross & Net" mini-columns with the one
   // figure people actually open the app to check — net pay this
-  // period — given real size, a delta vs last period, and a trend
+  // period — given real size, a delta vs last pay month, and a trend
   // line. Gross doesn't disappear, just demotes to a small caption.
   // Deliberately NOT touching the masthead's own headline (Total
   // Gross YTD stays there — that's the tax-band-awareness number,
@@ -85,7 +85,7 @@ export function TabDashboard({
                 PSOP Outstanding, below) — this was the one header still
                 set as a small uppercase mono eyebrow instead, which read
                 as a different kind of label sitting in the same list. */}
-            <span style={{fontSize:compact?'13px':'14px',fontWeight:800,color:'var(--ink)'}}>Net pay this period</span>
+            <span style={{fontSize:compact?'13px':'14px',fontWeight:800,color:'var(--ink)'}}>Net pay this pay month</span>
           </div>
           <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}</span>
         </div>
@@ -104,7 +104,7 @@ export function TabDashboard({
                 figure here that was previously just decorative. */}
             {delta!=null&&(
               <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx-1); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:600,color:delta>=0?'#059669':'var(--text-red-deep)',background:delta>=0?'var(--tint-green)':'var(--tint-red)',padding:'2px 6px 2px 8px',borderRadius:'20px',marginTop:'4px',border:'none',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
-                <span style={{fontFamily:MONO}}>{delta>=0?'▲':'▼'} {fmtGBP(Math.abs(delta))} vs last period</span>
+                <span style={{fontFamily:MONO}}>{delta>=0?'▲':'▼'} {fmtGBP(Math.abs(delta))} vs last pay month</span>
                 <Ico n="cR" s={9} c="currentColor" w={2.5}/>
               </button>
             )}
@@ -165,9 +165,12 @@ export function TabDashboard({
                 </span>
               </div>
             ))}
+            {/* Paid so far this tax year, so these rows add up to the headline.
+                Claims waiting for a later payday show on their own line. */}
             {[
-              ['Overtime', totals.totalOTGross, totals.totalOTNet],
-              ['Protection Allowance', totals.totalPAGross, totals.totalPANet],
+              ['Overtime', totals.otPaidGross, totals.otPaidNet],
+              ['Protection Allowance', totals.paPaidGross, totals.paPaidNet],
+              ...(totals.onItsWayGross>0.005 ? [['Claimed, on a later payday', totals.onItsWayGross, totals.onItsWayNet]] : []),
             ].map(([label,gross,net])=>(
               <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{label}</span>
@@ -196,7 +199,7 @@ export function TabDashboard({
             const scaleMax = Math.max(125140, grossYTD*1.05);
             const pct = v => Math.max(0, Math.min(100, (v/scaleMax)*100));
             const barColor = grossYTD>=100000 ? '#ef4444' : grossYTD>=50270 ? '#f59e0b' : '#059669';
-            const statusText = grossYTD>=125140 ? '+£125k — No PA' : grossYTD>=100000 ? '+£100k — PA tapering' : grossYTD>=50270 ? 'Higher rate' : 'Basic rate';
+            const statusText = grossYTD>=125140 ? '+£125k — No tax-free allowance' : grossYTD>=100000 ? '+£100k — Allowance tapering' : grossYTD>=50270 ? 'Higher rate' : 'Basic rate';
             const markers = [
               { key:'pa',  value: paNow,  label: paNow===0 ? 'PA £0' : over100k ? `PA £${(paNow/1000).toFixed(1)}k` : 'PA £12.6k' },
               { key:'hr',  value: 50270,  label: '£50.3k' },
@@ -238,7 +241,7 @@ export function TabDashboard({
             const scaleMax = Math.max(125140, grossF*1.05);
             const pct = v => Math.max(0, Math.min(100, (v/scaleMax)*100));
             const barColor = grossF>=100000 ? '#ef4444' : grossF>=50270 ? '#f59e0b' : '#059669';
-            const statusText = grossF>=125140 ? '+£125k — No PA' : grossF>=100000 ? '+£100k — PA tapering' : grossF>=50270 ? 'Higher rate' : 'Basic rate';
+            const statusText = grossF>=125140 ? '+£125k — No tax-free allowance' : grossF>=100000 ? '+£100k — Allowance tapering' : grossF>=50270 ? 'Higher rate' : 'Basic rate';
             const markers = [
               { key:'pa',  value: paNow,  label: paNow===0 ? 'PA £0' : over100k ? `PA £${(paNow/1000).toFixed(1)}k` : 'PA £12.6k' },
               { key:'hr',  value: 50270,  label: '£50.3k' },
@@ -277,7 +280,7 @@ export function TabDashboard({
                close enough to read as one continuous block. ── */}
           </div>
           <div style={isWide?{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}:{borderTop:'2px solid var(--border)',marginTop:'22px',paddingTop:'20px'}}>
-            <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'12px'}}>Monthly OT Gross/Net</div>
+            <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'12px'}}>Monthly overtime &amp; PA</div>
             {/* Desktop passes wide=true so renderMonthlyChart
                 itself uses a wider internal coordinate system
                 (W=700 vs 330) — the box then just renders that
@@ -293,7 +296,7 @@ export function TabDashboard({
               <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</span></div>
               <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#ef4444',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</span></div>
             </div>
-            <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'var(--quiet)'}}>Tap any point for that period's figure</div>
+            <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'var(--quiet)'}}>Tap any point for that pay month's figures</div>
           </div>
         </div>
       )}
@@ -307,7 +310,7 @@ export function TabDashboard({
         <Ico n="uPlus" s={19} c="#dc2626"/>
         <div style={{flex:1}}>
           <div style={{fontWeight:900,color:'var(--text-red-deep)',fontSize:'13px',marginBottom:'3px'}}>Setup Required</div>
-          <div style={{color:'var(--text-red-deep)',fontSize:'12px',marginBottom:'8px'}}>Configure your rank and pay in More..</div>
+          <div style={{color:'var(--text-red-deep)',fontSize:'12px',marginBottom:'8px'}}>Set your rank and pay point in More..</div>
           <button onClick={goToConfigSetup} style={{background:'var(--surface-red-mid)',border:'none',borderRadius:'8px',padding:'5px 11px',fontWeight:900,fontSize:'11px',color:'var(--text-red-deep)',cursor:'pointer',fontFamily:'inherit'}}>Go to More.. →</button>
         </div>
       </div>
@@ -367,7 +370,7 @@ export function TabDashboard({
               <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
               <div>
                 <div style={{fontSize:'14px',fontWeight:800,color:'var(--ink)'}}>Overtime &amp; PA to submit</div>
-                <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
+                <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} pay month{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}><div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>
@@ -419,7 +422,7 @@ export function TabDashboard({
               <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
               <div>
                 <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>Overtime &amp; PA to submit</div>
-                <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} period{carmsOutstanding.periodCount!==1?'s':''}</div>
+                <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} pay month{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>

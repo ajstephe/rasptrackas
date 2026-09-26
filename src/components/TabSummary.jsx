@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { buildCalendarWeeks } from '../lib/payPeriods.js';
+import { buildCalendarWeeks, localDateStr } from '../lib/payPeriods.js';
 import { KEYS, dualWrite } from '../lib/storage.js';
 import { fmt, fmtHrs, fmtGBP, fmtD, fmtDDMM, payLabel } from '../lib/format.js';
 import { isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate, periodIdxForDate } from '../lib/calc.js';
@@ -26,6 +26,17 @@ export function TabSummary({
   calcEntry, crossPeriodInfo, carmsBadge, renderDatePills, renderFYTotalsCard,
   jumpTo, snapToActiveMonth, startEdit, delEntry, setTab, animClass='fi',
 }) {
+  // Shifts worked in the previous pay year but claimed into one of this
+  // year's pay months: their money counts in that month, so they're listed
+  // there too (after the month's own shifts), carrying their "counted in"
+  // mark. Hours worked still belong to the month they were worked.
+  const lateInto = p => fyEntries.filter(e=>{
+    if (e.date >= PAY_PERIODS[0].start) return false;
+    const c = calcEntry(e);
+    const inP = d => d>=p.start && d<=p.end;
+    return (c.h1+c.h2+c.h3>0 && isOtSubmitted(e) && inP(effectiveOtDate(e))) || (c.pa>0 && isPaSubmitted(e) && inP(effectivePaDate(e)));
+  });
+
   // Purely a gesture-visual concern (not app state), so it's local rather
   // than lifted like calSwipeStartX — mutated directly via the ref during
   // the drag rather than through React state, so the calendar visibly
@@ -123,12 +134,12 @@ export function TabSummary({
       <div style={section}>
         {secHead('Overtime','var(--text-blue-deep)',pb.ot,pb.otResult.net)}
         {tier('t133','1.33×')}{tier('t150','1.5×')}{tier('t200','2.0×')}
-        {noOT&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this period</div>}
+        {noOT&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this pay month</div>}
       </div>
       <div style={section}>
         {secHead('Protection Allowance','var(--text-amber-deep)',pb.pa,pb.paResult.net)}
         {paLine('PA1')}{paLine('PA2')}{paLine('PA3')}
-        {noPA&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this period</div>}
+        {noPA&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this pay month</div>}
       </div>
       {linkRow(()=>setTab('graph'),'clock','#7c3aed',<>TOIL <span style={{fontFamily:MONO,fontWeight:600,color:'var(--text-purple-deep)',marginLeft:'4px'}}>{fmtHrs(toilWorked)} worked → {fmtHrs(toilBanked)}{toilWaiting>0?'':' banked'}</span></>,null,null,
         // Unsubmitted TOIL isn't in the balance yet (TOIL page) — say how
@@ -151,8 +162,8 @@ export function TabSummary({
         {e.takeAs==='mix'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'var(--tag-purple)',flexShrink:0}}>Mix</span>}
         <span style={{flex:1}}/>
         {extra}
-        <Tooltip label="Edit entry"><button onClick={onEdit} aria-label="Edit this record" style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',borderRadius:'8px',background:'var(--chip-bg)',border:'none',cursor:'pointer',padding:0}}><Ico n="edit" s={13} c="#64748b"/></button></Tooltip>
-        <Tooltip label="Delete entry"><button onClick={onDelete} aria-label="Delete this record" style={{flexShrink:0,marginLeft:'6px',display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',borderRadius:'8px',background:deleting?'var(--tint-red)':'transparent',border:'none',cursor:'pointer',padding:0,transition:'all 0.15s'}}><Ico n="trash" s={13} c="#ef4444"/></button></Tooltip>
+        <Tooltip label="Edit shift"><button onClick={onEdit} aria-label="Edit this shift" style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',borderRadius:'8px',background:'var(--chip-bg)',border:'none',cursor:'pointer',padding:0}}><Ico n="edit" s={13} c="#64748b"/></button></Tooltip>
+        <Tooltip label="Delete shift"><button onClick={onDelete} aria-label="Delete this shift" style={{flexShrink:0,marginLeft:'6px',display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',borderRadius:'8px',background:deleting?'var(--tint-red)':'transparent',border:'none',cursor:'pointer',padding:0,transition:'all 0.15s'}}><Ico n="trash" s={13} c="#ef4444"/></button></Tooltip>
       </div>
       {showDate&&<div style={{fontSize:'12.5px',fontWeight:600,color:'var(--muted)',marginTop:'1px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.reason||'Shift'}</div>}
     </>
@@ -326,9 +337,9 @@ export function TabSummary({
           const paCounted = isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e))===idx;
           const isCross = periodIdxForDate(e.date)!==idx;
           if (otCounted) {
-            if (c.h1>0) { tierHours.t133+=c.h1; tierDates.t133.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t133+=c.ot1; }
-            if (c.h2>0) { tierHours.t150+=c.h2; tierDates.t150.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t150+=c.ot2; }
-            if (c.h3>0) { tierHours.t200+=c.h3; tierDates.t200.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t200+=c.ot3; }
+            if (c.payH1>0) { tierHours.t133+=c.payH1; tierDates.t133.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t133+=c.ot1; }
+            if (c.payH2>0) { tierHours.t150+=c.payH2; tierDates.t150.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t150+=c.ot2; }
+            if (c.payH3>0) { tierHours.t200+=c.payH3; tierDates.t200.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t200+=c.ot3; }
           }
           if (paCounted) {
             if(e.paRate==='PA1'){pa1++; paDates.PA1.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA1+=c.pa;}
@@ -382,7 +393,7 @@ export function TabSummary({
                 <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)'}}><span>PA3 × {pa3}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA3)}</span></div>
                 <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA3,'#b45309')}</div>
               </div>}
-              {pa1===0&&pa2===0&&pa3===0&&<div style={{fontSize:'12px',fontWeight:700,color:'#b45309'}}>None this period</div>}
+              {pa1===0&&pa2===0&&pa3===0&&<div style={{fontSize:'12px',fontWeight:700,color:'#b45309'}}>None this pay month</div>}
             </div>
           </>
         );
@@ -457,7 +468,7 @@ export function TabSummary({
                   <button onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{display:'flex',alignItems:'center',gap:'11px',width:'100%',background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginTop:'11px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
                     <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="checklist" s={15} c={BRASS}/></div>
                     <div style={{flex:1}}>
-                      <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Awaiting submission</div>
+                      <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Overtime &amp; PA to submit</div>
                       <div style={{fontSize:'10px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>CARMS &amp; PSOP</div>
                     </div>
                     <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(g.periodTotal)}</div>
@@ -480,15 +491,15 @@ export function TabSummary({
 
                 <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'9px'}}>Shifts</div>
 
-                {pE.length===0
+                {pE.length+lateInto(p).length===0
                   ?<div style={{textAlign:'center',padding:'20px 10px 24px'}}>
                     <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
                       <Ico n="cal" s={18} c="#1e40af" w={2}/>
                     </div>
-                    <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No records yet this period</div>
+                    <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No shifts yet this pay month</div>
                     <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log a shift and it'll show up here</div>
                   </div>
-                  :[...pE].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e=>{
+                  :[...[...pE].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(p)].map(e=>{
                     const c=calcEntry(e);
                     const isFut=e.date>todayStr;
                     // what this shift adds to take-home in the month it lands in
@@ -516,7 +527,7 @@ export function TabSummary({
                         {/* delete confirmation */}
                         {confirmDel===e.id&&(
                           <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
-                            <span style={{fontSize:'14px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this record?</span>
+                            <span style={{fontSize:'14px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this shift?</span>
                             <div style={{display:'flex',gap:'7px',flexShrink:0}}>
                               <button onClick={()=>setConfirmDel(null)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:'5px 12px',fontSize:'13px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
                               <button onClick={()=>delEntry(e.id)} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'13px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
@@ -621,15 +632,15 @@ export function TabSummary({
               <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'var(--quiet)'}}>Shifts {fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
             </div>
 
-            {cEntries.length===0 ? (
+            {cEntries.length+lateInto(cPeriod).length===0 ? (
               <div style={{textAlign:'center',padding:'20px 10px 24px'}}>
                 <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
                   <Ico n="cal" s={18} c="#1e40af" w={2}/>
                 </div>
-                <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No records yet this period</div>
+                <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No shifts yet this pay month</div>
                 <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log a shift and it'll show up here</div>
               </div>
-            ) : [...cEntries].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e=>{
+            ) : [...[...cEntries].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(cPeriod)].map(e=>{
               const c = calcEntry(e);
               const tiers = [];
               if (c.h1>0) tiers.push(TIER_LABEL.h1);
@@ -660,7 +671,7 @@ export function TabSummary({
                   {/* delete confirmation — same shape as List View's own */}
                   {confirmDel===e.id&&(
                     <div onClick={ev=>ev.stopPropagation()} style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'8px 10px',marginTop:'7px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
-                      <span style={{fontSize:'12px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this record?</span>
+                      <span style={{fontSize:'12px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this shift?</span>
                       <div style={{display:'flex',gap:'6px',flexShrink:0}}>
                         <button onClick={()=>setConfirmDel(null)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'7px',padding:'4px 10px',fontSize:'11.5px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
                         <button onClick={()=>delEntry(e.id)} style={{background:'#dc2626',border:'none',borderRadius:'7px',padding:'4px 10px',fontSize:'11.5px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
@@ -749,9 +760,9 @@ export function TabSummary({
           const paCounted = isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e))===cIdx;
           const isCross = periodIdxForDate(e.date)!==cIdx;
           if (otCounted) {
-            if (c.h1>0) { pTierHours.t133+=c.h1; pTierDates.t133.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pTierGross.t133+=c.ot1; }
-            if (c.h2>0) { pTierHours.t150+=c.h2; pTierDates.t150.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pTierGross.t150+=c.ot2; }
-            if (c.h3>0) { pTierHours.t200+=c.h3; pTierDates.t200.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pTierGross.t200+=c.ot3; }
+            if (c.payH1>0) { pTierHours.t133+=c.payH1; pTierDates.t133.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pTierGross.t133+=c.ot1; }
+            if (c.payH2>0) { pTierHours.t150+=c.payH2; pTierDates.t150.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pTierGross.t150+=c.ot2; }
+            if (c.payH3>0) { pTierHours.t200+=c.payH3; pTierDates.t200.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pTierGross.t200+=c.ot3; }
           }
           if (paCounted) {
             if(e.paRate==='PA1'){ppa1++; pPaDates.PA1.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pPaGross.PA1+=c.pa;}
@@ -762,7 +773,7 @@ export function TabSummary({
 
         const dayInfo = (date) => {
           if (!date) return null;
-          const ds = date.toISOString().split('T')[0];
+          const ds = localDateStr(date);
           const dEntries = cEntries.filter(e=>e.date===ds);
           let h1=0,h2=0,h3=0;
           dEntries.forEach(e=>{ const c=calcEntry(e); h1+=c.h1; h2+=c.h2; h3+=c.h3; });
@@ -828,7 +839,7 @@ export function TabSummary({
             </div>
 
 
-            <div className="hint-pulse" style={{fontSize:'14px',color:'var(--quiet)',textAlign:'center',fontWeight:600,margin:'10px 0'}}>Tap a day to view details or add an entry</div>
+            <div className="hint-pulse" style={{fontSize:'14px',color:'var(--quiet)',textAlign:'center',fontWeight:600,margin:'10px 0'}}>Tap a day to see its shifts or log one</div>
 
             {/* calendar grid */}
             <div
@@ -929,7 +940,7 @@ export function TabSummary({
                     <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--border)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>No OT — Info Only</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
-                      <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>OT/PA Counted Other Period</span>
+                      <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Counted in another pay month</span>
                     </div>
                   </div>
                   <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:'18px'}}>
@@ -938,9 +949,9 @@ export function TabSummary({
                       <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'8px',height:'8px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>TOIL</span></div>
                     </div>
                     <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'18px'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--ink)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>1.33x</span></div>
-                      <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#059669'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>1.5x</span></div>
-                      <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#dc2626'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>2.0x</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--ink)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>1.33×</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#059669'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>1.5×</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'#dc2626'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>2×</span></div>
                     </div>
                   </div>
                 </div>
@@ -960,7 +971,7 @@ export function TabSummary({
                       <div style={{width:'11px',display:'flex',justifyContent:'center',flexShrink:0}}>
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
                       </div>
-                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>OT/PA Counted Other Period</span>
+                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Counted in another pay month</span>
                     </div>
                   </div>
                   <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'8px'}}>
@@ -969,9 +980,9 @@ export function TabSummary({
                       <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'7px',height:'7px',borderRadius:'50%',background:'#7c3aed'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>TOIL</span></div>
                     </div>
                     <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--ink)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>1.33x</span></div>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#059669'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>1.5x</span></div>
-                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#dc2626'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>2.0x</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--ink)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>1.33×</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#059669'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>1.5×</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'#dc2626'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>2×</span></div>
                     </div>
                   </div>
                 </div>

@@ -247,7 +247,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
               return [
                 <tr key={'h'+g.periodIdx} ref={el=>{ periodGroupRefs.current[g.periodIdx]=el; }} className={pulsePeriodIdx===g.periodIdx?'carms-pulse':''}>
                   <td colSpan={5} style={{padding:'9px 12px',background:'var(--surface-2)',borderBottom:'1px solid var(--border-2)'}}>
-                    <span style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>{payLabel(g.period.month)}</span>
+                    <span style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>{payLabel(g.period.month)}{g.otherYear?` ${g.period.month.split(' ')[1]}`:''}</span>
                     <span style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginLeft:'8px'}}>{shiftSpan(g.period.start,g.period.end)} · {groupRows.length} claim{groupRows.length!==1?'s':''}</span>
                   </td>
                   <td style={{padding:'9px 12px',background:'var(--surface-2)',borderBottom:'1px solid var(--border-2)',textAlign:'right',fontFamily:MONO,fontSize:'13px',fontWeight:700,color:BRASS,whiteSpace:'nowrap'}}>{groupTotal(visibleItems)}</td>
@@ -305,7 +305,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
     return (
       <div key={g.periodIdx} ref={el=>periodGroupRefs.current[g.periodIdx]=el} className={pulsePeriodIdx===g.periodIdx?'carms-pulse':''} style={{marginBottom:'14px',borderRadius:'14px',border:pulsePeriodIdx===g.periodIdx?'2px solid #2563eb':'2px solid transparent'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'8px 4px',borderBottom:'1px solid var(--border-2)'}}>
-          <span><span style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{payLabel(g.period.month)}</span> <span style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>· {shiftSpan(g.period.start,g.period.end).replace('Shifts','shifts')}</span></span>
+          <span><span style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{payLabel(g.period.month)}{g.otherYear?` ${g.period.month.split(' ')[1]}`:''}</span> <span style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>· {shiftSpan(g.period.start,g.period.end).replace('Shifts','shifts')}</span></span>
           <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:BRASS}}>{groupTotalLabel}</span>
         </div>
         <div style={{padding:'10px 0 2px'}}>
@@ -337,7 +337,8 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
 
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
-      <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 18px',letterSpacing:'-0.5px'}}>CARMS &amp; PSOP Awaiting Submission</h2>
+      <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 18px',letterSpacing:'-0.5px'}}>Awaits Submission</h2>
+      <div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',margin:'-14px 0 16px'}}>Overtime to claim on CARMS, Protection Allowance on PSOP</div>
 
       {/* ── one summary card: the total, what it's made of, and the one
            thing to know about it (it isn't in your gross yet) ── */}
@@ -354,7 +355,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
         <div style={{fontSize:'11px',color:'#fcd34d',fontWeight:600,lineHeight:1.5,marginTop:isWide?0:'10px',maxWidth:isWide?'330px':'none'}}>
           {anyOutstanding
             ? <>Not counted in your gross pay until you mark it submitted. Spacing claims out can keep a payday steadier.</>
-            : <>Everything logged has been claimed.</>}
+            : <>Everything logged has been claimed. Shifts dated in the future join once their date arrives.</>}
         </div>
       </div>
 

@@ -57,15 +57,15 @@ export function PrivacyNotice({ onClose }) {
           <ul style={{ margin: '0 0 8px', paddingLeft: '18px' }}>
             <li style={li}>Your account email address</li>
             <li style={li}>The shifts, overtime, and TOIL you log — dates, times, duty type, and rate tier</li>
-            <li style={li}>Your rank, pay point, and force/unit settings, used to calculate pay</li>
-            <li style={li}>CARMS and PA claim submission status and dates</li>
+            <li style={li}>Your rank and pay point (and the dates they changed), used to calculate pay</li>
+            <li style={li}>Whether and when you've claimed overtime on CARMS and Protection Allowance on PSOP</li>
           </ul>
           <p style={p}>Nothing beyond this is collected — no location tracking, no device fingerprinting, no analytics or advertising identifiers, and nothing that UK GDPR treats as special category data (health, biometric, etc.).</p>
         </div>
 
         <div style={sec}>
           <h3 style={h3}>Why, and on what basis</h3>
-          <p style={p}>Solely to give you overtime, TOIL, and pay tracking against the pay calendar you've asked to use. The legal basis is your <span style={strong}>consent</span>, given when you tick the box at sign-up — you can withdraw it at any time by deleting your account in Settings, which removes your cloud data immediately.</p>
+          <p style={p}>Solely to give you overtime, TOIL, and pay tracking against the pay calendar you've asked to use. The legal basis is your <span style={strong}>consent</span>, given when you tick the box at sign-up — you can withdraw it at any time by deleting your account in More.., which removes your cloud data immediately.</p>
         </div>
 
         <div style={sec}>
@@ -91,9 +91,9 @@ export function PrivacyNotice({ onClose }) {
           <h3 style={h3}>Your rights</h3>
           <p style={p}>Most of these are already built into the app, not something you need to email anyone for:</p>
           <ul style={{ margin: '0 0 8px', paddingLeft: '18px' }}>
-            <li style={li}><span style={strong}>Access &amp; portability</span> — Settings → Account &amp; Data Management → Backup gives you a full, structured copy of everything held on you.</li>
+            <li style={li}><span style={strong}>Access &amp; portability</span> — More.. → Account &amp; Data Management → Backup gives you a full, structured copy of everything held on you.</li>
             <li style={li}><span style={strong}>Rectification</span> — edit any entry or TOIL record directly.</li>
-            <li style={li}><span style={strong}>Erasure</span> — Settings → Delete Account removes your account and cloud data permanently.</li>
+            <li style={li}><span style={strong}>Erasure</span> — More.. → Account &amp; Data Management → Delete account removes your account and cloud data permanently.</li>
             <li style={li}><span style={strong}>Object, or raise a concern</span> — email the controller above.</li>
             <li style={li}><span style={strong}>Complain to the regulator</span> — you can also contact the Information Commissioner's Office at <a href="https://ico.org.uk" target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontWeight: 700 }}>ico.org.uk</a> or 0303 123 1113, at any time.</li>
           </ul>

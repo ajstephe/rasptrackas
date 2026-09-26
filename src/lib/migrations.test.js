@@ -67,7 +67,8 @@ describe('parseBackupFile — the fix for a wrong-file-picked crash', () => {
     expect(result.ok).toBe(true);
     expect(result.entries[0]).toMatchObject({ otSubmitted: true, paSubmitted: true, otSubmittedDate: '2026-01-15' });
     expect(result.settings).toEqual({ rank: validRank, service: validService });
-    expect(result.toilTaken).toEqual([{ id: 't1', date: '2026-01-01', hours: 3 }]);
+    expect(result.toilTaken).toEqual([{ id: 't1', date: '2026-01-01', hours: 3, note: '' }]);
+    expect(result.skipped).toBe(0);
   });
 
   it('does not run toilTaken through migrateEntries — it has no CARMS-submission fields to default', () => {
@@ -77,9 +78,25 @@ describe('parseBackupFile — the fix for a wrong-file-picked crash', () => {
     expect(result.toilTaken[0]).not.toHaveProperty('otSubmittedDate');
   });
 
-  it('defaults settings and toilTaken when the backup omits them entirely, same as the old code did', () => {
+  it('keeps your current settings when an older backup has none, and defaults toilTaken', () => {
     const result = parseBackupFile(JSON.stringify({ entries: [] }));
-    expect(result).toEqual({ ok: true, entries: [], settings: { rank: '', service: '' }, toilTaken: [] });
+    expect(result).toEqual({ ok: true, entries: [], settings: null, toilTaken: [], skipped: 0 });
+  });
+
+  it('skips damaged records instead of letting them crash the app, and says how many', () => {
+    const result = parseBackupFile(JSON.stringify({
+      entries: [null, {}, { id:'e1' }, { id:'e2', date:'2026-05-01', hours133:'1' }],
+      toilTaken: [{ id:'t1', hours:2 }, { id:'t2', date:'2026-05-02', hours:'1.5' }],
+    }));
+    expect(result.ok).toBe(true);
+    expect(result.entries.map(e=>e.id)).toEqual(['e2']);
+    expect(result.toilTaken).toEqual([{ id:'t2', date:'2026-05-02', hours:1.5, note:'' }]);
+    expect(result.skipped).toBe(4);
+  });
+
+  it('keeps a dated pay point history in settings, dropping any broken steps', () => {
+    const s = migrateSettings({ rank: validRank, service: validService, payHistory:[ { from:'', rank:validRank, service:validService }, { from:'nope', rank:validRank, service:validService }, { from:'2026-10-01', rank:'X', service:'Y' } ] });
+    expect(s.payHistory).toEqual([{ from:'', rank:validRank, service:validService }]);
   });
 
   it('rejects text that is not valid JSON at all — the wrong file entirely — instead of throwing', () => {

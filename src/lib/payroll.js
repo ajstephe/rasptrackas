@@ -1,6 +1,7 @@
 import { calcEntry, isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate } from './calc.js';
 import { pensionTierRate, payeTaxToDate, payeNI, payeBandName, LONDON_WEIGHTING, LONDON_ALLOWANCE } from './tax.js';
 import { RATE_CHANGE_DATE } from './payPeriods.js';
+import { svcDataOn } from './payRates.js';
 
 // ─── payroll: one pay month = one PAYE tax month ─────────────────────────────
 // Pay lands on the 20th of the month each pay period is named after, so
@@ -59,36 +60,53 @@ export const periodNet = (pb, ot, pa) =>
   paySlice(pb.cumBase, ot, pb.taxMonth, pb.baseAmt).net +
   paySlice(pb.cumBase+ot, pa, pb.taxMonth, pb.baseAmt+ot).net;
 
-// All twelve pay months of one pay year (= one tax year).
+// Runs the twelve payslips of one pay year (= one tax year) given each
+// month's overtime and PA. `svcData` pins one pay point (tests); otherwise
+// each month uses the pay point in force on its pay date.
+export const runPayYear = ({ periods, settings, svcData, money }) => {
+  let cum = 0, taxToDate = 0;
+  return periods.map((p,i)=>{
+    const payDate = payDateOf(p);
+    const taxMonth = i+1;
+    const svc = svcData !== undefined ? svcData : svcDataOn(settings, payDate);
+    const m = monthlyPay(svc, payDate);
+    const pensionRate = svc ? pensionTierRate(m.annualPensionable) : 0;
+    const periodPension = Math.round((m.pensionable * pensionRate + Number.EPSILON)*100)/100;
+    const cumBase = cum + m.base - periodPension;   // salary is taxed first, net of pension
+    const { ot=0, pa=0, parts=[] } = money[i] || {};
+    const otResult = paySlice(cumBase, ot, taxMonth, m.base);
+    const paResult = paySlice(cumBase+ot, pa, taxMonth, m.base+ot);
+    cum = cumBase + ot + pa;
+    // The whole payslip for the month: salary and allowances plus overtime/PA.
+    const newTaxToDate = payeTaxToDate(cum, taxMonth);
+    const monthTax = newTaxToDate - taxToDate;
+    taxToDate = newTaxToDate;
+    const monthGross = m.base + ot + pa;
+    const monthNI = payeNI(monthGross);
+    return {
+      month:p.month, start:p.start, end:p.end, payDate, taxMonth,
+      baseAmt:m.base, salary:m.salary, lw:m.lw, la:m.la,
+      pensionablePayThisPeriod:m.pensionable, pensionRate, periodPension,
+      ot, pa, otResult, paResult,
+      combinedGross: ot+pa, combinedNet: otResult.net+paResult.net,
+      cumBase, cumAfter: cum, parts,
+      monthGross, monthTax, monthNI, monthNet: monthGross - periodPension - monthTax - monthNI, taxToDate,
+    };
+  });
+};
+
+// All twelve pay months of one pay year, from the claims logged.
 export const buildPayYear = ({ periods, entries, settings, svcData }) => {
   const partsBy = periods.map(()=>[]);
   entries.forEach(e=>claimedParts(e, settings).forEach(part=>{
     const i = periods.findIndex(p=>part.date>=p.start&&part.date<=p.end);
     if (i>=0) partsBy[i].push(part);
   }));
-  let cum = 0;
-  return periods.map((p,i)=>{
-    const payDate = payDateOf(p);
-    const m = monthlyPay(svcData, payDate);
-    const yearFraction = (i+1)/12;
-    const pensionRate = svcData ? pensionTierRate(m.annualPensionable) : 0;
-    const periodPension = Math.round((m.pensionable * pensionRate + Number.EPSILON)*100)/100;
-    const cumBase = cum + m.base - periodPension;   // salary is taxed first, net of pension
-    const parts = partsBy[i].sort((a,b)=>a.entry.date.localeCompare(b.entry.date) || String(a.entry.id).localeCompare(String(b.entry.id)) || (a.kind==='ot'?-1:1));
-    const ot = parts.filter(x=>x.kind==='ot').reduce((s,x)=>s+x.amount,0);
-    const pa = parts.filter(x=>x.kind==='pa').reduce((s,x)=>s+x.amount,0);
-    const otResult = paySlice(cumBase, ot, i+1, m.base);
-    const paResult = paySlice(cumBase+ot, pa, i+1, m.base+ot);
-    cum = cumBase + ot + pa;
-    return {
-      month:p.month, start:p.start, end:p.end, payDate, taxMonth:i+1, yearFraction,
-      baseAmt:m.base, salary:m.salary, lw:m.lw, la:m.la,
-      pensionablePayThisPeriod:m.pensionable, pensionRate, periodPension,
-      ot, night:0, pa, otResult, nightResult:zeroResult, paResult,
-      combinedGross: ot+pa, combinedNet: otResult.net+paResult.net,
-      cumBase, cumAfter: cum, inCurrentTaxYear: true, parts,
-    };
+  const money = partsBy.map(list=>{
+    const parts = list.sort((a,b)=>a.entry.date.localeCompare(b.entry.date) || String(a.entry.id).localeCompare(String(b.entry.id)) || (a.kind==='ot'?-1:1));
+    return { parts, ot: parts.filter(x=>x.kind==='ot').reduce((s,x)=>s+x.amount,0), pa: parts.filter(x=>x.kind==='pa').reduce((s,x)=>s+x.amount,0) };
   });
+  return runPayYear({ periods, settings, svcData, money });
 };
 
 // Each claimed part's share of its pay month's take-home, stacked in date

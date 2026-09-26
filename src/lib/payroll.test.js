@@ -26,9 +26,7 @@ describe('pay months as PAYE months', () => {
   it('makes April pay tax month 1 and March pay tax month 12', () => {
     const y = year([]);
     expect(y[0].taxMonth).toBe(1);
-    expect(y[0].yearFraction).toBeCloseTo(1/12, 10);
     expect(y[11].taxMonth).toBe(12);
-    expect(y[11].yearFraction).toBe(1);
   });
 
   it('pays a twelfth of salary each month, at the new rate from September pay', () => {
@@ -45,6 +43,18 @@ describe('pay months as PAYE months', () => {
       expect(deducted).toBeGreaterThan(0.215);   // 20% tax + at least 2% NI
       expect(deducted).toBeLessThan(0.285);      // 20% tax + 8% NI, give or take payroll's whole-pound rounding
     });
+  });
+});
+
+describe('pay point changes', () => {
+  it('prices shifts and salary by the pay point in force on the date', () => {
+    const settings = { rank:'Constable', service:'PC 5', payHistory:[ { from:'', rank:'Constable', service:'PC 4' }, { from:'2026-10-01', rank:'Constable', service:'PC 5' } ] };
+    const before = shift('2026-09-09', { hours133:'2' }), after = shift('2026-10-05', { hours133:'2' });
+    const y = buildPayYear({ periods: PERIODS, entries:[before, after], settings });
+    expect(y[7].parts.find(p=>p.entry===before).amount).toBeCloseTo(2*PAY_RATES.Constable['PC 4'].post.r133, 2);
+    expect(y[7].parts.find(p=>p.entry===after).amount).toBeCloseTo(2*PAY_RATES.Constable['PC 5'].post.r133, 2);
+    expect(y[5].salary).toBeCloseTo(PAY_RATES.Constable['PC 4'].salary.post/12, 2);   // September pay
+    expect(y[6].salary).toBeCloseTo(PAY_RATES.Constable['PC 5'].salary.post/12, 2);   // October pay
   });
 });
 

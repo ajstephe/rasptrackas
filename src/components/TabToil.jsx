@@ -88,7 +88,9 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
       <Ico n="trash" s={10} c="#dc2626"/> Remove
     </button>
   ));
-  const shortDate = d => new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  // Adds the year for anything outside this calendar year, so rows from
+  // different years can't be mistaken for each other.
+  const shortDate = d => { const dt = new Date(d+'T12:00:00'); return dt.toLocaleDateString('en-GB', dt.getFullYear()===new Date().getFullYear() ? {day:'numeric',month:'short'} : {day:'numeric',month:'short',year:'numeric'}); };
   const change = l => <span style={{color:l.type==='pending'?'var(--tag-purple)':l.type==='earned'?'#059669':'#dc2626'}}>{l.hours>=0?'+':''}{fmtHrs(l.hours)}</span>;
   const sub = l => l.type==='pending' ? 'Waiting to submit · not in balance yet' : l.type==='earned' ? (l.detail||'Banked from a shift') : (l.note==='TOIL taken' ? '' : 'TOIL taken');
 

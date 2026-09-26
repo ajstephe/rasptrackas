@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CURRENT_FY_YEAR, generateFYPeriods } from '../lib/payPeriods.js';
+import { CURRENT_FY_YEAR, generateFYPeriods, localDateStr } from '../lib/payPeriods.js';
 import { PAY_RATES } from '../lib/payRates.js';
-import { calcUKIncomeTax, calcUKIncomeTaxNoTaper, computeTaxBandBreakdown, calcPensionContribution } from '../lib/tax.js';
 import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { PrivacyNotice } from './PrivacyNotice.jsx';
@@ -37,7 +36,7 @@ export function TabSettings({
   financialYearsExpanded, setFinancialYearsExpanded,
   exportDataExpanded, setExportDataExpanded,
   dataManagementExpanded, setDataManagementExpanded,
-  settings, saveSett, totals, taxForecast, entries, currPeriodIdx,
+  settings, saveSett, totals, taxView, entries, currPeriodIdx,
   setExportFormat, setPayslipMode, setPayslipPeriodIdx, setPayslipFYYear, setPayslipModalOpen,
   session, handleExport, pulseBackupBtn, setRestoreConfirmOpen, fileRef, handleImport,
   wipeConf, setWipeConf, handleWipe, wipingData,
@@ -52,6 +51,40 @@ export function TabSettings({
   // Pay scales table in Config: just your own rank around your pay point
   // until "Show all pay scales" is tapped.
   const [showAllScales, setShowAllScales] = useState(false);
+  // A change of rank or pay point once you're set up: held here until you
+  // say when it took effect, so earlier shifts and paydays keep the rates
+  // they were actually paid at (see payPointOn in lib/payRates.js).
+  const [pendingPay, setPendingPay] = useState(null); // { rank, service }
+  const [pendingFrom, setPendingFrom] = useState(localDateStr());
+  const setUp = !!(settings.rank && settings.service);
+  const payHistoryOf = s => (Array.isArray(s.payHistory) && s.payHistory.length) ? s.payHistory : [{ from:'', rank:s.rank, service:s.service }];
+  const confirmPayChange = (asCorrection) => {
+    if (!pendingPay?.service) return;
+    if (asCorrection) {
+      // A correction: this was always the right pay point.
+      const { payHistory, ...rest } = settings;
+      const hist = payHistoryOf(settings);
+      const fixed = hist.length>1 ? hist.slice(0,-1).concat([{ ...hist[hist.length-1], rank:pendingPay.rank, service:pendingPay.service }]) : null;
+      saveSett(fixed ? { ...rest, rank:pendingPay.rank, service:pendingPay.service, payHistory:fixed } : { ...rest, rank:pendingPay.rank, service:pendingPay.service });
+    } else {
+      const from = pendingFrom || localDateStr();
+      const hist = payHistoryOf(settings).filter(x => (x.from||'') < from);
+      const base = hist.length ? hist : [{ from:'', rank:settings.rank, service:settings.service }];
+      const payHistory = [...base, { from, rank:pendingPay.rank, service:pendingPay.service }];
+      // The pay point shown everywhere is the latest one.
+      const latest = [...payHistory].sort((a,b)=>(a.from||'').localeCompare(b.from||'')).pop();
+      saveSett({ ...settings, rank:latest.rank, service:latest.service, payHistory });
+    }
+    setPendingPay(null); setPendingFrom(localDateStr());
+  };
+  const undoLastPayChange = () => {
+    const hist = payHistoryOf(settings);
+    if (hist.length<2) return;
+    const kept = hist.slice(0,-1);
+    const latest = kept[kept.length-1];
+    const { payHistory, ...rest } = settings;
+    saveSett(kept.length>1 ? { ...rest, rank:latest.rank, service:latest.service, payHistory:kept } : { ...rest, rank:latest.rank, service:latest.service });
+  };
   // Mirrored exit for the two destructive confirm cards below (Wipe All
   // Data, Delete Account) — same useMountTransition trick as App.jsx's
   // overlays: cancelling one of these used to hard-cut it away instantly
@@ -123,7 +156,7 @@ export function TabSettings({
   const dataModalContentRef = useRef(null);
 
   // ── mobile Appearance row: an arrow + edge fade whenever themes sit
-  // off-screen, since a phone only fits about five of the eight. ──
+  // off-screen, since a phone only fits about five of the nine. ──
   const themeRowRef = useRef(null);
   const [themeRowEdges, setThemeRowEdges] = useState({ start:true, end:true });
   const updateThemeRowEdges = () => {
@@ -226,7 +259,7 @@ export function TabSettings({
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
-        <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>Settings &amp; More</h2>
+        <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>More..</h2>
         {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'var(--text-green-deep)'}}>Saved</span></div>}
         {/* Mobile-only — same low-key icon pill as the Home screen's
             sign-out button, duplicated here on the title line (right
@@ -376,8 +409,13 @@ export function TabSettings({
               it was ever the actual cause here, so no reason to bring
               that part back too. */}
           <div className={!settings.rank?'setup-pulse-urgent':''} style={{borderRadius:'13px',position:'relative'}}>
-            <select style={{...S.sel,paddingRight:'36px',border: !settings.rank ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.rank ? 900 : 700}} value={settings.rank} onChange={e=>{
+            <select style={{...S.sel,paddingRight:'36px',border: !settings.rank ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.rank ? 900 : 700}} value={pendingPay ? pendingPay.rank : settings.rank} onChange={e=>{
               const r=e.target.value;
+              if (setUp) {
+                // Once set up, a change waits for its "from" date below.
+                if (!r || (r===settings.rank)) return setPendingPay(null);
+                return setPendingPay({ rank:r, service:'' });
+              }
               if(!r) return saveSett({...settings,rank:'',service:''});
               saveSett({...settings,rank:r,service:''});
             }}>
@@ -399,7 +437,7 @@ export function TabSettings({
             Object.keys(PAY_RATES[settings.rank]) below. Now it just
             behaves like no rank is set, matching how App.jsx's own two
             rate lookups already treat this defensively. */}
-        {PAY_RATES[settings.rank]&&(
+        {PAY_RATES[pendingPay ? pendingPay.rank : settings.rank]&&(
           <div>
             <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'7px'}}>
               <label style={{...S.lbl,marginBottom:0}}>Pay Point</label>
@@ -407,12 +445,46 @@ export function TabSettings({
             </div>
             {/* Same restoration, same reasoning, as Rank's wrapper above. */}
             <div className={!settings.service?'setup-pulse-urgent':''} style={{borderRadius:'13px',position:'relative'}}>
-              <select style={{...S.sel,paddingRight:'36px',border: !settings.service ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.service ? 900 : 700}} value={settings.service} onChange={e=>saveSett({...settings,service:e.target.value})}>
+              <select style={{...S.sel,paddingRight:'36px',border: !settings.service ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.service ? 900 : 700}} value={pendingPay ? pendingPay.service : settings.service} onChange={e=>{
+                const v = e.target.value;
+                if (setUp) {
+                  const r = pendingPay ? pendingPay.rank : settings.rank;
+                  if (r===settings.rank && v===settings.service) return setPendingPay(null);
+                  return setPendingPay({ rank:r, service:v });
+                }
+                saveSett({...settings,service:v});
+              }}>
                 <option value="">Select pay point...</option>
-                {Object.keys(PAY_RATES[settings.rank]).map(p=><option key={p} value={p}>{p}</option>)}
+                {Object.keys(PAY_RATES[pendingPay ? pendingPay.rank : settings.rank]).map(p=><option key={p} value={p}>{p}</option>)}
               </select>
               <div style={{position:'absolute',right:'13px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex'}}><Ico n="cD" s={13} c="var(--quiet)" w={2.5}/></div>
             </div>
+          </div>
+        )}
+        {pendingPay && (
+          <div style={{marginTop:'12px',background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px 13px'}}>
+            {pendingPay.service ? (<>
+              <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>When did {pendingPay.service} start?</div>
+              <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',lineHeight:1.5,marginBottom:'9px'}}>Shifts and paydays before this date keep {settings.service}'s rates.</div>
+              <input type="date" value={pendingFrom} onChange={e=>setPendingFrom(e.target.value)} style={{...S.inp,marginBottom:'9px'}}/>
+              <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                <button onClick={()=>confirmPayChange(false)} style={{flex:'1 1 140px',background:'#2563eb',color:'#fff',border:'none',borderRadius:'10px',padding:'10px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Save change</button>
+                <button onClick={()=>setPendingPay(null)} style={{flex:'0 0 auto',background:'var(--surface)',color:'var(--muted)',border:'1px solid var(--border)',borderRadius:'10px',padding:'10px 14px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+              </div>
+              <button onClick={()=>confirmPayChange(true)} style={{background:'none',border:'none',padding:'9px 0 0',fontSize:'11.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',cursor:'pointer',fontFamily:'inherit'}}>It was always {pendingPay.service} — correct it for every date</button>
+            </>) : (
+              <div style={{fontSize:'12px',fontWeight:700,color:'var(--muted)'}}>Now choose the new pay point. <button onClick={()=>setPendingPay(null)} style={{background:'none',border:'none',padding:0,color:'#2563eb',fontWeight:800,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline',fontSize:'12px'}}>Cancel</button></div>
+            )}
+          </div>
+        )}
+        {!pendingPay && Array.isArray(settings.payHistory) && settings.payHistory.length>1 && (
+          <div style={{marginTop:'12px',fontSize:'11.5px',fontWeight:600,color:'var(--muted)',lineHeight:1.6}}>
+            {[...settings.payHistory].sort((a,b)=>(a.from||'').localeCompare(b.from||'')).map((h,i,arr)=>{
+              const next = arr[i+1];
+              const d = x => new Date(x+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+              return <div key={i}><b style={{color:'var(--ink)'}}>{h.service}</b>{h.from?` from ${d(h.from)}`:''}{next?` until ${d(new Date(new Date(next.from+'T12:00:00').getTime()-86400000).toISOString().slice(0,10))}`:''}</div>;
+            })}
+            <button onClick={undoLastPayChange} style={{background:'none',border:'none',padding:'4px 0 0',fontSize:'11.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',cursor:'pointer',fontFamily:'inherit'}}>Undo the last change</button>
           </div>
         )}
         <div style={{display:'flex',alignItems:'center',gap:'8px',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}}>
@@ -432,7 +504,7 @@ export function TabSettings({
                 {[['Pre 1 Sep 2026','pre','var(--muted)','var(--surface-2)'],['From 1 Sep 2026','post','#2563eb','var(--surface)']].map(([label,key,col,bg])=>(
                   <div key={key} style={{background:bg,borderRadius:'12px',padding:'12px',border:key==='post'?'1.5px solid var(--border-2)':'1px solid var(--border-2)'}}>
                     <div style={{fontSize:'10px',fontWeight:900,color:col,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>{label}</div>
-                    {['Base','1.33x','1.5x','2.0x'].map((lbl,i)=>(
+                    {['Base','1.33×','1.5×','2×'].map((lbl,i)=>(
                       <div key={lbl} style={{display:'flex',justifyContent:'space-between',marginBottom:'4px'}}>
                         <span style={{fontSize:'10px',fontWeight:700,color:'var(--muted)'}}>{lbl}</span>
                         <span style={{fontSize:'10px',fontWeight:900,color:key==='post'?'var(--text-navy)':'var(--muted)'}}>£{(svcData[key][['base','r133','r150','r200'][i]]||0).toFixed(2)}</span>
@@ -530,42 +602,24 @@ export function TabSettings({
       })()}
 
       {/* ── Tax & 100K+ Calculator — Actual (YTD) and Forecast (full year), side by side ── */}
-      {settings.rank&&settings.service&&(()=>{
-        const proj = totals.projectedAnnualGross;
-        const ytd  = totals.combinedGrossYTD;
-        const taxYearFraction = totals.taxYearFraction; // whole PAYE months paid so far, n/12
-
-        // Pension contributions come off pay BEFORE income tax is worked
-        // out (a "net pay arrangement"), which is why they reduce the
-        // taxable figure — and therefore the £100k assessment itself —
-        // but never touch National Insurance. Pensionable pay is basic
-        // salary + London Weighting only; London Allowance and all
-        // overtime/PA are non-pensionable, so they play no part here.
-        const pensionablePayA = totals.salaryYTD + totals.lwYTD;
-        const pensionA = calcPensionContribution(pensionablePayA, taxYearFraction);
-
-        // Forecast — full year, matches how the rest of the app already
-        // treats projections (yearFraction = 1). Sourced from the
-        // shared taxForecast memo (see its own definition above)
-        // rather than computed inline here.
-        const { pensionablePayF, pensionF, taxableGrossF, overF, paLostF, paRemainingF, extraTaxF, breakdownF, niF, netF } = taxForecast;
-
-        // Actual — year to date, same principle: taxable (post-pension)
-        // YTD figure drives the taper assessment. Personal Allowance is
-        // always an annual concept, so the taper is still judged on the
-        // annualised run-rate; but the amount of that annual allowance
-        // genuinely "used up" by money already banked is the pro-rated
-        // slice.
-        const taxableYTD = Math.max(0, ytd - pensionA.amount);
-        const annualisedFromYTD = taxableYTD / taxYearFraction;
-        const overA = annualisedFromYTD > 100000;
-        const paLostAnnualA = overA ? Math.min(12570, Math.floor((annualisedFromYTD-100000)/2)) : 0;
-        const paRemainingA = 12570 - paLostAnnualA;
-        const paLostProRatedA = paLostAnnualA * taxYearFraction;
-        const extraTaxA = overA ? (calcUKIncomeTax(taxableYTD, taxYearFraction) - calcUKIncomeTaxNoTaper(taxableYTD, taxYearFraction)) : 0;
-        const breakdownA = computeTaxBandBreakdown(taxableYTD, taxYearFraction);
-        const niA = totals.ytdNI; // reuse the real, period-summed figure rather than a lump estimate — unaffected by pension
-        const netA = ytd - pensionA.amount - breakdownA.totalTax - niA;
+      {settings.rank&&settings.service&&taxView&&(()=>{
+        // Both columns come straight from the monthly payslips (see taxView
+        // in App.jsx): Actual = the paydays so far this tax year, Forecast =
+        // all twelve. Tax and NI are worked out the way payroll does; the
+        // £100k taper isn't applied in the month, so its extra tax is shown
+        // on its own as what's likely to be collected later.
+        const A = taxView.actual, F = taxView.forecast;
+        const ytd = A.gross, proj = F.gross;
+        const overA = A.over, overF = F.over;
+        const pensionA = { amount:A.pension, rate:A.pensionRate }, pensionF = { amount:F.pension, rate:F.pensionRate };
+        const pensionablePayA = A.pensionable, pensionablePayF = F.pensionable;
+        const taxableYTD = A.taxable, taxableGrossF = F.taxable;
+        const annualisedFromYTD = A.runRate;
+        const paRemainingA = A.allowanceLeft, paRemainingF = F.allowanceLeft;
+        const paLostProRatedA = A.allowanceLostSoFar, paLostF = F.allowanceLostSoFar;
+        const extraTaxA = A.extraTax, extraTaxF = F.extraTax;
+        const breakdownA = A.breakdown, breakdownF = F.breakdown;
+        const niA = A.ni, niF = F.ni, netA = A.net, netF = F.net;
 
         const over = overA || overF; // header icon reflects risk from either view
 
@@ -591,7 +645,7 @@ export function TabSettings({
               <>
                 <div style={{display:'flex',alignItems:'flex-start',gap:'8px',marginBottom:'13px'}}>
                   <Ico n="shield" s={13} c="#94a3b8"/>
-                  <span style={{fontSize:'11px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>Tax is calculated automatically using real UK income tax bands, applied cumulatively across your salary, allowances and overtime — no manual rate needed.</span>
+                  <span style={{fontSize:'11px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>Worked out the way payroll does: tax code 1257L, month by month, with NI on each month's pay. Above £100k payroll keeps giving you the full tax-free allowance; Extra Tax is what's likely to be collected later.</span>
                 </div>
                 <button onClick={()=>setTaxPrintOpen(true)} style={{width:'100%',marginBottom:'13px',background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'11px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="dl" s={14} c="#fff"/> Print or save as PDF</button>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
@@ -672,7 +726,7 @@ export function TabSettings({
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(ytd)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionA.amount)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableYTD)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Personal Allowance <span style={{color:'var(--quiet)',fontWeight:600}}>(0%, pro-rated)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownA.pa)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Tax-free pay <span style={{color:'var(--quiet)',fontWeight:600}}>(1257L, {A.months} month{A.months!==1?'s':''})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownA.freePay)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownA.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.basicTax)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownA.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.higherTax)}</span></div>
                       {breakdownA.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownA.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.additionalTax)}</span></div>}
@@ -682,14 +736,14 @@ export function TabSettings({
                       <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(breakdownA.totalTax)}</span>
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',background:'var(--surface-2)',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>National Insurance (YTD) <span style={{color:'var(--quiet)',fontWeight:600}}>(on full gross)</span></span>
+                      <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>National Insurance (YTD) <span style={{color:'var(--quiet)',fontWeight:600}}>(each month's pay)</span></span>
                       <span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(niA)}</span>
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-green-deep)'}}>Estimated Net (YTD)</span>
+                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-green-deep)'}}>Net pay (YTD)</span>
                       <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-green-deep)'}}>{fmtGBP(netA)}</span>
                     </div>
-                    <div style={{fontSize:'9px',color:'var(--quiet)',lineHeight:1.5,marginTop:'8px'}}>What's owed on money genuinely banked so far — not a projection. Pension tier is estimated from your current pay rate, not last scheme year's actual earnings, which is what the real rule technically uses.</div>
+                    <div style={{fontSize:'9px',color:'var(--quiet)',lineHeight:1.5,marginTop:'8px'}}>Your payslips so far this tax year — paydays already paid, not a projection. Pension tier comes from each month's pay rate.</div>
                   </div>
                 )}
 
@@ -700,10 +754,10 @@ export function TabSettings({
                       <span onClick={()=>setTaxCalcForecastDetailOpen(false)} style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',cursor:'pointer'}}>Show less</span>
                     </div>
                     <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (projected annual)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(proj)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (full year)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(proj)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionF.amount)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable Gross</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableGrossF)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Personal Allowance <span style={{color:'var(--quiet)',fontWeight:600}}>(0%)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownF.pa)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Tax-free pay <span style={{color:'var(--quiet)',fontWeight:600}}>(1257L, 12 months)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownF.freePay)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownF.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.basicTax)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:breakdownF.additionalAmt>0?'1px solid var(--border-2)':'none'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownF.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.higherTax)}</span></div>
                       {breakdownF.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownF.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.additionalTax)}</span></div>}
@@ -713,18 +767,18 @@ export function TabSettings({
                       <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(breakdownF.totalTax)}</span>
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',background:'var(--surface-2)',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>National Insurance <span style={{color:'var(--quiet)',fontWeight:600}}>(est., on full gross)</span></span>
+                      <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>National Insurance <span style={{color:'var(--quiet)',fontWeight:600}}>(each month's pay)</span></span>
                       <span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(niF)}</span>
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-green-deep)'}}>Estimated Net Pay</span>
+                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-green-deep)'}}>Net pay (full year)</span>
                       <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-green-deep)'}}>{fmtGBP(netF)}</span>
                     </div>
-                    <div style={{fontSize:'9px',color:'var(--quiet)',lineHeight:1.5,marginTop:'8px'}}>The full income tax and NI computation for the whole year, not just the extra caused by crossing £100k. Pension tier is estimated from your current pay rate, not last scheme year's actual earnings, which is what the real rule technically uses.</div>
+                    <div style={{fontSize:'9px',color:'var(--quiet)',lineHeight:1.5,marginTop:'8px'}}>All twelve payslips: salary as known, overtime and PA at your pace so far. Pension tier comes from each month's pay rate.</div>
                   </div>
                 )}
 
-                <div style={{fontSize:'9.5px',color:'var(--quiet)',lineHeight:1.5,marginTop:'10px'}}>Based on your current pay rate projected across the tax year. Pension figures follow the 2015 Police Pension Scheme (England & Wales) rates effective 1 April 2026. Please do your own due diligence and if needs be consult an accountant/HMRC or your pension provider.</div>
+                <div style={{fontSize:'9.5px',color:'var(--quiet)',lineHeight:1.5,marginTop:'10px'}}>Based on your pay rates for each payday this tax year. Pension figures follow the 2015 Police Pension Scheme (England & Wales) rates from 1 April 2026. Please check anything you rely on, and if need be, consult an accountant, HMRC or your pension provider.</div>
               </>
             );
         if (taxModalOpen) taxModalContentRef.current = <>{cardHeader}<div style={{marginTop:'12px'}}>{cardBody}</div></>;
@@ -747,13 +801,13 @@ export function TabSettings({
             {printRow('Gross', fmtGBP(gross))}
             {printRow(`Pension Contribution (${(pensionRate*100).toFixed(2)}% of ${fmtGBP(pensionablePay)} pensionable pay)`, '−'+fmtGBP(pension))}
             {printRow('Taxable Gross', fmtGBP(taxable))}
-            {printRow('Personal Allowance', fmtGBP(pa))}
+            {printRow('Tax-free pay (1257L)', fmtGBP(pa))}
             {printRow(`Basic Rate (20% on ${fmtGBP(breakdown.basicAmt)})`, fmtGBP(breakdown.basicTax))}
             {printRow(`Higher Rate (40% on ${fmtGBP(breakdown.higherAmt)})`, fmtGBP(breakdown.higherTax))}
             {breakdown.additionalAmt>0 && printRow(`Additional Rate (45% on ${fmtGBP(breakdown.additionalAmt)})`, fmtGBP(breakdown.additionalTax))}
             {printRow('Total Income Tax', fmtGBP(breakdown.totalTax), {bold:true})}
             {printRow('National Insurance', fmtGBP(ni))}
-            {printRow('Estimated Net Pay', fmtGBP(net), {bold:true, noBorder:true})}
+            {printRow('Net pay', fmtGBP(net), {bold:true, noBorder:true})}
             <div style={{marginTop:'12px',fontSize:'12px',color: over?'#dc2626':'#059669',fontWeight:700}}>
               {over
                 ? `Over the £100k taper threshold — ${fmtGBP(extraTax)} extra tax from ${fmtGBP(paRemaining===12570?0:12570-paRemaining)} of Personal Allowance lost, ${fmtGBP(paRemaining)} remaining.`
@@ -780,12 +834,12 @@ export function TabSettings({
                 </div>
                 <div className="payslip-print-doc" style={{maxWidth:'640px',margin:'0 auto',background:'#fff'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'6px'}}>
-                    <div style={{fontSize:'20px',fontWeight:900,color:'#0f172a'}}>Tax &amp; £100k Calculator</div>
+                    <div style={{fontSize:'20px',fontWeight:900,color:'#0f172a'}}>Tax &amp; 100K+ Calculator</div>
                     <div style={{fontSize:'11px',color:'#64748b',fontWeight:600}}>Generated {new Date().toLocaleDateString('en-GB')}</div>
                   </div>
-                  <div style={{fontSize:'11px',color:'#64748b',marginBottom:'22px',lineHeight:1.5}}>UK income tax and National Insurance, calculated cumulatively across salary, allowances and overtime. Pension figures follow the 2015 Police Pension Scheme (England &amp; Wales) rates effective 1 April 2026. Estimates only — please consult an accountant, HMRC, or your pension provider for anything you intend to rely on.</div>
-                  {printSection('Actual — Year to Date', overA, ytd, pensionA.amount, pensionA.rate, pensionablePayA, taxableYTD, breakdownA.pa, breakdownA, niA, netA, extraTaxA, paRemainingA)}
-                  {printSection('Forecast — Full Year', overF, proj, pensionF.amount, pensionF.rate, pensionablePayF, taxableGrossF, breakdownF.pa, breakdownF, niF, netF, extraTaxF, paRemainingF)}
+                  <div style={{fontSize:'11px',color:'#64748b',marginBottom:'22px',lineHeight:1.5}}>Tax and National Insurance worked out the way payroll does (tax code 1257L, month by month). Pension figures follow the 2015 Police Pension Scheme (England &amp; Wales) rates effective 1 April 2026. Estimates only — please consult an accountant, HMRC, or your pension provider for anything you intend to rely on.</div>
+                  {printSection('Actual — Year to Date', overA, ytd, pensionA.amount, pensionA.rate, pensionablePayA, taxableYTD, breakdownA.freePay, breakdownA, niA, netA, extraTaxA, paRemainingA)}
+                  {printSection('Forecast — Full Year', overF, proj, pensionF.amount, pensionF.rate, pensionablePayF, taxableGrossF, breakdownF.freePay, breakdownF, niF, netF, extraTaxF, paRemainingF)}
                 </div>
               </div>,
               document.body
@@ -830,7 +884,7 @@ export function TabSettings({
               })}
               {yearsWithData.length===0&&<div style={{fontSize:'10.5px',color:'var(--quiet)',textAlign:'center',padding:'6px 0'}}>Past years will appear here once you have entries from before this financial year.</div>}
             </div>
-            <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'10px',lineHeight:1.5}}>Dates are generated from your confirmed pay pattern (4-4-5 weeks, 52 weeks/year). Archived data is only retained for 4 years.</div>
+            <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'10px',lineHeight:1.5}}>Dates follow your pay pattern (4-5-4 weeks, 52 weeks a year). The cloud keeps this year and the last 3; your device keeps everything.</div>
           </>
         );
         if (fyModalOpen) fyModalContentRef.current = <>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></>;
@@ -865,7 +919,7 @@ export function TabSettings({
           <>
             <button onClick={()=>{setExportFormat(null);setPayslipMode('period');setPayslipPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);setPayslipFYYear(CURRENT_FY_YEAR);setPayslipModalOpen(true);}} disabled={entries.length===0} style={{width:'100%',padding:'12px',background: entries.length===0 ? 'var(--chip-bg)' : BRASS,border:'none',borderRadius:'11px',color: entries.length===0 ? 'var(--quiet)' : '#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor: entries.length===0 ? 'default' : 'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="share" s={14} c={entries.length===0?'var(--quiet)':'#fff'}/> Export to PDF or spreadsheet</button>
             {entries.length===0&&<div style={{fontSize:'10px',color:'var(--quiet)',textAlign:'center',marginTop:'8px',fontWeight:600}}>Log a shift first to enable export</div>}
-            <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'8px',lineHeight:1.5}}>Archived data is only retained for 4 years.</div>
+            <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'8px',lineHeight:1.5}}>The cloud keeps this year and the last 3; your device keeps everything.</div>
           </>
         );
         if (exportModalOpen) exportModalContentRef.current = <>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></>;
@@ -972,7 +1026,7 @@ export function TabSettings({
                   <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'transparent',border:'1.5px solid var(--surface-red-mid)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="trash" s={13} c="#b91c1c"/> Delete account</button>
                 ) : (
                   <div className={'alert-pop'+(deleteAcctConf?'':' pop-out')} style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px'}}>
-                    <div style={{fontSize:'11.5px',color:'var(--text-red-deep)',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterward. This can't be undone.</div>
+                    <div style={{fontSize:'11.5px',color:'var(--text-red-deep)',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterwards. This can't be undone.</div>
                     <div style={{fontSize:'10px',color:'#dc2626',fontWeight:900,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Type your email to confirm: {session.user?.email}</div>
                     <input
                       value={deleteAcctTyped}

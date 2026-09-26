@@ -1,5 +1,5 @@
 // ─── financial year — generated, not hardcoded ────────────────────────────────
-// Pay periods follow a fixed 4-4-5-4-4-5-4-4-5-4-4-5 week cycle (52 weeks/364
+// Pay periods follow a fixed 4-5-4-4-5-4-4-5-4-4-5-4 week cycle (52 weeks/364
 // days every year, Monday to Sunday), shifting forward exactly 364 days each
 // year. This was reverse-engineered from two real years of the user's actual
 // pay records — 2022/23 and 2026/27, four years and exactly 208 weeks apart —
@@ -48,7 +48,13 @@ export const getFYStartYearFor = (dateISO) => {
   return FY_ANCHOR_YEAR + Math.floor(daysSinceAnchor/364);
 };
 
-export const CURRENT_FY_YEAR = getFYStartYearFor(new Date().toISOString().split('T')[0]);
+// Today's date as YYYY-MM-DD on the phone's own clock. toISOString() is UTC,
+// which in summer (BST) is still yesterday until 1am — after a night shift
+// that put new shifts and TOIL on the wrong day.
+export const localDateStr = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+export const CURRENT_FY_YEAR = getFYStartYearFor(localDateStr());
 export const PAY_PERIODS = generateFYPeriods(CURRENT_FY_YEAR);
 export const FY_START = PAY_PERIODS[0].start;
 export const FY_END   = PAY_PERIODS[11].end;
@@ -59,7 +65,7 @@ export const FY_END   = PAY_PERIODS[11].end;
 export const CLOUD_RETENTION_CUTOFF = generateFYPeriods(CURRENT_FY_YEAR - 3)[0].start;
 export const isWithinCloudRetention = (dateISO) => dateISO >= CLOUD_RETENTION_CUTOFF;
 
-export const RATE_CHANGE_DATE = '2026-09-01'; // new pay rates + night enhancement from here — a real pay-award date, not a pattern to generate
+export const RATE_CHANGE_DATE = '2026-09-01'; // the 2026 pay award takes effect — a real date, not a pattern to generate
 
 export const daysInclusive = (a,b) => Math.round((new Date(b) - new Date(a)) / 86400000) + 1;
 
@@ -80,28 +86,12 @@ export const buildCalendarWeeks = (period) => {
 };
 
 // ─── UK tax year (6 April – 5 April) ───────────────────────────────────────────
-// This is what actually governs personal allowance/tax band resets — it's
-// different from the force's own pay-year (which starts 9 Feb per PAY_PERIODS
-// above). For anything tax-related we anchor to the REAL tax year, not the
-// pay-year.
+// Pay lands on the 20th of each pay month's named month, so a pay year's
+// twelve paydays fall in one tax year: April pay (20 Apr) is tax month 1 and
+// March pay tax month 12. This works out which tax year a date sits in.
 export const getUKTaxYearStart = dateStr => {
   const d = new Date(dateStr);
   const y = d.getFullYear();
   const apr6ThisYear = `${y}-04-06`;
   return dateStr >= apr6ThisYear ? apr6ThisYear : `${y-1}-04-06`;
-};
-export const addYearMinusOneDay = dateStr => {
-  const d = new Date(dateStr);
-  d.setFullYear(d.getFullYear()+1);
-  d.setDate(d.getDate()-1);
-  return d.toISOString().split('T')[0];
-};
-// How far into the UK tax year CONTAINING this date we are, as a continuous
-// 0-1 fraction (6 Apr = just past 0, 5 Apr next year = 1). Used to pro-rate
-// annual PA/band thresholds for a specific date, regardless of which pay
-// period it happens to fall in.
-export const taxYearFractionForDate = dateStr => {
-  const tys = getUKTaxYearStart(dateStr);
-  const days = Math.max(0, (new Date(dateStr) - new Date(tys))/86400000) + 1;
-  return Math.max(1/365, Math.min(1, days/365));
 };

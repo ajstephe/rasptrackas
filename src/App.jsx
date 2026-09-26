@@ -9,19 +9,15 @@ import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback, laz
 
 import {
   CURRENT_FY_YEAR, PAY_PERIODS, FY_START, FY_END, getFYStartYearFor, generateFYPeriods,
-  CLOUD_RETENTION_CUTOFF, isWithinCloudRetention,
+  isWithinCloudRetention,
   daysInclusive,
-  getUKTaxYearStart, addYearMinusOneDay,
+  getUKTaxYearStart, localDateStr,
 } from './lib/payPeriods.js';
 import {
-  PAY_RATES, PA_RATES, RATE_TIER_LABEL, getRates,
+  PA_RATES, RATE_TIER_LABEL, getRates,
 } from './lib/payRates.js';
 import {
-  LONDON_WEIGHTING, LONDON_ALLOWANCE,
-  calcUKIncomeTax, calcUKIncomeTaxNoTaper,
-  calcNI, estimateAnnualNI,
-  computeTaxBandBreakdown, calcPensionContribution,
-  getTaxBand, splitAcrossBands, payeTaxToDate, payeNI,
+  payeTaxBreakdown, taperExtra,
 } from './lib/tax.js';
 import { fmt, fmtHM, fmtHrs, fmtGBP, fmtD, fmtRelTime, payLabel, shiftSpan } from './lib/format.js';
 import {
@@ -30,7 +26,7 @@ import {
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
-import { migrateSettings, migrateEntries, parseBackupFile } from './lib/migrations.js';
+import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
 import { stashPendingConsent, takePendingConsent } from './lib/legal.js';
 import {
@@ -38,7 +34,7 @@ import {
   crossPeriodInfo as crossPeriodInfoPure,
   isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate,
 } from './lib/calc.js';
-import { buildPayYear, entryNet as entryNetPure, partNets, claimedParts } from './lib/payroll.js';
+import { buildPayYear, runPayYear, entryNet as entryNetPure, partNets, claimedParts } from './lib/payroll.js';
 import { Ico, ClockCashIcon, FireExitIcon } from './components/Icons.jsx';
 import { PrivacyNotice } from './components/PrivacyNotice.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
@@ -187,11 +183,9 @@ const NAV_TABS = [
 ];
 
 // ─── auth: supabase client ─────────────────────────────────────────────────────
-// PHASE 1 SCOPE: sign in / sign up / sign out / local-only mode only.
-// Entries, toilTaken and settings still live purely in localStorage at this
-// stage — nothing is encrypted or synced to Supabase yet. That's phase 2,
-// once the data-key wrap/unwrap functions exist, so a signed-in account
-// doesn't imply "your data is backed up" until that lands.
+// Sign in / sign up / sign out, or local-only mode. Once signed in, shifts,
+// TOIL taken and settings are encrypted on the phone with the account's data
+// key before they're synced; localStorage stays the working copy.
 let supabaseUrl, supabaseAnonKey;
 try {
   supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -426,7 +420,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
       setBusy(false);
       if (err) { setError(err.message); return; }
       setPassword(''); setRecoveryWord('');
-      if (addToast) addToast('Recovery secret saved — you\u2019re all set', 'success', null, 4000, 'Ready to go');
+      if (addToast) addToast('Recovery word saved — you\u2019re all set', 'success', null, 4000, 'Ready to go');
       if (setAuthFlowBusy) setAuthFlowBusy(false);
       if (onUnlocked) onUnlocked(dek);
       if (onRecoveryComplete) onRecoveryComplete();
@@ -537,7 +531,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             <input style={AS.input} type="password" placeholder="••••••••" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
             <div style={AS.note}>
               <span>↻</span>
-              <span><b>You'll set up a recovery secret next.</b> That protects your data if you ever forget your password.</span>
+              <span><b>You'll choose a recovery word next.</b> It protects your data if you ever forget your password.</span>
             </div>
             <label style={{display:'flex',alignItems:'flex-start',gap:'9px',marginBottom:'14px',cursor:'pointer'}}>
               <input type="checkbox" checked={agreedToPrivacy} onChange={e=>setAgreedToPrivacy(e.target.checked)} style={{marginTop:'2px',flexShrink:0,width:'16px',height:'16px',accentColor:'#2563eb',cursor:'pointer'}}/>
@@ -551,7 +545,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
 
         {screen === 'recovery-setup' && (
           <>
-            <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Save your recovery secret</div>
+            <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Save your recovery word</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>If you ever forget your password, this word is the only other way back into your data. Nobody else has a copy of it — not even us.</div>
 
             <label style={AS.label}>Your recovery word</label>
@@ -631,7 +625,17 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
 
 // ─── app ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const todayStr      = new Date().toISOString().split('T')[0];
+  const todayStr      = localDateStr();
+  // Pay months are worked out when the app opens. If it's left open (or
+  // resumed from the background) into a new pay year, reload so every
+  // screen moves to the new year's months.
+  useEffect(()=>{
+    const check = () => { if (getFYStartYearFor(localDateStr()) !== CURRENT_FY_YEAR) window.location.reload(); };
+    const onVis = () => { if (document.visibilityState==='visible') check(); };
+    document.addEventListener('visibilitychange', onVis);
+    const t = setInterval(check, 60*1000);
+    return () => { document.removeEventListener('visibilitychange', onVis); clearInterval(t); };
+  },[]);
   const currPeriodIdx = PAY_PERIODS.findIndex(p=>todayStr>=p.start&&todayStr<=p.end);
 
   // The Android home-screen shortcut (manifest.json) launches with
@@ -673,11 +677,10 @@ export default function App() {
   }
   const tabAnimClass = tabAnimState.cls;
   const [entries,      setEntries]      = useState(()=>migrateEntries(dualRead(KEYS.entries,[])));
-  const [toilTaken,    setToilTaken]    = useState(()=>dualRead(KEYS.toilTaken,[]));
+  const [toilTaken,    setToilTaken]    = useState(()=>cleanToilTaken(dualRead(KEYS.toilTaken,[])));
   const [settings,     setSettings]     = useState(()=>migrateSettings(dualRead(KEYS.settings,null)));
   const [expanded,     setExpanded]     = useState(null);
   const [chartTap, setChartTap] = useState(null);     // {chart:'cum'|'mon', i, big}
-  const [chartModal, setChartModal] = useState(null); // 'cum' | 'mon' | null
   const [payslipModalOpen, setPayslipModalOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState(null); // null (choosing) | 'pdf' | 'csv'
   const [payslipMode, setPayslipMode] = useState('period'); // 'period' | 'custom' | 'financialYear'
@@ -1005,7 +1008,6 @@ export default function App() {
   useEscapeToClose(signOutConfirmOpen, () => setSignOutConfirmOpen(false));
   useEscapeToClose(restoreConfirmOpen, () => setRestoreConfirmOpen(false));
   useEscapeToClose(payslipModalOpen, () => setPayslipModalOpen(false));
-  useEscapeToClose(chartModal, () => { setChartModal(null); setChartTap(null); });
   useEscapeToClose(confirmCreateDay, () => setConfirmCreateDay(null));
   useEscapeToClose(selectedCalDay, () => { setSelectedCalDay(null); setConfirmDel(null); });
   useEscapeToClose(datePickerFor, () => setDatePickerFor(null));
@@ -1020,11 +1022,11 @@ export default function App() {
   // track which specific one for this. See useBackButtonCloses for why this
   // needs pushState/popstate rather than something simpler.
   useBackButtonCloses(
-    !!(signOutConfirmOpen || restoreConfirmOpen || payslipModalOpen || chartModal || confirmCreateDay || selectedCalDay || datePickerFor
+    !!(signOutConfirmOpen || restoreConfirmOpen || payslipModalOpen || confirmCreateDay || selectedCalDay || datePickerFor
       || configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded),
     () => {
       setSignOutConfirmOpen(false); setRestoreConfirmOpen(false); setPayslipModalOpen(false);
-      setChartModal(null); setChartTap(null);
+      setChartTap(null);
       setConfirmCreateDay(null);
       setSelectedCalDay(null); setConfirmDel(null);
       setDatePickerFor(null);
@@ -1044,7 +1046,6 @@ export default function App() {
   const signOutMounted = useMountTransition(signOutConfirmOpen, 220);
   const restoreMounted = useMountTransition(restoreConfirmOpen, 220);
   const payslipMounted = useMountTransition(payslipModalOpen, 220);
-  const chartModalMounted = useMountTransition(!!chartModal, 220);
   const confirmCreateDayMounted = useMountTransition(!!confirmCreateDay, 220);
   const selectedCalDayMounted = useMountTransition(!!selectedCalDay, 220);
   const datePickerMounted = useMountTransition(!!datePickerFor, 220);
@@ -1070,14 +1071,12 @@ export default function App() {
   const signOutTrapRef = useRef(null); useFocusTrap(signOutConfirmOpen, signOutTrapRef);
   const restoreTrapRef = useRef(null); useFocusTrap(restoreConfirmOpen, restoreTrapRef);
   const payslipTrapRef = useRef(null); useFocusTrap(payslipModalOpen, payslipTrapRef);
-  const chartModalTrapRef = useRef(null); useFocusTrap(!!chartModal, chartModalTrapRef);
   const confirmCreateDayTrapRef = useRef(null); useFocusTrap(!!confirmCreateDay, confirmCreateDayTrapRef);
   const selectedCalDayTrapRef = useRef(null); useFocusTrap(!!selectedCalDay, selectedCalDayTrapRef);
   const datePickerTrapRef = useRef(null); useFocusTrap(!!datePickerFor, datePickerTrapRef);
   // These four close to null/'' rather than false, and their JSX below reads
   // the value itself to decide what to render — holding the last real value
   // keeps that content stable during the mounted-but-closing tail above.
-  const chartModalV = useLastTruthy(chartModal);
   const confirmCreateDayV = useLastTruthy(confirmCreateDay);
   const selectedCalDayV = useLastTruthy(selectedCalDay);
   const datePickerForV = useLastTruthy(datePickerFor);
@@ -1185,7 +1184,7 @@ export default function App() {
         try {
           const ciphertext = await encryptWithDataKey(dataKey, item);
           const { error } = await supabase.from(table).upsert({ id: item.id, user_id: uid, ciphertext, updated_at: now, deleted_at: null });
-          if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); markSynced(); console.log(`[sync] pushed ${table} id=${item.id}`); }
+          if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); markSynced(); }
           else console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error);
         } catch (e) { console.error(`[sync] push threw for ${table} id=${item.id}:`, e.message || e); }
       }
@@ -1229,7 +1228,7 @@ export default function App() {
         if (!error) {
           lastSyncedSettingsRef.current = json; persistLastSyncedSettings();
           lastSettingsUpdatedAtRef.current = now; persistLastSettingsUpdatedAt();
-          markSynced(); console.log('[sync] pushed settings');
+          markSynced();
         }
         else console.error('[sync] push failed for settings:', error.message || error);
       } catch (e) { console.error('[sync] push threw for settings:', e.message || e); }
@@ -1256,15 +1255,20 @@ export default function App() {
     const { data: rows, error } = await supabase.from(table).select('id, ciphertext, deleted_at').eq('user_id', uid);
     if (error) { console.error(`[sync] pull failed for ${table}:`, error.message || error); return; }
     if (!rows) return;
-    console.log(`[sync] pulled ${rows.length} row(s) from ${table}`);
     const remoteMap = new Map();
-    let decryptFailures = 0;
+    const failedIds = [];
     for (const row of rows) {
       if (row.deleted_at) continue;
       try { remoteMap.set(row.id, await decryptWithDataKey(dataKey, row.ciphertext)); }
-      catch (e) { decryptFailures++; }
+      catch (e) { failedIds.push(row.id); }
     }
-    if (decryptFailures > 0) console.error(`[sync] ${decryptFailures} row(s) in ${table} failed to decrypt with the current key`);
+    // A cloud copy that can't be read (e.g. after a key reset on another
+    // device) is still there — treat it as present so this device keeps its
+    // own copy, rather than taking it as deleted and removing it.
+    if (failedIds.length) {
+      console.error(`[sync] ${failedIds.length} row(s) in ${table} couldn't be decrypted; keeping this device's copies`);
+      for (const id of failedIds) { const local = itemsRef.current.find(x=>x.id===id); if (local) remoteMap.set(id, local); }
+    }
     const merged = mergeRemoteRows(itemsRef.current, remoteMap, lastSyncedRef.current, isWithinCloudRetention);
     persistFn();
     // entries only, not toil_taken — TOIL records have no CARMS-submission
@@ -1280,7 +1284,7 @@ export default function App() {
     // unmigrated value (mergeRemoteRows sets it before this point) — same
     // deliberate choice as the settings fix, so a real migration change
     // here gets pushed back up to the server too, not just fixed locally.
-    setLocalItems(table === 'entries' ? migrateEntries(merged) : merged);
+    setLocalItems(table === 'entries' ? migrateEntries(merged) : cleanToilTaken(merged));
     markSynced();
   }
 
@@ -1586,9 +1590,9 @@ export default function App() {
     if(defaultBreakdownView==='calendar'||defaultBreakdownView==='compact') setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);
   },[tab]);
 
-  // Scrolls Settings so the £100k Tax Impact card sits at the top — but only
-  // right after tapping through from Home's Tax Threshold tracker, not on an
-  // ordinary visit to Options. The small delay lets the card's just-expanded
+  // Scrolls More.. so the Tax & 100K+ Calculator sits at the top — but only
+  // right after tapping through from Home's tax bars, not on an ordinary
+  // visit to More.. The small delay lets the card's just-expanded
   // content finish laying out first, so the scroll target is stable.
   useEffect(()=>{
     if(tab!=='settings' || !scrollToTaxImpact.current) return;
@@ -1596,8 +1600,8 @@ export default function App() {
     setTimeout(()=>{ taxImpactCardRef.current?.scrollIntoView({behavior:'auto',block:'start'}); }, 60);
   },[tab]);
 
-  // Collapse every expandable Options card the moment the person leaves the
-  // Options tab, so it's back to a clean, collapsed state next time they
+  // Collapse every expandable More.. card the moment the person leaves the
+  // More.. tab, so it's back to a clean, collapsed state next time they
   // arrive — rather than remembering whatever was left open. Same idea for
   // the Home tab's graph toggle.
   const prevTabRef = useRef(tab);
@@ -1800,7 +1804,7 @@ export default function App() {
   // quite small on desktop browsers. Deliberately generous sizing — this
   // exists specifically because the native picker felt too small here;
   // mobile keeps the native input untouched, where it already works well.
-  const renderDatePickerGrid = (currentValue, onSelect, closing=false) => {
+  const renderDatePickerGrid = (currentValue, onSelect, closing=false, bounds=null) => {
     const [y, m] = datePickerMonth.split('-').map(Number);
     const firstDay = new Date(y, m-1, 1);
     const daysInMonth = new Date(y, m, 0).getDate();
@@ -1830,8 +1834,10 @@ export default function App() {
             const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const isSelected = dateStr===currentValue;
             const isToday = dateStr===todayStr;
+            // A claim can't be made before the shift was worked, or in the future.
+            const off = !!bounds && ((bounds.min && dateStr<bounds.min) || (bounds.max && dateStr>bounds.max));
             return (
-              <button key={i} onClick={()=>{ onSelect(dateStr); setDatePickerFor(null); }} style={{aspectRatio:'1',border:isToday&&!isSelected?`1.5px solid ${BRASS}`:'none',borderRadius:'10px',background:isSelected?BRASS:'transparent',color:isSelected?'#fff':'var(--ink)',fontWeight:isSelected?900:700,fontSize:'14.5px',cursor:'pointer',fontFamily:'inherit'}}>{d}</button>
+              <button key={i} disabled={off} onClick={()=>{ onSelect(dateStr); setDatePickerFor(null); }} style={{aspectRatio:'1',border:isToday&&!isSelected?`1.5px solid ${BRASS}`:'none',borderRadius:'10px',background:isSelected?BRASS:'transparent',color:isSelected?'#fff':'var(--ink)',fontWeight:isSelected?900:700,fontSize:'14.5px',cursor:off?'default':'pointer',opacity:off?0.3:1,fontFamily:'inherit'}}>{d}</button>
             );
           })}
         </div>
@@ -1857,36 +1863,17 @@ export default function App() {
   },[entries]);
 
   const totals = useMemo(()=>{
-    const svcData = settings.rank && settings.service ? PAY_RATES[settings.rank]?.[settings.service] : null;
-
-    // Only used for the "days into 2026/27" label; every tax figure below
-    // works in PAYE months instead.
-    const taxYearStart = getUKTaxYearStart(todayStr);
-    const taxYearEnd    = addYearMinusOneDay(taxYearStart);
-    const ytdRangeEnd   = todayStr <= taxYearEnd ? todayStr : taxYearEnd;
+    const hasPay = !!(settings.rank && settings.service);
 
     // One pay month = one PAYE tax month (pay lands on the 20th, so April
     // pay is month 1 and March pay month 12) — see lib/payroll.js. Shifts
     // stay in the pay month their own dates put them in; money lands in the
     // pay month of its claim date.
+    const periodBreakdown = buildPayYear({ periods: PAY_PERIODS, entries: fyEntries, settings });
     let totalHrs = 0;
-    const periodBreakdown = buildPayYear({ periods: PAY_PERIODS, entries: fyEntries, settings, svcData });
-    periodBreakdown.forEach(pb=>{
-      fyEntries.forEach(e=>{ if (e.date>=pb.start && e.date<=pb.end) { const c=calcEntry(e); totalHrs += c.h1+c.h2+c.h3; } });
-    });
+    fyEntries.forEach(e=>{ if (e.date>=FY_START && e.date<=FY_END) { const c=calcEntry(e); totalHrs += c.h1+c.h2+c.h3; } });
     const totalGross = periodBreakdown.reduce((s,pb)=>s+pb.combinedGross,0);
-
-    const totalNet = periodBreakdown.reduce((s,pb)=>s+pb.combinedNet,0);
-    // Per-component YTD figures — same underlying otResult/nightResult/paResult
-    // used everywhere else, just summed by component instead of combined, so
-    // totalOTGross+totalNightGross+totalPAGross === totalGross by construction
-    // (same for the net figures), keeping this consistent with every other tab.
-    const totalOTGross    = periodBreakdown.reduce((s,pb)=>s+pb.ot,0);
-    const totalOTNet      = periodBreakdown.reduce((s,pb)=>s+pb.otResult.net,0);
-    const totalNightGross = periodBreakdown.reduce((s,pb)=>s+pb.night,0);
-    const totalNightNet   = periodBreakdown.reduce((s,pb)=>s+pb.nightResult.net,0);
-    const totalPAGross    = periodBreakdown.reduce((s,pb)=>s+pb.pa,0);
-    const totalPANet      = periodBreakdown.reduce((s,pb)=>s+pb.paResult.net,0);
+    const totalNet   = periodBreakdown.reduce((s,pb)=>s+pb.combinedNet,0);
 
     const getP=i=>{
       if(i<0||i>=periodBreakdown.length) return null;
@@ -1894,102 +1881,68 @@ export default function App() {
       return{month:pb.month,start:pb.start,end:pb.end,gross:pb.combinedGross,net:pb.combinedNet};
     };
 
-    const cumData = periodBreakdown.map(pb=>({short:PAY_PERIODS.find(p=>p.month===pb.month).short,cumulative:pb.cumAfter}));
+    // ── this tax year ─────────────────────────────────────────────────────
+    // The tax year runs 6 April to 5 April and its paydays are April pay to
+    // March pay — so between the new pay year starting (early February)
+    // and 6 April, the tax year still running is last pay year's.
+    const taxYearStart = getUKTaxYearStart(todayStr);
+    const taxFY = Number(taxYearStart.slice(0,4));
+    const taxPeriods = taxFY===CURRENT_FY_YEAR ? PAY_PERIODS : generateFYPeriods(taxFY);
+    const taxYearMonths = taxFY===CURRENT_FY_YEAR ? periodBreakdown : buildPayYear({ periods: taxPeriods, entries, settings });
+    const taxYearDaysElapsed = Math.max(0, (new Date(todayStr) - new Date(taxYearStart)) / 86400000);
 
-    // ── salary + allowances YTD (for the top Home summary card) ───────────────
-    // Anchored to the REAL UK tax year (6 Apr – 5 Apr), not the force's pay
-    // year (which starts 9 Feb) — HMRC resets personal allowance/bands on
-    // 6 April regardless of when the police pay calendar happens to start.
-    // Salary/allowances accrue in proper monthly instalments (stepping up
-    // once per completed month) rather than a smooth daily creep.
-    const todayD      = new Date(todayStr);
-    const fyStartD    = new Date(FY_START);
-    const fyEndD      = new Date(FY_END);
-    const effectiveEnd = todayD <= fyEndD ? todayD : fyEndD;
-    const daysElapsed  = Math.max(0, (effectiveEnd - fyStartD) / 86400000); // still used for "days into FY" label (police pay-year)
-
-    const taxYearDaysElapsed = Math.max(0, (new Date(ytdRangeEnd) - new Date(taxYearStart)) / 86400000);
-
-    // Salary and allowances so far = the paydays that have been and gone
-    // this tax year (the 20th of each month, April pay first).
-    const paidMonths = periodBreakdown.filter(pb=>pb.payDate<=todayStr);
-    const salaryYTD = svcData ? paidMonths.reduce((s,pb)=>s+pb.salary,0) : 0;
-    const lwYTD     = paidMonths.reduce((s,pb)=>s+pb.lw,0);
-    const laYTD     = paidMonths.reduce((s,pb)=>s+pb.la,0);
-
-    // Overtime and PA claimed this tax year — every pay month of this pay
-    // year, which is the same thing now the two line up. Hours use the
-    // shift's own date.
-    const otPaidToDate = totalOTGross + totalNightGross + totalPAGross;
-    const otNightPaidToDate = totalOTGross + totalNightGross;
-    let hrsToDate = 0;
-    fyEntries.forEach(e=>{
-      if (e.date>=FY_START && e.date<=todayStr) { const c = calcEntry(e); hrsToDate += c.h1 + c.h2 + c.h3; }
-    });
-
-    // Break the to-date overtime/night money down by which tax band it falls
-    // in (stacked on top of salary+allowances), then convert each band's
-    // portion back to hours using the blended average £/hr for that money.
-    const avgHourlyRate = hrsToDate > 0 ? otNightPaidToDate / hrsToDate : 0;
-    const hoursByBand = splitAcrossBands(salaryYTD+lwYTD+laYTD, otNightPaidToDate)
-      .map(b => ({ ...b, hours: avgHourlyRate > 0 ? b.amount / avgHourlyRate : 0 }));
+    // "So far" = the paydays that have been and gone: salary, allowances,
+    // overtime and PA alike, each exactly as on that month's payslip.
+    // Overtime claimed for a payday still to come is "on its way".
+    const paidMonths = hasPay ? taxYearMonths.filter(pb=>pb.payDate<=todayStr) : [];
+    const upcoming   = taxYearMonths.filter(pb=>pb.payDate>todayStr);
+    const sum = (list, f) => list.reduce((s,pb)=>s+f(pb),0);
+    const salaryYTD = sum(paidMonths, pb=>pb.salary);
+    const lwYTD     = sum(paidMonths, pb=>pb.lw);
+    const laYTD     = sum(paidMonths, pb=>pb.la);
+    const otPaidGross = sum(paidMonths, pb=>pb.ot),  otPaidNet = sum(paidMonths, pb=>pb.otResult.net);
+    const paPaidGross = sum(paidMonths, pb=>pb.pa),  paPaidNet = sum(paidMonths, pb=>pb.paResult.net);
+    const onItsWayGross = sum(upcoming, pb=>pb.combinedGross), onItsWayNet = sum(upcoming, pb=>pb.combinedNet);
+    const combinedGrossYTD = sum(paidMonths, pb=>pb.monthGross);
+    const pensionYTD = sum(paidMonths, pb=>pb.periodPension);
+    const taxableGrossYTD = Math.max(0, combinedGrossYTD - pensionYTD);
+    const ytdTax = sum(paidMonths, pb=>pb.monthTax);
+    const ytdNI  = sum(paidMonths, pb=>pb.monthNI);
+    const combinedNetYTD = sum(paidMonths, pb=>pb.monthNet);
+    const taxYearFraction = Math.max(1, paidMonths.length)/12;
 
     // Full tax year: all twelve monthly payments.
-    const lwAnnualTotal = periodBreakdown.reduce((s,pb)=>s+pb.lw,0);
-    const laAnnualTotal = periodBreakdown.reduce((s,pb)=>s+pb.la,0);
-    const salaryAnnualTotal = svcData ? periodBreakdown.reduce((s,pb)=>s+pb.salary,0) : 0;
+    const salaryAnnualTotal = hasPay ? sum(taxYearMonths, pb=>pb.salary) : 0;
+    const lwAnnualTotal = sum(taxYearMonths, pb=>pb.lw);
+    const laAnnualTotal = sum(taxYearMonths, pb=>pb.la);
 
-    const combinedGrossYTD = salaryYTD + lwYTD + laYTD + otPaidToDate;
-
-    // Thresholds so far this tax year, in whole PAYE months — the same
-    // n/12 the pay months themselves use.
-    const taxYearFraction = Math.max(1/12, paidMonths.length/12);
-    // Pension comes off pensionable pay (salary + London Weighting only)
-    // before income tax is worked out, same as the pay months do.
-    const pensionYTD = calcPensionContribution(salaryYTD + lwYTD, taxYearFraction);
-    const taxableGrossYTD = Math.max(0, combinedGrossYTD - pensionYTD.amount);
-    // Payroll's own method — cumulative 1257L, no in-year taper.
-    const ytdTax = payeTaxToDate(taxableGrossYTD, Math.max(1, paidMonths.length));
-    // NI is assessed on each month's pay on its own: paid months in full,
-    // plus the NI on overtime already claimed into months not yet paid.
-    const ytdNI = periodBreakdown.reduce((s,pb)=>{
-      const money = pb.ot + pb.night + pb.pa;
-      if (pb.payDate<=todayStr) return s + payeNI(pb.baseAmt + money);
-      return money>0 ? s + payeNI(pb.baseAmt + money) - payeNI(pb.baseAmt) : s;
-    }, 0);
-    const combinedNetYTD = combinedGrossYTD - pensionYTD.amount - ytdTax - ytdNI;
-
-    const currentBand   = getTaxBand(taxableGrossYTD, taxYearFraction);
-    const taxBand        = currentBand.name;
-    const taxBandRate    = currentBand.rate;
-
-    // Full-year forecast: salary and allowances are known for all twelve
-    // months; overtime and PA run at their pace so far, measured over the
-    // share of this pay year's shifts that have been worked.
-    const shiftYearFraction = Math.max(1/12, Math.min(1, (daysInclusive(FY_START, todayStr<=FY_END?todayStr:FY_END))/364));
-    const projectedAnnualGross = salaryAnnualTotal + lwAnnualTotal + laAnnualTotal + otPaidToDate / shiftYearFraction;
-    const taperExtraTax = projectedAnnualGross > 100000
-      ? calcUKIncomeTax(projectedAnnualGross, 1) - calcUKIncomeTaxNoTaper(projectedAnnualGross, 1)
-      : 0;
+    // ── full-year forecast ─────────────────────────────────────────────────
+    // Salary is known for all twelve paydays. Overtime and PA: what's been
+    // claimed, plus the rest of the year at the pace so far (measured over
+    // the share of the pay year's shifts already worked), spread across the
+    // paydays still to come. Each month is then run as a payslip, so NI is
+    // worked out month by month, as it's actually charged.
+    const claimedAll = sum(taxYearMonths, pb=>pb.combinedGross);
+    const shiftDays = daysInclusive(taxPeriods[0].start, todayStr<=taxPeriods[11].end ? todayStr : taxPeriods[11].end);
+    const shiftYearFraction = Math.max(1/12, Math.min(1, shiftDays/364));
+    const projectedExtras = Math.max(0, claimedAll/shiftYearFraction - claimedAll);
+    const forecastYear = hasPay ? runPayYear({ periods: taxPeriods, settings, money: taxYearMonths.map(pb=>({
+      ot: pb.combinedGross + (upcoming.length && pb.payDate>todayStr ? projectedExtras/upcoming.length : 0), pa:0, parts:[],
+    })) }) : [];
+    const projectedAnnualGross = hasPay ? sum(forecastYear, pb=>pb.monthGross) : 0;
 
     return{
-      totalGross, totalNet, totalHrs, cumData, periodBreakdown,
-      totalOTGross, totalOTNet, totalNightGross, totalNightNet, totalPAGross, totalPANet,
-      prev:getP(currPeriodIdx-1), curr:getP(currPeriodIdx), next:getP(currPeriodIdx+1),
-      salaryYTD, lwYTD, laYTD, lwAnnualTotal, laAnnualTotal, salaryAnnualTotal, combinedGrossYTD, combinedNetYTD,
-      ytdTax, ytdNI, taxBand, taxBandRate, daysElapsed, taxYearDaysElapsed, taxYearStart, taxYearFraction, hoursByBand,
-      projectedAnnualGross, taperExtraTax,
-      // Pension-adjusted YTD figure — gross minus this year's pension
-      // contribution so far — the same "taxable" total the £100k/Personal
-      // Allowance taper is actually assessed against (a net pay arrangement
-      // takes pension off before tax). Exposed here so anything else that
-      // needs to judge someone's position against that threshold (the
-      // Dashboard's own gauge, currently) reads the same figure the Tax &
-      // 100K+ Calculator already does, rather than recomputing it a third
-      // time or judging the threshold against raw, un-deducted gross.
+      totalGross, totalNet, totalHrs, periodBreakdown,
+      prev:getP(currPeriodIdx-1), curr:getP(currPeriodIdx),
+      salaryYTD, lwYTD, laYTD, lwAnnualTotal, laAnnualTotal, salaryAnnualTotal,
+      otPaidGross, otPaidNet, paPaidGross, paPaidNet, onItsWayGross, onItsWayNet,
+      combinedGrossYTD, combinedNetYTD, pensionYTD, ytdTax, ytdNI,
+      taxYearDaysElapsed, taxYearStart, taxYearFraction, taxFY,
+      paidMonths, forecastYear, projectedAnnualGross,
+      // Pay after pension so far — what the £100k taper is judged against.
       taxableGrossYTD,
     };
-  },[fyEntries,calcEntry,settings,currPeriodIdx,todayStr]);
+  },[fyEntries,entries,calcEntry,settings,currPeriodIdx,todayStr]);
 
   // The pay month record for any date, in any pay year — this year's comes
   // straight from totals; other years are built the first time they're asked
@@ -1997,10 +1950,7 @@ export default function App() {
   const otherPayYears = useMemo(()=>new Map(),[entries, settings]);
   const payYearFor = useCallback(fy=>{
     if (fy===CURRENT_FY_YEAR) return totals.periodBreakdown;
-    if (!otherPayYears.has(fy)) {
-      const svcData = settings.rank && settings.service ? PAY_RATES[settings.rank]?.[settings.service] : null;
-      otherPayYears.set(fy, buildPayYear({ periods: generateFYPeriods(fy), entries, settings, svcData }));
-    }
+    if (!otherPayYears.has(fy)) otherPayYears.set(fy, buildPayYear({ periods: generateFYPeriods(fy), entries, settings }));
     return otherPayYears.get(fy);
   },[totals, otherPayYears, entries, settings]);
   const payMonthFor = useCallback(d=>{
@@ -2023,24 +1973,26 @@ export default function App() {
   const animatedGlanceGross = useCountUp(glancePb ? glancePb.combinedGross : 0);
   const animatedGlanceNet = useCountUp(glancePb ? glancePb.combinedNet : 0);
 
-  // Full-year tax forecast, pension-adjusted and taper-aware — pulled out
-  // of the Tax & 100K+ Calculator card's own render so the actual formula
-  // lives in one place, kept separate from the JSX that displays it.
-  const taxForecast = useMemo(()=>{
+  // The Tax & 100K+ Calculator's two columns, straight from the payslips:
+  // Actual = paydays so far this tax year; Forecast = the whole year. Tax
+  // and NI are payroll's (no £100k taper in the month); the taper's extra
+  // tax, usually collected later, is worked out separately.
+  const taxView = useMemo(()=>{
     if (!(settings.rank && settings.service)) return null;
-    const proj = totals.projectedAnnualGross;
-    const pensionablePayF = totals.salaryAnnualTotal + totals.lwAnnualTotal;
-    const pensionF = calcPensionContribution(pensionablePayF, 1);
-    const taxableGrossF = Math.max(0, proj - pensionF.amount);
-    const overF = taxableGrossF > 100000;
-    const paLostF = overF ? Math.min(12570, Math.floor((taxableGrossF-100000)/2)) : 0;
-    const paRemainingF = 12570 - paLostF;
-    const extraTaxF = overF ? (calcUKIncomeTax(taxableGrossF,1) - calcUKIncomeTaxNoTaper(taxableGrossF,1)) : 0;
-    const breakdownF = computeTaxBandBreakdown(taxableGrossF, 1);
-    const niF = estimateAnnualNI(proj);
-    const netF = proj - pensionF.amount - breakdownF.totalTax - niF;
-    const band = getTaxBand(taxableGrossF, 1);
-    return { proj, pensionablePayF, pensionF, taxableGrossF, overF, paLostF, paRemainingF, extraTaxF, breakdownF, niF, netF, bandName: band.name };
+    const view = (months, fraction) => {
+      const add = f => months.reduce((s,pb)=>s+f(pb),0);
+      const last = months[months.length-1];
+      const gross = add(pb=>pb.monthGross), pension = add(pb=>pb.periodPension);
+      const taxable = Math.max(0, gross - pension);
+      return {
+        gross, pension, pensionable: add(pb=>pb.pensionablePayThisPeriod), pensionRate: last ? last.pensionRate : 0,
+        taxable, tax: add(pb=>pb.monthTax), ni: add(pb=>pb.monthNI), net: add(pb=>pb.monthNet),
+        months: months.length,
+        breakdown: last ? payeTaxBreakdown(last.cumAfter, last.taxMonth) : payeTaxBreakdown(0, 1),
+        ...taperExtra(taxable, fraction),
+      };
+    };
+    return { actual: view(totals.paidMonths, totals.taxYearFraction), forecast: view(totals.forecastYear, 1) };
   },[settings, totals]);
 
   // ── CARMS outstanding claims ──────────────────────────────────────────────
@@ -2052,7 +2004,12 @@ export default function App() {
   const carmsOutstanding = useMemo(()=>{
     const groups = [];
     let totalAmount = 0, totalClaims = 0, totalOtAmount = 0, totalPaAmount = 0;
-    PAY_PERIODS.forEach((p,pIdx)=>{
+    // Every pay year with a shift in it, not just this one — a shift left
+    // unclaimed when the pay year rolls over stays here until it's claimed.
+    // This year's months keep their plain index (Summary matches on it);
+    // earlier years' months get a "year-index" key and show their year.
+    const years = [...new Set(entries.filter(e=>e.date<=todayStr).map(e=>getFYStartYearFor(e.date)))].sort((a,b)=>a-b);
+    years.forEach(fy=>{ const yPeriods = fy===CURRENT_FY_YEAR ? PAY_PERIODS : generateFYPeriods(fy); yPeriods.forEach((p,pIdx)=>{
       // A shift dated in the future can't be claimed yet, so it only
       // joins this list once its date arrives.
       const pE = entries.filter(e=>e.date>=p.start&&e.date<=p.end&&e.date<=todayStr);
@@ -2060,23 +2017,12 @@ export default function App() {
       pE.forEach(e=>{
         const hasPA = e.paRate && e.paRate!=='None';
         const c = calcEntry(e);
-        // Night allowance is paid automatically and never needs its own
-        // CARMS submission — only genuine overtime hours (the 1.33x/1.5x/2.0x
-        // tiers) do. An entry with only night hours (no OT hours) has
-        // nothing to claim, so it should never show as outstanding here,
-        // regardless of what its own otSubmitted flag happens to be — that
-        // toggle is disabled for exactly this reason on the Log Overtime
-        // form (see hasOTHours there).
+        // Only overtime hours need a CARMS claim; PA needs a PSOP claim.
         const hasOTHours = c.h1 + c.h2 + c.h3 > 0;
         const otOK = !hasOTHours || isOtSubmitted(e);
         const paOK = !hasPA || isPaSubmitted(e);
         if (otOK && paOK) return; // nothing outstanding on this entry
-        // !otOK can only be true when hasOTHours is true (otOK is always
-        // true otherwise), so night allowance tied to genuinely unsubmitted
-        // OT hours is correctly still part of the outstanding amount here —
-        // it's only excluded for night-only entries, which never reach
-        // !otOK at all.
-        const otAmt = !otOK ? (c.ot + c.night) : 0;
+        const otAmt = !otOK ? c.ot : 0;
         const paAmt = (hasPA && !paOK) ? c.pa : 0;
         const amount = otAmt + paAmt;
         if (amount <= 0 && otOK && paOK) return; // defensive, shouldn't happen given the check above
@@ -2093,7 +2039,7 @@ export default function App() {
       });
       if (items.length) {
         const periodTotal = items.reduce((s,it)=>s+it.amount,0);
-        groups.push({ period: p, periodIdx: pIdx, items, periodTotal });
+        groups.push({ period: p, periodIdx: fy===CURRENT_FY_YEAR ? pIdx : `${fy}-${pIdx}`, otherYear: fy!==CURRENT_FY_YEAR, items, periodTotal });
         totalAmount += periodTotal;
         // Overtime and TOIL share one toggle (otSubmitted) so they count as
         // a single item together; PA is independent and counts separately —
@@ -2101,7 +2047,7 @@ export default function App() {
         // not one, since they go to two different systems (CARMS/PSOP).
         totalClaims += items.reduce((s,it)=>s+(it.otOutstanding?1:0)+(it.paOutstanding?1:0),0);
       }
-    });
+    }); });
     return { groups, totalAmount, totalClaims, totalOtAmount, totalPaAmount, periodCount: groups.length };
   },[entries, calcEntry, todayStr]);
 
@@ -2264,18 +2210,21 @@ export default function App() {
       .filter(e=>e.otRateTier && (parseFloat(e.toilHours)||0) > 0 && isOtSubmitted(e))
       .map(e=>{
         const worked = parseFloat(e.toilHours)||0;
-        const dLabel = new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+        // Banked on the day the shift was claimed — that's when it joins
+        // the balance — with the shift's own date in the detail if different.
+        const claimed = effectiveOtDate(e);
+        const workedOn = claimed!==e.date ? ` · worked ${new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'})}` : '';
         return {
-          id:'earn-'+e.id, date:e.date, type:'earned',
+          id:'earn-'+e.id, date:claimed, type:'earned',
           hours: calcEntry(e).toilBanked,
-          note: `${e.reason||'Shift'}`, detail: `${fmtHrs(worked)} at ${RATE_TIER_LABEL[e.otRateTier]}×`,
+          note: `${e.reason||'Shift'}`, detail: `${fmtHrs(worked)} at ${RATE_TIER_LABEL[e.otRateTier]}×${workedOn}`,
         };
       });
     const taken = toilTaken.map(t=>({
       id:'take-'+t.id, rawId:t.id, date:t.date, type:'taken',
       hours: -(parseFloat(t.hours)||0), note: t.note||'TOIL taken',
     }));
-    const combined = [...earned, ...taken].sort((a,b)=>a.date.localeCompare(b.date));
+    const combined = [...earned, ...taken].sort((a,b)=>a.date.localeCompare(b.date) || (a.type===b.type?0:a.type==='earned'?-1:1) || a.id.localeCompare(b.id));
     let running = 0;
     const rows = combined.map(l=>{
       running += l.hours;
@@ -2369,12 +2318,28 @@ export default function App() {
     const c = calcEntry(e);
     const gross = c.gross;
     const net = gross>0 ? entryNet(e, editing||null) : 0;
-    return { gross, net, night:0, toilBanked:c.toilBanked, has:gross>0||c.toilBanked>0 };
+    return { gross, net, toilBanked:c.toilBanked, has:gross>0||c.toilBanked>0 };
   },[form, editing, todayStr, calcEntry, entryNet]);
 
   // ── handlers ───────────────────────────────────────────────────────────────
   const handleSave=()=>{
-    if(!form.date) return;
+    if(!form.date){ addToast('Pick the date of this shift first.','alert'); return; }
+
+    // Sense checks before anything is saved.
+    const hrs = ['hours133','hours150','hours200'].map(k=>parseFloat(form[k])||0);
+    const totalHrsForm = hrs.reduce((a,b)=>a+b,0);
+    if (hrs.some(h=>h<0) || hrs.some(h=>h>24) || totalHrsForm>24) {
+      addToast('Overtime hours must be between 0 and 24 for one shift.','alert'); return;
+    }
+    if (form.recordShiftTimes && form.dutyType!=='rdw' && form.actualStart && form.actualEnd && !(form.rosteredStart && form.rosteredEnd)) {
+      addToast('Set your rostered times too — overtime is worked out from the difference.','alert'); return;
+    }
+    const toilH = form.otRateTier ? (parseFloat(form.toilHours)||0) : 0;
+    if (toilH<0 || (form.otRateTier && toilH > (parseFloat(form[form.otRateTier])||0) + 1e-9)) {
+      addToast("TOIL hours can't be more than the overtime hours.",'alert'); return;
+    }
+    const hasSomething = totalHrsForm>0 || (form.paRate && form.paRate!=='None') || (form.actualStart && form.actualEnd) || (form.comments||'').trim();
+    if (!hasSomething) { addToast('Nothing to save yet — add hours, a Protection Allowance or a note.','alert'); return; }
 
     // One entry per date — if the date is already taken, point the person at
     // the existing record rather than silently creating a second one.
@@ -2382,11 +2347,11 @@ export default function App() {
     if(dupe){
       const dStr = new Date(form.date+'T12:00:00').toLocaleDateString('en-GB');
       addToast(
-        `You've already logged overtime for ${dStr}. Edit that record instead of creating a second one.`,
+        `You've already logged overtime for ${dStr}. Edit that shift instead of logging a second one.`,
         'alert',
-        {label:'Edit existing entry',fn:()=>startEdit(dupe)},
+        {label:'Edit that shift',fn:()=>startEdit(dupe)},
         8000,
-        'Entry already exists'
+        'Shift already logged'
       );
       return;
     }
@@ -2407,17 +2372,19 @@ export default function App() {
       if(editing){
         savedId = editing.id;
         updatedEntries = entries.map(e=>e.id===editing.id?{...cleanForm,id:e.id}:e);
-        setEntries(updatedEntries);
-        addToast('Record updated');
+        // Built from the latest list, so a sync landing during the
+        // confirmation pause isn't overwritten.
+        setEntries(prev=>prev.map(e=>e.id===editing.id?{...cleanForm,id:e.id}:e));
+        addToast('Shift updated');
       } else {
         savedId = genRecordId();
         updatedEntries = [...entries,{...cleanForm,id:savedId}];
-        setEntries(updatedEntries);
+        setEntries(prev=>[...prev,{...cleanForm,id:savedId}]);
         addToast('Overtime logged');
         // nudge backup every 5 entries
         const count=(dualRead(KEYS.backupCount,0)||0)+1;
         dualWrite(KEYS.backupCount,count);
-        if(count%5===0) setTimeout(()=>addToast(`${count} records logged — download a backup?`,'warn',{label:'Backup now',fn:handleExport},8000),800);
+        if(count%5===0) setTimeout(()=>addToast(`${count} shifts logged — download a backup?`,'warn',{label:'Backup now',fn:handleExport},8000),800);
       }
 
       // Show the person the record they just saved, in whichever Breakdown view
@@ -2465,15 +2432,16 @@ export default function App() {
     setEntries(prev=>prev.filter(x=>x.id!==id));
     setConfirmDel(null);
     haptic();
-    addToast('Record deleted','undo',{label:'Undo',fn:()=>setEntries(prev=>[...prev,d])},7000);
+    addToast('Shift deleted','undo',{label:'Undo',fn:()=>setEntries(prev=>[...prev,d])},7000);
   };
 
   const [toilTakenForm, setToilTakenForm] = useState({date:todayStr, hours:'', minutes:'00', note:''});
   const addToilTaken = () => {
-    const wholeHours = parseInt(toilTakenForm.hours,10)||0;
+    const wholeHours = parseFloat(toilTakenForm.hours)||0;
     const mins = parseInt(toilTakenForm.minutes,10)||0;
     const hrs = wholeHours + mins/60;
-    if (!toilTakenForm.date || hrs<=0) { addToast('Enter a date and a positive number of hours','warn'); return; }
+    if (!toilTakenForm.date || !(hrs>0)) { addToast('Enter a date and a positive number of hours','warn'); return; }
+    if (hrs>24) { addToast('That\'s more than a day — enter up to 24 hours at a time.','warn'); return; }
     const resultingBalance = toilLedger.balance - hrs;
     setToilTaken(prev=>[...prev, { id:genRecordId(), date:toilTakenForm.date, hours:hrs, note:toilTakenForm.note||'' }]);
     setToilTakenForm({date:todayStr, hours:'', minutes:'00', note:''});
@@ -2488,7 +2456,7 @@ export default function App() {
     const d = toilTaken.find(t=>t.id===id);
     setToilTaken(prev=>prev.filter(t=>t.id!==id));
     haptic();
-    addToast('Entry removed','undo',{label:'Undo',fn:()=>setToilTaken(prev=>[...prev,d])},7000);
+    addToast('TOIL taken removed','undo',{label:'Undo',fn:()=>setToilTaken(prev=>[...prev,d])},7000);
   };
 
   // Standard backup filename convention: OTbackup + day + 3-letter month +
@@ -2570,7 +2538,7 @@ export default function App() {
   // correctly if someone builds on top of the export in Excel.
   async function handleExportSpreadsheet(start, end, sanitise){
     const headers = [
-      'Pay Period','Date','Duty/Reason','1.33x Hours','1.5x Hours','2.0x Hours',
+      'Pay Month','Date','Duty/Reason','1.33× Hours','1.5× Hours','2× Hours',
       'PA Rate','Submitted','Breakdown','Gross (£)',
       'Cumulative Taxable Income Before This Entry (£)','Net (£)','Rate Applied','Notes'
     ];
@@ -2635,9 +2603,9 @@ export default function App() {
       const hasOtHere = shares.some(x=>x.part.kind==='ot');
       const breakdownParts = [];
       if (hasOtHere) {
-        if (c.payH1>0) breakdownParts.push(`${c.payH1}hr@1.33x=£${c.ot1.toFixed(2)}`);
-        if (c.payH2>0) breakdownParts.push(`${c.payH2}hr@1.5x=£${c.ot2.toFixed(2)}`);
-        if (c.payH3>0) breakdownParts.push(`${c.payH3}hr@2.0x=£${c.ot3.toFixed(2)}`);
+        if (c.payH1>0) breakdownParts.push(`${c.payH1}h at 1.33× = £${c.ot1.toFixed(2)}`);
+        if (c.payH2>0) breakdownParts.push(`${c.payH2}h at 1.5× = £${c.ot2.toFixed(2)}`);
+        if (c.payH3>0) breakdownParts.push(`${c.payH3}h at 2× = £${c.ot3.toFixed(2)}`);
       }
       if (shares.some(x=>x.part.kind==='pa')) breakdownParts.push(`${e.paRate}@£${c.pa.toFixed(2)}`);
       const breakdown = breakdownParts.join(' + ') || '—';
@@ -2691,7 +2659,7 @@ export default function App() {
     const totalRowFor = block => {
       const sum = colIdx => block.rows.reduce((s,r)=>s+(parseFloat(r[colIdx])||0),0);
       const row = blankRow();
-      row[2] = 'Period Total';
+      row[2] = 'Pay Month Total';
       row[3] = sum(3) || ''; row[4] = sum(4) || ''; row[5] = sum(5) || '';
       row[9] = Math.round(sum(9)*100)/100;
       row[11] = Math.round(sum(11)*100)/100;
@@ -2723,7 +2691,7 @@ export default function App() {
       if (label) mergeRanges.push({ label, startRow, endRow });
     });
 
-    const suffix = start&&end ? `_${start}_to_${end}` : `_${new Date().toISOString().split('T')[0]}`;
+    const suffix = start&&end ? `_${start}_to_${end}` : `_${localDateStr()}`;
     try {
       const ExcelJS = await loadExcelJSLib();
       const wb = new ExcelJS.Workbook();
@@ -2757,7 +2725,7 @@ export default function App() {
       });
 
       // Currency columns (J, K, L — Gross/Cumulative/Net, shifted one letter
-      // left now that Night Hours has been removed) get the accounting
+      // left of the old layout) get the accounting
       // format — aligned £ symbol, thousands separators, a plain dash for
       // zero, matching Excel's own built-in "Accounting" look.
       const acctFmt = '_-£* #,##0.00_-;-£* #,##0.00_-;_-£* "-"??_-;_-@_-';
@@ -2914,8 +2882,13 @@ export default function App() {
       sws.mergeCells('A4:C4');
       sectionHeaderStyle(sws.getCell('A4'));
       sws.getCell('A4').value = 'Year to Date';
-      labelValueRow(5, 'Gross YTD', Math.round(totals.combinedGrossYTD*100)/100, true);
-      labelValueRow(6, 'Net YTD', Math.round(totals.combinedNetYTD*100)/100, true);
+      // The tax year this export is for — paydays so far if it's still
+      // running, all twelve if it's a past year.
+      const exportFY = getFYStartYearFor(end || todayStr);
+      const exportPaid = payYearFor(exportFY).filter(pb=>pb.payDate<=todayStr);
+      const yearLabel = `${exportFY}/${String(exportFY+1).slice(-2)}`;
+      labelValueRow(5, `Gross pay, tax year ${yearLabel}`, Math.round(exportPaid.reduce((a,pb)=>a+pb.monthGross,0)*100)/100, true);
+      labelValueRow(6, `Net pay, tax year ${yearLabel}`, Math.round(exportPaid.reduce((a,pb)=>a+pb.monthNet,0)*100)/100, true);
       labelValueRow(7, 'Current TOIL Balance (hrs)', Math.round(toilLedger.balance*100)/100, false);
 
       // By pay period — reuses the same set of periods that actually
@@ -2924,9 +2897,9 @@ export default function App() {
       let r = 9;
       sws.mergeCells(`A${r}:C${r}`);
       sectionHeaderStyle(sws.getCell(`A${r}`));
-      sws.getCell(`A${r}`).value = 'By Pay Period';
+      sws.getCell(`A${r}`).value = 'By Pay Month';
       r++;
-      ['Period','Gross (£)','Net (£)'].forEach((h,i) => {
+      ['Pay month','Gross (£)','Net (£)'].forEach((h,i) => {
         const c = sws.getCell(r, i+1);
         c.value = h; c.font = { bold:true, color:{argb:'FF3E5A70'} };
         c.border = { bottom:{style:'thin',color:{argb:'FFD9E2E8'}} };
@@ -2981,17 +2954,24 @@ export default function App() {
   }
 
   const handleImport=ev=>{
+    const input = ev.target;
+    const file = input.files && input.files[0];
+    if (!file) return;               // picker cancelled
     const fr=new FileReader();
     fr.onload=e=>{
-      const result = parseBackupFile(e.target.result);
+      input.value = '';              // so the same file can be picked again
+      let result;
+      try { result = parseBackupFile(e.target.result); }
+      catch (_) { result = { ok:false, error:"That backup file couldn't be read." }; }
       if (!result.ok) { addToast(result.error, 'warn'); return; }
       setEntries(result.entries);
-      setSettings(result.settings);
+      if (result.settings) setSettings(result.settings);
       setToilTaken(result.toilTaken);
       setTab('dashboard');
-      addToast('Backup restored');
+      addToast(result.skipped ? `Backup restored — ${result.skipped} damaged record${result.skipped!==1?'s were':' was'} skipped` : 'Backup restored');
     };
-    fr.readAsText(ev.target.files[0]);
+    fr.onerror=()=>{ input.value=''; addToast("That backup file couldn't be read.", 'warn'); };
+    fr.readAsText(file);
   };
 
   // Clears local data as before, and — new — the same user's rows in
@@ -3211,7 +3191,7 @@ export default function App() {
   // Throttled to at most once a day; local data is never touched here.
   const pruneOldCloudData = async () => {
     if (!supabase || !session || !dataKey) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateStr();
     if (dualRead(KEYS.lastCloudPruneCheck, null) === today) return;
     const uid = session.user.id;
     try {
@@ -3229,7 +3209,6 @@ export default function App() {
         if (idsToDelete.length > 0) {
           const { error: delError } = await supabase.from(table).delete().eq('user_id', uid).in('id', idsToDelete);
           if (delError) console.error(`[retention] failed to prune ${table}:`, delError.message || delError);
-          else console.log(`[retention] pruned ${idsToDelete.length} row(s) from ${table} older than ${CLOUD_RETENTION_CUTOFF}`);
         }
       }
       dualWrite(KEYS.lastCloudPruneCheck, today);
@@ -3538,7 +3517,6 @@ export default function App() {
 
   // ── display helpers ────────────────────────────────────────────────────────
 
-  // Today's effective rates were shown on Home; now only surfaced in Options.
 
   // ── styles ─────────────────────────────────────────────────────────────────
   const S={
@@ -3574,58 +3552,6 @@ export default function App() {
   // above) instead of the full browser viewport, and is unaffected by
   // <main>'s own internal scroll.
   const modalBoxStyle = (base) => ({...base, position:'absolute', top:'50%', left:'50%', transform:'translate(-50%, -50%)', width:'min(640px, 90vw)', maxHeight:'80vh', overflowY:'auto', overscrollBehavior:'contain', zIndex:56, boxShadow:'0 24px 64px rgba(0,0,0,0.35)', cursor:'default'});
-
-  // ── Trends charts — shared between the inline (small) card and the
-  // enlarge modal (big), so both stay pixel-for-pixel consistent. Tapping a
-  // point shows a value callout; tapping it again (or a different point)
-  // swaps it out. Tooltip boxes use dominantBaseline:'middle' per line and
-  // explicit padding, rather than guessing baseline offsets, specifically so
-  // text can't spill outside the box regardless of font metrics.
-  const renderCumulativeChart = (big) => {
-    const data = totals.cumData, max = Math.max(...data.map(d=>d.cumulative), 200);
-    const W = big?520:330, H = big?260:150, pX = big?46:34, pY = big?20:12;
-    const eW = W-pX*2, eH = H-pY*2;
-    const fsAxis = big?11:8, fsLbl = big?11:8, ptR = big?6:4, lineW = big?3.5:2.5;
-    const pts = data.map((d,i)=>({x:pX+i*(eW/(data.length-1)), y:H-pY-(d.cumulative/max)*eH, val:d.cumulative, lbl:d.short}));
-    const path = pts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.y}`).join(' ');
-    const fillPath = `${path} L ${pts[pts.length-1].x} ${H-pY} L ${pts[0].x} ${H-pY} Z`;
-    const gradId = big?'cgBig':'cgSmall';
-    const tapPt = (chartTap && chartTap.chart==='cum' && chartTap.big===big) ? pts[chartTap.i] : null;
-    const toggle = i => setChartTap(t=>(t&&t.chart==='cum'&&t.i===i&&t.big===big)?null:{chart:'cum',i,big});
-
-    let tooltip = null;
-    if (tapPt) {
-      const tw = big?115:88;
-      const padTop = big?17:13, lineH = big?18:14, padBottom = big?10:8;
-      const th = padTop + lineH + padBottom;
-      let tx = tapPt.x - tw/2; if (tx<2) tx=2; if (tx+tw>W-2) tx=W-2-tw;
-      let ty = tapPt.y - th - 10; if (ty<2) ty = tapPt.y + 14;
-      tooltip = (
-        <g>
-          <rect x={tx} y={ty} width={tw} height={th} rx="7" fill="#1e3a5f"/>
-          <text x={tx+tw/2} y={ty+padTop} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?10:8,fontWeight:900,fill:'#93c5fd'}}>{tapPt.lbl}</text>
-          <text x={tx+tw/2} y={ty+padTop+lineH} textAnchor="middle" dominantBaseline="middle" style={{fontFamily:MONO,fontSize:big?13:11,fontWeight:600,fill:'#fff'}}>{fmtGBP(tapPt.val)}</text>
-        </g>
-      );
-    }
-
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',overflow:'visible'}} preserveAspectRatio="none">
-        <defs><linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2563eb"/><stop offset="100%" stopColor="#2563eb" stopOpacity="0"/></linearGradient></defs>
-        {[0,0.5,1].map(v=>(<g key={v}><line x1={pX} y1={H-pY-v*eH} x2={W-pX} y2={H-pY-v*eH} stroke="#f1f5f9" strokeWidth="1" strokeDasharray={v===0?'0':'3 4'}/><text x={pX-4} y={H-pY-v*eH} textAnchor="end" dominantBaseline="middle" style={{fontSize:fsAxis,fill:'#cbd5e1',fontWeight:700}}>£{Math.round(max*v)}</text></g>))}
-        {pts.map((p,i)=><text key={i} x={p.x} y={H-pY+(big?17:11)} textAnchor="middle" style={{fontSize:fsLbl,fill:'#94a3b8',fontWeight:900}}>{p.lbl}</text>)}
-        <path d={fillPath} fill={`url(#${gradId})`} opacity="0.22"/>
-        <path d={path} fill="none" stroke="#2563eb" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
-        {pts.map((p,i)=>(
-          <g key={i}>
-            <circle cx={p.x} cy={p.y} r={ptR} fill="#2563eb" stroke="white" strokeWidth="2" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
-            <circle cx={p.x} cy={p.y} r={ptR+8} fill="transparent" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
-          </g>
-        ))}
-        {tooltip}
-      </svg>
-    );
-  };
 
   // Full financial year Overtime & PA totals — same card that used to live on
   // Home, now shown at the end of both Summary views instead, since it's a
@@ -3709,7 +3635,12 @@ export default function App() {
       else { pa += sh.part.amount; paCounts[sh.part.entry.paRate] = (paCounts[sh.part.entry.paRate]||0)+1; }
       net += sh.net; tax += sh.tax; ni += sh.ni; if (sh.bandName) lastBand = sh.bandName;
     }));
-    const night = 0;
+    // Shifts taken wholly as TOIL have no pay to claim, but their TOIL is
+    // still banked when the overtime is claimed.
+    entries.forEach(e=>{
+      const c = calcEntry(e);
+      if (c.ot<=0 && c.toilBanked>0 && isOtSubmitted(e) && inRange(effectiveOtDate(e))) toilBanked += c.toilBanked;
+    });
     const gross = ot + pa;
 
     // Pension — pensionable pay is basic salary + London Weighting only,
@@ -3722,7 +3653,7 @@ export default function App() {
     const r = getRates(settings.rank, settings.service, end);
     const result = { net, tax, ni, bandName:lastBand, rate: gross>0 ? (1-net/gross)*100 : 0 };
 
-    return { rangeEntries, ot, night, pa, hrs, toilBanked, rateHrs, rateAmt, paCounts, gross,
+    return { rangeEntries, ot, pa, hrs, toilBanked, rateHrs, rateAmt, paCounts, gross,
       net:result.net, tax:result.tax, ni:result.ni, bandName:result.bandName, rate:result.rate, rates:r,
       pensionForRange, pensionRate, pensionablePayForRange,
       clippedFrom: clipped ? effectiveStart : null };
@@ -3767,43 +3698,42 @@ export default function App() {
   // a past year — rather than produce a number that looks precise but isn't,
   // this sticks to what can be stated correctly regardless of year (gross
   // figures, hours, shift counts).
+  // A past pay year, month by month, from the same payslips as everything
+  // else: each claim in the month it was paid, with its share of that
+  // month's take-home. Shifts with nothing claimed show at £0 in the month
+  // they were worked. Hours and shifts are counted once each, even when a
+  // shift's overtime and PA were paid in different months.
   const computeArchivedYear = (year) => {
     const yPeriods = generateFYPeriods(year);
-    let totalShifts = 0, totalGross = 0, totalHrs = 0, totalToilBanked = 0;
-    // Same submission-date attribution as periodBreakdown and the
-    // spreadsheet export — a shift's OT and PA can each land in a different
-    // pay period, depending on when each was actually submitted, same as
-    // the real payslip. An entry with nothing submitted yet falls back to
-    // its own shift date, so it still shows up (at £0) rather than
-    // vanishing. Each period only counts the portion of an entry's gross
-    // that actually belongs to it — an entry whose OT and PA submission
-    // dates straddle two different periods appears in both, but each period
-    // shows only its own share, so nothing gets double-counted overall.
-    const periods = yPeriods.map(p=>{
-      const pEntries = entries.filter(e=>{
-        const hasPA = e.paRate && e.paRate!=='None';
-        const otDate = isOtSubmitted(e) ? effectiveOtDate(e) : null;
-        const paDate = (hasPA && isPaSubmitted(e)) ? effectivePaDate(e) : null;
-        const inP = d => d!=null && d>=p.start && d<=p.end;
-        if (inP(otDate) || inP(paDate)) return true;
-        if (otDate==null && paDate==null) return e.date>=p.start && e.date<=p.end;
-        return false;
-      }).sort((a,b)=>a.date.localeCompare(b.date));
-      let periodGross = 0;
-      const rows = pEntries.map(e=>{
-        const c = calcEntry(e);
-        const hasPA = e.paRate && e.paRate!=='None';
-        const otInThisPeriod = isOtSubmitted(e) && effectiveOtDate(e)>=p.start && effectiveOtDate(e)<=p.end;
-        const paInThisPeriod = hasPA && isPaSubmitted(e) && effectivePaDate(e)>=p.start && effectivePaDate(e)<=p.end;
-        const rowGross = (otInThisPeriod ? c.ot : 0) + (paInThisPeriod ? c.pa : 0);
-        periodGross += rowGross; totalHrs += c.h1+c.h2+c.h3;
-        if (otInThisPeriod) totalToilBanked += c.toilBanked;
-        return { id:e.id, date:e.date, reason:e.reason, gross:rowGross };
+    const months = payYearFor(year);
+    const seen = new Set();
+    let totalHrs = 0, totalToilBanked = 0;
+    const periods = months.map((pb,i)=>{
+      const p = yPeriods[i];
+      const rowsBy = new Map();
+      partNets(pb).forEach(sh=>{
+        const e = sh.part.entry;
+        const r = rowsBy.get(e.id) || { id:e.id, date:e.date, reason:e.reason, gross:0, net:0 };
+        r.gross += sh.part.amount; r.net += sh.net;
+        rowsBy.set(e.id, r);
       });
-      totalShifts += pEntries.length; totalGross += periodGross;
-      return { ...p, entries: rows, gross: periodGross };
+      entries.filter(e=>e.date>=p.start && e.date<=p.end && !claimedParts(e, settings).length)
+        .forEach(e=>{ if (!rowsBy.has(e.id)) rowsBy.set(e.id, { id:e.id, date:e.date, reason:e.reason, gross:0, net:0 }); });
+      const rows = [...rowsBy.values()].sort((a,b)=>a.date.localeCompare(b.date));
+      rows.forEach(r=>{
+        if (seen.has(r.id)) return;
+        seen.add(r.id);
+        const c = calcEntry(entries.find(x=>x.id===r.id));
+        totalHrs += c.h1+c.h2+c.h3;
+      });
+      return { ...p, entries: rows, gross: pb.combinedGross, net: pb.combinedNet };
     }).filter(p=>p.entries.length>0);
-    return { year, start: yPeriods[0].start, end: yPeriods[11].end, totalShifts, totalGross, totalHrs, totalToilBanked, periods };
+    entries.forEach(e=>{
+      const c = calcEntry(e);
+      if (c.toilBanked>0 && isOtSubmitted(e)) { const d = effectiveOtDate(e); if (d>=yPeriods[0].start && d<=yPeriods[11].end) totalToilBanked += c.toilBanked; }
+    });
+    const totalGross = periods.reduce((s,p)=>s+p.gross,0), totalNet = periods.reduce((s,p)=>s+p.net,0);
+    return { year, start: yPeriods[0].start, end: yPeriods[11].end, totalShifts: seen.size, totalGross, totalNet, totalHrs, totalToilBanked, periods };
   };
 
   // ── auth gate ──────────────────────────────────────────────────────────────
@@ -3912,7 +3842,7 @@ export default function App() {
            urgent without fighting the native control it's wrapped around. */
         @keyframes urgentPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0)}25%,75%{opacity:0.78;box-shadow:0 0 0 9px rgba(220,38,38,0.38)}50%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0)}}
         @keyframes backupPulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}30%{box-shadow:0 0 0 8px rgba(37,99,235,0.35)}50%{box-shadow:0 0 0 0 rgba(37,99,235,0)}70%{box-shadow:0 0 0 8px rgba(37,99,235,0.35)}}
-        /* Idle-state nudge for the brass Save/Update Record button (see
+        /* Idle-state nudge for the brass Save/Update shift button (see
            TabLogOvertime.jsx and the mobile floating button below) — same
            double-pulse ring shape as backupPulse, just brass instead of
            blue, and layered on top of the button's own static elevation
@@ -3936,7 +3866,7 @@ export default function App() {
           60%{box-shadow:0 0 0 16px rgba(37,99,235,0); transform:scale(1.02);}
           100%{box-shadow:0 0 0 0 rgba(37,99,235,0); transform:scale(1);}
         }
-        /* Blue, not brass — the Save/Update Record button right below this
+        /* Blue, not brass — the Save/Update shift button right below this
            box is brass and pulses continuously (save-pulse-idle), so this
            jump-to highlight staying blue keeps the two visually distinct
            rather than both reading as "the same brass thing pulsing" at
@@ -4299,7 +4229,7 @@ export default function App() {
             <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>Do you want to create a backup before proceeding?</div>
             <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
               <button onClick={async ()=>{ setRestoreConfirmOpen(false); await handleExport(); fileRef.current.click(); }} style={{padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Back up, then restore</button>
-              <button onClick={()=>{ setRestoreConfirmOpen(false); fileRef.current.click(); }} style={{padding:'12px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'0.06em'}}>Restore Without Backup</button>
+              <button onClick={()=>{ setRestoreConfirmOpen(false); fileRef.current.click(); }} style={{padding:'12px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'0.06em'}}>Restore without backup</button>
               <button onClick={()=>setRestoreConfirmOpen(false)} style={{padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--muted)',fontWeight:700,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>
@@ -4328,7 +4258,7 @@ export default function App() {
           <div style={{background:'var(--tint-blue-2)',borderRadius:'13px',padding:'7px',flexShrink:0}}><Ico n="shield" s={15} c="#2563eb"/></div>
           <div style={{flex:1}}>
             <div style={{fontWeight:900,fontSize:'12px',color:'var(--text-navy)',marginBottom:'2px'}}>Time for a backup</div>
-            <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>It's been a couple of weeks — worth downloading a fresh backup of your records.</div>
+            <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>It's been a month — worth downloading a fresh backup of your records.</div>
             <div style={{display:'flex',gap:'7px'}}>
               <button onClick={goBackupNow} style={{background:BRASS,border:'none',borderRadius:'8px',padding:'6px 13px',fontWeight:800,fontSize:'11.5px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Back up now</button>
               <button onClick={dismissBackupReminder} style={{background:'none',border:'none',padding:'6px 4px',fontWeight:700,fontSize:'10px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Not now</button>
@@ -4344,7 +4274,7 @@ export default function App() {
           <div style={{background:'var(--tint-blue-2)',borderRadius:'13px',padding:'7px',flexShrink:0}}><Ico n="star" s={15} c="#2563eb"/></div>
           <div style={{flex:1}}>
             <div style={{fontWeight:900,fontSize:'12px',color:'var(--text-navy)',marginBottom:'2px'}}>Welcome to FY {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
-            <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>Your {CURRENT_FY_YEAR-1}/{CURRENT_FY_YEAR.toString().slice(-2)} year is complete — find it any time under Financial Years in Options.</div>
+            <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>Your {CURRENT_FY_YEAR-1}/{CURRENT_FY_YEAR.toString().slice(-2)} year is complete — find it any time under More.. → Archived Financial Years.</div>
             <div style={{display:'flex',gap:'7px'}}>
               <button onClick={()=>{dismissFYRollover();setTab('settings');}} style={{background:BRASS,border:'none',borderRadius:'8px',padding:'6px 13px',fontWeight:800,fontSize:'11.5px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>View last year</button>
               <button onClick={dismissFYRollover} style={{background:'none',border:'none',padding:'6px 4px',fontWeight:700,fontSize:'10px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Got it</button>
@@ -4469,7 +4399,7 @@ export default function App() {
             financialYearsExpanded={financialYearsExpanded} setFinancialYearsExpanded={setFinancialYearsExpanded}
             exportDataExpanded={exportDataExpanded} setExportDataExpanded={setExportDataExpanded}
             dataManagementExpanded={dataManagementExpanded} setDataManagementExpanded={setDataManagementExpanded}
-            settings={settings} saveSett={saveSett} totals={totals} taxForecast={taxForecast} entries={entries} currPeriodIdx={currPeriodIdx}
+            settings={settings} saveSett={saveSett} totals={totals} taxView={taxView} entries={entries} currPeriodIdx={currPeriodIdx}
             setExportFormat={setExportFormat} setPayslipMode={setPayslipMode} setPayslipPeriodIdx={setPayslipPeriodIdx} setPayslipFYYear={setPayslipFYYear} setPayslipModalOpen={setPayslipModalOpen}
             session={session} handleExport={handleExport} pulseBackupBtn={pulseBackupBtn} setRestoreConfirmOpen={setRestoreConfirmOpen} fileRef={fileRef} handleImport={handleImport}
             wipeConf={wipeConf} setWipeConf={setWipeConf} handleWipe={handleWipe} wipingData={wipingData}
@@ -4500,7 +4430,7 @@ export default function App() {
             const pb = glancePb;
             return (
               <div style={{padding:'14px 0',borderBottom:'1px solid var(--border-2)'}}>
-                <div style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>{pb?payLabel(pb.month):'This pay period'}</div>
+                <div style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>{pb?payLabel(pb.month):'This pay month'}</div>
                 <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'2px',marginBottom:'8px'}}>{pb?`${shiftSpan(pb.start,pb.end)} · submitted only`:'Submitted overtime only'}</div>
                 <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
                   <div>
@@ -4613,10 +4543,10 @@ export default function App() {
               ) : (
               <>
               <div style={{fontSize:'15px',fontWeight:900,marginBottom:'4px'}}>Export to {formatLabel}</div>
-              <div style={{fontSize:'11px',color:'var(--quiet)',marginBottom:'16px'}}>Choose a period, or set your own date range</div>
+              <div style={{fontSize:'11px',color:'var(--quiet)',marginBottom:'16px'}}>Choose a pay month, or set your own dates</div>
 
               <div style={{display:'flex',gap:'6px',background:'var(--chip-bg)',borderRadius:'12px',padding:'3px',marginBottom:'16px'}}>
-                <button onClick={()=>setPayslipMode('period')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='period'?'var(--surface)':'transparent',color:payslipMode==='period'?BRASS:'var(--muted)',boxShadow:payslipMode==='period'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Pay Period</button>
+                <button onClick={()=>setPayslipMode('period')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='period'?'var(--surface)':'transparent',color:payslipMode==='period'?BRASS:'var(--muted)',boxShadow:payslipMode==='period'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Pay month</button>
                 <button onClick={()=>setPayslipMode('custom')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='custom'?'var(--surface)':'transparent',color:payslipMode==='custom'?BRASS:'var(--muted)',boxShadow:payslipMode==='custom'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Custom Range</button>
                 <button onClick={()=>setPayslipMode('financialYear')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='financialYear'?'var(--surface)':'transparent',color:payslipMode==='financialYear'?BRASS:'var(--muted)',boxShadow:payslipMode==='financialYear'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Financial Year</button>
               </div>
@@ -4633,7 +4563,7 @@ export default function App() {
 
               {payslipMode==='period' ? (
                 <>
-                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Pay Periods</div>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Pay months</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'7px',marginBottom:'6px'}}>
                     {periodChoices.map(p=>(
                       <div key={p.idx} onClick={()=>setPayslipPeriodIdx(p.idx)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:p.idx===payslipPeriodIdx?'1.5px solid #2563eb':'1.5px solid var(--border-2)',background:p.idx===payslipPeriodIdx?'var(--tint-blue)':'var(--surface)',cursor:'pointer'}}>
@@ -4688,7 +4618,7 @@ export default function App() {
 
               <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',margin:'16px 0',fontSize:'12px',color:'var(--text-blue-deep)',fontWeight:700,textAlign:'center'}}>
                 {payslipMode==='period'
-                  ? (payslipPeriodIdx!=null ? `${fmtD(PAY_PERIODS[payslipPeriodIdx].start)} – ${fmtD(PAY_PERIODS[payslipPeriodIdx].end)}` : 'Pick a pay period')
+                  ? (payslipPeriodIdx!=null ? `${fmtD(PAY_PERIODS[payslipPeriodIdx].start)} – ${fmtD(PAY_PERIODS[payslipPeriodIdx].end)}` : 'Pick a pay month')
                   : payslipMode==='financialYear'
                     ? (payslipFYYear!=null ? `${generateFYPeriods(payslipFYYear)[0].month} – ${generateFYPeriods(payslipFYYear)[11].month}` : 'Pick a financial year')
                     : (rangeValid ? `${fmtD(payslipStart)} – ${fmtD(payslipEnd)}` : 'Pick a valid start and end date')}
@@ -4753,7 +4683,7 @@ export default function App() {
               </div>
 
               <div style={{padding:'22px 26px 10px'}}>
-                {d.clippedFrom&&<div style={{background:'#eff6ff',border:'1px solid #f1f5f9',borderRadius:'13px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'#1e40af',lineHeight:1.5}}>The tax year restarts on 6 April, so this summary only covers {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)} — the part that falls in the current tax year. That's what keeps the figures accurate.</div>}
+                {d.clippedFrom&&<div style={{background:'#eff6ff',border:'1px solid #f1f5f9',borderRadius:'13px',padding:'11px 14px',marginBottom:'14px',fontSize:'11px',color:'#1e40af',lineHeight:1.5}}>The pay year starts with April pay (shifts from {fmtD(d.clippedFrom)}), so this summary covers {fmtD(d.clippedFrom)} – {fmtD(payslipPreview.end)}, the part in this pay year.</div>}
                 {d.rangeEntries.length===0 ? (
                   <div style={{textAlign:'center',padding:'30px 10px',color:'#78849b',fontSize:'13px',fontWeight:600}}>No shifts recorded in this range.</div>
                 ) : (
@@ -4764,9 +4694,9 @@ export default function App() {
                         <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12.5px'}}>
                           <thead><tr><th style={thStyle}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Hours</th><th style={{...thStyle,textAlign:'right'}}>Rate/hr</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
                           <tbody>
-                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Standard (1.33x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours133.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours133/d.rateHrs.hours133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours133)}</td></tr>}
-                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Elevated (1.5x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours150.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours150/d.rateHrs.hours150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours150)}</td></tr>}
-                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Rest Day (2.0x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours200.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours200/d.rateHrs.hours200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours200)}</td></tr>}
+                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Standard (1.33×)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours133.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours133/d.rateHrs.hours133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours133)}</td></tr>}
+                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Elevated (1.5×)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours150.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours150/d.rateHrs.hours150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours150)}</td></tr>}
+                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Rest day (2×)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours200.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours200/d.rateHrs.hours200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours200)}</td></tr>}
                           </tbody>
                         </table>
                       </>
@@ -4788,7 +4718,7 @@ export default function App() {
 
                     {d.toilBanked>0&&(
                       <>
-                        <div style={sectionTitle}>TOIL Banked This Period</div>
+                        <div style={sectionTitle}>TOIL banked</div>
                         <div style={{background:'#f5f3ff',border:'1px solid #f1f5f9',borderRadius:'13px',padding:'11px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#6d28d9'}}>
                           <span>Not included in the totals below</span>
                           <strong style={{fontFamily:MONO,fontWeight:600}}>+{fmtHrs(d.toilBanked)}</strong>
@@ -4798,7 +4728,7 @@ export default function App() {
 
                     {d.pensionForRange>0&&(
                       <>
-                        <div style={sectionTitle}>Pension Contribution (this period)</div>
+                        <div style={sectionTitle}>Pension contribution</div>
                         <div style={{background:'#eff6ff',border:'1px solid #f1f5f9',borderRadius:'13px',padding:'11px 14px',marginBottom:'8px'}}>
                           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#1e40af'}}>
                             <span>{(d.pensionRate*100).toFixed(2)}% of {fmtGBP(d.pensionablePayForRange)} pensionable pay</span>
@@ -4820,7 +4750,7 @@ export default function App() {
               </div>
 
               <div style={{fontSize:'9.5px',color:'#78849b',lineHeight:1.6,padding:'16px 26px 26px',borderTop:'1px solid #f1f5f9',marginTop:'6px'}}>
-                <strong style={{color:'#64748b'}}>A note on these figures.</strong> This summary is generated from what you've logged in the app, for your own reference — it isn't an official payslip. Tax and National Insurance are estimated using cumulative marginal rates for the tax year, so they can differ slightly from your actual payslip, especially across date ranges spanning more than one pay period. Worth cross-checking against your payslip if the figures matter to you.
+                <strong style={{color:'#64748b'}}>A note on these figures.</strong> This summary is generated from what you've logged in the app, for your own reference — it isn't an official payslip. Tax and National Insurance are worked out the way payroll does: tax code 1257L month by month, and NI on each month's pay. A different tax code or other deductions on your payslip will make a difference, so check against it if the figures matter to you.
               </div>
             </div>
           </div>
@@ -4841,7 +4771,7 @@ export default function App() {
         const c = (light, themed) => fySummaryPrintMode ? light : themed;
         return (
           <div className={fySummaryPrintMode?'payslip-print-area':''} style={{position:'absolute',inset:0,background:c('#f8fafc','var(--surface-2)'),zIndex:65,overflowY:'auto',overscrollBehavior:'contain'}}>
-            <div className="no-print" style={{background:'var(--tint-amber-2)',padding:'8px',fontSize:'10px',fontWeight:800,color:'var(--text-amber-deep)',textAlign:'center'}}>📁 Archived — {label} is read-only</div>
+            <div className="no-print" style={{background:'var(--tint-amber-2)',padding:'8px',fontSize:'10px',fontWeight:800,color:'var(--text-amber-deep)',textAlign:'center'}}>Archived — {label} is read-only</div>
             {!fySummaryPrintMode&&(
               <div className="no-print" style={{display:'flex',gap:'8px',padding:'12px 12px 0'}}>
                 <button onClick={()=>setFySummaryPrintMode(true)} style={{flex:1,background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="doc" s={13} c="#fff"/> PDF</button>
@@ -4868,14 +4798,19 @@ export default function App() {
                   <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</div>
                   <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600}}>{fmtGBP(y.totalGross)}</div>
                 </div>
+                <div style={{width:'1px',background:'rgba(255,255,255,0.15)'}}/>
+                <div style={{flex:1,textAlign:'center'}}>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'#86efac',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</div>
+                  <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#86efac'}}>{fmtGBP(y.totalNet)}</div>
+                </div>
               </div>
             </div>
 
             <div style={{padding:'14px',paddingBottom:'40px'}}>
-              <div style={{background:c('#eff6ff','var(--tint-blue)'),border:`1px solid ${c('#f1f5f9','var(--border-2)')}`,borderRadius:'13px',padding:'10px 12px',marginBottom:'12px',fontSize:'10.5px',color:c('#1e40af','var(--text-blue-deep)'),lineHeight:1.5}}>{fySummaryPrintMode ? 'Grouped by pay period. Gross figures only — no tax or NI estimate, since that math needs the current year\'s context to be accurate.' : 'Tap a period to see individual shifts, this is a record not a working copy. Gross figures only'}</div>
+              <div style={{background:c('#eff6ff','var(--tint-blue)'),border:`1px solid ${c('#f1f5f9','var(--border-2)')}`,borderRadius:'13px',padding:'10px 12px',marginBottom:'12px',fontSize:'10.5px',color:c('#1e40af','var(--text-blue-deep)'),lineHeight:1.5}}>{fySummaryPrintMode ? 'Overtime and PA by pay month, with take-home worked out the way payroll does.' : 'Tap a pay month to see its shifts. This is a read-only record of overtime and PA, with take-home worked out the way payroll does.'}</div>
 
               {y.periods.length===0 ? (
-                <div style={{textAlign:'center',padding:'30px 10px',color:c('#78849b','var(--quiet)'),fontSize:'13px',fontWeight:600}}>No entries recorded in this year.</div>
+                <div style={{textAlign:'center',padding:'30px 10px',color:c('#78849b','var(--quiet)'),fontSize:'13px',fontWeight:600}}>No shifts logged in this year.</div>
               ) : y.periods.map(p=>{
                 const expanded = fySummaryPrintMode || archiveExpandedPeriod===p.short+fySummaryYear;
                 return (
@@ -4886,7 +4821,10 @@ export default function App() {
                         <div style={{fontFamily:MONO,fontSize:'9.5px',color:c('#78849b','var(--quiet)'),marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)} · {p.entries.length} shift{p.entries.length===1?'':'s'}</div>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                        <div style={{fontFamily:MONO,fontWeight:600,fontSize:'12.5px',color:c('#1e3a5f','var(--text-navy)')}}>{fmtGBP(p.gross)}</div>
+                        <div style={{textAlign:'right'}}>
+                          <div style={{fontFamily:MONO,fontWeight:600,fontSize:'12.5px',color:c('#1e3a5f','var(--text-navy)')}}>{fmtGBP(p.gross)}</div>
+                          <div style={{fontFamily:MONO,fontWeight:600,fontSize:'10.5px',color:c('#059669','#059669')}}>{fmtGBP(p.net)} net</div>
+                        </div>
                         {!fySummaryPrintMode&&<Ico n={expanded?'cU':'cD'} s={14} c="#94a3b8"/>}
                       </div>
                     </button>
@@ -4898,7 +4836,7 @@ export default function App() {
                               <div style={{fontWeight:800,fontSize:'11.5px',color:c('#0f172a','var(--ink)')}}>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB')}</div>
                               <div style={{fontSize:'10px',color:c('#78849b','var(--quiet)'),marginTop:'1px',textTransform:'uppercase'}}>{e.reason||'—'}</div>
                             </div>
-                            <div style={{fontFamily:MONO,fontWeight:600,fontSize:'11px',color:c('#1e3a5f','var(--text-navy)')}}>{fmtGBP(e.gross)}</div>
+                            <div style={{fontFamily:MONO,fontWeight:600,fontSize:'11px',color:c('#1e3a5f','var(--text-navy)'),textAlign:'right'}}>{fmtGBP(e.gross)}{e.gross>0&&<div style={{fontSize:'9.5px',color:'#059669'}}>{fmtGBP(e.net)} net</div>}</div>
                           </div>
                         ))}
                       </div>
@@ -4910,27 +4848,6 @@ export default function App() {
           </div>
         );
       })()}
-
-      {/* Trends — chart enlarge modal, shares render functions with the inline charts */}
-      {chartModalMounted&&(
-        <div onClick={()=>{setChartModal(null);setChartTap(null);}} className={chartModal?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:50,padding:'16px'}}>
-          <div ref={chartModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Chart detail" onClick={e=>e.stopPropagation()} className={'alert-pop'+(chartModal?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'20px',padding:'20px 16px',width:'100%',maxWidth:'480px',maxHeight:'85vh',overflow:'auto',position:'relative'}}>
-            <button onClick={()=>{setChartModal(null);setChartTap(null);}} style={{position:'absolute',top:'14px',right:'14px',background:'var(--chip-bg)',border:'none',borderRadius:'50%',width:'30px',height:'30px',fontSize:'15px',fontWeight:900,color:'var(--muted)',cursor:'pointer'}}>✕</button>
-            <div style={{fontSize:'13px',fontWeight:900,color:'var(--ink)',marginBottom:'16px',paddingRight:'36px'}}>{chartModalV==='cum'?'Cumulative Gross Earnings':'Monthly OT Gross/Net'}</div>
-            {chartModalV==='cum' ? renderCumulativeChart(true) : renderMonthlyChart(true)}
-            {chartModalV==='cum' && (
-              <div style={{textAlign:'center',marginTop:'10px',fontSize:'12px',fontWeight:700,color:'var(--muted)'}}>Running total: <strong style={{color:'var(--text-navy)'}}>£{totals.totalGross.toFixed(2)}</strong></div>
-            )}
-            {chartModalV==='mon' && (
-              <div style={{display:'flex',justifyContent:'center',gap:'20px',marginTop:'14px'}}>
-                <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'15px',height:'3px',background:'#34d399',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</span></div>
-                <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'15px',height:'3px',background:'#f87171',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</span></div>
-              </div>
-            )}
-            <div style={{textAlign:'center',marginTop:'10px',fontSize:'10px',color:'var(--quiet)'}}>Tap any point for that period's figure</div>
-          </div>
-        </div>
-      )}
 
       {/* Calendar View — empty-day tap confirmation, so a stray tap doesn't
           silently drop you into Log Overtime */}
@@ -4971,8 +4888,8 @@ export default function App() {
                       {e.takeAs==='toil'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'var(--tag-purple)',flexShrink:0}}>TOIL</span>}
                       {e.takeAs==='mix'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'var(--tag-purple)',flexShrink:0}}>Mix</span>}
                       <span style={{flex:1}}/>
-                      <Tooltip label="Edit entry"><button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} aria-label="Edit this record" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button></Tooltip>
-                      <Tooltip label="Delete entry"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this record" style={{marginLeft:'6px',background:confirmDel===e.id?'var(--tint-red)':'transparent',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button></Tooltip>
+                      <Tooltip label="Edit shift"><button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} aria-label="Edit this shift" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button></Tooltip>
+                      <Tooltip label="Delete shift"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this shift" style={{marginLeft:'6px',background:confirmDel===e.id?'var(--tint-red)':'transparent',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button></Tooltip>
                     </div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
                       {carmsBadge(e, isWide?11.5:10.5)}
@@ -4994,7 +4911,7 @@ export default function App() {
                   {/* delete confirmation */}
                   {confirmDel===e.id&&(
                     <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
-                      <span style={{fontSize:isWide?'14px':'12px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this record?</span>
+                      <span style={{fontSize:isWide?'14px':'12px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this shift?</span>
                       <div style={{display:'flex',gap:'7px',flexShrink:0}}>
                         <button onClick={()=>setConfirmDel(null)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:isWide?'7px 15px':'5px 12px',fontSize:isWide?'13px':'11px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
                         <button onClick={()=>{ delEntry(e.id); if(selectedCalDayV.dEntries.length<=1) setSelectedCalDay(null); }} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:isWide?'7px 15px':'5px 12px',fontSize:isWide?'13px':'11px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
@@ -5074,11 +4991,11 @@ export default function App() {
       {datePickerMounted&&(
         <div onClick={()=>setDatePickerFor(null)} className={datePickerFor?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60}}>
           {datePickerForV==='ot'
-            ? renderDatePickerGrid(form.otSubmittedDate||'', v=>setForm(f=>({...f,otSubmittedDate:v,otSubmitted:true})), !datePickerFor)
+            ? renderDatePickerGrid(form.otSubmittedDate||'', v=>setForm(f=>({...f,otSubmittedDate:v,otSubmitted:true})), !datePickerFor, { min: form.date, max: todayStr })
             : datePickerForV==='pa'
-            ? renderDatePickerGrid(form.paSubmittedDate||'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})), !datePickerFor)
+            ? renderDatePickerGrid(form.paSubmittedDate||'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})), !datePickerFor, { min: form.date, max: todayStr })
             : datePickerForV==='carmsBulk'
-            ? renderDatePickerGrid(todayStr, v=>bulkMarkCarmsSubmitted(v), !datePickerFor)
+            ? renderDatePickerGrid(todayStr, v=>bulkMarkCarmsSubmitted(v), !datePickerFor, { min: entries.filter(e=>carmsSelected[e.id]).reduce((m,e)=>e.date>m?e.date:m,''), max: todayStr })
             : renderDatePickerGrid(form.date||todayStr, v=>setForm(f=>({...f,date:v})), !datePickerFor)}
         </div>
       )}

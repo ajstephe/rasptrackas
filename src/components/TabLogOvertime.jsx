@@ -149,7 +149,7 @@ export function TabLogOvertime({
             {TIERS.map(([k,lbl],i)=>(
               <label key={k} style={{background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'8px 10px',display:'block',cursor:'text'}}>
                 <span style={{display:'block',fontSize:'11px',fontWeight:900,color:'#2563eb'}}>{lbl}</span>
-                <input type="number" step="0.25" inputMode="decimal" placeholder="0" aria-label={`Hours at ${lbl}`} value={form[k]} onChange={e=>setForm({...form,[k]:e.target.value})} style={{width:'100%',border:'none',background:'transparent',fontFamily:MONO,fontWeight:700,fontSize:'17px',color:'var(--ink)',outline:'none',padding:'3px 0'}}/>
+                <input type="number" min="0" max="24" step="0.25" inputMode="decimal" placeholder="0" aria-label={`Hours at ${lbl}`} value={form[k]} onChange={e=>setForm({...form,[k]:e.target.value})} style={{width:'100%',border:'none',background:'transparent',fontFamily:MONO,fontWeight:700,fontSize:'17px',color:'var(--ink)',outline:'none',padding:'3px 0'}}/>
                 <span style={{display:'block',fontSize:'10px',fontWeight:700,color:'var(--quiet)'}}>£{(formRates[['r133','r150','r200'][i]]||0).toFixed(2)}/hr</span>
               </label>
             ))}
@@ -197,7 +197,7 @@ export function TabLogOvertime({
             <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap',marginTop:'9px',fontSize:'11.5px',fontWeight:600,color:'var(--muted)'}}>
               <span>{basis}</span>
               <label style={{display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'4px 8px 4px 10px'}}>
-                <input type="number" step="0.25" inputMode="decimal" aria-label="Overtime hours" value={form[tier]} onChange={e=>setForm({...form, otAuto:false, [tier]:e.target.value})} style={{width:'54px',border:'none',background:'transparent',fontFamily:MONO,fontWeight:700,fontSize:inputFont,color:'var(--ink)',textAlign:'right',outline:'none'}}/>
+                <input type="number" min="0" max="24" step="0.25" inputMode="decimal" aria-label="Overtime hours" value={form[tier]} onChange={e=>setForm({...form, otAuto:false, [tier]:e.target.value})} style={{width:'54px',border:'none',background:'transparent',fontFamily:MONO,fontWeight:700,fontSize:inputFont,color:'var(--ink)',textAlign:'right',outline:'none'}}/>
                 <span style={{fontSize:'11px',fontWeight:700,color:'var(--text-blue-deep)'}}>h overtime</span>
               </label>
               {form.otAuto
@@ -226,7 +226,7 @@ export function TabLogOvertime({
     const splitBox = (label, colour, bg, value, onChange) => (
       <label style={{display:'block',background:bg,borderRadius:'11px',padding:'8px 10px'}}>
         <span style={{display:'block',fontSize:'10px',fontWeight:900,color:colour,textTransform:'uppercase',letterSpacing:'0.06em'}}>{label}</span>
-        <input type="number" step="0.25" inputMode="decimal" value={value} onChange={onChange} style={{width:'100%',border:'none',background:'transparent',fontFamily:MONO,fontWeight:700,fontSize:'17px',color:'var(--ink)',outline:'none',padding:'3px 0'}}/>
+        <input type="number" min="0" max="24" step="0.25" inputMode="decimal" value={value} onChange={onChange} style={{width:'100%',border:'none',background:'transparent',fontFamily:MONO,fontWeight:700,fontSize:'17px',color:'var(--ink)',outline:'none',padding:'3px 0'}}/>
       </label>
     );
     return (
@@ -260,7 +260,7 @@ export function TabLogOvertime({
           <Ico n="cal" s={14} c="var(--quiet)"/>{dateLabel(form[field])}
         </button>
       ) : (
-        <input type="date" value={form[field]||todayStr} onChange={e=>setForm({...form,[field]:e.target.value})} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
+        <input type="date" min={form.date} max={todayStr} value={form[field]||todayStr} onChange={e=>{ const v=e.target.value; if(!v) return; setForm({...form,[field]: v<form.date ? form.date : v>todayStr ? todayStr : v}); }} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
       )}
     </div>
   );
@@ -292,7 +292,7 @@ export function TabLogOvertime({
     <div className={animClass} style={{padding:'14px',paddingBottom:isWide?'40px':'calc(100px + env(safe-area-inset-bottom))'}}>
       <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'18px'}}>
         {editing&&<button onClick={()=>{setEditing(null);setTab('months');}} aria-label="Cancel editing" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="back" s={16}/></button>}
-        <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>{editing?'Edit Record':'Log Overtime'}</h2>
+        <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>{editing?'Edit shift':'Log Overtime'}</h2>
       </div>
 
       {!settings.rank||!settings.service ? (
@@ -349,7 +349,7 @@ export function TabLogOvertime({
             scrolls here and pulses this card (see App.jsx). */}
         {step(4,'Submitted yet?',(
           <>
-            <div style={{fontSize:'11px',color:'var(--muted)',fontWeight:600,lineHeight:1.45,margin:'4px 0 2px'}}>Leave these off if you haven't claimed it yet. It'll wait for you in Awaits Submission.</div>
+            <div style={{fontSize:'11px',color:'var(--muted)',fontWeight:600,lineHeight:1.45,margin:'4px 0 2px'}}>Leave these off if you haven't claimed it yet. It'll wait for you in Awaits Submission (future shifts join once their date arrives).</div>
             {subRow('Overtime submitted on CARMS', hasOTHours?null:'No overtime hours on this shift', hasOTHours&&form.otSubmitted, hasOTHours, 'otSubmitted', 'ot', 'otSubmittedDate', false)}
             {subRow('PA submitted on PSOP', hasPA?`${form.paRate} — ${fmtGBP(PA_RATES[form.paRate]||0)}`:'No PA rate selected for this shift', hasPA&&form.paSubmitted, hasPA, 'paSubmitted', 'pa', 'paSubmittedDate', true)}
           </>
@@ -394,7 +394,7 @@ export function TabLogOvertime({
           </div>
           <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':'save-pulse-idle'} style={{marginLeft:'auto',flexShrink:0,background:justSaved?'#059669':BRASS,color:'#fff',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':undefined,padding:isWide?'13px 26px':'12px 16px',borderRadius:'12px',border:'none',fontWeight:900,fontSize:isWide?'14px':'13px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',gap:'8px',transition:'background 0.3s'}}>
             <Ico n={justSaved?'check':'save'} s={16} c="#fff"/>
-            {justSaved?'Saved':(editing?'Update Record':'Save Record')}
+            {justSaved?'Saved':(editing?'Update shift':'Save shift')}
           </button>
         </div>
       </>

@@ -29,6 +29,14 @@ describe('pay months match HMRC payroll to the penny', () => {
       const year = buildPayYear({ periods: PERIODS, entries, settings: { rank, service }, svcData });
       const hmrc = overtimeTakeHome(svcData.salary, year.map(pb=>pb.ot+pb.pa));
       year.forEach((pb,i)=>expect(Math.abs(pb.combinedNet - hmrc[i])).toBeLessThan(0.005));
+      // and each whole payslip: tax, NI, pension and net pay for the month
+      const slips = simulatePayslips(svcData.salary, year.map(pb=>pb.ot+pb.pa));
+      year.forEach((pb,i)=>{
+        expect(Math.abs(pb.monthTax - slips[i].tax)).toBeLessThan(0.005);
+        expect(Math.abs(pb.monthNI - slips[i].ni)).toBeLessThan(0.005);
+        expect(Math.abs(pb.periodPension - slips[i].pension)).toBeLessThan(0.005);
+        expect(Math.abs(pb.monthNet - slips[i].net)).toBeLessThan(0.005);
+      });
     });
   }
 });
