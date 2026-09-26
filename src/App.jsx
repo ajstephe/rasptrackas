@@ -21,7 +21,7 @@ import {
   calcUKIncomeTax, calcUKIncomeTaxNoTaper,
   calcNI, estimateAnnualNI,
   computeTaxBandBreakdown, calcPensionContribution,
-  getTaxBand, splitAcrossBands,
+  getTaxBand, splitAcrossBands, payeTaxToDate, payeNI,
 } from './lib/tax.js';
 import { fmt, fmtHM, fmtHrs, fmtGBP, fmtD, fmtRelTime, payLabel, shiftSpan } from './lib/format.js';
 import {
@@ -1948,13 +1948,14 @@ export default function App() {
     // before income tax is worked out, same as the pay months do.
     const pensionYTD = calcPensionContribution(salaryYTD + lwYTD, taxYearFraction);
     const taxableGrossYTD = Math.max(0, combinedGrossYTD - pensionYTD.amount);
-    const ytdTax = calcUKIncomeTax(taxableGrossYTD, taxYearFraction);
+    // Payroll's own method — cumulative 1257L, no in-year taper.
+    const ytdTax = payeTaxToDate(taxableGrossYTD, Math.max(1, paidMonths.length));
     // NI is assessed on each month's pay on its own: paid months in full,
     // plus the NI on overtime already claimed into months not yet paid.
     const ytdNI = periodBreakdown.reduce((s,pb)=>{
       const money = pb.ot + pb.night + pb.pa;
-      if (pb.payDate<=todayStr) return s + calcNI(pb.baseAmt + money);
-      return money>0 ? s + calcNI(pb.baseAmt + money) - calcNI(pb.baseAmt) : s;
+      if (pb.payDate<=todayStr) return s + payeNI(pb.baseAmt + money);
+      return money>0 ? s + payeNI(pb.baseAmt + money) - payeNI(pb.baseAmt) : s;
     }, 0);
     const combinedNetYTD = combinedGrossYTD - pensionYTD.amount - ytdTax - ytdNI;
 
@@ -2643,7 +2644,7 @@ export default function App() {
       // Hours go on the row carrying the overtime (or the £0 row), so a
       // shift split across two months doesn't count its hours twice.
       const showHours = hasOtHere || shares.length===0;
-      const band = gross>0 ? getTaxBand(cumulativeBefore + gross, pb.yearFraction).name : null;
+      const band = shares.length ? shares[shares.length-1].bandName : null;
       // Leading '' reserves column A for the merged, rotated pay-period
       // label set separately below — this row array only ever fills
       // columns B onward.

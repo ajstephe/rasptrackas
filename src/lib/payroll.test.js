@@ -33,8 +33,8 @@ describe('pay months as PAYE months', () => {
 
   it('pays a twelfth of salary each month, at the new rate from September pay', () => {
     const aug = monthlyPay(SVC, '2026-08-20'), sep = monthlyPay(SVC, '2026-09-20');
-    expect(aug.salary).toBeCloseTo(SVC.salary.pre/12, 6);
-    expect(sep.salary).toBeCloseTo(SVC.salary.post/12, 6);
+    expect(aug.salary).toBeCloseTo(SVC.salary.pre/12, 2);   // paid to the penny
+    expect(sep.salary).toBeCloseTo(SVC.salary.post/12, 2);
   });
 
   it('keeps a basic-rate officer at basic-rate deductions on overtime in every month, including the start of the year', () => {
@@ -43,7 +43,7 @@ describe('pay months as PAYE months', () => {
     year(entries).slice(0,8).forEach(pb=>{
       const deducted = 1 - pb.combinedNet/pb.combinedGross;
       expect(deducted).toBeGreaterThan(0.215);   // 20% tax + at least 2% NI
-      expect(deducted).toBeLessThan(0.2801);     // never more than 20% tax + 8% NI
+      expect(deducted).toBeLessThan(0.285);      // 20% tax + 8% NI, give or take payroll's whole-pound rounding
     });
   });
 });

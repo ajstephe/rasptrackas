@@ -1,5 +1,5 @@
 import { calcEntry, isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate } from './calc.js';
-import { applyBandTax, pensionTierRate, LONDON_WEIGHTING, LONDON_ALLOWANCE } from './tax.js';
+import { pensionTierRate, payeTaxToDate, payeNI, payeBandName, LONDON_WEIGHTING, LONDON_ALLOWANCE } from './tax.js';
 import { RATE_CHANGE_DATE } from './payPeriods.js';
 
 // ─── payroll: one pay month = one PAYE tax month ─────────────────────────────
@@ -9,9 +9,10 @@ import { RATE_CHANGE_DATE } from './payPeriods.js';
 // year and the tax year therefore line up exactly, and shifts stay in the
 // pay month their dates put them in.
 //
-// Each pay month is taxed the way PAYE does it: salary arrives as a twelfth
-// of the annual figure (at the rate in force on the pay date), and by tax
-// month n you've had n/12 of the tax-free allowance and of each band.
+// Each pay month is taxed the way payroll does it (see the PAYE section of
+// lib/tax.js): salary arrives as a twelfth of the annual figure, rounded to
+// the penny, at the rate in force on the pay date; tax is cumulative on tax
+// code 1257L; NI is on the month's pay alone.
 export const PAY_DAY = 20;
 const MONTH_NUM = { January:1, February:2, March:3, April:4, May:5, June:6, July:7, August:8, September:9, October:10, November:11, December:12 };
 
@@ -26,7 +27,8 @@ export const monthlyPay = (svcData, payDate) => {
   const post = payDate >= RATE_CHANGE_DATE;
   const salaryAnnual = svcData ? svcData.salary[post?'post':'pre'] : 0;
   const lwAnnual = LONDON_WEIGHTING[post?'post':'pre'];
-  const salary = salaryAnnual/12, lw = lwAnnual/12, la = LONDON_ALLOWANCE/12;
+  const pence = x => Math.round((x + Number.EPSILON)*100)/100;
+  const salary = pence(salaryAnnual/12), lw = pence(lwAnnual/12), la = pence(LONDON_ALLOWANCE/12);
   return { salary, lw, la, base: salary+lw+la, pensionable: salary+lw, annualPensionable: salaryAnnual+lwAnnual };
 };
 
@@ -42,11 +44,20 @@ export const claimedParts = (e, settings) => {
 
 const zeroResult = { tax:0, ni:0, net:0, rate:0, bandName:null };
 
+// Tax and NI on a slice of pay added to a payslip: `payBefore` is taxable
+// pay to date before it, `monthPayBefore` this month's gross before it.
+export const paySlice = (payBefore, amount, taxMonth, monthPayBefore) => {
+  if (amount <= 0) return zeroResult;
+  const tax = payeTaxToDate(payBefore+amount, taxMonth) - payeTaxToDate(payBefore, taxMonth);
+  const ni  = payeNI(monthPayBefore+amount) - payeNI(monthPayBefore);
+  return { tax, ni, net: amount-tax-ni, rate: (tax+ni)/amount*100, bandName: payeBandName(payBefore+amount, taxMonth) };
+};
+
 // Take-home from a pay month's overtime and PA, stacked on top of that
 // month's salary and everything earlier in the tax year.
 export const periodNet = (pb, ot, pa) =>
-  applyBandTax(pb.cumBase, ot, pb.yearFraction, pb.baseAmt).net +
-  applyBandTax(pb.cumBase+ot, pa, pb.yearFraction, pb.baseAmt+ot).net;
+  paySlice(pb.cumBase, ot, pb.taxMonth, pb.baseAmt).net +
+  paySlice(pb.cumBase+ot, pa, pb.taxMonth, pb.baseAmt+ot).net;
 
 // All twelve pay months of one pay year (= one tax year).
 export const buildPayYear = ({ periods, entries, settings, svcData }) => {
@@ -61,13 +72,13 @@ export const buildPayYear = ({ periods, entries, settings, svcData }) => {
     const m = monthlyPay(svcData, payDate);
     const yearFraction = (i+1)/12;
     const pensionRate = svcData ? pensionTierRate(m.annualPensionable) : 0;
-    const periodPension = m.pensionable * pensionRate;
+    const periodPension = Math.round((m.pensionable * pensionRate + Number.EPSILON)*100)/100;
     const cumBase = cum + m.base - periodPension;   // salary is taxed first, net of pension
     const parts = partsBy[i].sort((a,b)=>a.entry.date.localeCompare(b.entry.date) || String(a.entry.id).localeCompare(String(b.entry.id)) || (a.kind==='ot'?-1:1));
     const ot = parts.filter(x=>x.kind==='ot').reduce((s,x)=>s+x.amount,0);
     const pa = parts.filter(x=>x.kind==='pa').reduce((s,x)=>s+x.amount,0);
-    const otResult = applyBandTax(cumBase, ot, yearFraction, m.base);
-    const paResult = applyBandTax(cumBase+ot, pa, yearFraction, m.base+ot);
+    const otResult = paySlice(cumBase, ot, i+1, m.base);
+    const paResult = paySlice(cumBase+ot, pa, i+1, m.base+ot);
     cum = cumBase + ot + pa;
     return {
       month:p.month, start:p.start, end:p.end, payDate, taxMonth:i+1, yearFraction,
@@ -86,7 +97,7 @@ export const partNets = pb => {
   let prior = 0;
   return pb.parts.map(part=>{
     const cumBefore = pb.cumBase + prior;
-    const r = applyBandTax(cumBefore, part.amount, pb.yearFraction, pb.baseAmt + prior);
+    const r = paySlice(cumBefore, part.amount, pb.taxMonth, pb.baseAmt + prior);
     prior += part.amount;
     return { part, net:r.net, tax:r.tax, ni:r.ni, rate:r.rate, bandName:r.bandName, cumBefore };
   });

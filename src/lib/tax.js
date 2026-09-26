@@ -259,3 +259,34 @@ export const periodPensionablePay = (p, svcData) => {
   const lw     = (preDays/365)*LONDON_WEIGHTING.pre + (postDays/365)*LONDON_WEIGHTING.post;
   return salary + lw;
 };
+
+// ─── PAYE, month by month, the way payroll works it out ──────────────────────
+// Used for every pay month's figures (lib/payroll.js). Tax code 1257L on the
+// cumulative basis, straight from HMRC's payroll method:
+//   · free pay of (1257 × 10 + 9) ÷ 12 = £1,048.25 a month, to date
+//   · taxable pay to date rounded down to the whole pound
+//   · rate limits to date: the annual limit × month ÷ 12, rounded up to the pound
+//   · no £100k taper in the month — payroll keeps giving the full allowance
+//     and the difference is collected later by a code change or Self
+//     Assessment (the Tax & 100K+ Calculator shows it as extra tax)
+// NI is worked out on each month's pay alone: 8% from £1,048 to £4,189 a
+// month and 2% above, rounded to the nearest penny (a half penny rounds down).
+export const PAYE_FREE_PAY_MONTH = Math.ceil(((1257*10+9)/12)*100 - 1e-9)/100; // £1,048.25
+export const NI_PT_MONTH = 1048, NI_UEL_MONTH = 4189;
+const payeLimits = month => ({ basic: Math.ceil(37700*month/12 - 1e-9), upper: Math.ceil(125140*month/12 - 1e-9) });
+const payeTaxable = (payToDate, month) => Math.max(0, Math.floor(payToDate - PAYE_FREE_PAY_MONTH*month + 1e-9));
+export const payeTaxToDate = (payToDate, month) => {
+  const taxable = payeTaxable(payToDate, month);
+  const { basic, upper } = payeLimits(month);
+  const tax = 0.20*Math.min(taxable, basic) + 0.40*Math.max(0, Math.min(taxable, upper) - basic) + 0.45*Math.max(0, taxable - upper);
+  return Math.floor(tax*100 + 1e-6)/100;
+};
+export const payeNI = monthPay => {
+  const raw = 0.08*Math.max(0, Math.min(monthPay, NI_UEL_MONTH) - NI_PT_MONTH) + 0.02*Math.max(0, monthPay - NI_UEL_MONTH);
+  return Math.ceil(raw*100 - 0.5 - 1e-9)/100;
+};
+export const payeBandName = (payToDate, month) => {
+  const taxable = payeTaxable(payToDate, month);
+  const { basic, upper } = payeLimits(month);
+  return taxable <= 0 ? 'Personal Allowance' : taxable <= basic ? 'Basic Rate' : taxable <= upper ? 'Higher Rate' : 'Additional Rate';
+};
