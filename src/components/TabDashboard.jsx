@@ -331,7 +331,10 @@ export function TabDashboard({
     <div style={{background:'var(--surface)',borderRadius:'18px',border:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',overflow:'hidden',marginBottom:'16px'}}>
       {masthead(false)}
 
-      <div style={{padding:'4px 26px'}}>
+      {/* Desktop: the four rows sit in a 2 × 2 grid (pay month | net pay,
+          TOIL | CARMS & PSOP) so each label stays close to its figure
+          instead of stretching across the full width. */}
+      <div style={{padding:'4px 26px',display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',columnGap:'44px',alignItems:'stretch'}}>
         {totals.curr&&(
           <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
@@ -345,7 +348,7 @@ export function TabDashboard({
           </button>
         )}
         {netHeroRow(false)}
-        <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
+        <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
           <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
             <div>

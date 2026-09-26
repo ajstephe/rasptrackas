@@ -323,7 +323,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     btnGhost:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'1px solid var(--border-2)',fontFamily:'inherit',fontSize:'11px',fontWeight:900,cursor:'pointer',background:'var(--surface)',color:'var(--muted)',marginTop:'10px',textTransform:'uppercase',letterSpacing:'1px'},
     linkRow:{textAlign:'center',marginTop:'14px',fontSize:'13px',color:'var(--quiet)',fontWeight:700},
     link:{color:'#2563eb',cursor:'pointer'},
-    note:{display:'flex',gap:'9px',background:'var(--tint-purple)',borderRadius:'13px',padding:'12px 13px',marginBottom:'16px',fontSize:'12.5px',lineHeight:1.5,color:'#6d28d9',fontWeight:600},
+    note:{display:'flex',gap:'9px',background:'var(--tint-purple)',borderRadius:'13px',padding:'12px 13px',marginBottom:'16px',fontSize:'12.5px',lineHeight:1.5,color:'var(--tag-purple)',fontWeight:600},
     divider:{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',margin:'14px 0',fontSize:'11.5px',color:'var(--quiet)',fontWeight:700},
   };
 
@@ -508,7 +508,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'20px'}}>
           <ClockCashIcon width={26} height={18}/>
           <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0}}>
-            <span style={{fontSize:'17px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime &amp; Shift Tracker</span>
+            <span style={{fontSize:'17px',fontWeight:900,background:'var(--title-grad)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime &amp; Shift Tracker</span>
             <span style={{fontSize:'12px',fontWeight:700,color:'var(--quiet)',letterSpacing:'0.2px'}}>by Adam Stephens</span>
           </div>
         </div>
@@ -1777,16 +1777,19 @@ export default function App() {
     const otOK = !hasOTHours || isOtSubmitted(e);
     const hasPA = e.paRate && e.paRate!=='None';
     const paOK = !hasPA || isPaSubmitted(e);
-    const style = {display:'inline-block',fontSize:fontSize+'px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px',textTransform:'uppercase',letterSpacing:'0.5px'};
+    // Normal letters in the app's own font (callers sit inside the mono
+    // figures row, hence the explicit family), a touch larger than the
+    // old capitals so it reads at the same weight.
+    const style = {display:'inline-block',fontFamily:'var(--app-font)',fontSize:(fontSize+1.5)+'px',fontWeight:700,padding:'2px 8px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px'};
     if (otOK && paOK) {
       // Nothing was ever submittable on this entry at all (no OT hours,
       // no PA) — the shift is purely a record, so a "Submitted" badge
       // would be as misleading as an "outstanding" one. Show neither.
       if (!hasOTHours && !hasPA) return null;
-      return <div style={{...style,background:'var(--tint-green)',color:'#059669'}}>✓ Submitted</div>;
+      return <div style={{...style,background:'var(--tint-green)',color:'var(--text-green-deep)'}}>✓ Submitted</div>;
     }
     const goToEntry = (ev) => { ev.stopPropagation(); setSelectedCalDay(null); setConfirmDel(null); startEdit(e); setFocusCarmsToggle(true); };
-    const clickable = {...style,border:'1px solid var(--border-2)',background:'var(--tint-red)',color:'var(--text-red-deep)',cursor:'pointer',fontFamily:'inherit'};
+    const clickable = {...style,border:'1px solid var(--border-2)',background:'var(--tint-red)',color:'var(--text-red-deep)',cursor:'pointer'};
     if (otOK && !paOK) return <button onClick={goToEntry} style={clickable}>✗ PA not submitted</button>;
     if (!otOK && paOK) return <button onClick={goToEntry} style={clickable}>✗ Overtime not submitted</button>;
     return <button onClick={goToEntry} style={clickable}>✗ Overtime &amp; PA not submitted</button>;
@@ -3963,7 +3966,7 @@ export default function App() {
       <div className="fi" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'18px',height:'100dvh',background:'var(--surface-2)',fontFamily:'var(--app-font)'}}>
         <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'10px'}}>
           <ClockCashIcon width={40} height={27}/>
-          <span style={{fontSize:'17px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.3px'}}>Overtime &amp; Shift Tracker</span>
+          <span style={{fontSize:'17px',fontWeight:900,background:'var(--title-grad)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.3px'}}>Overtime &amp; Shift Tracker</span>
         </div>
         <div className="tab-spinner"/>
       </div>
@@ -4391,7 +4394,7 @@ export default function App() {
         <div style={{display:'flex',alignItems:'center',gap:'8px',minWidth:0}}>
           <ClockCashIcon width={28} height={19}/>
           <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0,overflow:'hidden'}}>
-            <span style={{fontSize:'19px',fontWeight:900,background:'linear-gradient(135deg,#1e3a5f,#2563eb)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime &amp; Shift Tracker</span>
+            <span style={{fontSize:'19px',fontWeight:900,background:'var(--title-grad)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',letterSpacing:'-0.4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Overtime &amp; Shift Tracker</span>
             <span style={{fontSize:'13px',fontWeight:700,color:'var(--quiet)',letterSpacing:'0.2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>by Adam Stephens</span>
           </div>
         </div>
@@ -5111,14 +5114,14 @@ export default function App() {
                   <div style={{marginBottom:'8px'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                       <span style={{fontWeight:900,fontSize:isWide?'16px':'14.5px',color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.reason||'Shift'}</span>
-                      {e.takeAs==='toil'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'#6d28d9',flexShrink:0}}>TOIL</span>}
-                      {e.takeAs==='mix'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'#6d28d9',flexShrink:0}}>Mix</span>}
+                      {e.takeAs==='toil'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'var(--tag-purple)',flexShrink:0}}>TOIL</span>}
+                      {e.takeAs==='mix'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'var(--tag-purple)',flexShrink:0}}>Mix</span>}
                       <span style={{flex:1}}/>
                       <Tooltip label="Edit entry"><button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} aria-label="Edit this record" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button></Tooltip>
                       <Tooltip label="Delete entry"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this record" style={{marginLeft:'6px',background:confirmDel===e.id?'var(--tint-red)':'transparent',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button></Tooltip>
                     </div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
-                      {carmsBadge(e, (isWide?15:12)-1)}
+                      {carmsBadge(e, isWide?11.5:10.5)}
                       {/* Grey record-only pill — shown only here in the calendar
                           day view, not in List View, CARMS/PA, or any export.
                           A shift with no claimable OT hours and no PA has
@@ -5177,7 +5180,7 @@ export default function App() {
                       )}
                       {c.toilH>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:600,color:'#6d28d9'}}>{fmtHrs(c.toilH)} @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
+                          <span style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:600,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
                           <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} banked</span>
                         </div>
                       )}

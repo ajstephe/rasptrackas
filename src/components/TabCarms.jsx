@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { fmtGBP, fmtD, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
+import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
 import { SegSlider } from './SegSlider.jsx';
@@ -202,18 +202,20 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
   // ── desktop: one flat, sortable table across every period ───────────────
   const renderDesktopTable = () => {
     const visibleItemsAll = carmsOutstanding.groups.flatMap(g=>g.items.filter(matchesFilter).map(it=>({ it, periodIdx:g.periodIdx })));
-    const flatRows = sortRows(visibleItemsAll.flatMap(({it,periodIdx})=>flattenItem(it,periodIdx)));
-    const allDone = visibleItemsAll.length>0 && visibleItemsAll.every(({it})=>isDone(it));
+        const allDone = visibleItemsAll.length>0 && visibleItemsAll.every(({it})=>isDone(it));
     const toggleSelectAll = () => {
       const byEntry = new Map();
       visibleItemsAll.forEach(({it})=>byEntry.set(it.entry.id, required(it)));
       const rows = Array.from(byEntry, ([id,markers])=>({id,markers}));
       toggleCarmsGroup(rows);
     };
-    const periodMonthByIdx = new Map(carmsOutstanding.groups.map(g=>[g.periodIdx, g.period.month]));
     const thStyle = {textAlign:'left',fontSize:'9.5px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.05em',color:'var(--quiet)',padding:'10px 12px',borderBottom:'1px solid var(--border-2)',background:'var(--surface-2)',userSelect:'none'};
     const tdStyle = {padding:'10px 12px',fontSize:'12px',fontWeight:700,color:'var(--ink)',verticalAlign:'top'};
-    const seenPeriods = new Set();
+    // Same per-month total the phone list shows in each group heading.
+    const groupTotal = items => {
+      if (carmsFilter==='toil') return fmtHrs(items.reduce((s,it)=>s+it.toilHrs,0));
+      return fmtGBP(items.reduce((s,it)=> s + (carmsFilter==='ot'?it.otAmt:carmsFilter==='pa'?it.paAmt:it.amount),0));
+    };
 
     return (
       <div style={{background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'14px',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
@@ -222,33 +224,44 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
           <thead>
             <tr>
               <th style={thStyle}><Checkbox checked={allDone} onClick={toggleSelectAll} size={16}/></th>
+              <th style={thStyle} title="Claims are numbered oldest first">Claim</th>
               <th style={{...thStyle,cursor:'pointer'}} onClick={()=>toggleSort('date')}>Date {sortKey==='date'&&(sortDir==='desc'?'▾':'▴')}</th>
               <th style={thStyle}>Shift / Reason</th>
               <th style={thStyle}>Type</th>
-              <th style={thStyle}>Pay month</th>
               <th style={{...thStyle,textAlign:'right',cursor:'pointer'}} onClick={()=>toggleSort('amount')}>Amount {sortKey==='amount'&&(sortDir==='desc'?'▾':'▴')}</th>
               <th style={thStyle}></th>
             </tr>
           </thead>
           <tbody>
-            {flatRows.map(row=>{
+            {/* Rows sit under a heading for the pay month they'll be paid
+                in, with that month's total — the heading row carries the
+                scroll target and pulse used when arriving from Summary.
+                Sorting by date or amount applies within each month. */}
+            {carmsOutstanding.groups.map(g=>{
+              const visibleItems = g.items.filter(matchesFilter);
+              if (visibleItems.length===0) return null;
+              const groupRows = sortRows(visibleItems.flatMap(it=>flattenItem(it, g.periodIdx)));
+              return [
+                <tr key={'h'+g.periodIdx} ref={el=>{ periodGroupRefs.current[g.periodIdx]=el; }} className={pulsePeriodIdx===g.periodIdx?'carms-pulse':''}>
+                  <td colSpan={5} style={{padding:'9px 12px',background:'var(--surface-2)',borderBottom:'1px solid var(--border-2)'}}>
+                    <span style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>{payLabel(g.period.month)}</span>
+                    <span style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginLeft:'8px'}}>{shiftSpan(g.period.start,g.period.end)} · {groupRows.length} claim{groupRows.length!==1?'s':''}</span>
+                  </td>
+                  <td style={{padding:'9px 12px',background:'var(--surface-2)',borderBottom:'1px solid var(--border-2)',textAlign:'right',fontFamily:MONO,fontSize:'13px',fontWeight:700,color:BRASS,whiteSpace:'nowrap'}}>{groupTotal(visibleItems)}</td>
+                  <td style={{background:'var(--surface-2)',borderBottom:'1px solid var(--border-2)'}}/>
+                </tr>,
+                ...groupRows.map(row=>{
               const selected = !!carmsSelected[row.entryId]?.[row.claimKey];
-              const isFirstOfPeriod = !seenPeriods.has(row.periodIdx);
-              if (isFirstOfPeriod) seenPeriods.add(row.periodIdx);
               return (
                 <tr key={row.id}
-                  ref={el=>{ if(isFirstOfPeriod) periodGroupRefs.current[row.periodIdx]=el; }}
-                  className={'awaits-tr'+(pulsePeriodIdx===row.periodIdx?' carms-pulse':'')}
+                  className="awaits-tr"
                   onClick={()=>goToEntry(row.entry)}
                   style={{cursor:'pointer',background:selected?BRASS+'12':'transparent'}}>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)'}} onClick={e=>e.stopPropagation()}><Checkbox checked={selected} onClick={()=>toggleCarmsClaim(row.entryId,row.claimKey)} size={16}/></td>
-                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',whiteSpace:'nowrap'}}>
-                    {row.claimNo!=null&&<span style={{fontFamily:MONO,fontSize:'9.5px',fontWeight:800,color:'var(--quiet)',marginRight:'6px'}}>#{row.claimNo}</span>}
-                    {fmtD(row.date)}
-                  </td>
+                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',fontFamily:MONO,fontSize:'10.5px',fontWeight:800,color:'var(--quiet)'}}>{row.claimNo!=null?`#${row.claimNo}`:''}</td>
+                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',whiteSpace:'nowrap'}}>{new Date(row.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)'}}>{row.reason}</td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)'}}>{typeBadge(row)}</td>
-                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',color:'var(--quiet)',fontWeight:700,whiteSpace:'nowrap'}}>{payLabel(periodMonthByIdx.get(row.periodIdx))}</td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',fontFamily:MONO,textAlign:'right',whiteSpace:'nowrap'}}>
                     {row.amountDisplay}
                     {row.kind==='ot+toil'&&<div style={{fontSize:'10px',fontWeight:700,color:'#7c3aed',marginTop:'2px'}}>+ {fmtHrs(row.toilHrs)} TOIL</div>}
@@ -261,6 +274,8 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                   </td>
                 </tr>
               );
+                })
+              ];
             })}
           </tbody>
         </table>

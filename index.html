@@ -92,6 +92,10 @@
          the artifact-design light/dark pattern used for the app's own
          mockups. */
       :root{
+        /* App name gradient and the purple TOIL/Mix tag text — set per
+           theme so both stay readable on dark backgrounds. */
+        --title-grad:linear-gradient(135deg,#1e3a5f,#2563eb);
+        --tag-purple:#6d28d9;
         color-scheme: light dark;
         --page-bg:#e2e8f0;
         --surface:#ffffff;
@@ -147,6 +151,8 @@
            in its own right, so this matters just as much for it as it does
            for the light ones. */
         :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="heather"]){
+          --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
+          --tag-purple:#cbb8f7;
           --page-bg:#0b1220;
           --surface:#111c2e;
           --surface-rgb:17,28,46;
@@ -188,6 +194,8 @@
         color-scheme: light;
       }
       :root[data-theme="dark"]{
+        --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
+        --tag-purple:#cbb8f7;
         color-scheme: dark;
         --page-bg:#0b1220;
         --surface:#111c2e;
@@ -326,6 +334,8 @@
          Home/Awaits Submission statement cards still read as distinct
          surfaces against a page this dark. */
       :root[data-theme="midnight"]{
+        --title-grad:linear-gradient(135deg,#e7ecf5,#22d3ee);
+        --tag-purple:#cbb8f7;
         color-scheme: dark;
         --page-bg:#05080f;
         --surface:#101722;

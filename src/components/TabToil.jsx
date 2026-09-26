@@ -26,7 +26,7 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
 
   const balanceCard = (
     <div style={{background:overdrawn?'var(--tint-red)':'var(--tint-purple)',border:'1.5px solid var(--border-2)',borderRadius:'16px',padding:'16px',display:'flex',flexDirection:'column',justifyContent:'center',marginBottom:isWide?0:'12px'}}>
-      <div style={{fontSize:'10px',fontWeight:900,color:overdrawn?'#dc2626':'#6d28d9',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>TOIL balance{overdrawn?' · overdrawn':''}</div>
+      <div style={{fontSize:'10px',fontWeight:900,color:overdrawn?'#dc2626':'var(--tag-purple)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>TOIL balance{overdrawn?' · overdrawn':''}</div>
       <div style={{fontFamily:MONO,fontSize:'27px',fontWeight:600,color:overdrawn?'var(--text-red-deep)':'var(--text-purple-deep)'}}>{fmtHrs(animatedBalance)}</div>
       <div style={{fontSize:'11.5px',fontWeight:700,color:overdrawn?'#dc2626':'#7c3aed',marginTop:'2px'}}>About {Math.abs(days).toFixed(1)} {Math.abs(days).toFixed(1)==='1.0'?'day':'days'}{overdrawn?' overdrawn':''} at 8h a day</div>
     </div>
@@ -58,7 +58,7 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
           the Hours/Minutes boxes above, which stay editable. */}
       <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
         {[[4,'Half day · 4h'],[8,'Full day · 8h']].map(([h,t])=>(
-          <button key={h} type="button" aria-pressed={quickOn(h)} onClick={()=>setQuick(h)} style={{border:quickOn(h)?'1.5px solid #7c3aed':'1.5px solid transparent',background:'var(--tint-purple)',color:'#6d28d9',borderRadius:'9px',padding:'6px 10px',fontWeight:800,fontSize:'11.5px',fontFamily:'inherit',cursor:'pointer'}}>{t}</button>
+          <button key={h} type="button" aria-pressed={quickOn(h)} onClick={()=>setQuick(h)} style={{border:quickOn(h)?'1.5px solid #7c3aed':'1.5px solid transparent',background:'var(--tint-purple)',color:'var(--tag-purple)',borderRadius:'9px',padding:'6px 10px',fontWeight:800,fontSize:'11.5px',fontFamily:'inherit',cursor:'pointer'}}>{t}</button>
         ))}
       </div>
       <input type="text" aria-label="Note" placeholder="Note (optional), e.g. half day, appointment" style={field} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
@@ -77,7 +77,7 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
       <Ico n="trash" s={10} c="#dc2626"/> Remove
     </button>
   ));
-  const shortDate = d => new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+  const shortDate = d => new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
   const change = l => <span style={{color:l.type==='earned'?'#059669':'#dc2626'}}>{l.hours>=0?'+':''}{fmtHrs(l.hours)}</span>;
   const sub = l => l.type==='earned' ? (l.detail||'Banked from a shift') : (l.note==='TOIL taken' ? '' : 'TOIL taken');
 

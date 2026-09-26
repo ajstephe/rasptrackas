@@ -239,11 +239,11 @@ export function TabLogOvertime({
         {form.takeAs==='mix' && (
           <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(2,minmax(0,130px))':'1fr 1fr',gap:'10px',marginTop:'10px'}}>
             {splitBox('Pay hours','var(--text-blue-deep)','var(--tint-blue)',payH.toFixed(2).replace(/\.00$/,''),e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(total-v)}); })}
-            {splitBox('TOIL hours','#6d28d9','var(--tint-purple)',toilH.toFixed(2).replace(/\.00$/,''),e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(v)}); })}
+            {splitBox('TOIL hours','var(--tag-purple)','var(--tint-purple)',toilH.toFixed(2).replace(/\.00$/,''),e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(v)}); })}
           </div>
         )}
         {toilH>0 && (
-          <div style={{marginTop:'8px',fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'#6d28d9'}}>{fmtHrs(toilH)} to TOIL → {fmtHrs(toilH*RATE_TIER_MULT[takeTier])} banked at {RATE_TIER_MULT[takeTier]}×</div>
+          <div style={{marginTop:'8px',fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--tag-purple)'}}>{fmtHrs(toilH)} to TOIL → {fmtHrs(toilH*RATE_TIER_MULT[takeTier])} banked at {RATE_TIER_MULT[takeTier]}×</div>
         )}
       </>
     );

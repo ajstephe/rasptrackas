@@ -142,8 +142,8 @@ export function TabSummary({
     <>
       <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
         <span style={{fontWeight:900,fontSize:'14px',color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{showDate ? new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}) : (e.reason||'Shift')}</span>
-        {e.takeAs==='toil'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'#6d28d9',flexShrink:0}}>TOIL</span>}
-        {e.takeAs==='mix'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'#6d28d9',flexShrink:0}}>Mix</span>}
+        {e.takeAs==='toil'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'var(--tag-purple)',flexShrink:0}}>TOIL</span>}
+        {e.takeAs==='mix'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'var(--tag-purple)',flexShrink:0}}>Mix</span>}
         <span style={{flex:1}}/>
         {extra}
         <Tooltip label="Edit entry"><button onClick={onEdit} aria-label="Edit this record" style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',borderRadius:'8px',background:'var(--chip-bg)',border:'none',cursor:'pointer',padding:0}}><Ico n="edit" s={13} c="#64748b"/></button></Tooltip>
@@ -550,7 +550,7 @@ export function TabSummary({
                             )}
                             {c.toilH>0&&(
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#6d28d9'}}>{fmtHrs(c.toilH)} @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
+                                <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
                                 <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} banked</span>
                               </div>
                             )}
@@ -666,7 +666,7 @@ export function TabSummary({
                         record with nothing to submit, green when everything
                         claimable on this entry is in, red (and tappable
                         straight to the entry's own toggle) otherwise. */}
-                    {carmsBadge(e, 8)}
+                    {carmsBadge(e, 9.5)}
                   </div>
                   {e.comments&&(
                     <div style={{display:'grid',gridTemplateRows:notesOpen?'1fr':'0fr',transition:'grid-template-rows 0.28s cubic-bezier(.32,.72,0,1)'}}>
