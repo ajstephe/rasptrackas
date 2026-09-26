@@ -280,8 +280,8 @@ export function TabSummary({
       {breakdownView==='list' ? (
       <>
       {/* Desktop: period cards reflow into a 2-column grid instead of
-          one long vertical stack; the currently-open card spans both
-          columns (via gridColumn below) so its OT Pay/PA boxes and
+          one long vertical stack; the current pay month and whichever
+          card is open span both columns (via gridColumn below) so its OT Pay/PA boxes and
           entry rows keep full width. Mobile is untouched — `display`
           only turns into `grid` on isWide, so this container behaves
           like a normal block wrapper otherwise. ── */}
@@ -395,7 +395,7 @@ export function TabSummary({
           </div>
         );
         return(
-          <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:'var(--surface)',borderRadius:'16px',border:'1px solid var(--border-2)',borderLeft:isCurr?`3px solid ${BRASS}`:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',marginBottom:isWide?0:'9px',overflow:'hidden',...(isWide&&isExp?{gridColumn:'1 / -1'}:{})}}>
+          <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:'var(--surface)',borderRadius:'16px',border:'1px solid var(--border-2)',borderLeft:isCurr?`3px solid ${BRASS}`:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',marginBottom:isWide?0:'9px',overflow:'hidden',...(isWide&&(isExp||isCurr)?{gridColumn:'1 / -1'}:{})}}>
             {/* role="button" rather than a real <button> — it contains the
                 "Awaiting submission" teaser below as a genuine nested
                 <button> of its own (jumping to CARMS is a different action
@@ -409,6 +409,24 @@ export function TabSummary({
                 <div style={{fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>Shifts {fmtD(p.start)} – {fmtD(p.end)}</div>
               </div>
 
+              {/* A full-width card on desktop (the current pay month, or
+                  any open month) sets Hours, Gross and Net side by side
+                  rather than stretching three rows across the width. */}
+              {isWide&&(isCurr||isExp) ? (
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',border:'1px solid var(--border-2)',borderRadius:'13px',margin:'10px 0 2px'}}>
+                  {[['clock','var(--tint-teal)','#0d9488','Hours worked',<>{fmtHrs(h133+h150+h200)} <span style={{color:'var(--quiet)',fontWeight:400,fontSize:'12px'}}>· {pE.length} shift{pE.length!==1?'s':''}</span></>,'var(--ink)'],
+                    ['cash','var(--tint-blue)','var(--text-navy)','Gross',fmt(totG),'var(--text-navy)'],
+                    ['cash','var(--tint-green)','#059669','Net',fmt(totN),'#059669']].map(([ic,bg,icc,lbl,val,col],n)=>(
+                    <div key={lbl} style={{display:'flex',alignItems:'center',gap:'11px',padding:'13px 16px',borderLeft:n?'1px solid var(--border-2)':'none'}}>
+                      <div style={{width:'30px',height:'30px',borderRadius:'13px',background:bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n={ic} s={15} c={icc}/></div>
+                      <div style={{minWidth:0}}>
+                        <div style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>{lbl}</div>
+                        <div style={{fontFamily:MONO,fontSize:'17px',fontWeight:600,color:col,marginTop:'1px',whiteSpace:'nowrap'}}>{val}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (<>
               <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0',borderBottom:'1px solid var(--border-2)'}}>
                 <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-teal)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="clock" s={15} c="#0d9488"/></div>
                 <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Hours worked</div>
@@ -424,6 +442,7 @@ export function TabSummary({
                 <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Net</div>
                 <div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'#059669'}}>{fmt(totN)}</div>
               </div>
+              </>)}
 
               {(() => {
                 const g = carmsOutstanding.groups.find(g=>g.periodIdx===idx);
