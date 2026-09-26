@@ -11,18 +11,17 @@ import {
   CURRENT_FY_YEAR, PAY_PERIODS, FY_START, FY_END, getFYStartYearFor, generateFYPeriods,
   CLOUD_RETENTION_CUTOFF, isWithinCloudRetention,
   daysInclusive,
-  getUKTaxYearStart, addYearMinusOneDay, taxYearFractionForDate,
+  getUKTaxYearStart, addYearMinusOneDay,
 } from './lib/payPeriods.js';
 import {
-  PAY_RATES, PA_RATES, RATE_TIER_MULT, RATE_TIER_LABEL, getRates,
+  PAY_RATES, PA_RATES, RATE_TIER_LABEL, getRates,
 } from './lib/payRates.js';
 import {
   LONDON_WEIGHTING, LONDON_ALLOWANCE,
   calcUKIncomeTax, calcUKIncomeTaxNoTaper,
   calcNI, estimateAnnualNI,
-  computeTaxBandBreakdown, pensionTierRate, calcPensionContribution,
-  getTaxBand, applyBandTax, splitAcrossBands,
-  monthlySteppedAmount, monthlySteppedSplitBySept, periodBaseAmount, periodPensionablePay,
+  computeTaxBandBreakdown, calcPensionContribution,
+  getTaxBand, splitAcrossBands,
 } from './lib/tax.js';
 import { fmt, fmtHM, fmtHrs, fmtGBP, fmtD, fmtRelTime, payLabel, shiftSpan } from './lib/format.js';
 import {
@@ -39,6 +38,7 @@ import {
   crossPeriodInfo as crossPeriodInfoPure,
   isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate,
 } from './lib/calc.js';
+import { buildPayYear, entryNet as entryNetPure, partNets, claimedParts } from './lib/payroll.js';
 import { Ico, ClockCashIcon, FireExitIcon } from './components/Icons.jsx';
 import { PrivacyNotice } from './components/PrivacyNotice.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
@@ -1859,124 +1859,22 @@ export default function App() {
   const totals = useMemo(()=>{
     const svcData = settings.rank && settings.service ? PAY_RATES[settings.rank]?.[settings.service] : null;
 
-    // Anchored to the REAL UK tax year (6 Apr – 5 Apr), not the force's pay
-    // year (which starts 9 Feb) — HMRC resets personal allowance/bands on
-    // 6 April regardless of when the police pay calendar happens to start.
-    // Computed up front so the cascade below can use it.
+    // Only used for the "days into 2026/27" label; every tax figure below
+    // works in PAYE months instead.
     const taxYearStart = getUKTaxYearStart(todayStr);
     const taxYearEnd    = addYearMinusOneDay(taxYearStart);
     const ytdRangeEnd   = todayStr <= taxYearEnd ? todayStr : taxYearEnd;
 
-    // ── build the period-by-period cumulative marginal cascade ────────────────
-    // For each period, in chronological order: add salary+LW+LA, then layer this
-    // period's overtime, then night enhancement, then PA on top of the running
-    // cumulative total. Each layer's tax is the difference in cumulative tax
-    // before/after it — i.e. the true marginal rate for that slice of income.
-    //
-    // The running total only ever accumulates periods that belong to the
-    // CURRENT UK tax year — a period is treated as belonging to whichever tax
-    // year contains its end date (matching how PAYE actually works: tax
-    // follows the pay date, not a smooth day-by-day split). The pay calendar
-    // starts 9 Feb, so exactly one period each year (the one ending before
-    // 6 April) falls in the previous, already-closed tax year; its own
-    // marginal tax is estimated as a fresh start from zero rather than folded
-    // into this year's cumulative, since this view has no visibility into
-    // whatever else was earned earlier in that prior year.
-    let cum = 0;
-    let cumPensionablePay = 0; // running salary+LW total, for the pension-tier lookup below
-    let totalGross=0, totalHrs=0;
-
-    // Computed once per entry rather than once per entry PER period — the
-    // loop below checks all 13 periods for every entry, so without this,
-    // calcEntry (and the date lookups) would re-run up to 13x more than
-    // necessary for the exact same result.
-    const entryCalc = new Map(fyEntries.map(e=>[e, calcEntry(e)]));
-    const entryOtDate = new Map(fyEntries.map(e=>[e, effectiveOtDate(e)]));
-    const entryPaDate = new Map(fyEntries.map(e=>[e, effectivePaDate(e)]));
-
-    const periodBreakdown = PAY_PERIODS.map((p,pIdx)=>{
-      // Hours worked this period — tracks the shift's own date regardless
-      // of submission timing, since this is a factual record of when the
-      // work happened, not when it gets paid.
-      const pE = fyEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
-      let hrs=0;
-      pE.forEach(e=>{ const c=entryCalc.get(e); hrs+=c.h1+c.h2+c.h3; });
-
-      // Money earned this period — attributed by each component's own
-      // submission date, not the shift date, since OT and PA can be
-      // submitted on different days and each lands in whichever period
-      // its own submission date falls in, matching the real payslip.
-      let ot=0, night=0, pa=0;
-      fyEntries.forEach(e=>{
-        const c = entryCalc.get(e);
-        const otDate = entryOtDate.get(e);
-        // Night allowance is automatic and only waits on the OT toggle when
-        // there are genuine overtime hours on the entry too — see
-        // submittedGross for the full reasoning. A night-only entry's
-        // allowance lands in its own period unconditionally.
-        const hasOTHours = c.h1 + c.h2 + c.h3 > 0;
-        if (!hasOTHours) {
-          if (otDate>=p.start && otDate<=p.end) night+=c.night;
-        } else if (isOtSubmitted(e) && otDate>=p.start && otDate<=p.end) {
-          ot+=c.ot; night+=c.night;
-        }
-        const hasPA = e.paRate && e.paRate!=='None';
-        const paDate = entryPaDate.get(e);
-        if (hasPA && isPaSubmitted(e) && paDate>=p.start && paDate<=p.end) { pa+=c.pa; }
-      });
-
-      const baseAmt = periodBaseAmount(p, svcData); // salary + London Weighting + London Allowance
-      const inCurrentTaxYear = p.end >= taxYearStart;
-
-      // How far into the relevant tax year this period's end falls, as a
-      // continuous 0-1 fraction — used to pro-rate the annual PA/band
-      // thresholds down to "so far this year", exactly as cumulative PAYE
-      // does it. A period outside the current tax year gets its own span as
-      // the reference instead (there's no larger year to measure against).
-      const daysForFraction = inCurrentTaxYear
-        ? Math.max(0, (new Date(p.end) - new Date(taxYearStart))/86400000) + 1
-        : daysInclusive(p.start, p.end);
-      const yearFraction = Math.max(1/365, Math.min(1, daysForFraction/365));
-
-      // Pension comes off pensionable pay (salary + London Weighting only —
-      // never London Allowance, overtime, or PA) BEFORE income tax is
-      // worked out — a "net pay arrangement", exactly as the Tax & 100K+
-      // Calculator already treats it. The cumulative total below drives
-      // every Net figure in the app (Home, Summary, both exports), so it
-      // needs the same deduction — without it, overtime gets judged
-      // against a taxable total that's higher than it really is. The tier
-      // is read from this period's own annualised-cumulative pensionable
-      // pay, the same "best current estimate" approach
-      // calcPensionContribution already uses everywhere else.
-      const pensionablePayThisPeriod = periodPensionablePay(p, svcData);
-      const cumPensionablePayAfter = (inCurrentTaxYear ? cumPensionablePay : 0) + pensionablePayThisPeriod;
-      const pensionRate = pensionTierRate(cumPensionablePayAfter / yearFraction);
-      const periodPension = pensionablePayThisPeriod * pensionRate;
-      if (inCurrentTaxYear) cumPensionablePay = cumPensionablePayAfter;
-
-      let periodCum = inCurrentTaxYear ? cum : 0; // fresh start for a prior-tax-year period
-      periodCum += baseAmt - periodPension;         // taxed first (net of pension), so OT stacks on top of it
-      let pGross = baseAmt;                         // this period's gross so far, for NI (unaffected by pension — NI never accounts for it — or by the tax-year split — NI has no annual concept)
-
-      const otResult    = applyBandTax(periodCum, ot,    yearFraction, pGross); periodCum += ot;    pGross += ot;
-      const nightResult = applyBandTax(periodCum, night, yearFraction, pGross); periodCum += night; pGross += night;
-      const paResult    = applyBandTax(periodCum, pa,    yearFraction, pGross); periodCum += pa;
-
-      if (inCurrentTaxYear) cum = periodCum; // only carry forward into the next period if this one belongs to the current tax year
-
-      totalGross += ot+night+pa; totalHrs += hrs;
-
-      return {
-        month:p.month, start:p.start, end:p.end,
-        baseAmt, ot, night, pa,
-        pensionablePayThisPeriod, pensionRate, periodPension,
-        otResult, nightResult, paResult,
-        combinedGross: ot+night+pa,
-        combinedNet: otResult.net+nightResult.net+paResult.net,
-        cumAfter: periodCum,
-        inCurrentTaxYear,
-      };
+    // One pay month = one PAYE tax month (pay lands on the 20th, so April
+    // pay is month 1 and March pay month 12) — see lib/payroll.js. Shifts
+    // stay in the pay month their own dates put them in; money lands in the
+    // pay month of its claim date.
+    let totalHrs = 0;
+    const periodBreakdown = buildPayYear({ periods: PAY_PERIODS, entries: fyEntries, settings, svcData });
+    periodBreakdown.forEach(pb=>{
+      fyEntries.forEach(e=>{ if (e.date>=pb.start && e.date<=pb.end) { const c=calcEntry(e); totalHrs += c.h1+c.h2+c.h3; } });
     });
+    const totalGross = periodBreakdown.reduce((s,pb)=>s+pb.combinedGross,0);
 
     const totalNet = periodBreakdown.reduce((s,pb)=>s+pb.combinedNet,0);
     // Per-component YTD figures — same underlying otResult/nightResult/paResult
@@ -2012,41 +1910,21 @@ export default function App() {
 
     const taxYearDaysElapsed = Math.max(0, (new Date(ytdRangeEnd) - new Date(taxYearStart)) / 86400000);
 
-    const salaryYTD = svcData ? monthlySteppedSplitBySept(svcData.salary.pre, svcData.salary.post, taxYearStart, ytdRangeEnd) : 0;
-    const lwYTD     = monthlySteppedSplitBySept(LONDON_WEIGHTING.pre, LONDON_WEIGHTING.post, taxYearStart, ytdRangeEnd);
-    const laYTD     = monthlySteppedAmount(LONDON_ALLOWANCE, taxYearStart, ytdRangeEnd);
+    // Salary and allowances so far = the paydays that have been and gone
+    // this tax year (the 20th of each month, April pay first).
+    const paidMonths = periodBreakdown.filter(pb=>pb.payDate<=todayStr);
+    const salaryYTD = svcData ? paidMonths.reduce((s,pb)=>s+pb.salary,0) : 0;
+    const lwYTD     = paidMonths.reduce((s,pb)=>s+pb.lw,0);
+    const laYTD     = paidMonths.reduce((s,pb)=>s+pb.la,0);
 
-    // Overtime/PA actually earned so far THIS TAX YEAR — excludes future-dated
-    // "Planned" entries, and excludes anything dated before the tax year
-    // started (which belongs to the previous tax year's allowance/bands).
-    // Hours use the shift's own date; money uses each component's own
-    // submission date, same split as periodBreakdown above and for the
-    // same reason — OT and PA can each land in a different YTD window.
-    let otPaidToDate = 0, otNightPaidToDate = 0, hrsToDate = 0;
+    // Overtime and PA claimed this tax year — every pay month of this pay
+    // year, which is the same thing now the two line up. Hours use the
+    // shift's own date.
+    const otPaidToDate = totalOTGross + totalNightGross + totalPAGross;
+    const otNightPaidToDate = totalOTGross + totalNightGross;
+    let hrsToDate = 0;
     fyEntries.forEach(e=>{
-      const c = entryCalc.get(e);
-      if (e.date >= taxYearStart && e.date <= todayStr) {
-        hrsToDate += c.h1 + c.h2 + c.h3;
-      }
-      const otDate = entryOtDate.get(e);
-      // Same principle as periodBreakdown above — night allowance from a
-      // night-only entry counts unconditionally, since there's no OT to
-      // wait on.
-      const hasOTHoursYTD = c.h1 + c.h2 + c.h3 > 0;
-      if (!hasOTHoursYTD) {
-        if (otDate >= taxYearStart && otDate <= todayStr) {
-          otPaidToDate += c.night;
-          otNightPaidToDate += c.night;
-        }
-      } else if (isOtSubmitted(e) && otDate >= taxYearStart && otDate <= todayStr) {
-        otPaidToDate += c.ot + c.night;
-        otNightPaidToDate += c.ot + c.night; // hourly-earned only, excludes flat PA
-      }
-      const hasPA = e.paRate && e.paRate!=='None';
-      const paDate = entryPaDate.get(e);
-      if (hasPA && isPaSubmitted(e) && paDate >= taxYearStart && paDate <= todayStr) {
-        otPaidToDate += c.pa;
-      }
+      if (e.date>=FY_START && e.date<=todayStr) { const c = calcEntry(e); hrsToDate += c.h1 + c.h2 + c.h3; }
     });
 
     // Break the to-date overtime/night money down by which tax band it falls
@@ -2056,47 +1934,39 @@ export default function App() {
     const hoursByBand = splitAcrossBands(salaryYTD+lwYTD+laYTD, otNightPaidToDate)
       .map(b => ({ ...b, hours: avgHourlyRate > 0 ? b.amount / avgHourlyRate : 0 }));
 
-    // Full UK tax year totals (for showing "earned so far / full year" progress),
-    // matching the same tax-year window and monthly-stepped method as above.
-    const lwAnnualTotal = monthlySteppedSplitBySept(LONDON_WEIGHTING.pre, LONDON_WEIGHTING.post, taxYearStart, taxYearEnd);
-    const laAnnualTotal = monthlySteppedAmount(LONDON_ALLOWANCE, taxYearStart, taxYearEnd);
-    const salaryAnnualTotal = svcData ? monthlySteppedSplitBySept(svcData.salary.pre, svcData.salary.post, taxYearStart, taxYearEnd) : 0;
+    // Full tax year: all twelve monthly payments.
+    const lwAnnualTotal = periodBreakdown.reduce((s,pb)=>s+pb.lw,0);
+    const laAnnualTotal = periodBreakdown.reduce((s,pb)=>s+pb.la,0);
+    const salaryAnnualTotal = svcData ? periodBreakdown.reduce((s,pb)=>s+pb.salary,0) : 0;
 
     const combinedGrossYTD = salaryYTD + lwYTD + laYTD + otPaidToDate;
 
-    // Deductions on what's actually been earned so far — no projection or
-    // extrapolation. Thresholds are pro-rated to how far through the UK tax
-    // year we are (6 Apr onward), not how far through the force's pay year
-    // (which starts 9 Feb, ~2 months earlier) — using the pay-year count here
-    // would overstate how much of the tax year has elapsed and understate
-    // every YTD-based figure below.
-    const taxYearFraction = Math.max(1/365, Math.min(1, taxYearDaysElapsed/365));
+    // Thresholds so far this tax year, in whole PAYE months — the same
+    // n/12 the pay months themselves use.
+    const taxYearFraction = Math.max(1/12, paidMonths.length/12);
     // Pension comes off pensionable pay (salary + London Weighting only)
-    // before income tax is worked out, same as everywhere else pension is
-    // handled in this file — without it, this YTD tax figure (and the Net
-    // YTD it feeds, surfaced on the spreadsheet export's summary row)
-    // would judge earnings against a taxable total that's higher than it
-    // really is, the same gap periodBreakdown's own cumulative used to have.
+    // before income tax is worked out, same as the pay months do.
     const pensionYTD = calcPensionContribution(salaryYTD + lwYTD, taxYearFraction);
     const taxableGrossYTD = Math.max(0, combinedGrossYTD - pensionYTD.amount);
     const ytdTax = calcUKIncomeTax(taxableGrossYTD, taxYearFraction);
-    // NI is assessed per pay period in isolation (no annual concept), so sum
-    // only the periods that actually fall within the current UK tax year —
-    // slicing by pay-period position would pull in periods 1-2 of the pay
-    // year, which run 9 Feb – ~5 Apr and belong to the previous tax year.
-    // Unaffected by pension — NI never accounts for it.
-    const ytdNI = periodBreakdown
-      .filter(pb => pb.end >= taxYearStart && pb.start <= todayStr)
-      .reduce((s,pb)=>s + calcNI(pb.baseAmt + pb.ot + pb.night + pb.pa), 0);
+    // NI is assessed on each month's pay on its own: paid months in full,
+    // plus the NI on overtime already claimed into months not yet paid.
+    const ytdNI = periodBreakdown.reduce((s,pb)=>{
+      const money = pb.ot + pb.night + pb.pa;
+      if (pb.payDate<=todayStr) return s + calcNI(pb.baseAmt + money);
+      return money>0 ? s + calcNI(pb.baseAmt + money) - calcNI(pb.baseAmt) : s;
+    }, 0);
     const combinedNetYTD = combinedGrossYTD - pensionYTD.amount - ytdTax - ytdNI;
 
     const currentBand   = getTaxBand(taxableGrossYTD, taxYearFraction);
     const taxBand        = currentBand.name;
     const taxBandRate    = currentBand.rate;
 
-    // Same annualisation the tax functions use internally, surfaced here so
-    // the £100k tracker and the tax figures always agree with each other.
-    const projectedAnnualGross = combinedGrossYTD / taxYearFraction;
+    // Full-year forecast: salary and allowances are known for all twelve
+    // months; overtime and PA run at their pace so far, measured over the
+    // share of this pay year's shifts that have been worked.
+    const shiftYearFraction = Math.max(1/12, Math.min(1, (daysInclusive(FY_START, todayStr<=FY_END?todayStr:FY_END))/364));
+    const projectedAnnualGross = salaryAnnualTotal + lwAnnualTotal + laAnnualTotal + otPaidToDate / shiftYearFraction;
     const taperExtraTax = projectedAnnualGross > 100000
       ? calcUKIncomeTax(projectedAnnualGross, 1) - calcUKIncomeTaxNoTaper(projectedAnnualGross, 1)
       : 0;
@@ -2106,7 +1976,7 @@ export default function App() {
       totalOTGross, totalOTNet, totalNightGross, totalNightNet, totalPAGross, totalPANet,
       prev:getP(currPeriodIdx-1), curr:getP(currPeriodIdx), next:getP(currPeriodIdx+1),
       salaryYTD, lwYTD, laYTD, lwAnnualTotal, laAnnualTotal, salaryAnnualTotal, combinedGrossYTD, combinedNetYTD,
-      ytdTax, ytdNI, taxBand, taxBandRate, daysElapsed, taxYearDaysElapsed, taxYearStart, hoursByBand,
+      ytdTax, ytdNI, taxBand, taxBandRate, daysElapsed, taxYearDaysElapsed, taxYearStart, taxYearFraction, hoursByBand,
       projectedAnnualGross, taperExtraTax,
       // Pension-adjusted YTD figure — gross minus this year's pension
       // contribution so far — the same "taxable" total the £100k/Personal
@@ -2119,6 +1989,27 @@ export default function App() {
       taxableGrossYTD,
     };
   },[fyEntries,calcEntry,settings,currPeriodIdx,todayStr]);
+
+  // The pay month record for any date, in any pay year — this year's comes
+  // straight from totals; other years are built the first time they're asked
+  // for (a late claim across the year end, or an archived year's export).
+  const otherPayYears = useMemo(()=>new Map(),[entries, settings]);
+  const payYearFor = useCallback(fy=>{
+    if (fy===CURRENT_FY_YEAR) return totals.periodBreakdown;
+    if (!otherPayYears.has(fy)) {
+      const svcData = settings.rank && settings.service ? PAY_RATES[settings.rank]?.[settings.service] : null;
+      otherPayYears.set(fy, buildPayYear({ periods: generateFYPeriods(fy), entries, settings, svcData }));
+    }
+    return otherPayYears.get(fy);
+  },[totals, otherPayYears, entries, settings]);
+  const payMonthFor = useCallback(d=>{
+    if (!d) return null;
+    return payYearFor(getFYStartYearFor(d)).find(pb=>d>=pb.start&&d<=pb.end) || null;
+  },[payYearFor]);
+  // What one shift adds to take-home — the difference it makes to its pay
+  // month's net. Used by the day pop-up, opened months and the Log Overtime
+  // preview, so all three always agree with the month totals.
+  const entryNet = useCallback((e, exclude=null)=>entryNetPure({ e, settings, today: todayStr, lookup: payMonthFor, exclude }),[settings, todayStr, payMonthFor]);
 
   // Desktop's "At a Glance" sidebar (below, in the JSX) shows this same
   // current-period Gross/Net pair Dashboard's own hero row does — but
@@ -2161,7 +2052,9 @@ export default function App() {
     const groups = [];
     let totalAmount = 0, totalClaims = 0, totalOtAmount = 0, totalPaAmount = 0;
     PAY_PERIODS.forEach((p,pIdx)=>{
-      const pE = entries.filter(e=>e.date>=p.start&&e.date<=p.end);
+      // A shift dated in the future can't be claimed yet, so it only
+      // joins this list once its date arrives.
+      const pE = entries.filter(e=>e.date>=p.start&&e.date<=p.end&&e.date<=todayStr);
       const items = [];
       pE.forEach(e=>{
         const hasPA = e.paRate && e.paRate!=='None';
@@ -2209,7 +2102,7 @@ export default function App() {
       }
     });
     return { groups, totalAmount, totalClaims, totalOtAmount, totalPaAmount, periodCount: groups.length };
-  },[entries, calcEntry]);
+  },[entries, calcEntry, todayStr]);
 
   // Which subset of the outstanding list is currently shown — All /
   // Overtime / PA. Overtime and PA are inclusive of each other (an item
@@ -2397,12 +2290,12 @@ export default function App() {
     // (it isn't banked until it's claimed), but listed so the TOIL page can
     // show it's on its way rather than leaving it invisible.
     const pending = entries
-      .filter(e=>e.otRateTier && (parseFloat(e.toilHours)||0) > 0 && !isOtSubmitted(e))
+      .filter(e=>e.otRateTier && (parseFloat(e.toilHours)||0) > 0 && !isOtSubmitted(e) && e.date<=todayStr)
       .map(e=>({ id:'pend-'+e.id, date:e.date, type:'pending', hours: calcEntry(e).toilBanked, note: `${e.reason||'Shift'}` }))
       .sort((a,b)=>b.date.localeCompare(a.date));
     const pendingHours = pending.reduce((s,p)=>s+p.hours,0);
     return { rows, balance: running, pending, pendingHours };
-  },[entries, toilTaken, calcEntry]);
+  },[entries, toilTaken, calcEntry, todayStr]);
 
   // ── auto-calc effects for Record Shift Times ────────────────────────────────
   // Keep the Overtime Hours figure in sync with rostered/actual times and duty
@@ -2467,40 +2360,16 @@ export default function App() {
   },[effectiveTier, form.takeAs, form.hours133, form.hours150, form.hours200, form.toilHours, form.otRateTier]);
 
   // ── live form preview ──────────────────────────────────────────────────────
-  // Shows the net for this shift as if logged right now — using the tax band
-  // that applies once this shift's total is added to everything already
-  // earned this FY (salary, allowances, other OT/PA).
+  // The shift's gross, and what it adds to take-home in the pay month it'll
+  // land in — worked out exactly as the month totals are, so the figure here
+  // is the figure you'll see once it's saved.
   const preview = useMemo(()=>{
-    const r  = getRates(settings.rank, settings.service, form.date||todayStr);
-    const h1 = parseFloat(form.hours133)||0;
-    const h2 = parseFloat(form.hours150)||0;
-    const h3 = parseFloat(form.hours200)||0;
-    const toilH = form.otRateTier ? (parseFloat(form.toilHours)||0) : 0;
-    const payH1 = form.otRateTier==='hours133' ? Math.max(0,h1-toilH) : h1;
-    const payH2 = form.otRateTier==='hours150' ? Math.max(0,h2-toilH) : h2;
-    const payH3 = form.otRateTier==='hours200' ? Math.max(0,h3-toilH) : h3;
-    const ot    = payH1*r.r133 + payH2*r.r150 + payH3*r.r200;
-    const toilBanked = form.otRateTier ? toilH * RATE_TIER_MULT[form.otRateTier] : 0;
-    const night = 0; // night hours no longer factor into any calculation
-    const pa    = PA_RATES[form.paRate]||0;
-    const gross = ot + night + pa;
-    // Use the pay period this shift falls in for NI (period-based, no annual
-    // concept), and the shift's own date for pro-rating tax thresholds —
-    // reflecting the right point in the UK tax year, not the pay calendar.
-    const d = form.date||todayStr;
-    const pIdx = PAY_PERIODS.findIndex(p=>d>=p.start&&d<=p.end);
-    const pb = pIdx>=0 ? totals.periodBreakdown[pIdx] : null;
-    const periodGrossBefore = pb ? pb.baseAmt + pb.ot + pb.night + pb.pa : 0;
-    // pb.cumAfter is the correct, sequential, already-pension-adjusted
-    // cumulative through the end of the shift's OWN period — unlike
-    // combinedGrossYTD (bounded by today), it can't leak in money from
-    // later periods when this shift is backdated to an earlier one, e.g.
-    // logging a missed shift from last month after this month's overtime
-    // has already been submitted.
-    const cumulativeBefore = pb ? pb.cumAfter : 0;
-    const result = applyBandTax(cumulativeBefore, gross, taxYearFractionForDate(d), periodGrossBefore);
-    return { gross, net:result.net, night, toilBanked, has:gross>0||toilBanked>0 };
-  },[form, settings, todayStr, totals.combinedGrossYTD, totals.periodBreakdown, currPeriodIdx]);
+    const e = { ...form, date: form.date||todayStr, id: editing?.id ?? '__preview__' };
+    const c = calcEntry(e);
+    const gross = c.gross;
+    const net = gross>0 ? entryNet(e, editing||null) : 0;
+    return { gross, net, night:0, toilBanked:c.toilBanked, has:gross>0||c.toilBanked>0 };
+  },[form, editing, todayStr, calcEntry, entryNet]);
 
   // ── handlers ───────────────────────────────────────────────────────────────
   const handleSave=()=>{
@@ -2720,82 +2589,73 @@ export default function App() {
       if (!otOK && paOK) return hasPA ? 'PA only (OT pending)' : 'No';
       return 'No';
     };
-    // Which entries fall "within" a date range for export purposes is based
-    // on submission date, not the shift's own date — same principle as
-    // periodBreakdown's own FY attribution. A shift worked in late March but
-    // submitted in April belongs to the new financial year's export, since
-    // that's when it actually became real money on CARMS/PSOP, matching
-    // how the Home screen's own totals already treat it. An entry qualifies
-    // if EITHER its OT or PA submission date falls in range — an entry with
-    // only one side submitted still needs to show up once that side lands.
-    const inRange = e => {
-      if (!start && !end) return true;
-      const hasPA = e.paRate && e.paRate!=='None';
-      const otDate = isOtSubmitted(e) ? effectiveOtDate(e) : null;
-      const paDate = (hasPA && isPaSubmitted(e)) ? effectivePaDate(e) : null;
-      const dateInRange = d => d!=null && (!start || d>=start) && (!end || d<=end);
-      if (dateInRange(otDate) || dateInRange(paDate)) return true;
-      // An entry with nothing submitted at all has no submission date to go
-      // by — fall back to its own shift date, so unsubmitted work already
-      // sitting in this window still shows up (as £0, same as everywhere
-      // else) rather than silently vanishing from the export entirely.
-      if (otDate==null && paDate==null) return (!start || e.date>=start) && (!end || e.date<=end);
-      return false;
-    };
-    const sorted = [...entries].filter(inRange).sort((a,b)=>new Date(a.date)-new Date(b.date));
-    const rowPeriodIdx = []; // parallel array, one entry per data row (not padding), tracks which pay period it belongs to
-    const rows = sorted.map(e=>{
+    // Rows follow the app exactly: money sits in the pay month of its claim
+    // date, and each row's Net is its share of that month's take-home (the
+    // shares add up to the month's Net shown in the app). A shift whose
+    // overtime and PA were claimed in different months gets a row in each.
+    // Shifts with nothing claimed yet still appear, at £0, in their own pay
+    // month, so work in the window never silently vanishes.
+    const inWindow = d => d!=null && (!start || d>=start) && (!end || d<=end);
+    const fys = new Set();
+    entries.forEach(e=>{ [e.date, effectiveOtDate(e), effectivePaDate(e)].forEach(d=>{ if (d && (!start||!end||inWindow(d))) fys.add(getFYStartYearFor(d)); }); });
+    if (start) fys.add(getFYStartYearFor(start));
+    if (end) fys.add(getFYStartYearFor(end));
+    const payMonths = [...fys].sort((a,b)=>a-b).flatMap(fy=>payYearFor(fy));
+    const monthOrder = new Map(payMonths.map((pb,i)=>[pb.month, i]));
+    const rowItems = []; // { pb, e, parts:[share...] }
+    payMonths.forEach(pb=>{
+      const byEntry = new Map();
+      partNets(pb).forEach(sh=>{
+        if (!inWindow(sh.part.date)) return;
+        const key = sh.part.entry.id;
+        if (!byEntry.has(key)) byEntry.set(key, { pb, e: sh.part.entry, shares: [] });
+        byEntry.get(key).shares.push(sh);
+      });
+      byEntry.forEach(v=>rowItems.push(v));
+    });
+    const hasRow = new Set(rowItems.map(r=>r.e.id));
+    entries.forEach(e=>{
+      if (hasRow.has(e.id) || !inWindow(e.date)) return;
+      const pb = payMonthFor(e.date);
+      if (!pb || claimedParts(e, settings).some(p=>inWindow(p.date))) return;
+      rowItems.push({ pb, e, shares: [] });
+    });
+    rowItems.sort((x,y)=>(monthOrder.get(x.pb.month)??-1)-(monthOrder.get(y.pb.month)??-1) || x.e.date.localeCompare(y.e.date) || String(x.e.id).localeCompare(String(y.e.id)));
+
+    const rowPeriodIdx = []; // parallel array: which pay month each data row belongs to
+    const rowExactNet = []; // unrounded row nets, so each month's rows can be made to add up to its rounded total
+    const rows = rowItems.map(({ pb, e, shares })=>{
       const c = calcEntry(e);
-      const gross = submittedGross(e);
-      const pIdx = PAY_PERIODS.findIndex(p=>e.date>=p.start&&e.date<=p.end);
-      rowPeriodIdx.push(pIdx);
-      const p = pIdx>=0 ? PAY_PERIODS[pIdx] : null;
-      const pb = pIdx>=0 ? totals.periodBreakdown[pIdx] : null;
-      // Every other entry within this SAME pay period, dated before this
-      // one — these stack on top of base salary within the period, same
-      // as the main app's own period-by-period calculation does.
-      const priorInPeriod = p ? entries.filter(x=>x.date>=p.start && x.date<=p.end && (x.date<e.date || (x.date===e.date && x.id<e.id)))
-        .reduce((sum,x)=>sum+submittedGross(x),0) : 0;
-      // Cumulative taxable income BEFORE this entry — base salary is taxed
-      // first, so overtime stacks on top of it, same as everywhere else in
-      // the app. pb.cumAfter is the proven-correct running total (base +
-      // all overtime) through the END of this period; subtracting this
-      // period's own combinedGross backs it out to "just after this
-      // period's base salary, before any of this period's overtime" —
-      // then priorInPeriod adds back only what's already been claimed
-      // earlier in this same period, ahead of this specific entry.
-      const cumulativeBefore = pb ? (pb.cumAfter - pb.combinedGross + priorInPeriod) : 0;
-      const periodGrossBefore = (pb ? pb.baseAmt : 0) + priorInPeriod;
-      // Year-fraction uses the PERIOD's end date, same as the main app's own
-      // periodBreakdown calculation — tax is assessed at the point the whole
-      // period gets paid out, not on each shift's own date within it.
-      const yearFraction = p ? taxYearFractionForDate(p.end) : taxYearFractionForDate(e.date);
-      const result = applyBandTax(cumulativeBefore, gross, yearFraction, periodGrossBefore);
-      // A plain-language breakdown of exactly how the Gross figure was made
-      // up — e.g. "4hr@1.5x=£60.00 + PA2@£98.00". Respects submission
-      // status the same way Gross itself does, so the parts shown here
-      // always add up to the Gross value in the next column, rather than
-      // showing OT/PA components that haven't actually been claimed yet.
-      const hasPA = e.paRate && e.paRate!=='None';
+      rowPeriodIdx.push(pb.month);
+      const gross = shares.reduce((s,x)=>s+x.part.amount,0);
+      const net = shares.reduce((s,x)=>s+x.net,0);
+      rowExactNet.push(net);
+      const cumulativeBefore = shares.length ? shares[0].cumBefore : pb.cumBase;
+      const hasOtHere = shares.some(x=>x.part.kind==='ot');
       const breakdownParts = [];
-      if (isOtSubmitted(e)) {
+      if (hasOtHere) {
         if (c.payH1>0) breakdownParts.push(`${c.payH1}hr@1.33x=£${c.ot1.toFixed(2)}`);
         if (c.payH2>0) breakdownParts.push(`${c.payH2}hr@1.5x=£${c.ot2.toFixed(2)}`);
         if (c.payH3>0) breakdownParts.push(`${c.payH3}hr@2.0x=£${c.ot3.toFixed(2)}`);
       }
-      if (hasPA && isPaSubmitted(e)) breakdownParts.push(`${e.paRate}@£${c.pa.toFixed(2)}`);
+      if (shares.some(x=>x.part.kind==='pa')) breakdownParts.push(`${e.paRate}@£${c.pa.toFixed(2)}`);
       const breakdown = breakdownParts.join(' + ') || '—';
+      // Hours go on the row carrying the overtime (or the £0 row), so a
+      // shift split across two months doesn't count its hours twice.
+      const showHours = hasOtHere || shares.length===0;
+      const band = gross>0 ? getTaxBand(cumulativeBefore + gross, pb.yearFraction).name : null;
       // Leading '' reserves column A for the merged, rotated pay-period
       // label set separately below — this row array only ever fills
       // columns B onward.
       return [
-        '', fmtDDMMYYYY(e.date), e.reason||'', c.h1||'', c.h2||'', c.h3||'',
+        '', fmtDDMMYYYY(e.date), e.reason||'',
+        showHours ? (c.h1||'') : '', showHours ? (c.h2||'') : '', showHours ? (c.h3||'') : '',
         e.paRate!=='None'?e.paRate:'',
         submittedLabel(e), breakdown,
         Math.round(gross*100)/100,
         Math.round(cumulativeBefore*100)/100,
-        Math.round(result.net*100)/100,
-        result.bandName ? `${result.bandName} (${result.rate.toFixed(1)}%)` : '',
+        Math.round(net*100)/100,
+        band ? `${band} (${((1-net/gross)*100).toFixed(1)}% deducted)` : '',
         sanitise ? '' : (e.comments||'')
       ];
     });
@@ -2808,9 +2668,20 @@ export default function App() {
     // overflowing past its own block.
     const blocks = [];
     for (let i=0; i<rows.length; i++){
-      if (i===0 || rowPeriodIdx[i]!==rowPeriodIdx[i-1]) blocks.push({ pIdx: rowPeriodIdx[i], rows: [rows[i]] });
-      else blocks[blocks.length-1].rows.push(rows[i]);
+      if (i===0 || rowPeriodIdx[i]!==rowPeriodIdx[i-1]) blocks.push({ pIdx: rowPeriodIdx[i], rows: [rows[i]], exact: [rowExactNet[i]] });
+      else { blocks[blocks.length-1].rows.push(rows[i]); blocks[blocks.length-1].exact.push(rowExactNet[i]); }
     }
+    // Rounding each row to the penny can leave a month's rows a penny away
+    // from the month's own (rounded) Net; the difference goes on the
+    // biggest row, so the rows always add up to the figure the app shows.
+    blocks.forEach(block=>{
+      const target = Math.round(block.exact.reduce((s,x)=>s+x,0)*100);
+      const got = block.rows.reduce((s,r)=>s+Math.round((parseFloat(r[11])||0)*100),0);
+      if (target!==got && block.rows.length) {
+        let big = 0; block.rows.forEach((r,i)=>{ if ((parseFloat(r[11])||0) > (parseFloat(block.rows[big][11])||0)) big = i; });
+        block.rows[big][11] = Math.round((parseFloat(block.rows[big][11])||0)*100 + (target-got))/100;
+      }
+    });
     const blankRow = () => Array(headers.length).fill('');
     // A period's own subtotal row — 1.33x/1.5x/2.0x hours, Gross and Net
     // summed across every real entry in that block. Everything else
@@ -2830,8 +2701,7 @@ export default function App() {
     const totalRowIndices = []; // which expandedRows indices are subtotal rows, for distinct styling below
     const mergeRanges = []; // { label, startRow, endRow } — 1-indexed spreadsheet row numbers, filled in once expandedRows is built
     blocks.forEach(block => {
-      const p = block.pIdx>=0 ? PAY_PERIODS[block.pIdx] : null;
-      const label = p ? p.month : '';
+      const label = block.pIdx || '';
       // Rough estimate of rows needed for the rotated label to fit
       // comfortably: character count × font size × a width-to-height
       // factor for rotated proportional text, divided by the default row
@@ -3801,81 +3671,57 @@ export default function App() {
     // keeping gross consistent with combinedGrossYTD below (which is itself
     // scoped to the current tax year). clippedFrom is exposed so the PDF can
     // show an honest note when this happens.
-    const taxYearStartForRange = getUKTaxYearStart(end);
+    // Reaches no further back than the start of the pay year (= tax year)
+    // containing the range's end, keeping hours, PA counts and money all
+    // describing the same year. clippedFrom lets the PDF say so.
+    const fyForRange = getFYStartYearFor(end);
+    const taxYearStartForRange = generateFYPeriods(fyForRange)[0].start;
     const clipped = start < taxYearStartForRange;
     const effectiveStart = clipped ? taxYearStartForRange : start;
-    const rangeEntries = entries.filter(e=>e.date>=effectiveStart&&e.date<=end).sort((a,b)=>a.date.localeCompare(b.date));
-    let ot=0, night=0, pa=0, hrs=0, toilBanked=0;
+    const inRange = d => d>=effectiveStart && d<=end;
+    const rangeEntries = entries.filter(e=>inRange(e.date)).sort((a,b)=>a.date.localeCompare(b.date));
+    let hrs=0, toilBanked=0;
     const rateHrs = { hours133:0, hours150:0, hours200:0 };
+    const rateAmt = { hours133:0, hours150:0, hours200:0 };
     const paCounts = { PA1:0, PA2:0, PA3:0 };
-    // Hours worked stay unconditional and period-local — a factual record
-    // of the shift regardless of submission status or where its money
-    // ends up, matching how the rest of the app treats hours.
+    // Hours worked stay period-local — a factual record of the shift
+    // regardless of when its money is claimed.
     rangeEntries.forEach(e=>{
       const c = calcEntry(e);
       hrs += c.h1+c.h2+c.h3;
-      rateHrs.hours133 += c.payH1; rateHrs.hours150 += c.payH2; rateHrs.hours200 += c.payH3;
     });
-    // Money is attributed by submission date, not the shift's own date —
-    // same principle as periodBreakdown and the OT Pay/PA boxes. A shift
-    // worked just before this range but submitted within it still counts
-    // here; one worked within this range but not submitted until after it
-    // doesn't count until then. So this iterates every entry in the app,
-    // not just rangeEntries above, since a late submission's shift date
-    // can fall well outside the window whose money it belongs to.
-    entries.forEach(e=>{
-      const c = calcEntry(e);
-      const hasPA = e.paRate && e.paRate!=='None';
-      const hasOTHours = c.h1+c.h2+c.h3 > 0;
-      const otDate = effectiveOtDate(e);
-      const paDate = effectivePaDate(e);
-      const otDateInRange = otDate>=effectiveStart && otDate<=end;
-      if (!hasOTHours) {
-        if (otDateInRange) night += c.night;
-      } else if (isOtSubmitted(e) && otDateInRange) {
-        ot += c.ot; night += c.night; toilBanked += c.toilBanked;
+    // Money, and what's taken off it, come from the same pay-month shares
+    // the app and the spreadsheet use: every claim dated in the range,
+    // valued at its share of its pay month's take-home.
+    let ot=0, pa=0, net=0, tax=0, ni=0, lastBand=null;
+    payYearFor(fyForRange).forEach(pb=>partNets(pb).forEach(sh=>{
+      if (!inRange(sh.part.date)) return;
+      if (sh.part.kind==='ot') {
+        const c = calcEntry(sh.part.entry);
+        ot += sh.part.amount; toilBanked += c.toilBanked;
+        // The paid hours and pay behind each claim, so the table on the
+        // PDF adds up to its own Gross (TOIL hours aren't paid, and each
+        // shift is paid at the rate for its own date).
+        rateHrs.hours133 += c.payH1; rateHrs.hours150 += c.payH2; rateHrs.hours200 += c.payH3;
+        rateAmt.hours133 += c.ot1;   rateAmt.hours150 += c.ot2;   rateAmt.hours200 += c.ot3;
       }
-      if (hasPA && isPaSubmitted(e) && paDate>=effectiveStart && paDate<=end) {
-        pa += c.pa; paCounts[e.paRate] = (paCounts[e.paRate]||0)+1;
-      }
-    });
-    const gross = ot + night + pa;
+      else { pa += sh.part.amount; paCounts[sh.part.entry.paRate] = (paCounts[sh.part.entry.paRate]||0)+1; }
+      net += sh.net; tax += sh.tax; ni += sh.ni; if (sh.bandName) lastBand = sh.bandName;
+    }));
+    const night = 0;
+    const gross = ot + pa;
 
-    // Pension — same principle as the Home £100k Tax Calculator: pensionable
-    // pay is basic salary + London Weighting only (overtime/PA/London
-    // Allowance are all non-pensionable), and the tier is judged on the
-    // annualised YTD-through-this-report rate. Kept here purely for the
-    // "Pension Contribution (this period)" line the PDF itself displays —
-    // the tax-banding cumulative below no longer needs a separate pension
-    // subtraction, since periodBreakdown's own cumAfter (used there) is
-    // already pension-net.
-    const svcData = settings.rank && settings.service ? PAY_RATES[settings.rank]?.[settings.service] : null;
-    const tyFracForEnd = taxYearFractionForDate(end);
-    const pensionablePayYTDThroughEnd = svcData
-      ? monthlySteppedSplitBySept(svcData.salary.pre, svcData.salary.post, taxYearStartForRange, end) + monthlySteppedSplitBySept(LONDON_WEIGHTING.pre, LONDON_WEIGHTING.post, taxYearStartForRange, end)
-      : 0;
-    const pensionablePayForRange = svcData
-      ? monthlySteppedSplitBySept(svcData.salary.pre, svcData.salary.post, effectiveStart, end) + monthlySteppedSplitBySept(LONDON_WEIGHTING.pre, LONDON_WEIGHTING.post, effectiveStart, end)
-      : 0;
-    const pensionRate = pensionTierRate(pensionablePayYTDThroughEnd / tyFracForEnd);
-    const pensionForRange = pensionablePayForRange * pensionRate;
-
-    const endIdx = PAY_PERIODS.findIndex(p=>end>=p.start&&end<=p.end);
-    const pb = endIdx>=0 ? totals.periodBreakdown[endIdx] : null;
-    // pb.cumAfter is the correct, sequential, already-pension-adjusted
-    // running total through the END of this exact period — built by
-    // walking periods strictly in order, so (unlike combinedGrossYTD,
-    // which is bounded by "today") it never includes money from periods
-    // after this one. Backing out this report's own gross gets to
-    // "cumulative just after this period's own base salary, before its
-    // overtime" — the same anchor point periodBreakdown itself uses
-    // before layering OT/night/PA on top.
-    const cumulativeBefore = pb ? Math.max(0, pb.cumAfter - pb.combinedGross) : 0;
-    const periodGrossBefore = pb ? Math.max(0, (pb.baseAmt+pb.ot+pb.night+pb.pa) - gross) : 0; // NI stays on full gross, unaffected by pension
-    const result = applyBandTax(cumulativeBefore, gross, tyFracForEnd, periodGrossBefore);
+    // Pension — pensionable pay is basic salary + London Weighting only,
+    // paid a twelfth each payday. Shown on the PDF for the paydays whose
+    // pay month falls in the range.
+    const monthsInRange = payYearFor(fyForRange).filter(pb=>pb.end>=effectiveStart && pb.start<=end);
+    const pensionablePayForRange = monthsInRange.reduce((s,pb)=>s+pb.pensionablePayThisPeriod,0);
+    const pensionForRange = monthsInRange.reduce((s,pb)=>s+pb.periodPension,0);
+    const pensionRate = monthsInRange.length ? monthsInRange[monthsInRange.length-1].pensionRate : 0;
     const r = getRates(settings.rank, settings.service, end);
+    const result = { net, tax, ni, bandName:lastBand, rate: gross>0 ? (1-net/gross)*100 : 0 };
 
-    return { rangeEntries, ot, night, pa, hrs, toilBanked, rateHrs, paCounts, gross,
+    return { rangeEntries, ot, night, pa, hrs, toilBanked, rateHrs, rateAmt, paCounts, gross,
       net:result.net, tax:result.tax, ni:result.ni, bandName:result.bandName, rate:result.rate, rates:r,
       pensionForRange, pensionRate, pensionablePayForRange,
       clippedFrom: clipped ? effectiveStart : null };
@@ -4590,7 +4436,7 @@ export default function App() {
             calLegendExpanded={calLegendExpanded} setCalLegendExpanded={setCalLegendExpanded}
             focusEntryId={focusEntryId} confirmDel={confirmDel} setConfirmDel={setConfirmDel} setPulsePeriodIdx={setPulsePeriodIdx}
             setSelectedCalDay={setSelectedCalDay} setConfirmCreateDay={setConfirmCreateDay}
-            PAY_PERIODS={PAY_PERIODS} fyEntries={fyEntries} totals={totals} carmsOutstanding={carmsOutstanding} todayStr={todayStr}
+            PAY_PERIODS={PAY_PERIODS} fyEntries={fyEntries} totals={totals} carmsOutstanding={carmsOutstanding} todayStr={todayStr} entryNet={entryNet}
             calcEntry={calcEntry} crossPeriodInfo={crossPeriodInfo} carmsBadge={carmsBadge} renderDatePills={renderDatePills} renderFYTotalsCard={renderFYTotalsCard}
             jumpTo={jumpTo} snapToActiveMonth={snapToActiveMonth} startEdit={startEdit} delEntry={delEntry} setTab={setTab}
           />
@@ -4913,13 +4759,13 @@ export default function App() {
                   <>
                     {hasOT&&(
                       <>
-                        <div style={sectionTitle}>Overtime Worked</div>
+                        <div style={sectionTitle}>Overtime Claimed</div>
                         <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12.5px'}}>
                           <thead><tr><th style={thStyle}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Hours</th><th style={{...thStyle,textAlign:'right'}}>Rate/hr</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
                           <tbody>
-                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Standard (1.33x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours133.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours133*d.rates.r133)}</td></tr>}
-                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Elevated (1.5x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours150.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours150*d.rates.r150)}</td></tr>}
-                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Rest Day (2.0x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours200.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rates.r200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateHrs.hours200*d.rates.r200)}</td></tr>}
+                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Standard (1.33x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours133.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours133/d.rateHrs.hours133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours133)}</td></tr>}
+                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Elevated (1.5x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours150.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours150/d.rateHrs.hours150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours150)}</td></tr>}
+                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Rest Day (2.0x)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours200.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours200/d.rateHrs.hours200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours200)}</td></tr>}
                           </tbody>
                         </table>
                       </>
@@ -5111,10 +4957,7 @@ export default function App() {
             </div>
             {selectedCalDayV.dEntries.map(e=>{
               const c = calcEntry(e);
-              const pb = totals.periodBreakdown[selectedCalDayV.periodIdx];
-              const eOTNet    = c.h1+c.h2+c.h3>0 ? c.ot*(1-pb.otResult.rate/100)       : 0;
-              const ePANet    = c.pa>0           ? c.pa*(1-pb.paResult.rate/100)       : 0;
-              const eNet = eOTNet+ePANet;
+              const eNet = entryNet(e);
               return (
                 <div key={e.id} style={{background:'var(--surface-2)',borderRadius:'13px',padding:isWide?'17px':'13px',marginBottom:'8px'}}>
                   {/* The pop-up's title is already the date, so each shift here

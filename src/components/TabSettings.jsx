@@ -533,7 +533,7 @@ export function TabSettings({
       {settings.rank&&settings.service&&(()=>{
         const proj = totals.projectedAnnualGross;
         const ytd  = totals.combinedGrossYTD;
-        const taxYearFraction = Math.max(1/365, Math.min(1, totals.taxYearDaysElapsed/365));
+        const taxYearFraction = totals.taxYearFraction; // whole PAYE months paid so far, n/12
 
         // Pension contributions come off pay BEFORE income tax is worked
         // out (a "net pay arrangement"), which is why they reduce the

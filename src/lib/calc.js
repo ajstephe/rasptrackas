@@ -29,12 +29,15 @@ export const calcEntry = (e, settings) => {
   const payH1 = e.otRateTier==='hours133' ? Math.max(0,h1-toilH) : h1;
   const payH2 = e.otRateTier==='hours150' ? Math.max(0,h2-toilH) : h2;
   const payH3 = e.otRateTier==='hours200' ? Math.max(0,h3-toilH) : h3;
-  const ot1 = payH1*r.r133, ot2 = payH2*r.r150, ot3 = payH3*r.r200;
-  const ot  = ot1+ot2+ot3;
+  // Each rate's pay is rounded to the penny, as a claim is paid, so every
+  // total built from these adds up to exactly the pence shown on screen.
+  const pence = x => Math.round(x*100)/100;
+  const ot1 = pence(payH1*r.r133), ot2 = pence(payH2*r.r150), ot3 = pence(payH3*r.r200);
+  const ot  = pence(ot1+ot2+ot3);
   const toilBanked = e.otRateTier ? toilH * RATE_TIER_MULT[e.otRateTier] : 0;
   const night = 0;
   const pa    = PA_RATES[e.paRate]||0;
-  const gross = ot + night + pa;
+  const gross = pence(ot + night + pa);
   return { h1, h2, h3, payH1, payH2, payH3, ot1, ot2, ot3, nh, ot, night, pa, gross, r, toilH, toilBanked, otRateTier:e.otRateTier, takeAs:e.takeAs };
 };
 

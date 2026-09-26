@@ -43,11 +43,19 @@ describe('calcEntry', () => {
     expect(c.ot1).toBeCloseTo(postRates.r133, 6);
   });
 
-  it('sums all three overtime tiers into one gross figure', () => {
+  it('sums all three overtime tiers into one gross figure, each rounded to the penny', () => {
     const rates = getRates(SETTINGS.rank, SETTINGS.service, '2026-08-15');
     const e = baseEntry({ hours133:'2', hours150:'1', hours200:'0.5' });
     const c = calcEntry(e, SETTINGS);
-    expect(c.gross).toBeCloseTo(2*rates.r133 + 1*rates.r150 + 0.5*rates.r200, 6);
+    const pence = x => Math.round(x*100)/100;
+    expect(c.gross).toBeCloseTo(pence(2*rates.r133) + pence(1*rates.r150) + pence(0.5*rates.r200), 6);
+  });
+
+  it('rounds each rate line to the penny, so claims add up to the pence shown', () => {
+    // 2.5h at £23.17 is £57.925 — paid as £57.93.
+    const c = calcEntry(baseEntry({ date:'2026-09-25', hours133:'2.5' }), { rank:'Constable', service:'PC 4' });
+    expect(c.ot).toBe(57.93);
+    expect(c.gross).toBe(57.93);
   });
 
   it('adds a PA enhancement flat rate on top of overtime pay', () => {

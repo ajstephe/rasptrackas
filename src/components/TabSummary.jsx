@@ -22,7 +22,7 @@ export function TabSummary({
   calLegendExpanded, setCalLegendExpanded,
   focusEntryId, confirmDel, setConfirmDel, setPulsePeriodIdx,
   setSelectedCalDay, setConfirmCreateDay,
-  PAY_PERIODS, fyEntries, totals, carmsOutstanding, todayStr,
+  PAY_PERIODS, fyEntries, totals, carmsOutstanding, todayStr, entryNet,
   calcEntry, crossPeriodInfo, carmsBadge, renderDatePills, renderFYTotalsCard,
   jumpTo, snapToActiveMonth, startEdit, delEntry, setTab, animClass='fi',
 }) {
@@ -303,7 +303,7 @@ export function TabSummary({
           const c=calcEntry(e);
           h133+=c.h1; h150+=c.h2; h200+=c.h3;
           totalToilWorked+=c.toilH; totalToilBanked+=c.toilBanked;
-          if(!isOtSubmitted(e)) totalToilWaiting+=c.toilBanked;
+          if(!isOtSubmitted(e)&&e.date<=todayStr) totalToilWaiting+=c.toilBanked;
         });
         // OT Pay / PA box data is different on purpose: it iterates
         // EVERY entry in the financial year, not just ones worked in
@@ -491,10 +491,8 @@ export function TabSummary({
                   :[...pE].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(e=>{
                     const c=calcEntry(e);
                     const isFut=e.date>todayStr;
-                    // individual records use the period-blended rate for each component
-                    const eOTNet    = c.ot>0    ? c.ot*(1-pb.otResult.rate/100)       : 0;
-                    const ePANet    = c.pa>0    ? c.pa*(1-pb.paResult.rate/100)       : 0;
-                    const eNet = eOTNet+ePANet;
+                    // what this shift adds to take-home in the month it lands in
+                    const eNet = entryNet(e);
                     return(
                       <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:'13px',marginBottom:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
                         {isFut&&<div style={{position:'absolute',top:'-6px',right:'9px',background:'#2563eb',color:'#fff',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Planned</div>}
@@ -737,7 +735,7 @@ export function TabSummary({
         cEntries.forEach(e=>{
           const c = calcEntry(e);
           pToilWorked+=c.toilH; pToilBanked+=c.toilBanked;
-          if(!isOtSubmitted(e)) pToilWaiting+=c.toilBanked;
+          if(!isOtSubmitted(e)&&e.date<=todayStr) pToilWaiting+=c.toilBanked;
         });
         let ppa1=0, ppa2=0, ppa3=0;
         const pTierHours = { t133:0, t150:0, t200:0 };
