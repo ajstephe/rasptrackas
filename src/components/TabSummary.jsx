@@ -83,7 +83,7 @@ export function TabSummary({
     return () => el.removeEventListener('touchmove', onMove);
   }, [isWide, calSwipeStartX]);
   // One breakdown layout for a pay period — overtime by rate (with the dates
-  // each came from), PSOP allowance, TOIL, and anything still to submit —
+  // each came from), Protection Allowance, TOIL, and anything still to submit —
   // shared by the Calendar's totals card and an opened month in Months view,
   // so the two always read the same way.
   const periodBreakdownRows = ({pb, tierHours, tierGross, tierDates, paCount, paGross, paDates, toilWorked, toilBanked, carmsGroup, periodIdx}) => {
@@ -124,7 +124,7 @@ export function TabSummary({
         {noOT&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this period</div>}
       </div>
       <div style={section}>
-        {secHead('PSOP allowance','var(--text-amber-deep)',pb.pa,pb.paResult.net)}
+        {secHead('Protection Allowance','var(--text-amber-deep)',pb.pa,pb.paResult.net)}
         {paLine('PA1')}{paLine('PA2')}{paLine('PA3')}
         {noPA&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this period</div>}
       </div>
@@ -968,7 +968,7 @@ export function TabSummary({
             </div>
 
             {/* One totals card for the period: gross, net and hours up top,
-                then what made them up (overtime by rate, PSOP), TOIL, and
+                then what made them up (overtime by rate, Protection Allowance), TOIL, and
                 anything still to submit — each of the last two opens its
                 own tab, as the separate boxes used to. */}
             {(()=>{

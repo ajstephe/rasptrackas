@@ -344,7 +344,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
           <div style={{fontFamily:MONO,fontSize:isWide?'30px':'28px',fontWeight:600,color:'#fff',letterSpacing:'-0.02em',marginBottom:'4px'}}>{fmtGBP(animatedTotal)}</div>
           {anyOutstanding&&(
             <div style={{fontSize:'12px',color:'#cbd5e1',fontWeight:600}}>
-              {carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · Overtime <span style={{fontFamily:MONO,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span> · PSOP <span style={{fontFamily:MONO,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span>
+              {carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · Overtime <span style={{fontFamily:MONO,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span> · Protection Allowance <span style={{fontFamily:MONO,color:'#fff'}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span>
             </div>
           )}
         </div>
