@@ -176,9 +176,10 @@ export function TabSummary({
           only affects its vertical position, not its width. ── */}
       <div ref={stickyRef} style={{position:'sticky',top:0,zIndex:20,background:'rgba(var(--surface-2-rgb),0.82)',backdropFilter:'blur(16px) saturate(1.5)',WebkitBackdropFilter:'blur(16px) saturate(1.5)',borderRadius:'18px',border:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',overflow:'hidden',paddingTop:'10px',paddingBottom:'8px',paddingLeft:'12px',paddingRight:'12px',marginBottom:'6px'}}>
         {/* Three plain views: Calendar, Shifts (was "Compact") and Months
-            (was "List"), named for what each shows. The old per-segment
-            stars are replaced by one line underneath that offers to make
-            the current view the default, or confirms that it already is. */}
+            (was "List"), named for what each shows. The default view is
+            tagged "Default" in the switch; the line underneath either
+            confirms the open view is the default or offers a clear button
+            to make it so. */}
         {(()=>{
           const views = [
             {id:'calendar', lbl:'Calendar', icon:'cal',   go:()=>{ setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }},
@@ -189,17 +190,29 @@ export function TabSummary({
           const isDefault = defaultBreakdownView===breakdownView;
           return (<>
             <SegSlider activeKey={breakdownView} trackStyle={{display:'flex',background:'var(--chip-bg)',borderRadius:'14px',padding:'4px',boxShadow:'0 4px 14px rgba(15,23,42,0.08)'}} indicatorStyle={{background:BRASS,borderRadius:'11px',boxShadow:`0 2px 8px color-mix(in srgb, ${BRASS} 35%, transparent)`}}>
-              {views.map(v=>(
-                <button key={v.id} type="button" data-seg-key={v.id} aria-pressed={breakdownView===v.id} onClick={v.go} style={{position:'relative',zIndex:1,flex:1,padding:'9px 3px',borderRadius:'11px',border:'none',fontWeight:900,fontSize:'12px',fontFamily:'inherit',cursor:'pointer',background:'transparent',color:breakdownView===v.id?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px'}}>
-                  <Ico n={v.icon} s={12} c={breakdownView===v.id?'#fff':'var(--muted)'} w={2.5}/>{v.lbl}
+              {views.map(v=>{
+                const on = breakdownView===v.id, isDef = defaultBreakdownView===v.id;
+                return (
+                <button key={v.id} type="button" data-seg-key={v.id} aria-pressed={on} aria-label={`${v.lbl}${isDef?' (default view)':''}`} onClick={v.go} style={{position:'relative',zIndex:1,flex:1,padding:'7px 3px 6px',borderRadius:'11px',border:'none',fontWeight:900,fontSize:'12px',fontFamily:'inherit',cursor:'pointer',background:'transparent',color:on?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'3px'}}>
+                  <span style={{display:'flex',alignItems:'center',gap:'5px'}}><Ico n={v.icon} s={12} c={on?'#fff':'var(--muted)'} w={2.5}/>{v.lbl}</span>
+                  {/* The default view carries a small "Default" tag in the
+                      switch itself, so it's visible whichever view is open.
+                      The others keep an invisible tag of the same size so
+                      all three segments stay the same height. */}
+                  <span style={{fontSize:'8.5px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',padding:'1px 6px',borderRadius:'6px',lineHeight:1.4,visibility:isDef?'visible':'hidden',background:on?'rgba(255,255,255,0.22)':'var(--surface)',color:on?'#fff':BRASS,border:on?'none':`1px solid color-mix(in srgb, ${BRASS} 40%, transparent)`}}>Default</span>
                 </button>
-              ))}
+                );
+              })}
             </SegSlider>
-            <div style={{textAlign:'center',marginTop:'6px',minHeight:'18px'}}>
+            <div style={{display:'flex',justifyContent:'center',marginTop:'8px'}}>
               {isDefault ? (
-                <span style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>{current.lbl} opens by default</span>
+                <span style={{display:'inline-flex',alignItems:'center',gap:'6px',fontSize:'12px',fontWeight:700,color:'var(--text-green-deep)',background:'var(--tint-green)',borderRadius:'20px',padding:'5px 12px'}}>
+                  <Ico n="check" s={12} c="var(--text-green-deep)" w={3}/>{current.lbl} is your default view
+                </span>
               ) : (
-                <button type="button" onClick={()=>{ setDefaultBreakdownView(breakdownView); dualWrite(KEYS.defaultBreakdownView,breakdownView); }} style={{background:'none',border:'none',padding:'2px 4px',fontSize:'11.5px',fontWeight:800,color:'#2563eb',cursor:'pointer',fontFamily:'inherit'}}>Open {current.lbl} by default</button>
+                <button type="button" onClick={()=>{ setDefaultBreakdownView(breakdownView); dualWrite(KEYS.defaultBreakdownView,breakdownView); }} style={{display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--surface)',border:`1.5px dashed color-mix(in srgb, ${BRASS} 55%, transparent)`,borderRadius:'20px',padding:'6px 13px',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>
+                  Tap here to set {current.lbl} as your default view
+                </button>
               )}
             </div>
           </>);
