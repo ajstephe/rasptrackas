@@ -460,17 +460,17 @@ export function TabSettings({
                 {ranks.map(rank=>(
                   <div key={rank} style={{marginBottom: rank==='Constable' && ranks.length>1 ? '16px' : 0}}>
                     <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-navy)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'}}>{rank}</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',gap:'2px 8px',alignItems:'center'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',gap:0,alignItems:'center'}}>
                       <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Pay Point</div>
                       <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Pre-Sept</div>
                       <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Post-Sept</div>
                       {visiblePoints(rank).map(point=>{
                         const data = PAY_RATES[rank][point];
                         const me = rank===settings.rank && point===settings.service;
-                        const cell = {fontSize:'11px',padding:'6px 4px',background:me?'var(--tint-brass)':'transparent'};
+                        const cell = {fontSize:'11px',padding:'6px 8px',background:me?'var(--tint-brass)':'transparent'};
                         return (
                         <div key={point} style={{display:'contents'}}>
-                          <div style={{...cell,fontWeight:me?900:700,color:'var(--ink)',boxShadow:me?`inset 3px 0 0 ${BRASS}`:'none',paddingLeft:me?'8px':'4px'}}>{point}{me&&<span style={{fontWeight:700,color:'var(--muted)'}}> · you</span>}</div>
+                          <div style={{...cell,fontWeight:me?900:700,color:'var(--ink)',boxShadow:me?`inset 3px 0 0 ${BRASS}`:'none',paddingLeft:me?'11px':'8px'}}>{point}{me&&<span style={{fontWeight:700,color:'var(--muted)'}}> · you</span>}</div>
                           <div style={{...cell,fontWeight:700,color:'var(--muted)',textAlign:'right'}}>£{data.salary.pre.toLocaleString('en-GB')}</div>
                           <div style={{...cell,fontWeight:900,color:'var(--text-navy)',textAlign:'right'}}>£{data.salary.post.toLocaleString('en-GB')}</div>
                         </div>
