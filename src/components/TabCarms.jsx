@@ -129,12 +129,15 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
     const showPa = it.paOutstanding && carmsFilter!=='ot' && carmsFilter!=='toil';
     const showToil = it.toilOutstanding && carmsFilter!=='ot' && carmsFilter!=='pa';
     const mergeOtToil = showOt && showToil;
+    // A shift taken entirely as TOIL has no cash to claim, so its amount
+    // is the TOIL hours, not "£0.00" with the hours tucked underneath.
+    const toilOnly = mergeOtToil && it.otAmt < 0.005;
     if (showOt) {
       rows.push({
         id: it.entry.id+'-ot', entry: it.entry, entryId: it.entry.id, claimKey:'ot', kind: mergeOtToil?'ot+toil':'ot',
         date: it.entry.date, reason: it.entry.reason||'Shift', periodIdx,
         typeLabel: mergeOtToil?'Overtime + TOIL':'Overtime',
-        amount: it.otAmt, amountDisplay: fmtGBP(it.otAmt), toilHrs: mergeOtToil?it.toilHrs:0,
+        amount: it.otAmt, amountDisplay: toilOnly?`+${fmtHrs(it.toilHrs)} TOIL`:fmtGBP(it.otAmt), toilHrs: mergeOtToil?it.toilHrs:0, toilOnly,
         claimNo: carmsClaimNumbers.get(it.entry.id+'-ot'),
       });
     }
@@ -262,9 +265,9 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',whiteSpace:'nowrap'}}>{new Date(row.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)'}}>{row.reason}</td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)'}}>{typeBadge(row)}</td>
-                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',fontFamily:MONO,textAlign:'right',whiteSpace:'nowrap'}}>
+                  <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',fontFamily:MONO,textAlign:'right',whiteSpace:'nowrap',...(row.toilOnly?{color:'var(--tag-purple)',fontWeight:700}:{})}}>
                     {row.amountDisplay}
-                    {row.kind==='ot+toil'&&<div style={{fontSize:'10px',fontWeight:700,color:'#7c3aed',marginTop:'2px'}}>+ {fmtHrs(row.toilHrs)} TOIL</div>}
+                    {row.kind==='ot+toil'&&!row.toilOnly&&<div style={{fontSize:'10px',fontWeight:700,color:'#7c3aed',marginTop:'2px'}}>+ {fmtHrs(row.toilHrs)} TOIL</div>}
                   </td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',textAlign:'right'}}>
                     <button className="awaits-quick" onClick={e=>{ e.stopPropagation(); selectCarmsClaim(row.entryId,row.claimKey); openCarmsBulkConfirm(); }}
@@ -317,8 +320,8 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                   <div style={{fontSize:'9.5px',color:'var(--quiet)',marginTop:'1px'}}>{row.typeLabel} · {new Date(row.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
                 </div>
                 <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'5px',flexShrink:0}}>
-                  <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--ink)'}}>{row.amountDisplay}</div>
-                  {row.kind==='ot+toil'&&<div style={{fontFamily:MONO,fontSize:'9px',fontWeight:700,color:'#7c3aed'}}>+{fmtHrs(row.toilHrs)} TOIL</div>}
+                  <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:row.toilOnly?700:600,color:row.toilOnly?'var(--tag-purple)':'var(--ink)'}}>{row.amountDisplay}</div>
+                  {row.kind==='ot+toil'&&!row.toilOnly&&<div style={{fontFamily:MONO,fontSize:'9px',fontWeight:700,color:'#7c3aed'}}>+{fmtHrs(row.toilHrs)} TOIL</div>}
                   <button onClick={e=>{ e.stopPropagation(); selectCarmsClaim(row.entryId,row.claimKey); openCarmsBulkConfirm(); }}
                     style={{display:'flex',alignItems:'center',gap:'3px',fontSize:'8.5px',fontWeight:800,color:'var(--text-green-deep)',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'6px',padding:'3px 6px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
                     <Ico n="check" s={8} c="var(--text-green-deep)" w={3}/> Submit

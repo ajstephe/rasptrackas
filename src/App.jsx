@@ -14,7 +14,7 @@ import {
   getUKTaxYearStart, addYearMinusOneDay, taxYearFractionForDate,
 } from './lib/payPeriods.js';
 import {
-  PAY_RATES, PA_RATES, RATE_TIER_MULT, getRates,
+  PAY_RATES, PA_RATES, RATE_TIER_MULT, RATE_TIER_LABEL, getRates,
 } from './lib/payRates.js';
 import {
   LONDON_WEIGHTING, LONDON_ALLOWANCE,
@@ -2374,7 +2374,7 @@ export default function App() {
         return {
           id:'earn-'+e.id, date:e.date, type:'earned',
           hours: calcEntry(e).toilBanked,
-          note: `${e.reason||'Shift'}`, detail: `${fmtHrs(worked)} at ${RATE_TIER_MULT[e.otRateTier]}×`,
+          note: `${e.reason||'Shift'}`, detail: `${fmtHrs(worked)} at ${RATE_TIER_LABEL[e.otRateTier]}×`,
         };
       });
     const taken = toilTaken.map(t=>({
@@ -2393,7 +2393,15 @@ export default function App() {
       if (Math.abs(running) < 1e-6) running = 0;
       return {...l, balanceAfter:running};
     });
-    return { rows, balance: running };
+    // TOIL from shifts not yet marked submitted: kept out of the balance
+    // (it isn't banked until it's claimed), but listed so the TOIL page can
+    // show it's on its way rather than leaving it invisible.
+    const pending = entries
+      .filter(e=>e.otRateTier && (parseFloat(e.toilHours)||0) > 0 && !isOtSubmitted(e))
+      .map(e=>({ id:'pend-'+e.id, date:e.date, type:'pending', hours: calcEntry(e).toilBanked, note: `${e.reason||'Shift'}` }))
+      .sort((a,b)=>b.date.localeCompare(a.date));
+    const pendingHours = pending.reduce((s,p)=>s+p.hours,0);
+    return { rows, balance: running, pending, pendingHours };
   },[entries, toilTaken, calcEntry]);
 
   // ── auto-calc effects for Record Shift Times ────────────────────────────────
@@ -3776,7 +3784,7 @@ export default function App() {
   // every existing call site (`renderMonthlyChart(big, dark, wide)`, and the
   // renderMonthlyChart prop handed to TabDashboard) unchanged.
   const renderMonthlyChart = (big, dark=false, wide=false) => (
-    <MonthlyChart totals={totals} PAY_PERIODS={PAY_PERIODS} MONO={MONO} chartTap={chartTap} setChartTap={setChartTap} big={big} dark={dark} wide={wide}/>
+    <MonthlyChart totals={totals} PAY_PERIODS={PAY_PERIODS} MONO={MONO} chartTap={chartTap} setChartTap={setChartTap} big={big} dark={dark} wide={wide} currIdx={currPeriodIdx}/>
   );
 
   // Payslip data for an arbitrary date range. Reuses the same tax/NI approach
@@ -4677,7 +4685,9 @@ export default function App() {
                   // which has always counted them separately.
                   const allClaims = [];
                   carmsOutstanding.groups.forEach(g=>g.items.forEach(it=>{
-                    if (it.otOutstanding) allClaims.push({ entry:it.entry, kind:'Overtime', amount:it.otAmt, key:it.entry.id+'-ot' });
+                    if (it.otOutstanding) allClaims.push({ entry:it.entry, kind:'Overtime', amount:it.otAmt, key:it.entry.id+'-ot',
+                      // Taken wholly as TOIL: show the hours, not £0.00.
+                      toilOnly: it.toilOutstanding && it.otAmt < 0.005 ? it.toilHrs : 0 });
                     if (it.paOutstanding) allClaims.push({ entry:it.entry, kind:it.entry.paRate, amount:it.paAmt, key:it.entry.id+'-pa' });
                   }));
                   const LIMIT = 5;
@@ -4691,7 +4701,7 @@ export default function App() {
                             <div style={{fontSize:'11.5px',fontWeight:700,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cl.entry.reason||'Shift'}</div>
                             <div style={{fontSize:'9.5px',color:'var(--quiet)'}}>{cl.kind} · {new Date(cl.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
                           </div>
-                          <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:BRASS,flexShrink:0}}>{fmtGBP(cl.amount)}</div>
+                          <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:cl.toilOnly?700:600,color:cl.toilOnly?'var(--tag-purple)':BRASS,flexShrink:0}}>{cl.toilOnly?`+${fmtHrs(cl.toilOnly)} TOIL`:fmtGBP(cl.amount)}</div>
                         </div>
                       ))}
                       {hidden>0&&(
@@ -5180,7 +5190,7 @@ export default function App() {
                       )}
                       {c.toilH>0&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:600,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
+                          <span style={{fontFamily:MONO,fontSize:isWide?'12px':'10.5px',fontWeight:600,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} @ {RATE_TIER_LABEL[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
                           <span style={{fontFamily:MONO,fontSize:isWide?'13px':'11px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} banked</span>
                         </div>
                       )}

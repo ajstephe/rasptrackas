@@ -17,7 +17,12 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
   const [confirmDelId, setConfirmDelId] = useState(null);
   const overdrawn = toilLedger.balance < 0;
   const days = toilLedger.balance / 8;
-  const rows = [...toilLedger.rows].reverse();
+  // Shifts whose TOIL is waiting to be submitted sit at the top, apart from
+  // the dated history — they aren't in the balance yet, so they carry no
+  // running "bal" figure and would break the column if slotted in by date.
+  const pending = toilLedger.pending || [];
+  const pendingHours = toilLedger.pendingHours || 0;
+  const rows = [...pending, ...[...toilLedger.rows].reverse()];
 
   const lbl = {display:'block',fontSize:'9.5px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)',marginBottom:'4px'};
   const field = {...S.inp,padding:'9px 10px',width:'100%',boxSizing:'border-box'};
@@ -29,6 +34,12 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
       <div style={{fontSize:'10px',fontWeight:900,color:overdrawn?'#dc2626':'var(--tag-purple)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>TOIL balance{overdrawn?' · overdrawn':''}</div>
       <div style={{fontFamily:MONO,fontSize:'27px',fontWeight:600,color:overdrawn?'var(--text-red-deep)':'var(--text-purple-deep)'}}>{fmtHrs(animatedBalance)}</div>
       <div style={{fontSize:'11.5px',fontWeight:700,color:overdrawn?'#dc2626':'#7c3aed',marginTop:'2px'}}>About {Math.abs(days).toFixed(1)} {Math.abs(days).toFixed(1)==='1.0'?'day':'days'}{overdrawn?' overdrawn':''} at 8h a day</div>
+      {pendingHours>0&&(
+        <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'7px',background:'var(--surface)',borderRadius:'10px',padding:'8px 10px',fontSize:'11.5px',fontWeight:700,color:'var(--tag-purple)'}}>
+          <Ico n="clock" s={13} c="var(--tag-purple)" w={2.2}/>
+          <span>+{fmtHrs(pendingHours)} more once {pending.length===1?'1 shift is':`${pending.length} shifts are`} submitted</span>
+        </div>
+      )}
     </div>
   );
 
@@ -61,7 +72,7 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
           <button key={h} type="button" aria-pressed={quickOn(h)} onClick={()=>setQuick(h)} style={{border:quickOn(h)?'1.5px solid #7c3aed':'1.5px solid transparent',background:'var(--tint-purple)',color:'var(--tag-purple)',borderRadius:'9px',padding:'6px 10px',fontWeight:800,fontSize:'11.5px',fontFamily:'inherit',cursor:'pointer'}}>{t}</button>
         ))}
       </div>
-      <input type="text" aria-label="Note" placeholder="Note (optional), e.g. half day, appointment" style={field} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
+      <input type="text" aria-label="Note" placeholder="Note (optional)" style={field} value={toilTakenForm.note} onChange={e=>setToilTakenForm({...toilTakenForm,note:e.target.value})}/>
       <button onClick={addToilTaken} style={{width:'100%',background:'#7c3aed',color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:900,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Record TOIL taken</button>
     </div>
   );
@@ -78,13 +89,14 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
     </button>
   ));
   const shortDate = d => new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-  const change = l => <span style={{color:l.type==='earned'?'#059669':'#dc2626'}}>{l.hours>=0?'+':''}{fmtHrs(l.hours)}</span>;
-  const sub = l => l.type==='earned' ? (l.detail||'Banked from a shift') : (l.note==='TOIL taken' ? '' : 'TOIL taken');
+  const change = l => <span style={{color:l.type==='pending'?'var(--tag-purple)':l.type==='earned'?'#059669':'#dc2626'}}>{l.hours>=0?'+':''}{fmtHrs(l.hours)}</span>;
+  const sub = l => l.type==='pending' ? 'Waiting to submit · not in balance yet' : l.type==='earned' ? (l.detail||'Banked from a shift') : (l.note==='TOIL taken' ? '' : 'TOIL taken');
 
   const key = (
-    <div style={{display:'flex',gap:'16px',fontSize:'11px',color:'var(--muted)',fontWeight:700,margin:'4px 2px 8px'}}>
+    <div style={{display:'flex',flexWrap:'wrap',columnGap:'16px',rowGap:'4px',fontSize:'11px',color:'var(--muted)',fontWeight:700,margin:'4px 2px 8px'}}>
       <span style={{display:'flex',alignItems:'center',gap:'6px'}}><span style={{width:'9px',height:'9px',borderRadius:'3px',background:'#059669'}}/>Banked from a shift</span>
       <span style={{display:'flex',alignItems:'center',gap:'6px'}}><span style={{width:'9px',height:'9px',borderRadius:'3px',background:'#dc2626'}}/>TOIL taken</span>
+      {pending.length>0&&<span style={{display:'flex',alignItems:'center',gap:'6px'}}><span style={{width:'9px',height:'9px',borderRadius:'3px',background:'#7c3aed'}}/>Waiting to submit</span>}
     </div>
   );
 
@@ -116,11 +128,11 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
             </tr></thead>
             <tbody>
               {rows.map(l=>(
-                <tr key={l.id} style={{borderBottom:'1px solid var(--border-2)'}}>
+                <tr key={l.id} style={{borderBottom:'1px solid var(--border-2)',...(l.type==='pending'?{background:'var(--tint-purple)'}:{})}}>
                   <td style={{padding:'10px 14px',fontFamily:MONO,fontSize:'12px',color:'var(--muted)',whiteSpace:'nowrap'}}>{shortDate(l.date)}</td>
                   <td style={{padding:'10px 14px'}}><span style={{fontWeight:800,color:'var(--ink)'}}>{l.note}</span> {sub(l)&&<span style={{color:'var(--quiet)',fontSize:'12px'}}>· {sub(l)}</span>}</td>
                   <td style={{padding:'10px 14px',fontFamily:MONO,fontWeight:700,textAlign:'right',whiteSpace:'nowrap'}}>{change(l)}</td>
-                  <td style={{padding:'10px 14px',fontFamily:MONO,fontWeight:700,textAlign:'right',whiteSpace:'nowrap',color:l.balanceAfter<0?'var(--text-red-deep)':'var(--ink)'}}>{fmtHrs(l.balanceAfter)}</td>
+                  <td style={{padding:'10px 14px',fontFamily:MONO,fontWeight:700,textAlign:'right',whiteSpace:'nowrap',color:l.balanceAfter<0?'var(--text-red-deep)':l.type==='pending'?'var(--quiet)':'var(--ink)'}}>{l.type==='pending'?'—':fmtHrs(l.balanceAfter)}</td>
                   <td style={{padding:'10px 14px',textAlign:'right',whiteSpace:'nowrap'}}>{removeCtl(l)}</td>
                 </tr>
               ))}
@@ -130,13 +142,13 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
       ) : (
         <div style={{...S.card,padding:0}}>
           {rows.map((l,i)=>(
-            <div key={l.id} style={{display:'grid',gridTemplateColumns:'auto minmax(0,1fr) auto',columnGap:'12px',rowGap:'2px',alignItems:'center',padding:'12px 14px',borderTop:i?'1px solid var(--border-2)':'none'}}>
+            <div key={l.id} style={{display:'grid',gridTemplateColumns:'auto minmax(0,1fr) auto',columnGap:'12px',rowGap:'2px',alignItems:'center',padding:'12px 14px',borderTop:i?'1px solid var(--border-2)':'none',...(l.type==='pending'?{background:'var(--tint-purple)',borderRadius:i?0:'16px 16px 0 0'}:{})}}>
               <span style={{fontFamily:MONO,fontSize:'11px',color:'var(--muted)',whiteSpace:'nowrap'}}>{shortDate(l.date)}</span>
               <span style={{fontSize:'13.5px',fontWeight:800,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.note}</span>
               <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,textAlign:'right'}}>{change(l)}</span>
               <span/>
               <span style={{fontSize:'11px',color:'var(--quiet)',display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>{sub(l)}{removeCtl(l)}</span>
-              <span style={{fontFamily:MONO,fontSize:'10.5px',color:'var(--quiet)',textAlign:'right',whiteSpace:'nowrap'}}>bal {fmtHrs(l.balanceAfter)}</span>
+              <span style={{fontFamily:MONO,fontSize:'10.5px',color:'var(--quiet)',textAlign:'right',whiteSpace:'nowrap'}}>{l.type==='pending'?'—':`bal ${fmtHrs(l.balanceAfter)}`}</span>
             </div>
           ))}
         </div>

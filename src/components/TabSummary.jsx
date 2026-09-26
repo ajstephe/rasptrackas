@@ -3,7 +3,7 @@ import { buildCalendarWeeks } from '../lib/payPeriods.js';
 import { KEYS, dualWrite } from '../lib/storage.js';
 import { fmt, fmtHrs, fmtGBP, fmtD, fmtDDMM, payLabel } from '../lib/format.js';
 import { isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate, periodIdxForDate } from '../lib/calc.js';
-import { RATE_TIER_MULT } from '../lib/payRates.js';
+import { RATE_TIER_LABEL } from '../lib/payRates.js';
 import { Ico } from './Icons.jsx';
 import { SegSlider } from './SegSlider.jsx';
 import { Tooltip } from './Tooltip.jsx';
@@ -86,7 +86,7 @@ export function TabSummary({
   // each came from), Protection Allowance, TOIL, and anything still to submit —
   // shared by the Calendar's totals card and an opened month in Months view,
   // so the two always read the same way.
-  const periodBreakdownRows = ({pb, tierHours, tierGross, tierDates, paCount, paGross, paDates, toilWorked, toilBanked, carmsGroup, periodIdx}) => {
+  const periodBreakdownRows = ({pb, tierHours, tierGross, tierDates, paCount, paGross, paDates, toilWorked, toilBanked, toilWaiting=0, carmsGroup, periodIdx}) => {
     const lineRow = {display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',fontSize:'12.5px',fontWeight:700};
     const tier = (key,lbl) => tierHours[key]>0 && (
       <div key={key} style={{padding:'7px 0'}}>
@@ -101,16 +101,18 @@ export function TabSummary({
       </div>
     );
     const section = {borderTop:'1px solid var(--border-2)',padding:'8px 0 2px'};
+    // Phones stack the gross · net figures under the heading: beside
+    // "Protection Allowance" there wasn't room and "net" wrapped alone.
     const secHead = (lbl,col,gross,net) => (
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px'}}>
+      <div style={isWide?{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px'}:{display:'flex',flexDirection:'column',gap:'2px'}}>
         <span style={{fontSize:'10px',fontWeight:900,color:col,textTransform:'uppercase',letterSpacing:'0.06em'}}>{lbl}</span>
         <span style={{fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>{fmt(gross)} gross · <span style={{color:'#059669'}}>{fmt(net)} net</span></span>
       </div>
     );
-    const linkRow = (onClick, icon, iconCol, label, value, valueCol) => (
+    const linkRow = (onClick, icon, iconCol, label, value, valueCol, subLine) => (
       <button onClick={onClick} className="tap-row" style={{display:'flex',alignItems:'center',gap:'10px',width:'100%',background:'none',border:'none',borderTop:'1px solid var(--border-2)',padding:'11px 0 4px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
         <Ico n={icon} s={14} c={iconCol}/>
-        <span style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>{label}</span>
+        <span style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>{label}{subLine&&<span style={{display:'block',fontSize:'11px',fontWeight:600,color:'var(--muted)',marginTop:'2px'}}>{subLine}</span>}</span>
         {value&&<span style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:valueCol}}>{value}</span>}
         <Ico n="cR" s={13} c="var(--quiet)" w={2.2}/>
       </button>
@@ -128,7 +130,10 @@ export function TabSummary({
         {paLine('PA1')}{paLine('PA2')}{paLine('PA3')}
         {noPA&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this period</div>}
       </div>
-      {linkRow(()=>setTab('graph'),'clock','#7c3aed',<>TOIL <span style={{fontFamily:MONO,fontWeight:600,color:'var(--text-purple-deep)',marginLeft:'4px'}}>{fmtHrs(toilWorked)} worked → {fmtHrs(toilBanked)} banked</span></>,null,null)}
+      {linkRow(()=>setTab('graph'),'clock','#7c3aed',<>TOIL <span style={{fontFamily:MONO,fontWeight:600,color:'var(--text-purple-deep)',marginLeft:'4px'}}>{fmtHrs(toilWorked)} worked → {fmtHrs(toilBanked)}{toilWaiting>0?'':' banked'}</span></>,null,null,
+        // Unsubmitted TOIL isn't in the balance yet (TOIL page) — say how
+        // much of this period's figure that is, so the two pages agree.
+        toilWaiting>0 ? `${toilBanked-toilWaiting>1e-6?`${fmtHrs(toilBanked-toilWaiting)} in your balance · `:''}${fmtHrs(toilWaiting)} waiting to submit` : null)}
       {carmsGroup&&linkRow(ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(periodIdx); },'checklist',BRASS,'CARMS & PSOP to submit',fmtGBP(carmsGroup.periodTotal),BRASS)}
     </>);
   };
@@ -293,11 +298,12 @@ export function TabSummary({
         // worked/banked) stay period-local — what actually happened
         // in this period, regardless of submission status, matching
         // what the calendar cells for these dates show.
-        let h133=0,h150=0,h200=0,totalToilWorked=0,totalToilBanked=0;
+        let h133=0,h150=0,h200=0,totalToilWorked=0,totalToilBanked=0,totalToilWaiting=0;
         pE.forEach(e=>{
           const c=calcEntry(e);
           h133+=c.h1; h150+=c.h2; h200+=c.h3;
           totalToilWorked+=c.toilH; totalToilBanked+=c.toilBanked;
+          if(!isOtSubmitted(e)) totalToilWaiting+=c.toilBanked;
         });
         // OT Pay / PA box data is different on purpose: it iterates
         // EVERY entry in the financial year, not just ones worked in
@@ -469,7 +475,7 @@ export function TabSummary({
                 {/* Same breakdown as the Calendar's totals card (the Gross,
                     Net and Hours above already cover its top row). */}
                 <div style={{...S.card,marginBottom:'10px',paddingTop:'6px'}}>
-                  {periodBreakdownRows({pb, tierHours:{t133:tierHours.t133,t150:tierHours.t150,t200:tierHours.t200}, tierGross, tierDates, paCount:{PA1:pa1,PA2:pa2,PA3:pa3}, paGross, paDates, toilWorked:totalToilWorked, toilBanked:totalToilBanked, carmsGroup:null, periodIdx:idx})}
+                  {periodBreakdownRows({pb, tierHours:{t133:tierHours.t133,t150:tierHours.t150,t200:tierHours.t200}, tierGross, tierDates, paCount:{PA1:pa1,PA2:pa2,PA3:pa3}, paGross, paDates, toilWorked:totalToilWorked, toilBanked:totalToilBanked, toilWaiting:totalToilWaiting, carmsGroup:null, periodIdx:idx})}
                 </div>
 
                 <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'9px'}}>Shifts</div>
@@ -550,7 +556,7 @@ export function TabSummary({
                             )}
                             {c.toilH>0&&(
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} @ {RATE_TIER_MULT[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
+                                <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} @ {RATE_TIER_LABEL[c.otRateTier]}x <span style={{color:'#a78bfa'}}>(TOIL{c.takeAs==='mix'?' — part of shift':''})</span></span>
                                 <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} banked</span>
                               </div>
                             )}
@@ -719,10 +725,11 @@ export function TabSummary({
         // every entry in the year and groups by submission-period
         // attribution instead, carrying each shift's original worked
         // date.
-        let pToilWorked=0, pToilBanked=0;
+        let pToilWorked=0, pToilBanked=0, pToilWaiting=0;
         cEntries.forEach(e=>{
           const c = calcEntry(e);
           pToilWorked+=c.toilH; pToilBanked+=c.toilBanked;
+          if(!isOtSubmitted(e)) pToilWaiting+=c.toilBanked;
         });
         let ppa1=0, ppa2=0, ppa3=0;
         const pTierHours = { t133:0, t150:0, t200:0 };
@@ -983,7 +990,7 @@ export function TabSummary({
                       </div>
                     ))}
                   </div>
-                  {periodBreakdownRows({pb, tierHours:pTierHours, tierGross:pTierGross, tierDates:pTierDates, paCount:{PA1:ppa1,PA2:ppa2,PA3:ppa3}, paGross:pPaGross, paDates:pPaDates, toilWorked:pToilWorked, toilBanked:pToilBanked, carmsGroup:g, periodIdx:cIdx})}
+                  {periodBreakdownRows({pb, tierHours:pTierHours, tierGross:pTierGross, tierDates:pTierDates, paCount:{PA1:ppa1,PA2:ppa2,PA3:ppa3}, paGross:pPaGross, paDates:pPaDates, toilWorked:pToilWorked, toilBanked:pToilBanked, toilWaiting:pToilWaiting, carmsGroup:g, periodIdx:cIdx})}
                 </div>
               );
             })()}

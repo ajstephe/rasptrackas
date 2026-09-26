@@ -74,6 +74,11 @@ describe('calcEntry', () => {
       expect(c.ot1).toBeCloseTo(1 * rates.r133, 6);
     });
 
+    it('banks time-and-a-third TOIL at exactly 4/3, so 2h worked banks 2h 40m', () => {
+      const c = calcEntry(baseEntry({ hours133:'2', otRateTier:'hours133', toilHours:'2', takeAs:'toil' }), SETTINGS);
+      expect(c.toilBanked * 60).toBeCloseTo(160, 9);
+    });
+
     it('banks TOIL hours at the multiplier for the tier they were worked at', () => {
       const e150 = baseEntry({ hours150:'2', otRateTier:'hours150', toilHours:'2', takeAs:'toil' });
       const c150 = calcEntry(e150, SETTINGS);

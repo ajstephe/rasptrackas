@@ -64,8 +64,13 @@ export const PA_RATES   = { None:0, PA1:48, PA2:98, PA3:133 };
 export const PA_LABELS  = { None:'—', PA1:'£48', PA2:'£98', PA3:'£133' };
 
 // Which of the three overtime rate tiers a given field name/key maps to —
-// used to convert TOIL hours (worked) into TOIL hours (banked).
-export const RATE_TIER_MULT = { hours133:1.33, hours150:1.5, hours200:2.0 };
+// used to convert TOIL hours (worked) into TOIL hours (banked). Time and a
+// third is exactly 4/3: with 1.33, 2h banked 2h 39.6m, and those fractions of
+// a minute built up until the running balance stopped matching its rows.
+// Cash overtime doesn't use these — it comes from the published hourly rates.
+export const RATE_TIER_MULT = { hours133:4/3, hours150:1.5, hours200:2.0 };
+// How each tier is written on screen ("1.33×"), since 4/3 itself isn't.
+export const RATE_TIER_LABEL = { hours133:'1.33', hours150:'1.5', hours200:'2' };
 
 // ─── rate helper ──────────────────────────────────────────────────────────────
 // Returns the correct rate set for a given pay point and entry date.

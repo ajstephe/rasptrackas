@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fmt, fmtHrs, fmtGBP } from '../lib/format.js';
 import { toMinutesOfDay, shiftDurationMinutes, generateShiftTimesLine } from '../lib/shiftTimes.js';
-import { getRates, PA_LABELS, PA_RATES, RATE_TIER_MULT } from '../lib/payRates.js';
+import { getRates, PA_LABELS, PA_RATES, RATE_TIER_MULT, RATE_TIER_LABEL } from '../lib/payRates.js';
 import { useCountUp } from '../lib/useCountUp.js';
 import { Ico } from './Icons.jsx';
 import { TimeSelect } from './TimeSelect.jsx';
@@ -243,7 +243,7 @@ export function TabLogOvertime({
           </div>
         )}
         {toilH>0 && (
-          <div style={{marginTop:'8px',fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--tag-purple)'}}>{fmtHrs(toilH)} to TOIL → {fmtHrs(toilH*RATE_TIER_MULT[takeTier])} banked at {RATE_TIER_MULT[takeTier]}×</div>
+          <div style={{marginTop:'8px',fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--tag-purple)'}}>{fmtHrs(toilH)} to TOIL → {fmtHrs(toilH*RATE_TIER_MULT[takeTier])} banked at {RATE_TIER_LABEL[takeTier]}×</div>
         )}
       </>
     );

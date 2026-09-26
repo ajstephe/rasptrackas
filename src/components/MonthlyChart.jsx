@@ -9,7 +9,7 @@ import { useAnimatedPoints } from '../lib/useAnimatedPoints.js';
 // change is that the two lines and their dots now tween from their old
 // heights to their new ones when the underlying gross/net figures change,
 // instead of snapping straight to the new shape.
-export function MonthlyChart({ totals, PAY_PERIODS, MONO, chartTap, setChartTap, big, dark=false, wide=false }) {
+export function MonthlyChart({ totals, PAY_PERIODS, MONO, chartTap, setChartTap, big, dark=false, wide=false, currIdx=-1 }) {
   const data = totals.periodBreakdown.map(pb=>({short:PAY_PERIODS.find(p=>p.month===pb.month).short, gross:pb.combinedGross, net:pb.combinedNet}));
   const max = Math.max(...data.map(d=>d.gross), 200);
   const W = big?520:(wide?700:330), H = big?300:170, pX = big?46:34, pY = big?20:12;
@@ -17,8 +17,17 @@ export function MonthlyChart({ totals, PAY_PERIODS, MONO, chartTap, setChartTap,
   const fsAxis = big?11:8, fsLbl = big?11:8, ptR = big?6:3, lineW = big?3:2;
   const targetPts = data.map((d,i)=>({x:pX+i*(eW/(data.length-1)), yG:H-pY-(d.gross/max)*eH, yN:H-pY-(d.net/max)*eH, g:d.gross, n:d.net, lbl:d.short}));
   const pts = useAnimatedPoints(targetPts, ['yG','yN'], 500);
-  const gp = pts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.yG}`).join(' ');
-  const np = pts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.yN}`).join(' ');
+  // The line stops at the current pay month: months still to come used to
+  // plot as £0, so the latest month looked like it fell off a cliff. A later
+  // month that already has money in it still counts. Past years (no current
+  // month in them) draw all twelve.
+  let lastIdx = currIdx<0 ? data.length-1 : currIdx;
+  data.forEach((d,i)=>{ if (d.gross>0 && i>lastIdx) lastIdx = i; });
+  const shown = pts.slice(0, lastIdx+1);
+  const gp = shown.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.yG}`).join(' ');
+  const np = shown.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.yN}`).join(' ');
+  const endLabels = lastIdx < data.length-1 && shown.length>0;
+  const futureFill = dark ? 'rgba(148,163,184,0.35)' : '#dbe1e9';
   const tapPt = (chartTap && chartTap.chart==='mon' && chartTap.big===big) ? pts[chartTap.i] : null;
   const toggle = i => setChartTap(t=>(t&&t.chart==='mon'&&t.i===i&&t.big===big)?null:{chart:'mon',i,big});
   // Dark variant sits on the navy Total Gross YTD card, so grid/label
@@ -50,17 +59,22 @@ export function MonthlyChart({ totals, PAY_PERIODS, MONO, chartTap, setChartTap,
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',overflow:'visible'}} preserveAspectRatio="none">
       {[0,0.5,1].map(v=>(<g key={v}><line x1={pX} y1={H-pY-v*eH} x2={W-pX} y2={H-pY-v*eH} stroke={gridStroke} strokeWidth="1" strokeDasharray={v===0?'0':'3 4'}/><text x={pX-4} y={H-pY-v*eH} textAnchor="end" dominantBaseline="middle" style={{fontSize:fsAxis,fill:axisFill,fontWeight:700}}>£{Math.round(max*v)}</text></g>))}
-      {pts.map((p,i)=><text key={i} x={p.x} y={H-pY+(big?17:11)} textAnchor="middle" style={{fontSize:fsLbl,fill:lblFill,fontWeight:900}}>{p.lbl}</text>)}
+      {pts.map((p,i)=><text key={i} x={p.x} y={H-pY+(big?17:11)} textAnchor="middle" style={{fontSize:fsLbl,fill:i>lastIdx?futureFill:lblFill,fontWeight:900}}>{p.lbl}</text>)}
       <path d={np} fill="none" stroke="#f87171" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
       <path d={gp} fill="none" stroke="#34d399" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
-      {pts.map((p,i)=>(
+      {shown.map((p,i)=>(
         <g key={i}>
-          <circle cx={p.x} cy={p.yG} r={ptR} fill="#34d399" stroke={dotStroke} strokeWidth="1.5" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
+          <circle cx={p.x} cy={p.yG} r={i===lastIdx&&endLabels?ptR+1.5:ptR} fill="#34d399" stroke={dotStroke} strokeWidth="1.5" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
           <circle cx={p.x} cy={p.yG} r={ptR+7} fill="transparent" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
-          <circle cx={p.x} cy={p.yN} r={ptR} fill="#f87171" stroke={dotStroke} strokeWidth="1.5" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
+          <circle cx={p.x} cy={p.yN} r={i===lastIdx&&endLabels?ptR+1.5:ptR} fill="#f87171" stroke={dotStroke} strokeWidth="1.5" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
           <circle cx={p.x} cy={p.yN} r={ptR+7} fill="transparent" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
         </g>
       ))}
+      {endLabels&&!tapPt&&(()=>{ const p=shown[lastIdx], gap=Math.abs(p.yN-p.yG)<(big?14:10);
+        return (<g style={{fontFamily:MONO,fontSize:big?11:8,fontWeight:700}}>
+          <text x={p.x+ptR+5} y={p.yG-(gap?4:0)} dominantBaseline="middle" style={{fill:'#10b981'}}>{fmtGBP(p.g)}</text>
+          <text x={p.x+ptR+5} y={p.yN+(gap?6:0)} dominantBaseline="middle" style={{fill:'#ef4444'}}>{fmtGBP(p.n)}</text>
+        </g>); })()}
       {tooltip}
     </svg>
   );
