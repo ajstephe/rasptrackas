@@ -144,11 +144,12 @@ const THEME_PALETTES = {
     sidebarBtnBg:'rgba(143,180,240,0.12)', sidebarBtnBorder:'rgba(143,180,240,0.35)', sidebarBtnSubtext:'rgba(143,180,240,0.65)',
   },
   heritage: {
-    brass:'#1f6b4a', brassLight:'#d9b45a', pillShadow:'rgba(31,107,74,0.35)',
-    sidebarText:'#a9c4b4', sidebarTextActive:'#fffdf6', sidebarDivider:'rgba(255,255,255,0.1)',
-    sidebarGlow:'rgba(217,180,90,0.35)', sidebarPill:'rgba(217,180,90,0.2)',
-    sidebarBtnBg:'rgba(217,180,90,0.14)', sidebarBtnBorder:'rgba(217,180,90,0.4)', sidebarBtnSubtext:'rgba(217,180,90,0.7)',
+    brass:'#00665e', brassLight:'#cedc00', navActiveIcon:'#cedc00', pillShadow:'rgba(0,102,94,0.35)',
+    sidebarText:'#9fc2ba', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(255,255,255,0.1)',
+    sidebarGlow:'rgba(206,220,0,0.35)', sidebarPill:'rgba(206,220,0,0.16)',
+    sidebarBtnBg:'rgba(206,220,0,0.12)', sidebarBtnBorder:'rgba(206,220,0,0.4)', sidebarBtnSubtext:'rgba(206,220,0,0.7)',
   },
+
   heather: {
     brass:'#b8336a', brassLight:'#f09bbd', pillShadow:'rgba(184,51,106,0.33)',
     sidebarText:'#bca7c6', sidebarTextActive:'#fff', sidebarDivider:'rgba(255,255,255,0.1)',
