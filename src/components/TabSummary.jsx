@@ -391,7 +391,9 @@ export function TabSummary({
     const chev = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.25s',transform:isExp?'rotate(180deg)':'none',flexShrink:0,justifySelf:'end'}}><polyline points="6 9 12 15 18 9"/></svg>;
     const sub = {fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'};
     const num = (v, col, w=600) => <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:w,color:col,textAlign:'right',whiteSpace:'nowrap'}}>{v}</span>;
-    const money = (totG>0||totN>0) ? (
+    // A month with shifts shows its money even at £0.00 (its claims went into
+    // a later month), rather than a gap; only an empty month shows "No overtime".
+    const money = (totG>0||totN>0||m.pE.length>0) ? (
       <span style={{textAlign:'right',flexShrink:0}}>
         <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'var(--text-navy)',whiteSpace:'nowrap'}}>{fmtGBP(totG)}</div>
         <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:GRN,whiteSpace:'nowrap',marginTop:'1px'}}>{fmtGBP(totN)} net</div>

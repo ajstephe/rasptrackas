@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fmtHM, fmtHrs, payLabel, shiftSpan } from './format.js';
+import { fmt, fmtGBP, fmtHM, fmtHrs, payLabel, shiftSpan } from './format.js';
 
 describe('fmtHM', () => {
   it('formats whole and fractional hours as H.MM (minutes, not a decimal fraction)', () => {
@@ -57,5 +57,14 @@ describe('pay period labels', () => {
   it('names the pay month and the shift dates it covers', () => {
     expect(payLabel('November 2026')).toBe('November pay');
     expect(shiftSpan('2026-09-07','2026-10-11')).toBe('Shifts 7 Sept – 11 Oct');
+  });
+});
+
+describe('fmt', () => {
+  it('writes money with a thousands comma, the same as fmtGBP', () => {
+    expect(fmt(4948.9)).toBe('£4,948.90');
+    expect(fmt(22338.96)).toBe('£22,338.96');
+    expect(fmt(82.925)).toBe(fmtGBP(82.925));
+    expect(fmt(0)).toBe('£0.00');
   });
 });

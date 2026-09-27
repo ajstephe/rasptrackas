@@ -1,5 +1,7 @@
 // ── display helpers — pure formatting, no React/DOM dependency ─────────────
-export const fmt    = n=>`£${n.toFixed(2)}`;
+// Money with a thousands comma (£4,948.90), the same as fmtGBP, so every
+// figure in the app reads the same way.
+export const fmt    = n=>`£${n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 // Decimal hours → "HH.MM" where MM is minutes (0-59), not a decimal fraction —
 // e.g. 21.5 (21h 30m) → "21.30", not "21.50".
 export const fmtHM  = n=>{
