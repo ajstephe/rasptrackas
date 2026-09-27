@@ -105,8 +105,9 @@ const MONO  = 'var(--num-font)';
 // default light/dark pair — Corporate and Professional Light are
 // fixed looks (see the :not([data-theme=...]) guards in index.html), each
 // swapping the brass wayfinding colour for its own and, where the sidebar
-// needs to diverge from its usual dark-navy vibrancy (Corporate's is light,
-// Professional's drops the glow entirely), carrying its own sidebar
+// needs to diverge from its usual dark-navy vibrancy (Corporate's is plain
+// black with white highlights, Professional's drops the glow entirely),
+// carrying its own sidebar
 // text/pill/button colours too. 'classic' covers system/light/dark, which
 // all share today's brass-on-navy sidebar unchanged.
 const THEME_PALETTES = {
@@ -117,11 +118,12 @@ const THEME_PALETTES = {
     sidebarBtnBg:'rgba(184,130,63,0.16)', sidebarBtnBorder:'rgba(184,130,63,0.4)', sidebarBtnSubtext:'rgba(227,189,133,0.65)',
   },
   corporate: {
-    brass:'#0f62fe', brassLight:'#4589ff', navActiveIcon:'#0f62fe', pillShadow:'rgba(15,98,254,0.3)',
-    sidebarText:'#5b616e', sidebarTextActive:'#111318', sidebarDivider:'rgba(0,0,0,0.07)',
-    sidebarGlow:null, sidebarPill:'rgba(15,98,254,0.08)',
-    sidebarBtnBg:'rgba(15,98,254,0.06)', sidebarBtnBorder:'rgba(15,98,254,0.22)', sidebarBtnSubtext:'rgba(15,98,254,0.55)',
+    brass:'#141414', brassLight:'#ffffff', navActiveIcon:'#ffffff', pillShadow:'rgba(20,20,20,0.25)',
+    sidebarText:'#b5b3ae', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(255,255,255,0.12)',
+    sidebarGlow:null, sidebarPill:'rgba(255,255,255,0.12)',
+    sidebarBtnBg:'rgba(255,255,255,0.08)', sidebarBtnBorder:'rgba(255,255,255,0.3)', sidebarBtnSubtext:'rgba(255,255,255,0.6)',
   },
+
   professional: {
     brass:'#0f766e', brassLight:'#2dd4bf', pillShadow:'rgba(15,118,110,0.35)',
     sidebarText:'#94a3b8', sidebarTextActive:'#f8fafc', sidebarDivider:'rgba(255,255,255,0.08)',
@@ -5057,8 +5059,8 @@ export default function App() {
               Professional Light, which drops the glow entirely rather than
               tinting it — the flat, calmer look that theme is going for —
               and --sidebar-bg-rgb (not --navy-rgb) drives the vibrancy layer
-              itself so Corporate can go light here while its statement
-              cards elsewhere stay on --navy. */}
+              itself so a theme can give the sidebar its own colour while its
+              statement cards elsewhere stay on --navy. */}
           <div style={{position:'absolute',inset:0,background:tab==='add'?'radial-gradient(circle at 28% 15%,rgba(16,185,129,0.55),transparent 65%)':(THEME.sidebarGlow?`radial-gradient(circle at 28% 15%,${THEME.sidebarGlow},transparent 65%)`:'transparent'),transition:'background 0.4s ease',pointerEvents:'none'}}/>
           <div style={{position:'absolute',inset:0,background:'rgba(var(--sidebar-bg-rgb),0.86)',backdropFilter:'blur(22px) saturate(1.5)',WebkitBackdropFilter:'blur(22px) saturate(1.5)',pointerEvents:'none'}}/>
           <div style={{position:'relative',zIndex:1,height:'100%',padding:'22px 16px',display:'flex',flexDirection:'column',boxSizing:'border-box'}}>

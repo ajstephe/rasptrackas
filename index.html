@@ -66,14 +66,14 @@
          substituting the nearest loaded weight (900) instead. The figures font,
          IBM Plex Sans, is loaded at 500/600/700; MONO call sites use 700 at
          most. -->
-    <!-- Inter (Professional Light) and Geist (Corporate) are
+    <!-- Inter (Professional Light) and Cabin (Corporate) are
          added alongside DM Sans/IBM Plex Sans so every theme beyond the
          default can load its type without a second request each. -->
     <!-- Space Grotesk (Midnight), Ysabeau Office (Flagship), Titillium
          Web (Heritage) and Nunito (Heather) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Nunito:wght@400;600;700;800;900&family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Nunito:wght@400;600;700;800;900&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -230,50 +230,53 @@
         --text-blue-deep:#a8c5f0;
       }
 
-      /* ── Corporate ── sleek and modern: a crisp white sidebar with a
-         hairline edge (--sidebar-bg-rgb is white, decoupled from --navy),
-         graphite statement cards and save bar, cool grey neutrals and one
-         vivid cobalt accent. Geist for letters, IBM Plex Sans for figures.
-         Replaced Apple-Inspired; a saved "apple" choice is migrated to
-         "corporate" when the app loads (see themeMode in App.jsx). */
+      /* ── Corporate ── understated department-store calm: black type and
+         black buttons on white cards and a warm off-white page, fine stone
+         lines, a black sidebar and header card. Colour is kept for meaning
+         only (green submitted, red not, purple TOIL). Cabin for letters (a
+         Gill Sans-style humanist sans), IBM Plex Sans for figures.
+         Replaced Apple-Inspired, then the earlier cobalt Corporate; a saved
+         "apple" choice is migrated to "corporate" when the app loads (see
+         themeMode in App.jsx). */
       :root[data-theme="corporate"]{
         color-scheme: light;
-        --page-bg:#f4f5f7;
+        --title-grad:linear-gradient(135deg,#141414,#141414);
+        --page-bg:#f6f5f2;
         --surface:#ffffff;
         --surface-rgb:255,255,255;
-        --surface-2:#f9fafb;
-        --surface-2-rgb:249,250,251;
-        --chip-bg:#eef0f3;
-        --border:#dcdfe5;
-        --border-2:#e9ebef;
-        --ink:#111318;
-        --muted:#5b616e;
-        --quiet:#858b97;
-        --navy:#16181d;
-        --savebar:#16181d;
-        --navy-rgb:22,24,29;
-        --sidebar-bg-rgb:255,255,255;
-        --accent:#0f62fe;
-        --app-font:'Geist',system-ui,sans-serif;
-        --tint-blue:#edf3ff;
-        --tint-red:#fdeeee;
-        --tint-green:#e9f8ef;
-        --tint-green-2:#d5f1df;
-        --tint-purple:#f2ecfb;
-        --tint-amber:#fff4e0;
-        --tint-amber-2:#ffe5b8;
-        --tint-teal:#e4f6f4;
-        --text-navy:#16181d;
-        --text-red-deep:#c8102e;
-        --text-green-deep:#17703f;
-        --text-purple-deep:#6b3fb0;
-        --text-amber-deep:#9a5500;
-        --tint-blue-2:#dbe7ff;
-        --tint-brass:#edf3ff;
-        --tint-indigo:#eceefd;
-        --text-indigo-deep:#4449c2;
-        --surface-red-mid:#f59a9a;
-        --text-blue-deep:#0043ce;
+        --surface-2:#faf9f7;
+        --surface-2-rgb:250,249,247;
+        --chip-bg:#f0eeea;
+        --border:#e2dfd9;
+        --border-2:#ecebe7;
+        --ink:#141414;
+        --muted:#5c5b58;
+        --quiet:#8a8884;
+        --navy:#141414;
+        --savebar:#141414;
+        --navy-rgb:20,20,20;
+        --sidebar-bg-rgb:20,20,20;
+        --accent:#141414;
+        --app-font:'Cabin',system-ui,sans-serif;
+        --tint-blue:#eef2f6;
+        --tint-red:#f8e8e6;
+        --tint-green:#e8f3ec;
+        --tint-green-2:#d4e9dc;
+        --tint-purple:#f0ecf5;
+        --tint-amber:#f7f1e6;
+        --tint-amber-2:#ecdfc4;
+        --tint-teal:#e6f1ef;
+        --text-navy:#141414;
+        --text-red-deep:#a3261d;
+        --text-green-deep:#1d6b43;
+        --text-purple-deep:#5b3f96;
+        --text-amber-deep:#6b5222;
+        --tint-blue-2:#e3e8ee;
+        --tint-brass:#f1efeb;
+        --tint-indigo:#e8eaf6;
+        --text-indigo-deep:#3b4aa0;
+        --surface-red-mid:#eaa39c;
+        --text-blue-deep:#1f5f8b;
       }
 
       /* ── Professional Light ── quieter and denser: Inter, a flat slate
