@@ -322,7 +322,7 @@ export function TabDashboard({
          that used to each be their own bordered/shadowed card are
          now hairline-divided rows inside a single sheet, so the
          page reads as one document rather than a pile of widgets.
-         Money/hours figures use IBM Plex Mono (tabular) instead of
+         Money/hours figures use the theme's figures font (tabular) instead of
          the body face, and the one wayfinding accent throughout is
          brass (BRASS) — colour stays reserved for real state
          (green/red) elsewhere. Salary Breakdown keeps its own card

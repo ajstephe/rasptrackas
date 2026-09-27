@@ -98,8 +98,8 @@ idle(() => {
 // decoration, never state. Kept as plain constants (not swapped into every
 // existing blue literal app-wide) so this stays a scoped, reversible pass —
 // see the ledger-redesign branch notes for what's in vs. out of scope.
-// Figures font, set per theme in index.html (--num-font) — IBM Plex Mono
-// everywhere except Flagship, which sets numbers in the same face as its text.
+// Figures font, set per theme in index.html (--num-font): IBM Plex Sans in
+// Light, Dark and System; the other themes set their own.
 const MONO  = 'var(--num-font)';
 // One accent + desktop-sidebar palette per Appearance option beyond the
 // default light/dark pair — Corporate and Professional Light are

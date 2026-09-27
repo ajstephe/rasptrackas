@@ -77,7 +77,7 @@
          Franklin (Heritage) and Nunito + Roboto Mono (Heather) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Libre+Franklin:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&family=Roboto+Mono:wght@500;600;700&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Libre+Franklin:wght@400;500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&family=Roboto+Mono:wght@500;600;700&family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -120,9 +120,10 @@
         --sidebar-bg-rgb:15,39,68;
         --accent:#b8823f;
         --app-font:'DM Sans',system-ui,sans-serif;
-        /* Money/hours figures (MONO in App.jsx). Only Flagship overrides
-           it; every other theme keeps IBM Plex Mono. */
-        --num-font:'IBM Plex Mono',monospace;
+        /* Money/hours figures (MONO in App.jsx). Light, Dark and System use
+           IBM Plex Sans: equal-width digits, so columns line up, without a
+           typewriter look. Themes with their own look set their own. */
+        --num-font:'IBM Plex Sans',system-ui,sans-serif;
         --tint-blue:#eff6ff;
         --tint-red:#fef2f2;
         --tint-green:#f0fdf4;
@@ -305,6 +306,7 @@
         --sidebar-bg-rgb:17,24,39;
         --accent:#0f766e;
         --app-font:'Inter',system-ui,sans-serif;
+        --num-font:'IBM Plex Mono',monospace;
         --tint-blue:#eff6ff;
         --tint-red:#fef2f2;
         --tint-green:#f0fdf4;
@@ -354,6 +356,7 @@
         --sidebar-bg-rgb:5,8,15;
         --accent:#22d3ee;
         --app-font:'Space Grotesk',system-ui,sans-serif;
+        --num-font:'IBM Plex Mono',monospace;
         --tint-blue:#0f1f2e;
         --tint-red:#2a1315;
         --tint-green:#0f2a20;
@@ -429,6 +432,15 @@
          keeps its width in line with Space Grotesk (already known
          to fit the sidebar, nav and tables); at 0.50 it runs ~11% wider
          than DM Sans. Browsers without support just keep today's size. */
+      /* Dark (and System when the phone is dark): light digits on navy look
+         heavier than the same weight on white, so numbers drop one weight.
+         Headline figures (20px and up) keep a stronger weight. */
+      :root[data-theme="dark"] [style*="--num-font"]{font-weight:500!important}
+      :root[data-theme="dark"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-weight:600!important}
+      @media (prefers-color-scheme: dark){
+        :root:not([data-theme]) [style*="--num-font"]{font-weight:500!important}
+        :root:not([data-theme]) [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-weight:600!important}
+      }
       :root[data-theme="flagship"] body{font-variant-numeric:lining-nums tabular-nums;font-size-adjust:0.48}
 
       /* ── Heritage ── racing green and gold on warm off-white. Green takes
@@ -454,6 +466,7 @@
         --sidebar-bg-rgb:18,59,44;
         --accent:#1f6b4a;
         --app-font:'Libre Franklin',system-ui,sans-serif;
+        --num-font:'IBM Plex Mono',monospace;
         --tint-blue:#e9f1ec;
         --tint-red:#f7e6e2;
         --tint-green:#e6f2ea;
