@@ -26,6 +26,10 @@ export function TabSummary({
   calcEntry, crossPeriodInfo, carmsBadge, renderDatePills, renderFYTotalsCard,
   jumpTo, snapToActiveMonth, startEdit, delEntry, setTab, animClass='fi',
 }) {
+  // Hours split by claim status: overtime marked submitted on CARMS, and
+  // overtime still to submit (a future shift counts as planned instead).
+  const hrsSplit = list => { let sub=0, pend=0, plan=0, nSub=0, nPend=0; list.forEach(e=>{ const c=calcEntry(e); const h=c.h1+c.h2+c.h3; if(!h) return; if(e.date>todayStr) plan+=h; else if(isOtSubmitted(e)) { sub+=h; nSub++; } else { pend+=h; nPend++; } }); return {sub,pend,plan,nSub,nPend}; };
+  const RED='#dc2626', GRN='#059669';
   // Shifts worked in the previous pay year but claimed into one of this
   // year's pay months: their money counts in that month, so they're listed
   // there too (after the month's own shifts), carrying their "counted in"
@@ -430,8 +434,9 @@ export function TabSummary({
                   any open month) sets Hours, Gross and Net side by side
                   rather than stretching three rows across the width. */}
               {isWide&&(isCurr||isExp) ? (
-                <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',border:'1px solid var(--border-2)',borderRadius:'13px',margin:'10px 0 2px'}}>
-                  {[['clock','var(--tint-teal)','#0d9488','Hours worked',<>{fmtHrs(h133+h150+h200)} <span style={{color:'var(--quiet)',fontWeight:400,fontSize:'12px'}}>· {pE.length} shift{pE.length!==1?'s':''}</span></>,'var(--ink)'],
+                <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',border:'1px solid var(--border-2)',borderRadius:'13px',margin:'10px 0 2px'}}>
+                  {[['clock','var(--tint-green)',GRN,'Hours submitted',fmtHrs(hrsSplit(pE).sub),GRN],
+                    ['clock','var(--tint-red)',RED,'Not submitted',fmtHrs(hrsSplit(pE).pend),hrsSplit(pE).pend>0?RED:'var(--quiet)'],
                     ['cash','var(--tint-blue)','var(--text-navy)','Gross',fmt(totG),'var(--text-navy)'],
                     ['cash','var(--tint-green)','#059669','Net',fmt(totN),'#059669']].map(([ic,bg,icc,lbl,val,col],n)=>(
                     <div key={lbl} style={{display:'flex',alignItems:'center',gap:'11px',padding:'13px 16px',borderLeft:n?'1px solid var(--border-2)':'none'}}>
@@ -444,11 +449,12 @@ export function TabSummary({
                   ))}
                 </div>
               ) : (<>
-              <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0',borderBottom:'1px solid var(--border-2)'}}>
-                <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-teal)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="clock" s={15} c="#0d9488"/></div>
-                <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Hours worked</div>
-                <div style={{fontFamily:MONO,fontSize:'13.5px',fontWeight:600,color:'var(--ink)'}}>{fmtHrs(h133+h150+h200)} <span style={{color:'var(--quiet)',fontWeight:400}}>· {pE.length} shift{pE.length!==1?'s':''}</span></div>
-              </div>
+              {(()=>{ const sp=hrsSplit(pE); return [['Hours submitted',sp.sub,sp.nSub,GRN,'var(--tint-green)'],['Not submitted',sp.pend,sp.nPend,sp.pend>0?RED:'var(--quiet)','var(--tint-red)']].map(([lbl,h,n,col,bg])=>(
+              <div key={lbl} style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0',borderBottom:'1px solid var(--border-2)'}}>
+                <div style={{width:'30px',height:'30px',borderRadius:'13px',background:bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="clock" s={15} c={col}/></div>
+                <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>{lbl}</div>
+                <div style={{fontFamily:MONO,fontSize:'13.5px',fontWeight:600,color:col}}>{fmtHrs(h)} <span style={{color:'var(--quiet)',fontWeight:400}}>· {n} shift{n!==1?'s':''}</span></div>
+              </div>)); })()}
               <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0',borderBottom:'1px solid var(--border-2)'}}>
                 <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="cash" s={15} c="var(--text-navy)"/></div>
                 <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Gross</div>
@@ -616,8 +622,6 @@ export function TabSummary({
         const cPeriod = PAY_PERIODS[cIdx];
         const cEntries = fyEntries.filter(e=>e.date>=cPeriod.start&&e.date<=cPeriod.end);
         const pb = totals.periodBreakdown[cIdx];
-        let totalHrs = 0;
-        cEntries.forEach(e=>{ const c=calcEntry(e); totalHrs += c.h1+c.h2+c.h3; });
         // Tier tags reflect hours actually WORKED at each rate (h1/h2/h3 —
         // includes any portion diverted to TOIL), not just the paid portion
         // (payH1/payH2/payH3) the old per-tier breakdown box used — "rate"
@@ -704,22 +708,16 @@ export function TabSummary({
               );
             })}
 
-            {cEntries.length>0 && (
-              <div style={{display:'flex',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 4px',marginTop:'4px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
-                <div style={{flex:1,textAlign:'center',padding:'0 4px'}}>
-                  <div style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--quiet)',marginBottom:'3px'}}>Hours</div>
-                  <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:'var(--ink)'}}>{fmtHrs(totalHrs)}</div>
-                </div>
-                <div style={{flex:1,textAlign:'center',padding:'0 4px',borderLeft:'1px solid var(--border-2)'}}>
-                  <div style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--quiet)',marginBottom:'3px'}}>Gross</div>
-                  <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:'var(--text-navy)'}}>{fmt(pb.combinedGross)}</div>
-                </div>
-                <div style={{flex:1,textAlign:'center',padding:'0 4px',borderLeft:'1px solid var(--border-2)'}}>
-                  <div style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--quiet)',marginBottom:'3px'}}>Net</div>
-                  <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:'#059669'}}>{fmt(pb.combinedNet)}</div>
-                </div>
+            {cEntries.length>0 && (()=>{ const sp=hrsSplit(cEntries); return (
+              <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',rowGap:'10px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 4px',marginTop:'4px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
+                {[['Hours submitted',fmtHrs(sp.sub),GRN],['Not submitted',fmtHrs(sp.pend),sp.pend>0?RED:'var(--quiet)'],['Gross',fmt(pb.combinedGross),'var(--text-navy)'],['Net',fmt(pb.combinedNet),'#059669']].map(([k,v,col],n)=>(
+                  <div key={k} style={{textAlign:'center',padding:'0 4px',borderLeft:(isWide?n:n%2)?'1px solid var(--border-2)':'none'}}>
+                    <div style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--quiet)',marginBottom:'3px'}}>{k}</div>
+                    <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:col}}>{v}</div>
+                  </div>
+                ))}
               </div>
-            )}
+            ); })()}
           </>
         );
       })()}
@@ -731,14 +729,13 @@ export function TabSummary({
         const cIdx = calPeriodIdx===null ? currPeriodIdx : calPeriodIdx;
         const cPeriod = PAY_PERIODS[cIdx];
         const cEntries = fyEntries.filter(e=>e.date>=cPeriod.start&&e.date<=cPeriod.end);
-        const cTotalHrs = cEntries.reduce((s,e)=>{ const c=calcEntry(e); return s+c.h1+c.h2+c.h3; },0);
         const weeks = buildCalendarWeeks(cPeriod);
 
         // period-level totals for the breakdown boxes (mirrors List View)
         const pb = totals.periodBreakdown[cIdx];
         // Hours-worked stats stay period-local (see List View comment
-        // for the reasoning) — cTotalHrs above already covers the
-        // Total O/T Hours stat. OT Pay / PA box data below iterates
+        // for the reasoning), split into submitted and not submitted by
+        // hrsSplit. OT Pay / PA box data below iterates
         // every entry in the year and groups by submission-period
         // attribution instead, carrying each shift's original worked
         // date.
@@ -833,7 +830,8 @@ export function TabSummary({
                 )}
                 <div style={{fontWeight:900,fontSize:'22px',color:cIdx===currPeriodIdx?BRASS:'var(--ink)'}}>{payLabel(cPeriod.month)}</div>
                 <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:'var(--quiet)'}}>Shifts {fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
-                <div style={{fontSize:'12px',fontWeight:700,color:'var(--muted)',marginTop:'3px'}}>{cEntries.length} shift{cEntries.length!==1?'s':''} · {fmtHrs(cTotalHrs)} overtime</div>
+                <div style={{fontSize:'12px',fontWeight:700,color:'var(--muted)',marginTop:'3px'}}>{cEntries.length} shift{cEntries.length!==1?'s':''}</div>
+                <div style={{fontSize:'12px',fontWeight:700,marginTop:'1px',display:'flex',flexWrap:'wrap',justifyContent:'center',columnGap:'6px'}}><span style={{color:GRN,whiteSpace:'nowrap'}}>{fmtHrs(hrsSplit(cEntries).sub)} submitted</span><span style={{color:hrsSplit(cEntries).pend>0?RED:'var(--quiet)',whiteSpace:'nowrap'}}>{fmtHrs(hrsSplit(cEntries).pend)} not submitted</span></div>
               </div>
               <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} aria-label="Next period" style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c={BRASS}/></button>
             </div>
@@ -999,9 +997,9 @@ export function TabSummary({
               const g = carmsOutstanding.groups.find(g=>g.periodIdx===cIdx);
               return (
                 <div style={{...S.card,marginTop:'2px'}}>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',textAlign:'center',marginBottom:'10px'}}>
-                    {[['Gross',fmt(pb.combinedGross),'var(--text-navy)'],['Net',fmt(pb.combinedNet),'#059669'],['Hours',fmtHrs(cTotalHrs),'var(--ink)']].map(([k,v,col],n)=>(
-                      <div key={k} style={{borderLeft:n?'1px solid var(--border-2)':'none',padding:'2px 4px'}}>
+                  <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',rowGap:'12px',textAlign:'center',marginBottom:'10px'}}>
+                    {[['Gross',fmt(pb.combinedGross),'var(--text-navy)'],['Net',fmt(pb.combinedNet),'#059669'],['Hours submitted',fmtHrs(hrsSplit(cEntries).sub),GRN],['Not submitted',fmtHrs(hrsSplit(cEntries).pend),hrsSplit(cEntries).pend>0?RED:'var(--quiet)']].map(([k,v,col],n)=>(
+                      <div key={k} style={{borderLeft:(isWide?n:n%2)?'1px solid var(--border-2)':'none',padding:'2px 4px'}}>
                         <div style={{fontSize:'9.5px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>{k}</div>
                         <div style={{fontFamily:MONO,fontSize:isWide?'20px':'17px',fontWeight:600,color:col,marginTop:'2px'}}>{v}</div>
                       </div>
