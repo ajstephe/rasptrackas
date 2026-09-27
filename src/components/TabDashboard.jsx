@@ -340,11 +340,17 @@ export function TabDashboard({
       <div style={{padding:'4px 26px',display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',columnGap:'44px',alignItems:'stretch'}}>
         {totals.curr&&(
           <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
-            <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-              <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
-              <div>
-                <div style={{fontSize:'14px',fontWeight:800,color:'var(--ink)'}}>{payLabel(totals.curr.month)}</div>
-                <div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{shiftSpan(totals.curr.start,totals.curr.end)}</div>
+            {/* Laid out like the Net pay tile beside it: a heading by the
+                icon, then the pay month at the same size as the net figure,
+                with its shift dates level with the trend pill. */}
+            <div>
+              <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'2px'}}>
+                <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
+                <span style={{fontSize:'14px',fontWeight:800,color:'var(--ink)'}}>Current pay month</span>
+              </div>
+              <div style={{paddingLeft:'46px'}}>
+                <div style={{fontSize:'25px',fontWeight:800,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.1}}>{payLabel(totals.curr.month)}</div>
+                <div style={{fontSize:'12.5px',fontWeight:600,color:'var(--quiet)',marginTop:'6px'}}>{shiftSpan(totals.curr.start,totals.curr.end)}</div>
               </div>
             </div>
             {chev}
