@@ -47,7 +47,7 @@ export function TabDashboard({
     <div style={{background:'var(--navy)',padding:compact?'18px':'22px 26px',position:'relative',overflow:'hidden',display:compact?'block':'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'16px',flexWrap:'wrap'}}>
       <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
       <div>
-        <div style={{fontSize:compact?'11px':'11.5px',fontWeight:800,color:'#93c5fd',marginBottom:'5px'}}>Gross pay this tax year</div>
+        <div style={{fontSize:compact?'11px':'11.5px',fontWeight:800,color:'var(--hero-label,#93c5fd)',marginBottom:'5px'}}>Gross pay this tax year</div>
         <div style={{fontFamily:MONO,fontSize:compact?'28px':'32px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'5px'}}>
           {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
         </div>

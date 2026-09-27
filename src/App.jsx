@@ -152,14 +152,14 @@ const THEME_PALETTES = {
     sidebarBtnBg:'rgba(206,220,0,0.12)', sidebarBtnBorder:'rgba(206,220,0,0.4)', sidebarBtnSubtext:'rgba(206,220,0,0.7)',
   },
 
-  heather: {
-    brass:'#b8336a', brassLight:'#f09bbd', pillShadow:'rgba(184,51,106,0.33)',
-    sidebarText:'#bca7c6', sidebarTextActive:'#fff', sidebarDivider:'rgba(255,255,255,0.1)',
-    sidebarGlow:'rgba(184,51,106,0.4)', sidebarPill:'rgba(184,51,106,0.3)',
-    sidebarBtnBg:'rgba(240,155,189,0.12)', sidebarBtnBorder:'rgba(240,155,189,0.35)', sidebarBtnSubtext:'rgba(240,155,189,0.65)',
+  energy: {
+    brass:'#0a0a0a', brassLight:'#8cf01e', navActiveIcon:'#8cf01e', pillShadow:'rgba(10,10,10,0.3)',
+    sidebarText:'#a3a8a0', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(255,255,255,0.1)',
+    sidebarGlow:'rgba(140,240,30,0.55)', sidebarPill:'rgba(140,240,30,0.14)',
+    sidebarBtnBg:'rgba(140,240,30,0.1)', sidebarBtnBorder:'rgba(140,240,30,0.45)', sidebarBtnSubtext:'rgba(140,240,30,0.75)',
   },
 };
-const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','heather'];
+const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy'];
 // Same check TabSummary's calendar swipe already makes before its own
 // snap-back — used by the pull-to-refresh indicator's settle transition
 // below for the same reason: the live drag tracks the finger regardless
@@ -697,8 +697,9 @@ export default function App() {
   // all, so the plain CSS prefers-color-scheme rule in index.html drives it
   // (and keeps following the OS live, no listener needed here).
   // A saved theme that's since been removed (Terminal) falls back to Auto.
-  // Apple-Inspired was reworked into Corporate, so a saved 'apple' carries over.
-  const [themeMode, setThemeMode] = useState(()=>{ let v = dualRead(KEYS.themeMode,'system'); if (v==='apple') v='corporate'; return THEME_IDS.includes(v) ? v : 'system'; });
+  // Apple-Inspired was reworked into Corporate, so a saved 'apple' carries over,
+  // and Heather was replaced by Energy, so a saved 'heather' does too.
+  const [themeMode, setThemeMode] = useState(()=>{ let v = dualRead(KEYS.themeMode,'system'); if (v==='apple') v='corporate'; if (v==='heather') v='energy'; return THEME_IDS.includes(v) ? v : 'system'; });
   useEffect(()=>{
     if(themeMode==='system') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', themeMode);
@@ -4161,11 +4162,11 @@ export default function App() {
            index.html — without this, the OS's native date-picker icon and
            popup stay light-themed even in dark mode, exactly the bug the
            old TimeSelect had before it was rebuilt. Corporate,
-           Professional Light, Flagship, Heritage and Heather are fixed light looks,
+           Professional Light, Flagship, Heritage and Energy are fixed light looks,
            not dark-mode variants, so they're excluded here the same way an
            explicit "light" choice already is. */
         @media (prefers-color-scheme: dark){
-          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="heather"]) input[type=date]{color-scheme:dark}
+          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]) input[type=date]{color-scheme:dark}
         }
         :root[data-theme="dark"] input[type=date]{color-scheme:dark}
         :root[data-theme="midnight"] input[type=date]{color-scheme:dark}
