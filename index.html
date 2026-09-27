@@ -73,7 +73,7 @@
          Web (Heritage) and Nunito (Heather) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700;900&family=Nunito:wght@400;600;700;800;900&family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Nunito:wght@400;600;700;800;900&family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -441,7 +441,9 @@
          for the sidebar, header card and title; a lighter green for buttons
          and choices (white text on lime can't be read); lime marks the
          active tab and highlights via brassLight in App.jsx. Titillium Web
-         for letters, IBM Plex Sans for figures. */
+         for letters, IBM Plex Sans for figures. Only Titillium's Bold (700)
+         is loaded, not its Black: the app's 800/900 headings then use Bold,
+         as Black's heavy letters filled in and were hard to read. */
       :root[data-theme="heritage"]{
         color-scheme: light;
         --title-grad:linear-gradient(135deg,#00352f,#00665e);
