@@ -246,13 +246,15 @@ export function TabSummary({
           <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No shifts yet this pay month</div>
           <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log a shift and it'll show up here</div>
         </div>
-        :[...[...pE].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(p)].map(e=>{
+        // A computer shows the shifts as a grid of smaller cards, a few to a
+        // row, rather than one long column of full-width ones.
+        :<div style={isWide?{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))',gap:'9px',alignItems:'start',margin:'6px 0 10px'}:undefined}>{[...[...pE].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(p)].map(e=>{
           const c=calcEntry(e);
           const isFut=e.date>todayStr;
           // what this shift adds to take-home in the month it lands in
           const eNet = entryNet(e);
           return(
-            <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:'13px',marginBottom:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
+            <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:isWide?'11px':'13px',marginBottom:isWide?0:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
               {isFut&&<div style={{position:'absolute',top:'-6px',right:'9px',background:'#2563eb',color:'#fff',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Planned</div>}
               <div style={{marginBottom:'8px'}}>
                 {shiftHead(e,{onEdit:()=>{setConfirmDel(null);startEdit(e);}, onDelete:()=>setConfirmDel(confirmDel===e.id?null:e.id), deleting:confirmDel===e.id})}
@@ -338,7 +340,7 @@ export function TabSummary({
               </div>
             </div>
           );
-        })
+        })}</div>
       }
       <button onClick={()=>setExpanded(null)} style={{width:'100%',marginTop:'4px',padding:'9px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'11px',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'4px'}}>
         Close <Ico n="cU" s={12} c={BRASS}/>
@@ -348,12 +350,11 @@ export function TabSummary({
 
   // ── Tax-year table (Months view) ─────────────────────────────────────────
   // One line per pay month under the current month's card, so the whole year
-  // can be compared on one screen. A phone gets plain columns (hours, gross,
-  // net) to run the eye down; a computer gets a two-line list with gross and
-  // net stacked, the hours and dates under the month, and the CARMS/PSOP
-  // status in its own column. Anything too narrow for either (the smallest
-  // phones, a narrow desktop window) gets the two-line list with the status
-  // under the month instead. Opening a month shows its breakdown and shifts
+  // can be compared on one screen. A computer with room for it gets columns
+  // (hours, gross, net, CARMS/PSOP status); a phone, or a desktop window too
+  // narrow for the columns, gets a two-line list: gross with net under it on
+  // the right, hours and shifts under the month, and anything still to
+  // submit tagged under that. Opening a month shows its breakdown and shifts
   // under its line; the current month opens in its own card above instead.
   const listRef = useRef(null);
   const [listW, setListW] = useState(null);
@@ -365,9 +366,9 @@ export function TabSummary({
     return () => ro.disconnect();
   }, [breakdownView]);
   const narrow = listW!==null && listW<560;
-  const layout = isWide ? (listW!==null && listW<480 ? 'stack' : 'list') : (listW!==null && listW<300 ? 'stack' : 'cols');
-  const GRID = { cols:'minmax(0,1fr) 58px 74px 68px 10px', list:'minmax(0,1fr) auto 140px 16px' }[layout];
-  const gap = layout==='cols' ? '5px' : '10px';
+  const layout = isWide && !narrow ? 'table' : 'stack';
+  const GRID = 'minmax(0,1fr) 80px 104px 104px 132px 16px';
+  const gap = '8px';
 
   const monthStatus = m => m.carms ? {col:RED, chip:<span style={{display:'inline-block',fontSize:'11px',fontWeight:800,padding:'2px 8px',borderRadius:'999px',background:'var(--tint-red)',color:'var(--text-red-deep)',whiteSpace:'nowrap'}}>{fmtGBP(m.carms.periodTotal)} to submit</span>}
     : (m.sp.nSub>0||m.totG>0) ? {col:GRN, chip:<span style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'11px',fontWeight:800,padding:'2px 8px',borderRadius:'999px',background:'var(--tint-green)',color:'var(--text-green-deep)',whiteSpace:'nowrap'}}><Ico n="check" s={10} c="var(--text-green-deep)" w={3.2}/>All submitted</span>}
@@ -383,15 +384,13 @@ export function TabSummary({
     // jumps up to that instead of opening a second copy.
     const open = () => isCurr ? jumpTo(p.month) : setExpanded(isExp?null:p.month);
     const nowTag = isCurr&&<span style={{fontSize:'9px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#fff',background:BRASS,borderRadius:'999px',padding:'1px 6px',flexShrink:0}}>Now</span>;
-    // Columns on a phone use the short month name ("Aug") to leave room
-    // for the figures.
     const name = <span style={{display:'flex',alignItems:'center',gap:'7px',minWidth:0,fontWeight:800,fontSize:'14px',color:'var(--ink)'}}>
       <span aria-hidden="true" style={{width:'8px',height:'8px',borderRadius:'50%',background:st.col,flexShrink:0}}/>
-      <span style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{layout==='cols' ? p.short : payLabel(p.month)}</span>{layout!=='cols'&&nowTag}
+      <span style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{payLabel(p.month)}</span>{nowTag}
     </span>;
     const chev = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.25s',transform:isExp?'rotate(180deg)':'none',flexShrink:0,justifySelf:'end'}}><polyline points="6 9 12 15 18 9"/></svg>;
     const sub = {fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'};
-    const num = (v, col, w=600) => <span style={{fontFamily:MONO,fontSize:'13.5px',fontWeight:w,color:col,textAlign:'right',whiteSpace:'nowrap'}}>{v}</span>;
+    const num = (v, col, w=600) => <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:w,color:col,textAlign:'right',whiteSpace:'nowrap'}}>{v}</span>;
     const money = (totG>0||totN>0) ? (
       <span style={{textAlign:'right',flexShrink:0}}>
         <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'var(--text-navy)',whiteSpace:'nowrap'}}>{fmtGBP(totG)}</div>
@@ -404,14 +403,11 @@ export function TabSummary({
         <button type="button" onClick={open} aria-expanded={isCurr?undefined:isExp} className="tap-row" style={layout==='stack'
           ? {...rowStyle,display:'flex',alignItems:'center',gap:'10px'}
           : {...rowStyle,display:'grid',gridTemplateColumns:GRID,gap,alignItems:'center'}}>
-          {layout==='cols' ? (<>
-            <span style={{minWidth:0}}>{name}<div style={{...sub,display:'flex',alignItems:'center',gap:'5px'}}>{isCurr ? nowTag : shiftsTxt}</div></span>
+          {layout==='table' ? (<>
+            <span style={{minWidth:0}}>{name}<div style={sub}>{fmtD(p.start)} – {fmtD(p.end)} · {shiftsTxt}</div></span>
             {num(fmtHrs(hrs),'var(--ink)',500)}
             {num(fmtGBP(totG),'var(--text-navy)')}
             {num(fmtGBP(totN),GRN)}
-          </>) : layout==='list' ? (<>
-            <span style={{minWidth:0}}>{name}<div style={sub}>{fmtHrs(hrs)} · {shiftsTxt} · {fmtD(p.start)} – {fmtD(p.end)}</div></span>
-            {money||<span/>}
             <span style={{textAlign:'right'}}>{st.chip}</span>
           </>) : (<>
             <span style={{flex:1,minWidth:0}}>
@@ -441,7 +437,7 @@ export function TabSummary({
     const head = {fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'};
     const headRow = {padding:'0 6px 7px',borderBottom:'1px solid var(--border)',...head};
     const totShifts = `${T.n} shift${T.n!==1?'s':''}`;
-    const totLbl = <span style={{fontWeight:800,fontSize:'14px',color:'var(--ink)',minWidth:0}}>{layout==='cols'?'Total':'Total so far'}<div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'2px',whiteSpace:'nowrap'}}>{fmtHrs(T.hrs)} · {totShifts}</div></span>;
+    const totLbl = <span style={{fontWeight:800,fontSize:'14px',color:'var(--ink)',minWidth:0}}>Total so far<div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'2px',whiteSpace:'nowrap'}}>{layout==='table'?totShifts:`${fmtHrs(T.hrs)} · ${totShifts}`}</div></span>;
     const totMoney = (
       <span style={{textAlign:'right',flexShrink:0}}>
         <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:700,color:'var(--text-navy)',whiteSpace:'nowrap'}}>{fmtGBP(T.g)}</div>
@@ -455,13 +451,9 @@ export function TabSummary({
           <span style={{fontWeight:900,fontSize:'16px',color:'var(--ink)',letterSpacing:'-0.3px'}}>Tax year {fy}/{String(Number(fy)+1).slice(-2)}</span>
           <span style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)'}}>{isWide?'Click':'Tap'} a month to open it</span>
         </div>
-        {layout==='cols' ? (
+        {layout==='table' ? (
           <div style={{display:'grid',gridTemplateColumns:GRID,gap,...headRow}}>
-            <span>Month</span><span style={{textAlign:'right'}}>Hours</span><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span><span/>
-          </div>
-        ) : layout==='list' ? (
-          <div style={{display:'grid',gridTemplateColumns:GRID,gap,...headRow}}>
-            <span>Pay month</span><span style={{textAlign:'right'}}>Gross / net</span><span style={{textAlign:'right'}}>CARMS / PSOP</span><span/>
+            <span>Pay month</span><span style={{textAlign:'right'}}>Hours</span><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span><span style={{textAlign:'right'}}>CARMS / PSOP</span><span/>
           </div>
         ) : (
           <div style={{display:'flex',justifyContent:'space-between',...headRow}}><span>Pay month</span><span style={{paddingRight:'23px'}}>Gross / net</span></div>
@@ -474,19 +466,13 @@ export function TabSummary({
         )}
         {/* The total is the sum of the lines above, so it always adds up;
             planned shifts sit on their own line under it. */}
-        {layout==='cols' ? (
+        {layout==='table' ? (
           <div style={{display:'grid',gridTemplateColumns:GRID,gap,alignItems:'center',...totRow}}>
-            {/* The year's totals are wider than a month's, so on a phone the
-                hours sit under "Total" and the money spans the columns. */}
-            <span style={{gridColumn:'1 / 3'}}>{totLbl}</span>
-            <span style={{gridColumn:'3 / 6',display:'flex',justifyContent:'flex-end',alignItems:'baseline',gap:'10px',paddingRight:'15px'}}>
-              <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:'var(--text-navy)',whiteSpace:'nowrap'}}>{fmtGBP(T.g)}</span>
-              <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:GRN,whiteSpace:'nowrap'}}>{fmtGBP(T.net)}</span>
-            </span>
-          </div>
-        ) : layout==='list' ? (
-          <div style={{display:'grid',gridTemplateColumns:GRID,gap,alignItems:'center',...totRow}}>
-            {totLbl}{totMoney}<span/><span/>
+            {totLbl}
+            <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--ink)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtHrs(T.hrs)}</span>
+            <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:'var(--text-navy)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(T.g)}</span>
+            <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:GRN,textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(T.net)}</span>
+            <span/><span/>
           </div>
         ) : (
           <div style={{display:'flex',alignItems:'center',gap:'10px',...totRow,paddingRight:'29px'}}>
