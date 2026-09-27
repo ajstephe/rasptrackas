@@ -296,7 +296,7 @@ export function TabDashboard({
               <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</span></div>
               <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#ef4444',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</span></div>
             </div>
-            <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'var(--quiet)'}}>Tap any point for that pay month's figures</div>
+            <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'var(--quiet)'}}>{isWide?'Click':'Tap'} any point for that pay month's figures</div>
           </div>
         </div>
       )}

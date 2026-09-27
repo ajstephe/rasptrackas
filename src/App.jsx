@@ -1792,6 +1792,9 @@ export default function App() {
       if (!hasOTHours && !hasPA) return null;
       return <div style={{...style,background:'var(--tint-green)',color:'var(--text-green-deep)'}}>✓ Submitted</div>;
     }
+    // A shift still to come can't be claimed yet: say it's planned rather
+    // than flagging it red as if it were overdue.
+    if (e.date > todayStr) return <div style={{...style,background:'var(--tint-blue)',color:'var(--text-blue-deep)'}}>Planned · claim after the shift</div>;
     const goToEntry = (ev) => { ev.stopPropagation(); setSelectedCalDay(null); setConfirmDel(null); startEdit(e); setFocusCarmsToggle(true); };
     const clickable = {...style,border:'1px solid var(--border-2)',background:'var(--tint-red)',color:'var(--text-red-deep)',cursor:'pointer'};
     if (otOK && !paOK) return <button onClick={goToEntry} style={clickable}>✗ PA not submitted</button>;

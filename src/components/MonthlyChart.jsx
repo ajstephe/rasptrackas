@@ -33,7 +33,9 @@ export function MonthlyChart({ totals, PAY_PERIODS, MONO, chartTap, setChartTap,
   // Dark variant sits on the navy Total Gross YTD card, so grid/label
   // colours flip to bright blue-white instead of slate-on-white.
   const gridStroke = dark ? 'rgba(255,255,255,0.08)' : '#f1f5f9';
-  const axisFill    = dark ? '#64748b' : '#cbd5e1';
+  // The theme's quiet text colour on the plain card, so the £ scale reads
+  // clearly in every theme rather than fading into the background.
+  const axisFill    = dark ? '#64748b' : 'var(--quiet)';
   const lblFill      = dark ? '#94a3b8' : '#94a3b8';
   const dotStroke   = dark ? '#0f2744' : 'white';
   const tooltipBg    = dark ? '#132f52' : '#1e3a5f';
@@ -58,7 +60,7 @@ export function MonthlyChart({ totals, PAY_PERIODS, MONO, chartTap, setChartTap,
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',overflow:'visible'}} preserveAspectRatio="none">
-      {[0,0.5,1].map(v=>(<g key={v}><line x1={pX} y1={H-pY-v*eH} x2={W-pX} y2={H-pY-v*eH} stroke={gridStroke} strokeWidth="1" strokeDasharray={v===0?'0':'3 4'}/><text x={pX-4} y={H-pY-v*eH} textAnchor="end" dominantBaseline="middle" style={{fontSize:fsAxis,fill:axisFill,fontWeight:700}}>£{Math.round(max*v)}</text></g>))}
+      {[0,0.5,1].map(v=>(<g key={v}><line x1={pX} y1={H-pY-v*eH} x2={W-pX} y2={H-pY-v*eH} stroke={gridStroke} strokeWidth="1" strokeDasharray={v===0?'0':'3 4'}/><text x={pX-4} y={H-pY-v*eH} textAnchor="end" dominantBaseline="middle" style={{fontSize:fsAxis,fill:axisFill,fontWeight:700}}>£{Math.round(max*v).toLocaleString('en-GB')}</text></g>))}
       {pts.map((p,i)=><text key={i} x={p.x} y={H-pY+(big?17:11)} textAnchor="middle" style={{fontSize:fsLbl,fill:i>lastIdx?futureFill:lblFill,fontWeight:900}}>{p.lbl}</text>)}
       <path d={np} fill="none" stroke="#f87171" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
       <path d={gp} fill="none" stroke="#34d399" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>

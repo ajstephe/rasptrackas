@@ -542,7 +542,7 @@ export function TabSummary({
                 </span>
               ) : (
                 <button type="button" onClick={()=>{ setDefaultBreakdownView(breakdownView); dualWrite(KEYS.defaultBreakdownView,breakdownView); }} style={{display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--surface)',border:`1.5px dashed color-mix(in srgb, ${BRASS} 55%, transparent)`,borderRadius:'20px',padding:'6px 13px',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>
-                  Tap here to set {current.lbl} as your default view
+                  {isWide?'Click':'Tap'} here to set {current.lbl} as your default view
                 </button>
               )}
             </div>
@@ -735,7 +735,7 @@ export function TabSummary({
                 <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No shifts yet this pay month</div>
                 <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log a shift and it'll show up here</div>
               </div>
-            ) : [...[...cEntries].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(cPeriod)].map(e=>{
+            ) : <div style={isWide?{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'8px',alignItems:'start',marginBottom:'8px'}:undefined}>{[...[...cEntries].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(cPeriod)].map(e=>{
               const c = calcEntry(e);
               const tiers = [];
               if (c.h1>0) tiers.push(TIER_LABEL.h1);
@@ -750,7 +750,7 @@ export function TabSummary({
                 onKeyDown:ev=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); toggleNotes(e.id); } },
               } : {};
               return (
-                <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} {...cardProps} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',border:focusEntryId===e.id?'2px solid #2563eb':'1px solid var(--border-2)',borderRadius:'12px',padding:'10px 12px',marginBottom:'6px',transition:'background 0.4s ease, border-color 0.4s ease',cursor:e.comments?'pointer':'default'}}>
+                <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} {...cardProps} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',border:focusEntryId===e.id?'2px solid #2563eb':'1px solid var(--border-2)',borderRadius:'12px',padding:'10px 12px',marginBottom:isWide?0:'6px',transition:'background 0.4s ease, border-color 0.4s ease',cursor:e.comments?'pointer':'default'}}>
                   {/* The date is the heading; the reason sits under it in
                       normal letters, then hours, rate, PA and status. Edit
                       stays beside the date; delete is a quieter icon set
@@ -797,7 +797,7 @@ export function TabSummary({
                   )}
                 </div>
               );
-            })}
+            })}</div>}
 
             {cEntries.length>0 && (()=>{ const sp=hrsSplit(cEntries); return (
               <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',rowGap:'10px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 4px',marginTop:'4px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
@@ -893,6 +893,9 @@ export function TabSummary({
           // (submitted); neither applies when there was never anything
           // to submit in the first place.
           const isRecordOnly = dEntries.length>0 && totalHrs===0 && !hasPA;
+          // A shift still to come can't be claimed yet, so it gets its own
+          // "planned" look rather than the red of something overdue.
+          const isPlanned = dEntries.length>0 && !isFullySubmitted && !isRecordOnly && ds>todayStr;
           // Cross-period detection is independent of whether the
           // *other* part of the day is submitted — OT/TOIL goes
           // through CARMS and PA goes through PSOP on separate
@@ -905,7 +908,7 @@ export function TabSummary({
           // for "is this done" and a single separate one for "did
           // part of it move periods" rather than the two overlapping.
           const crossInfo = dEntries.length===1 ? crossPeriodInfo(dEntries[0]) : null;
-          return { ds, dEntries, totalHrs, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, isRecordOnly, crossInfo, rateColor, periodIdx: cIdx };
+          return { ds, dEntries, totalHrs, hasPA, hasToil, hasOT: dEntries.length>0, isFullySubmitted, isRecordOnly, isPlanned, crossInfo, rateColor, periodIdx: cIdx };
         };
 
         return (
@@ -932,7 +935,7 @@ export function TabSummary({
             </div>
 
 
-            <div className="hint-pulse" style={{fontSize:'14px',color:'var(--quiet)',textAlign:'center',fontWeight:600,margin:'10px 0'}}>Tap a day to see its shifts or log one</div>
+            <div className="hint-pulse" style={{fontSize:'14px',color:'var(--quiet)',textAlign:'center',fontWeight:600,margin:'10px 0'}}>{isWide?'Click':'Tap'} a day to see its shifts or log one</div>
 
             {/* calendar grid */}
             <div
@@ -981,8 +984,8 @@ export function TabSummary({
                           style={{
                             ...(isWide ? {height:'76px'} : {aspectRatio:'1', minHeight:'46px'}),
                             display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                            borderRadius:'10px', border: isToday?`2px solid ${BRASS}`:info.isRecordOnly?'1px solid var(--border-2)':info.hasOT?(info.isFullySubmitted?'1px solid var(--border-2)':'1px solid var(--border-2)'):'1px solid var(--border-2)',
-                            background: info.isRecordOnly?'var(--border)':info.hasOT ? (info.isFullySubmitted?'var(--tint-green)':'var(--tint-red)') : 'transparent',
+                            borderRadius:'10px', border: isToday?`2px solid ${BRASS}`:info.isPlanned?'1.5px dashed color-mix(in srgb, #2563eb 45%, transparent)':'1px solid var(--border-2)',
+                            background: info.isRecordOnly?'var(--border)':info.isPlanned?'var(--tint-blue)':info.hasOT ? (info.isFullySubmitted?'var(--tint-green)':'var(--tint-red)') : 'transparent',
                             cursor:'pointer', padding:'2px 1px', fontFamily:'inherit', position:'relative',
                             minWidth:0, width:'100%', overflow:'hidden', boxSizing:'border-box', gap:'2px',
                           }}>
@@ -1003,7 +1006,7 @@ export function TabSummary({
                               </g>
                             </svg>
                           )}
-                          <span style={{fontSize:isWide?'16px':'13px',fontWeight:info.hasOT?900:600,color:info.isRecordOnly?'var(--muted)':info.hasOT?(info.isFullySubmitted?'#15803d':'var(--text-red-deep)'):'var(--quiet)',lineHeight:1}}>{date.getDate()}</span>
+                          <span style={{fontSize:isWide?'16px':'13px',fontWeight:info.hasOT?900:600,color:info.isRecordOnly?'var(--muted)':info.isPlanned?'var(--text-blue-deep)':info.hasOT?(info.isFullySubmitted?'#15803d':'var(--text-red-deep)'):'var(--quiet)',lineHeight:1}}>{date.getDate()}</span>
                           {info.totalHrs>0&&(
                             <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{fmtHrs(info.totalHrs).replace(/h (\d+)m$/,'h$1')}</span>
                           )}
@@ -1028,9 +1031,10 @@ export function TabSummary({
               {isWide ? (
                 <div style={{display:'flex',flexDirection:'column',gap:'10px',marginTop:'16px',paddingTop:'16px',borderTop:'1px solid var(--border-2)'}}>
                   <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'center',gap:'18px'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-red)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>OT/PA Recorded NOT Submitted</span></div>
-                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-green)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>OT/PA Submitted</span></div>
-                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--border)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>No OT — Info Only</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-red)',border:'1.5px solid color-mix(in srgb, #dc2626 45%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Not submitted</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-green)',border:'1.5px solid color-mix(in srgb, #059669 45%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Submitted</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-blue)',border:'1.5px dashed color-mix(in srgb, #2563eb 55%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Planned</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--border)',border:'1.5px solid color-mix(in srgb, #64748b 35%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>No OT — Info Only</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
                       <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Counted in another pay month</span>
@@ -1057,9 +1061,10 @@ export function TabSummary({
                 {calLegendExpanded&&(
                 <div className="accordion-in" style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginTop:'14px'}}>
                   <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'6px'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-red)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>OT/PA Recorded NOT Submitted</span></div>
-                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-green)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>OT/PA Submitted</span></div>
-                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--border)',border:'1px solid var(--border-2)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>No OT — Info Only</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-red)',border:'1.5px solid color-mix(in srgb, #dc2626 45%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Not submitted</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-green)',border:'1.5px solid color-mix(in srgb, #059669 45%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Submitted</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-blue)',border:'1.5px dashed color-mix(in srgb, #2563eb 55%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Planned</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--border)',border:'1.5px solid color-mix(in srgb, #64748b 35%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>No OT — Info Only</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
                       <div style={{width:'11px',display:'flex',justifyContent:'center',flexShrink:0}}>
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>

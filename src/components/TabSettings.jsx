@@ -944,11 +944,11 @@ export function TabSettings({
            Data's own confirm flow already uses). One shared expand
            toggle now, not two. ── */}
       {(()=>{
-        const acctBase = {background:'var(--surface)',borderRadius:'18px',padding:'19px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid var(--border-2)',marginBottom:'10px',position:'relative',overflow:'hidden'};
+        const acctBase = {background:'var(--surface)',borderRadius:'18px',padding:S.card.padding,boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid var(--border-2)',marginBottom:'10px',position:'relative',overflow:'hidden'};
         const cardHeader = (
           <button onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);} setDataManagementExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer',marginBottom:(dataManagementExpanded&&!isWide)?'13px':0}}>
-            <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
-              <div style={{background:'var(--tint-blue)',padding:'11px',borderRadius:'13px'}}><Ico n="user" s={21} c="#2563eb"/></div>
+            <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+              <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="user" s={isWide?21:17} c="#2563eb"/></div>
               <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Account &amp; Data Management</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Sign-in, backup, restore, wipe data</div></div>
             </div>
             <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
@@ -1067,8 +1067,8 @@ export function TabSettings({
 
       {/* ── Help & suggestions ── */}
       <div style={S.card}>
-        <a href="mailto:ajstephe@me.com?subject=Overtime%20Tracker%20—%20Feedback" style={{display:'flex',alignItems:'center',gap:'12px',textDecoration:'none',cursor:'pointer'}}>
-          <div style={{background:'var(--tint-blue)',padding:isWide?'13px':'11px',borderRadius:'13px',flexShrink:0}}><Ico n="mail" s={isWide?23:19} c="#2563eb"/></div>
+        <a href="mailto:ajstephe@me.com?subject=Overtime%20Tracker%20—%20Feedback" style={{display:'flex',alignItems:'center',gap:'8px',textDecoration:'none',cursor:'pointer'}}>
+          <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px',flexShrink:0}}><Ico n="mail" s={isWide?21:17} c="#2563eb"/></div>
           <div style={{flex:1}}>
             <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Help & Suggestions</div>
             <div style={{fontSize:'11px',color:'#3b82f6',fontWeight:700,marginTop:'2px'}}>ajstephe@me.com</div>
@@ -1081,8 +1081,8 @@ export function TabSettings({
            actual consent checkbox lives); this is just so an existing
            officer can come back and re-read what they agreed to. ── */}
       <div style={S.card}>
-        <button onClick={()=>setPrivacyNoticeOpen(true)} style={{display:'flex',alignItems:'center',gap:'12px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
-          <div style={{background:'var(--tint-blue)',padding:isWide?'13px':'11px',borderRadius:'13px',flexShrink:0}}><Ico n="shield" s={isWide?23:19} c="#2563eb"/></div>
+        <button onClick={()=>setPrivacyNoticeOpen(true)} style={{display:'flex',alignItems:'center',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
+          <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px',flexShrink:0}}><Ico n="shield" s={isWide?21:17} c="#2563eb"/></div>
           <div style={{flex:1}}>
             <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Privacy Notice</div>
             <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:700,marginTop:'2px'}}>What's collected, and why</div>
