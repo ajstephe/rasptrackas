@@ -213,17 +213,17 @@ export function TabDashboard({
                   <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
                 </div>
                 <div style={{fontSize:'9.5px',fontWeight:600,color:'var(--quiet)',marginBottom:'19px'}}>Before pension &amp; deductions — rough guide only; see Tax &amp; 100K+ Calculator for your exact taxable position</div>
-                <div style={{position:'relative',marginBottom:'16px'}}>
+                <div style={{position:'relative',marginBottom:pct(125140)-pct(100000)<15?'28px':'16px'}}>
                   <div style={{background:'var(--border)',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
                     <div style={{width:`${pct(grossYTD)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
                   </div>
                   {markers.map(m=>(
                     <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'var(--border)',transform:'translateX(-1px)'}}>
-                      <div style={{position:'absolute',top:'17px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',fontWeight:800,color:'var(--muted)',whiteSpace:'nowrap'}}>{m.label}</div>
+                      <div style={{position:'absolute',top:(m.key==='125'&&pct(125140)-pct(100000)<15)?'29px':'17px',...(pct(m.value)>92?{right:0}:pct(m.value)<8?{left:0}:{left:'50%',transform:'translateX(-50%)'}),fontSize:'8px',fontWeight:800,color:'var(--muted)',whiteSpace:'nowrap'}}>{m.label}</div>
                     </div>
                   ))}
                   <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
-                  <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(grossYTD/1000).toFixed(1)}k</div>
+                  <div style={{position:'absolute',left:`${pct(grossYTD)}%`,top:'-19px',transform:pct(grossYTD)>92?'translateX(-100%)':pct(grossYTD)<8?'none':'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(grossYTD/1000).toFixed(1)}k</div>
                 </div>
               </button>
             );
@@ -255,17 +255,17 @@ export function TabDashboard({
                   <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
                 </div>
                 <div style={{fontSize:'9.5px',fontWeight:600,color:'var(--quiet)',marginBottom:'19px'}}>Forecast based on your overtime submissions, before pension &amp; deductions — rough guide only</div>
-                <div style={{position:'relative',marginBottom:'16px'}}>
+                <div style={{position:'relative',marginBottom:pct(125140)-pct(100000)<15?'28px':'16px'}}>
                   <div style={{background:'var(--border)',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
                     <div style={{width:`${pct(grossF)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
                   </div>
                   {markers.map(m=>(
                     <div key={m.key} style={{position:'absolute',left:`${pct(m.value)}%`,top:'-2px',width:'2px',height:'14px',background:'var(--border)',transform:'translateX(-1px)'}}>
-                      <div style={{position:'absolute',top:'17px',left:'50%',transform:'translateX(-50%)',fontSize:'8px',fontWeight:800,color:'var(--muted)',whiteSpace:'nowrap'}}>{m.label}</div>
+                      <div style={{position:'absolute',top:(m.key==='125'&&pct(125140)-pct(100000)<15)?'29px':'17px',...(pct(m.value)>92?{right:0}:pct(m.value)<8?{left:0}:{left:'50%',transform:'translateX(-50%)'}),fontSize:'8px',fontWeight:800,color:'var(--muted)',whiteSpace:'nowrap'}}>{m.label}</div>
                     </div>
                   ))}
                   <div style={{position:'absolute',left:`${pct(grossF)}%`,top:'-5px',width:'3px',height:'20px',background:barColor,transform:'translateX(-1.5px)',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
-                  <div style={{position:'absolute',left:`${pct(grossF)}%`,top:'-19px',transform:'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(grossF/1000).toFixed(1)}k</div>
+                  <div style={{position:'absolute',left:`${pct(grossF)}%`,top:'-19px',transform:pct(grossF)>92?'translateX(-100%)':pct(grossF)<8?'none':'translateX(-50%)',fontSize:'10px',fontWeight:900,color:barColor,whiteSpace:'nowrap'}}>£{(grossF/1000).toFixed(1)}k</div>
                 </div>
               </button>
             );

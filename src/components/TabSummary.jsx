@@ -914,7 +914,7 @@ export function TabSummary({
                           )}
                           <span style={{fontSize:isWide?'16px':'13px',fontWeight:info.hasOT?900:600,color:info.isRecordOnly?'var(--muted)':info.hasOT?(info.isFullySubmitted?'#15803d':'var(--text-red-deep)'):'var(--quiet)',lineHeight:1}}>{date.getDate()}</span>
                           {info.totalHrs>0&&(
-                            <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{fmtHrs(info.totalHrs)}</span>
+                            <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{fmtHrs(info.totalHrs).replace(/h (\d+)m$/,'h$1')}</span>
                           )}
                           {(info.hasPA||info.hasToil)&&(
                             <div style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
