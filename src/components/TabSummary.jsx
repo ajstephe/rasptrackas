@@ -834,8 +834,12 @@ export function TabSummary({
                 )}
                 <div style={{fontWeight:900,fontSize:'22px',color:cIdx===currPeriodIdx?BRASS:'var(--ink)'}}>{payLabel(cPeriod.month)}</div>
                 <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:'var(--quiet)'}}>Shifts {fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
-                <div style={{fontSize:'12px',fontWeight:700,color:'var(--muted)',marginTop:'3px'}}>{cEntries.length} shift{cEntries.length!==1?'s':''}</div>
-                <div style={{fontSize:'12px',fontWeight:700,marginTop:'1px',display:'flex',flexWrap:'wrap',justifyContent:'center',columnGap:'6px'}}><span style={{color:GRN,whiteSpace:'nowrap'}}>{fmtHrs(hrsSplit(cEntries).sub)} submitted</span><span style={{color:hrsSplit(cEntries).pend>0?RED:'var(--quiet)',whiteSpace:'nowrap'}}>{fmtHrs(hrsSplit(cEntries).pend)} not submitted</span></div>
+                {/* On a computer the shift count and hours are left to the calendar
+                    and the totals card below, which already show them. */}
+                {!isWide&&(<>
+                  <div style={{fontSize:'12px',fontWeight:700,color:'var(--muted)',marginTop:'3px'}}>{cEntries.length} shift{cEntries.length!==1?'s':''}</div>
+                  <div style={{fontSize:'12px',fontWeight:700,marginTop:'1px',display:'flex',flexWrap:'wrap',justifyContent:'center',columnGap:'6px'}}><span style={{color:GRN,whiteSpace:'nowrap'}}>{fmtHrs(hrsSplit(cEntries).sub)} submitted</span><span style={{color:hrsSplit(cEntries).pend>0?RED:'var(--quiet)',whiteSpace:'nowrap'}}>{fmtHrs(hrsSplit(cEntries).pend)} not submitted</span></div>
+                </>)}
               </div>
               <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} aria-label="Next period" style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c={BRASS}/></button>
             </div>
