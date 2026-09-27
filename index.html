@@ -70,10 +70,10 @@
          added alongside DM Sans/IBM Plex Sans so every theme beyond the
          default can load its type without a second request each. -->
     <!-- Space Grotesk (Midnight), Ysabeau Office (Flagship), Titillium
-         Web (Heritage) and Nunito (Heather) added alongside the rest for the same reason Inter was —
+         Web (Heritage) and Barlow Semi Condensed (Energy) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Nunito:wght@400;600;700;800;900&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -147,7 +147,7 @@
            any of them one token at a time. Midnight is a dark-first design
            in its own right, so this matters just as much for it as it does
            for the light ones. */
-        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="heather"]){
+        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]){
           --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
           --tag-purple:#cbb8f7;
           --page-bg:#0b1220;
@@ -487,47 +487,53 @@
         --text-blue-deep:#1f5f8b;
       }
 
-      /* ── Heather ── deep plum chrome, soft lilac page, raspberry accent.
-         Raspberry rather than purple so it never gets confused with the
-         TOIL purple used across the app. Nunito letters, IBM Plex Sans
-         figures. */
-      :root[data-theme="heather"]{
+      /* ── Energy ── energy-drink attitude: a black sidebar and header card
+         with a neon-green glow, neon-green current tab and highlights, on a
+         light-grey page with white cards. Buttons stay black because green
+         already means "submitted" and take-home pay, and white text on neon
+         green doesn't read. Barlow Semi Condensed letters, IBM Plex Sans
+         figures. Replaced Heather; a saved "heather" choice is migrated to
+         "energy" when the app loads (see themeMode in App.jsx). */
+      :root[data-theme="energy"]{
         color-scheme: light;
-        --page-bg:#efeaf1;
+        --hero-label:#8cf01e;
+        --title-grad:linear-gradient(135deg,#0a0a0a 45%,#3f9b0b);
+        --page-bg:#eff1ee;
         --surface:#ffffff;
         --surface-rgb:255,255,255;
-        --surface-2:#f8f4f9;
-        --surface-2-rgb:248,244,249;
-        --chip-bg:#f0e9f2;
-        --border:#e2d8e6;
-        --border-2:#eee7f1;
-        --ink:#2a1730;
-        --muted:#6e5a75;
-        --quiet:#94839a;
-        --navy:#2e1a36;
-        --navy-rgb:46,26,54;
-        --sidebar-bg-rgb:46,26,54;
-        --accent:#b8336a;
-        --app-font:'Nunito',system-ui,sans-serif;
-        --tint-blue:#edf1fb;
-        --tint-red:#fbe8ec;
-        --tint-green:#e8f6ee;
-        --tint-green-2:#d3eedd;
-        --tint-purple:#f3ecfa;
-        --tint-amber:#fdf2e1;
-        --tint-amber-2:#fbe3bd;
-        --tint-teal:#e5f4f2;
-        --text-navy:#2e1a36;
-        --text-red-deep:#b0213b;
-        --text-green-deep:#17703f;
-        --text-purple-deep:#6a2f9a;
-        --text-amber-deep:#9a5a07;
-        --tint-blue-2:#e2e7f7;
-        --tint-brass:#fbe8f0;
-        --tint-indigo:#ebeafb;
-        --text-indigo-deep:#4a3fb0;
-        --surface-red-mid:#f0a3b5;
-        --text-blue-deep:#2f59b0;
+        --surface-2:#f6f7f5;
+        --surface-2-rgb:246,247,245;
+        --chip-bg:#ebeee9;
+        --border:#dde1da;
+        --border-2:#e8ebe6;
+        --ink:#0a0a0a;
+        --muted:#555b52;
+        --quiet:#868c83;
+        --navy:#0a0a0a;
+        --savebar:#0a0a0a;
+        --navy-rgb:10,10,10;
+        --sidebar-bg-rgb:0,0,0;
+        --accent:#0a0a0a;
+        --app-font:'Barlow Semi Condensed',system-ui,sans-serif;
+        --tint-blue:#eef1f5;
+        --tint-red:#fbe9e8;
+        --tint-green:#e9f6e6;
+        --tint-green-2:#d3edcd;
+        --tint-purple:#f1ecf9;
+        --tint-amber:#fcf3e2;
+        --tint-amber-2:#f7e4bd;
+        --tint-teal:#e5f3f1;
+        --text-navy:#0a0a0a;
+        --text-red-deep:#b3261e;
+        --text-green-deep:#1f7a36;
+        --text-purple-deep:#5f3aa0;
+        --text-amber-deep:#8f5a07;
+        --tint-blue-2:#e3e8ee;
+        --tint-brass:#f0fbe3;
+        --tint-indigo:#eaebf8;
+        --text-indigo-deep:#3d47a8;
+        --surface-red-mid:#eea39d;
+        --text-blue-deep:#0a0a0a;
       }
 
       html,body,#root{background:var(--page-bg)}
