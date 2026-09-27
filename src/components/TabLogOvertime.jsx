@@ -76,15 +76,18 @@ export function TabLogOvertime({
   );
 
   // Where each empty time box's picker opens, so the usual shift is one tap
-  // on Done: 07:00 for both start times, and the rostered end 8 hours after
-  // the rostered start (15:00 if the start isn't set yet). Only applies
-  // while the box is empty; a set time always opens on itself.
+  // on Done or a short scroll: the rostered start at 07:00, the rostered end
+  // 8 hours after it, and the actually-worked times on the rostered ones
+  // (a late finish is then a couple of notches past the rostered end rather
+  // than a scroll up from midnight). A rest day, with no roster, opens its
+  // finish 8 hours after its start. Only applies while the box is empty; a
+  // set time always opens on itself.
+  const plus8 = t => { const [h,m] = t.split(':').map(Number); return `${String((h+8)%24).padStart(2,'0')}:${String(m||0).padStart(2,'0')}`; };
   const startTimeFor = key => {
-    if (key==='rosteredStart' || key==='actualStart') return '07:00';
-    if (key==='rosteredEnd') {
-      const [h,m] = (form.rosteredStart||'07:00').split(':').map(Number);
-      return `${String((h+8)%24).padStart(2,'0')}:${String(m||0).padStart(2,'0')}`;
-    }
+    if (key==='rosteredStart') return '07:00';
+    if (key==='rosteredEnd') return plus8(form.rosteredStart||'07:00');
+    if (key==='actualStart') return form.rosteredStart||'07:00';
+    if (key==='actualEnd') return form.rosteredEnd || plus8(form.actualStart||form.rosteredStart||'07:00');
     return undefined;
   };
 
@@ -102,7 +105,7 @@ export function TabLogOvertime({
     return (
       <>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          <div style={box}><TimeSelect value={s} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,[sKey]:v}))} label={sLbl} startAt={startTimeFor(sKey)} BRASS={BRASS} MONO={MONO}/></div>
+          <div style={box}><TimeSelect value={s} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,[sKey]:v,...(sKey==='rosteredStart'&&!f.actualStart?{actualStart:v}:{})}))} label={sLbl} startAt={startTimeFor(sKey)} BRASS={BRASS} MONO={MONO}/></div>
           <span style={{fontSize:'12px',fontWeight:700,color:'var(--quiet)'}}>to</span>
           <div style={box}><TimeSelect value={e} onChange={v=>setForm(f=>syncShiftTimesIntoForm({...f,[eKey]:v}))} label={eLbl} startAt={startTimeFor(eKey)} BRASS={BRASS} MONO={MONO}/></div>
           {isWide&&extras}
@@ -176,7 +179,7 @@ export function TabLogOvertime({
               {PRESETS.map(([start,end])=>{
                 const on = form.rosteredStart===start && form.rosteredEnd===end;
                 return (
-                  <button key={start+end} type="button" aria-pressed={on} onClick={()=>setForm(f=>syncShiftTimesIntoForm(on ? {...f,rosteredStart:'',rosteredEnd:''} : {...f,rosteredStart:start,rosteredEnd:end}))} style={{padding:isWide?'5px 10px':'7px 2px',borderRadius:'8px',border:on?'1.5px solid #2563eb':'1px solid var(--border-2)',background:on?'var(--tint-blue)':'var(--surface)',color:on?'#2563eb':'var(--muted)',fontWeight:800,fontSize:'10.5px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
+                  <button key={start+end} type="button" aria-pressed={on} onClick={()=>setForm(f=>syncShiftTimesIntoForm(on ? {...f,rosteredStart:'',rosteredEnd:''} : {...f,rosteredStart:start,rosteredEnd:end,actualStart:f.actualStart||start}))} style={{padding:isWide?'5px 10px':'7px 2px',borderRadius:'8px',border:on?'1.5px solid #2563eb':'1px solid var(--border-2)',background:on?'var(--tint-blue)':'var(--surface)',color:on?'#2563eb':'var(--muted)',fontWeight:800,fontSize:'10.5px',fontFamily:'inherit',cursor:'pointer',whiteSpace:'nowrap'}}>
                     {start}–{end}
                   </button>
                 );

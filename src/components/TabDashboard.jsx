@@ -103,8 +103,11 @@ export function TabDashboard({
                 tap-to-go-deeper spot on this tab, applied to the one
                 figure here that was previously just decorative. */}
             {delta!=null&&(
-              <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx-1); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:600,color:delta>=0?'#059669':'var(--text-red-deep)',background:delta>=0?'var(--tint-green)':'var(--tint-red)',padding:'2px 6px 2px 8px',borderRadius:'20px',marginTop:'4px',border:'none',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
-                <span style={{fontFamily:MONO}}>{delta>=0?'▲':'▼'} {fmtGBP(Math.abs(delta))} vs last pay month</span>
+              <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx-1); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:600,color:'var(--muted)',background:'var(--chip-bg)',padding:'2px 6px 2px 8px',borderRadius:'20px',marginTop:'4px',border:'none',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
+                {/* This pay month is still filling up, so a red "down on last
+                    month" read as a drop when it's only part-way through.
+                    It now just shows last month's figure to compare with. */}
+                <span>Last pay month <span style={{fontFamily:MONO,fontWeight:700,color:'var(--ink)'}}>{fmtGBP(prevPb.combinedNet)}</span></span>
                 <Ico n="cR" s={9} c="currentColor" w={2.5}/>
               </button>
             )}
