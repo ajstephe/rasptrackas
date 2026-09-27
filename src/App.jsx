@@ -4420,9 +4420,8 @@ export default function App() {
            screen; those two use the full width instead. ── */}
       {isWide && tab!=='dashboard' && tab!=='carms' && (
         <aside className="no-print" style={{width:'320px',flexShrink:0,padding:'24px 24px 24px 0',overflowY:'auto'}}>
-          {/* fontWeight:700, not 900 — IBM Plex Mono has no 900 cut; this
-              was silently rendering as 700 already (confirmed by pixel
-              diff), so the code now says what's actually on screen. */}
+          {/* fontWeight:700, not 900 — the figures font is loaded up to
+              700, so 900 would only ever render as 700. */}
           <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'12px',padding:'0 2px'}}>At a Glance</div>
 
           <div style={{background:'var(--surface)',borderRadius:'16px',border:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',padding:'4px 16px',overflow:'hidden'}}>

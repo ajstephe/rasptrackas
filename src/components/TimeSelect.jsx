@@ -94,7 +94,7 @@ function WheelColumn({ values, selected, onSettle, brass, mono }) {
 // startAt (optional, 'HH:MM'): when the box is still empty, opening the
 // picker fills it with this time instead of leaving the wheels on 00:00, so
 // the common case is one tap on Done and anything else is a short scroll.
-export function TimeSelect({ value, onChange, label, startAt, BRASS='#b8823f', MONO="'IBM Plex Mono',monospace" }) {
+export function TimeSelect({ value, onChange, label, startAt, BRASS='#b8823f', MONO='var(--num-font)' }) {
   const [open, setOpen] = useState(false);
   const [h,m] = value ? value.split(':') : ['',''];
   const openPicker = () => { if (!value && startAt) onChange(startAt); setOpen(true); };
