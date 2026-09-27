@@ -1871,7 +1871,9 @@ export default function App() {
     // pay month of its claim date.
     const periodBreakdown = buildPayYear({ periods: PAY_PERIODS, entries: fyEntries, settings });
     let totalHrs = 0;
-    fyEntries.forEach(e=>{ if (e.date>=FY_START && e.date<=FY_END) { const c=calcEntry(e); totalHrs += c.h1+c.h2+c.h3; } });
+    // Hours worked so far: planned (future) shifts wait until they're worked,
+    // the same as every other hours figure on the Summary tab.
+    fyEntries.forEach(e=>{ if (e.date>=FY_START && e.date<=FY_END && e.date<=todayStr) { const c=calcEntry(e); totalHrs += c.h1+c.h2+c.h3; } });
     const totalGross = periodBreakdown.reduce((s,pb)=>s+pb.combinedGross,0);
     const totalNet   = periodBreakdown.reduce((s,pb)=>s+pb.combinedNet,0);
 

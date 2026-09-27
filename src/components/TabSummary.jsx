@@ -28,7 +28,7 @@ export function TabSummary({
 }) {
   // Hours split by claim status: overtime marked submitted on CARMS, and
   // overtime still to submit (a future shift counts as planned instead).
-  const hrsSplit = list => { let sub=0, pend=0, plan=0, nSub=0, nPend=0; list.forEach(e=>{ const c=calcEntry(e); const h=c.h1+c.h2+c.h3; if(!h) return; if(e.date>todayStr) plan+=h; else if(isOtSubmitted(e)) { sub+=h; nSub++; } else { pend+=h; nPend++; } }); return {sub,pend,plan,nSub,nPend}; };
+  const hrsSplit = list => { let sub=0, pend=0, plan=0, nSub=0, nPend=0, nPlan=0; list.forEach(e=>{ const c=calcEntry(e); const h=c.h1+c.h2+c.h3; if(!h) return; if(e.date>todayStr) { plan+=h; nPlan++; } else if(isOtSubmitted(e)) { sub+=h; nSub++; } else { pend+=h; nPend++; } }); return {sub,pend,plan,nSub,nPend,nPlan}; };
   const RED='#dc2626', GRN='#059669';
   // Shifts worked in the previous pay year but claimed into one of this
   // year's pay months: their money counts in that month, so they're listed
@@ -173,6 +173,303 @@ export function TabSummary({
     </>
   );
 
+  // Everything the Months view shows for one pay month: its shifts (by the
+  // dates worked), its money (by claim date, from periodBreakdown), the
+  // overtime/PA/TOIL breakdown for an opened month, and its hours split.
+  const periodCalc = (p, idx) => {
+    const pE=fyEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
+    const pb=totals.periodBreakdown[idx];
+    // Hours-worked stats (top-of-card "Total O/T Hours", TOIL
+    // worked/banked) stay period-local — what actually happened
+    // in this period, regardless of submission status, matching
+    // what the calendar cells for these dates show.
+    let totalToilWorked=0,totalToilBanked=0,totalToilWaiting=0;
+    pE.forEach(e=>{
+      const c=calcEntry(e);
+      totalToilWorked+=c.toilH; totalToilBanked+=c.toilBanked;
+      if(!isOtSubmitted(e)&&e.date<=todayStr) totalToilWaiting+=c.toilBanked;
+    });
+    // OT Pay / PA box data is different on purpose: it iterates
+    // EVERY entry in the financial year, not just ones worked in
+    // this period, and groups each by which period its money is
+    // actually submitted to — same attribution periodBreakdown
+    // itself already uses. A shift worked 15 Jul but submitted
+    // 16 Aug shows up here, in August's box, carrying its
+    // original worked date (15/07) rather than the submission
+    // date, so the box always matches what's genuinely in its
+    // own Gross figure above it.
+    let pa1=0,pa2=0,pa3=0;
+    const tierHours = { t133:0, t150:0, t200:0 };
+    const tierDates = { t133:[], t150:[], t200:[] };
+    const tierGross = { t133:0, t150:0, t200:0 };
+    const paDates = { PA1:[], PA2:[], PA3:[] };
+    const paGross = { PA1:0, PA2:0, PA3:0 };
+    fyEntries.forEach(e=>{
+      const c=calcEntry(e);
+      const otCounted = isOtSubmitted(e) && periodIdxForDate(effectiveOtDate(e))===idx;
+      const paCounted = isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e))===idx;
+      const isCross = periodIdxForDate(e.date)!==idx;
+      if (otCounted) {
+        if (c.payH1>0) { tierHours.t133+=c.payH1; tierDates.t133.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t133+=c.ot1; }
+        if (c.payH2>0) { tierHours.t150+=c.payH2; tierDates.t150.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t150+=c.ot2; }
+        if (c.payH3>0) { tierHours.t200+=c.payH3; tierDates.t200.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t200+=c.ot3; }
+      }
+      if (paCounted) {
+        if(e.paRate==='PA1'){pa1++; paDates.PA1.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA1+=c.pa;}
+        else if(e.paRate==='PA2'){pa2++; paDates.PA2.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA2+=c.pa;}
+        else if(e.paRate==='PA3'){pa3++; paDates.PA3.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA3+=c.pa;}
+      }
+    });
+    const totG=pb.combinedGross, totN=pb.combinedNet;
+    return { p, idx, pE, pb, totG, totN, tierHours, tierGross, tierDates, paGross, paDates, paCount:{PA1:pa1,PA2:pa2,PA3:pa3},
+      totalToilWorked, totalToilBanked, totalToilWaiting, sp:hrsSplit(pE), carms:carmsOutstanding.groups.find(g=>g.periodIdx===idx) };
+  };
+
+  // An opened month: the same breakdown as the Calendar's totals card, then
+  // the shifts worked in its dates. Used by the current month's card and by
+  // any other month opened from the tax-year table.
+  const monthDetail = ({p, idx, pE, pb, tierHours, tierGross, tierDates, paCount, paGross, paDates, totalToilWorked, totalToilBanked, totalToilWaiting}) => (
+    <div className="accordion-in" style={{background:'var(--surface-2)',borderTop:'1px solid var(--border-2)',padding:'13px'}}>
+      {/* Same breakdown as the Calendar's totals card (the Gross,
+          Net and Hours above already cover its top row). */}
+      <div style={{...S.card,marginBottom:'10px',paddingTop:'6px'}}>
+        {periodBreakdownRows({pb, tierHours:{t133:tierHours.t133,t150:tierHours.t150,t200:tierHours.t200}, tierGross, tierDates, paCount, paGross, paDates, toilWorked:totalToilWorked, toilBanked:totalToilBanked, toilWaiting:totalToilWaiting, carmsGroup:null, periodIdx:idx})}
+      </div>
+
+      <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'9px'}}>Shifts</div>
+
+      {pE.length+lateInto(p).length===0
+        ?<div style={{textAlign:'center',padding:'20px 10px 24px'}}>
+          <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
+            <Ico n="cal" s={18} c="#1e40af" w={2}/>
+          </div>
+          <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No shifts yet this pay month</div>
+          <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log a shift and it'll show up here</div>
+        </div>
+        :[...[...pE].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(p)].map(e=>{
+          const c=calcEntry(e);
+          const isFut=e.date>todayStr;
+          // what this shift adds to take-home in the month it lands in
+          const eNet = entryNet(e);
+          return(
+            <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:'13px',marginBottom:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
+              {isFut&&<div style={{position:'absolute',top:'-6px',right:'9px',background:'#2563eb',color:'#fff',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Planned</div>}
+              <div style={{marginBottom:'8px'}}>
+                {shiftHead(e,{onEdit:()=>{setConfirmDel(null);startEdit(e);}, onDelete:()=>setConfirmDel(confirmDel===e.id?null:e.id), deleting:confirmDel===e.id})}
+                <div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
+                  {carmsBadge(e, 10)}
+                  {/* Same neutral record-only indicator as the calendar day
+                      view — an entry with no claimable OT hours and no PA has
+                      nothing to submit, so it gets its own label rather than
+                      no badge at all or a misleading submitted/outstanding one. */}
+                  {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
+                    <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--border)',color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>ⓘ Shift Record — No OT Claim</div>
+                  )}
+                  {(()=>{ const xp = crossPeriodInfo(e); return xp && (
+                    <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-indigo)',color:'var(--text-indigo-deep)',textTransform:'uppercase',letterSpacing:'0.06em'}}>↷ {xp.both?'OT & PA':xp.ot?'OT':'PA'} Counted in {xp.label}</div>
+                  ); })()}
+                </div>
+              </div>
+
+              {/* delete confirmation */}
+              {confirmDel===e.id&&(
+                <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
+                  <span style={{fontSize:'14px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this shift?</span>
+                  <div style={{display:'flex',gap:'7px',flexShrink:0}}>
+                    <button onClick={()=>setConfirmDel(null)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:'5px 12px',fontSize:'13px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+                    <button onClick={()=>delEntry(e.id)} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'13px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
+                  </div>
+                </div>
+              )}
+
+              {/* notes — sits under Duty/Reason with separators, matching the Calendar View popover */}
+              {e.comments&&(
+                <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'10px',marginBottom:'10px'}}>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>Notes</div>
+                  <div style={{fontSize:'13px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid var(--border-2)',paddingLeft:'8px',whiteSpace:'pre-wrap',overflowWrap:'anywhere',lineHeight:1.5}}>{e.comments}</div>
+                </div>
+              )}
+
+              <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px'}}>
+                <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+                  {c.payH1>0&&(
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH1)} at 1.33× <span style={{color:'var(--quiet)'}}>· £{c.r.r133.toFixed(2)}/hr</span></span>
+                      <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot1.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {c.payH2>0&&(
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH2)} at 1.5× <span style={{color:'var(--quiet)'}}>· £{c.r.r150.toFixed(2)}/hr</span></span>
+                      <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot2.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {c.payH3>0&&(
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH3)} at 2× <span style={{color:'var(--quiet)'}}>· £{c.r.r200.toFixed(2)}/hr</span></span>
+                      <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot3.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {c.toilH>0&&(
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} at {RATE_TIER_LABEL[c.otRateTier]}× · TOIL</span>
+                      <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} banked</span>
+                    </div>
+                  )}
+                  {e.paRate!=='None'&&(
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{fontSize:'13px',fontWeight:700,color:'#b45309'}}>{e.paRate} allowance</span>
+                      <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-amber-deep)'}}>£{c.pa.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+                {c.gross<0.005&&c.toilBanked>0 ? (
+                  // Taken wholly as TOIL: no pay to total up, so say so rather than
+                  // ending the card on Gross £0.00 · Net £0.00.
+                  <div style={{display:'flex',alignItems:'center',gap:'8px',background:'var(--tint-purple)',borderRadius:'10px',padding:'9px 11px',marginTop:'8px',fontSize:'12.5px',fontWeight:800,color:'var(--tag-purple)'}}>
+                    <Ico n="clock" s={13} c="var(--tag-purple)" w={2.2}/>Taken as TOIL<span style={{marginLeft:'auto',fontWeight:700}}>no pay</span>
+                  </div>
+                ) : (
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'5px',borderTop:'1px solid var(--border-2)',paddingTop:'8px',marginTop:'8px'}}>
+                  <div><div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'15px',color:'var(--text-navy)'}}>{fmt(c.gross)}</div></div>
+                  <div style={{textAlign:'right'}}><div style={{fontSize:'10px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'15px',color:'#059669'}}>{fmt(eNet)}</div></div>
+                </div>
+                )}
+              </div>
+            </div>
+          );
+        })
+      }
+      <button onClick={()=>setExpanded(null)} style={{width:'100%',marginTop:'4px',padding:'9px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'11px',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'4px'}}>
+        Close <Ico n="cU" s={12} c={BRASS}/>
+      </button>
+    </div>
+  );
+
+  // ── Tax-year table (Months view) ─────────────────────────────────────────
+  // One line per pay month under the current month's card, so the whole year
+  // can be compared on one screen. A computer with room for it gets columns
+  // (hours, gross, net, submission status); a phone, or a desktop window too
+  // narrow for the columns, gets a two-line list instead. Opening a month
+  // shows its breakdown and shifts under its line; the current month opens
+  // in its own card above instead.
+  const listRef = useRef(null);
+  const [listW, setListW] = useState(null);
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el || typeof ResizeObserver==='undefined') return;
+    const ro = new ResizeObserver(([en]) => setListW(en.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [breakdownView]);
+  const narrow = listW!==null && listW<560;
+  const useCols = isWide && !narrow;
+  const TABLE_COLS = 'minmax(0,1fr) 80px 104px 104px 132px 16px';
+
+  const monthStatus = m => m.carms ? {col:RED, chip:<span style={{display:'inline-block',fontSize:'11px',fontWeight:800,padding:'2px 8px',borderRadius:'999px',background:'var(--tint-red)',color:'var(--text-red-deep)',whiteSpace:'nowrap'}}>{fmtGBP(m.carms.periodTotal)} to submit</span>}
+    : (m.sp.nSub>0||m.totG>0) ? {col:GRN, chip:<span style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'11px',fontWeight:800,padding:'2px 8px',borderRadius:'999px',background:'var(--tint-green)',color:'var(--text-green-deep)',whiteSpace:'nowrap'}}><Ico n="check" s={10} c="var(--text-green-deep)" w={3.2}/>All submitted</span>}
+    : {col:'var(--border)', chip:<span style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)',whiteSpace:'nowrap'}}>No overtime</span>};
+
+  const monthRow = m => {
+    const {p, idx, sp, totG, totN} = m;
+    const isCurr = idx===currPeriodIdx, isExp = expanded===p.month && !isCurr;
+    const st = monthStatus(m);
+    const hrs = sp.sub+sp.pend, n = sp.nSub+sp.nPend;
+    // The current month opens in its card at the top, so its line here
+    // jumps up to that instead of opening a second copy.
+    const open = () => isCurr ? jumpTo(p.month) : setExpanded(isExp?null:p.month);
+    const nowTag = isCurr&&<span style={{fontSize:'9px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#fff',background:BRASS,borderRadius:'999px',padding:'1px 6px',flexShrink:0}}>Now</span>;
+    const name = <span style={{display:'flex',alignItems:'center',gap:'7px',minWidth:0,fontWeight:800,fontSize:'14px',color:'var(--ink)'}}>
+      <span aria-hidden="true" style={{width:'8px',height:'8px',borderRadius:'50%',background:st.col,flexShrink:0}}/>
+      <span style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{payLabel(p.month)}</span>{nowTag}
+    </span>;
+    const chev = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.25s',transform:isExp?'rotate(180deg)':'none',flexShrink:0,justifySelf:'end'}}><polyline points="6 9 12 15 18 9"/></svg>;
+    const sub = {fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'};
+    const rowStyle = {width:'100%',textAlign:'left',background:isExp?'var(--surface-2)':isCurr?'var(--tint-brass)':'none',border:'none',borderBottom:isExp?'none':'1px solid var(--border-2)',borderRadius:isExp?'12px 12px 0 0':0,padding:'11px 6px',cursor:'pointer',fontFamily:'inherit',color:'inherit'};
+    return (
+      <div key={p.month} ref={isCurr?undefined:el=>monthRefs.current[p.month]=el}>
+        <button type="button" onClick={open} aria-expanded={isCurr?undefined:isExp} className="tap-row" style={useCols
+          ? {...rowStyle,display:'grid',gridTemplateColumns:TABLE_COLS,gap:'8px',alignItems:'center'}
+          : {...rowStyle,display:'flex',alignItems:'center',gap:'10px'}}>
+          {useCols ? (<>
+            <span style={{minWidth:0}}>{name}<div style={sub}>{fmtD(p.start)} – {fmtD(p.end)} · {n} shift{n!==1?'s':''}</div></span>
+            <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:500,color:'var(--ink)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtHrs(hrs)}</span>
+            <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--text-navy)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(totG)}</span>
+            <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:GRN,textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(totN)}</span>
+            <span style={{textAlign:'right'}}>{st.chip}</span>
+          </>) : (<>
+            <span style={{flex:1,minWidth:0}}>
+              {name}
+              <div style={sub}>{fmtHrs(hrs)} · {n} shift{n!==1?'s':''}</div>
+              {m.carms&&<div style={{marginTop:'5px'}}>{st.chip}</div>}
+            </span>
+            {totG>0||totN>0 ? (
+              <span style={{textAlign:'right',flexShrink:0}}>
+                <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'var(--text-navy)',whiteSpace:'nowrap'}}>{fmtGBP(totG)}</div>
+                <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:GRN,whiteSpace:'nowrap',marginTop:'1px'}}>{fmtGBP(totN)} net</div>
+              </span>
+            ) : <span style={{flexShrink:0}}>{st.chip}</span>}
+          </>)}
+          {chev}
+        </button>
+        {isExp&&<div style={{borderRadius:'0 0 12px 12px',overflow:'hidden',marginBottom:'8px',border:'1px solid var(--border-2)',borderTop:'none'}}>{monthDetail(m)}</div>}
+      </div>
+    );
+  };
+
+  const monthTable = infos => {
+    // Months still to come with nothing in them fold into one line at the
+    // end; opening one from the month buttons gives it a line of its own.
+    const shown = infos.filter(m => !(m.p.start>todayStr && m.pE.length===0 && m.totG===0 && !m.carms && expanded!==m.p.month && m.idx!==currPeriodIdx));
+    const later = infos.filter(m => !shown.includes(m));
+    const rows = useCols ? shown : [...shown].reverse();
+    const T = shown.reduce((a,m)=>({hrs:a.hrs+m.sp.sub+m.sp.pend, n:a.n+m.sp.nSub+m.sp.nPend, g:a.g+m.totG, net:a.net+m.totN}), {hrs:0,n:0,g:0,net:0});
+    const plan = infos.reduce((a,m)=>({h:a.h+m.sp.plan, n:a.n+m.sp.nPlan}), {h:0,n:0});
+    const fy = String(PAY_PERIODS[0].month).split(' ')[1];
+    const head = {fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'};
+    return (
+      <div ref={listRef} style={{...S.card,padding:isWide?'16px 16px 14px':'14px 12px 12px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',flexWrap:'wrap',padding:'0 6px 8px'}}>
+          <span style={{fontWeight:900,fontSize:'16px',color:'var(--ink)',letterSpacing:'-0.3px'}}>Tax year {fy}/{String(Number(fy)+1).slice(-2)}</span>
+          <span style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)'}}>{isWide?'Click':'Tap'} a month to open it</span>
+        </div>
+        {useCols ? (
+          <div style={{display:'grid',gridTemplateColumns:TABLE_COLS,gap:'8px',padding:'0 6px 7px',borderBottom:'1px solid var(--border)',...head}}>
+            <span>Pay month</span><span style={{textAlign:'right'}}>Hours</span><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span><span style={{textAlign:'right'}}>CARMS / PSOP</span><span/>
+          </div>
+        ) : (
+          <div style={{display:'flex',justifyContent:'space-between',padding:'0 6px 7px',borderBottom:'1px solid var(--border)',...head}}><span>Pay month</span><span style={{paddingRight:'23px'}}>Gross / net</span></div>
+        )}
+        {rows.map(monthRow)}
+        {later.length>0&&(
+          <div style={{display:'flex',justifyContent:'space-between',gap:'8px',padding:'11px 6px',borderBottom:'1px solid var(--border-2)',fontSize:'13px',fontWeight:700,color:'var(--quiet)'}}>
+            <span>{later.length>1?`${String(later[0].p.month).split(' ')[0]} – ${payLabel(later[later.length-1].p.month)}`:payLabel(later[0].p.month)}</span><span>Nothing yet</span>
+          </div>
+        )}
+        {/* The total is the sum of the lines above, so it always adds up;
+            planned shifts sit on their own line under it. */}
+        {useCols ? (
+          <div style={{display:'grid',gridTemplateColumns:TABLE_COLS,gap:'8px',alignItems:'center',padding:'11px 6px 2px',borderTop:'2px solid var(--border)',marginTop:'-1px',fontWeight:800,color:'var(--ink)'}}>
+            <span style={{fontSize:'13.5px'}}>Total so far<div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'2px'}}>{T.n} shift{T.n!==1?'s':''}</div></span>
+            <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,textAlign:'right',whiteSpace:'nowrap'}}>{fmtHrs(T.hrs)}</span>
+            <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:'var(--text-navy)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(T.g)}</span>
+            <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:GRN,textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(T.net)}</span>
+            <span/><span/>
+          </div>
+        ) : (
+          <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'11px 29px 2px 6px',borderTop:'2px solid var(--border)',marginTop:'-1px'}}>
+            <span style={{flex:1,minWidth:0,fontWeight:800,fontSize:'14px',color:'var(--ink)'}}>Total so far<div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'2px'}}>{fmtHrs(T.hrs)} · {T.n} shift{T.n!==1?'s':''}</div></span>
+            <span style={{textAlign:'right',flexShrink:0}}>
+              <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:700,color:'var(--text-navy)',whiteSpace:'nowrap'}}>{fmtGBP(T.g)}</div>
+              <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:GRN,whiteSpace:'nowrap',marginTop:'1px'}}>{fmtGBP(T.net)} net</div>
+            </span>
+          </div>
+        )}
+        {plan.h>0&&<div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',padding:'8px 6px 0'}}>Plus {fmtHrs(plan.h)} planned ({plan.n} shift{plan.n!==1?'s':''}), not counted until worked.</div>}
+      </div>
+    );
+  };
+
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       {/* Heading sits in normal flow, like every other tab's — it scrolls
@@ -297,328 +594,106 @@ export function TabSummary({
           branches are prop-driven (nothing keeps state across the switch
           that a remount would lose), so this is safe. ── */}
       <div key={breakdownView} className="fi">
-      {breakdownView==='list' ? (
-      <>
-      {/* Desktop: period cards reflow into a 2-column grid instead of
-          one long vertical stack; the current pay month and whichever
-          card is open span both columns (via gridColumn below) so its OT Pay/PA boxes and
-          entry rows keep full width. Mobile is untouched — `display`
-          only turns into `grid` on isWide, so this container behaves
-          like a normal block wrapper otherwise. ── */}
-      <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'9px',alignItems:'start'}:undefined}>
-      {PAY_PERIODS.map((p,idx)=>{
-        const pE=fyEntries.filter(e=>e.date>=p.start&&e.date<=p.end);
-        const pb=totals.periodBreakdown[idx];
-        // Hours-worked stats (top-of-card "Total O/T Hours", TOIL
-        // worked/banked) stay period-local — what actually happened
-        // in this period, regardless of submission status, matching
-        // what the calendar cells for these dates show.
-        let h133=0,h150=0,h200=0,totalToilWorked=0,totalToilBanked=0,totalToilWaiting=0;
-        pE.forEach(e=>{
-          const c=calcEntry(e);
-          h133+=c.h1; h150+=c.h2; h200+=c.h3;
-          totalToilWorked+=c.toilH; totalToilBanked+=c.toilBanked;
-          if(!isOtSubmitted(e)&&e.date<=todayStr) totalToilWaiting+=c.toilBanked;
-        });
-        // OT Pay / PA box data is different on purpose: it iterates
-        // EVERY entry in the financial year, not just ones worked in
-        // this period, and groups each by which period its money is
-        // actually submitted to — same attribution periodBreakdown
-        // itself already uses. A shift worked 15 Jul but submitted
-        // 16 Aug shows up here, in August's box, carrying its
-        // original worked date (15/07) rather than the submission
-        // date, so the box always matches what's genuinely in its
-        // own Gross figure above it.
-        let pa1=0,pa2=0,pa3=0;
-        const tierHours = { t133:0, t150:0, t200:0 };
-        const tierDates = { t133:[], t150:[], t200:[] };
-        const tierGross = { t133:0, t150:0, t200:0 };
-        const paDates = { PA1:[], PA2:[], PA3:[] };
-        const paGross = { PA1:0, PA2:0, PA3:0 };
-        fyEntries.forEach(e=>{
-          const c=calcEntry(e);
-          const otCounted = isOtSubmitted(e) && periodIdxForDate(effectiveOtDate(e))===idx;
-          const paCounted = isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e))===idx;
-          const isCross = periodIdxForDate(e.date)!==idx;
-          if (otCounted) {
-            if (c.payH1>0) { tierHours.t133+=c.payH1; tierDates.t133.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t133+=c.ot1; }
-            if (c.payH2>0) { tierHours.t150+=c.payH2; tierDates.t150.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t150+=c.ot2; }
-            if (c.payH3>0) { tierHours.t200+=c.payH3; tierDates.t200.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t200+=c.ot3; }
-          }
-          if (paCounted) {
-            if(e.paRate==='PA1'){pa1++; paDates.PA1.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA1+=c.pa;}
-            else if(e.paRate==='PA2'){pa2++; paDates.PA2.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA2+=c.pa;}
-            else if(e.paRate==='PA3'){pa3++; paDates.PA3.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA3+=c.pa;}
-          }
-        });
-        const gOT=pb.ot, gPA=pb.pa;
-        const totG=pb.combinedGross, totN=pb.combinedNet;
-        const isExp=expanded===p.month, isCurr=idx===currPeriodIdx;
-
-        // Built once, used by both the desktop two-box layout and the
-        // mobile merged-card layout below, so the actual figures and
-        // breakdown rows never have to be maintained in two places.
-        const otPayInner = (
-          <>
-            <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'}}>OT Pay</div>
-            <div style={{fontSize:'12px',fontWeight:700,color:'var(--text-navy)',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(gOT)}</span></div>
-            <div style={{fontSize:'11px',fontWeight:700,color:'#3b82f6',marginBottom:'7px'}}>Net: <span style={{fontFamily:MONO}}>{fmt(pb.otResult.net)}</span></div>
-            <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'6px'}}>
-              {tierHours.t133>0&&<div style={{marginBottom:'6px'}}>
-                <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--ink)'}}><span>{fmtHrs(tierHours.t133)} @ 1.33x</span><span style={{fontFamily:MONO}}>{fmt(tierGross.t133)}</span></div>
-                <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(tierDates.t133,'var(--muted)')}</div>
-              </div>}
-              {tierHours.t150>0&&<div style={{marginBottom:'6px'}}>
-                <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--ink)'}}><span>{fmtHrs(tierHours.t150)} @ 1.5x</span><span style={{fontFamily:MONO}}>{fmt(tierGross.t150)}</span></div>
-                <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(tierDates.t150,'var(--muted)')}</div>
-              </div>}
-              {tierHours.t200>0&&<div>
-                <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--ink)'}}><span>{fmtHrs(tierHours.t200)} @ 2.0x</span><span style={{fontFamily:MONO}}>{fmt(tierGross.t200)}</span></div>
-                <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'1px'}}>{renderDatePills(tierDates.t200,'var(--muted)')}</div>
-              </div>}
-            </div>
-          </>
-        );
-        const paInner = (
-          <>
-            <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-amber-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'}}>PA</div>
-            <div style={{fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)',marginBottom:'1px'}}>Gross: <span style={{fontFamily:MONO}}>{fmt(gPA)}</span></div>
-            <div style={{fontSize:'11px',fontWeight:700,color:'#d97706',marginBottom:'7px'}}>Net: <span style={{fontFamily:MONO}}>{fmt(pb.paResult.net)}</span></div>
-            <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'6px'}}>
-              {pa1>0&&<div style={{marginBottom:'6px'}}>
-                <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)'}}><span>PA1 × {pa1}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA1)}</span></div>
-                <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA1,'#b45309')}</div>
-              </div>}
-              {pa2>0&&<div style={{marginBottom:'6px'}}>
-                <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)'}}><span>PA2 × {pa2}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA2)}</span></div>
-                <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA2,'#b45309')}</div>
-              </div>}
-              {pa3>0&&<div>
-                <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)'}}><span>PA3 × {pa3}</span><span style={{fontFamily:MONO}}>{fmt(paGross.PA3)}</span></div>
-                <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'1px'}}>{renderDatePills(paDates.PA3,'#b45309')}</div>
-              </div>}
-              {pa1===0&&pa2===0&&pa3===0&&<div style={{fontSize:'12px',fontWeight:700,color:'#b45309'}}>None this pay month</div>}
-            </div>
-          </>
-        );
-
-        // A month with nothing in it (no shifts, no money, nothing to
-        // submit) shrinks to one thin line so the months that do have
-        // overtime stand out. Still tappable — it opens like any other —
-        // and still carries monthRefs so the month pills can jump to it.
-        const isEmpty = pE.length===0 && totG===0 && !carmsOutstanding.groups.some(g=>g.periodIdx===idx) && !isCurr && !isExp;
-        if (isEmpty) return (
-          <div key={p.month} ref={el=>monthRefs.current[p.month]=el} role="button" tabIndex={0} onClick={()=>setExpanded(p.month)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setExpanded(p.month); } }}
-            style={{display:'flex',alignItems:'baseline',gap:'10px',background:'var(--surface-2)',border:'1px dashed var(--border)',borderRadius:'12px',padding:'9px 14px',marginBottom:isWide?0:'6px',cursor:'pointer',...(isWide?{gridColumn:'1 / -1'}:{})}}>
-            <span style={{fontSize:'13px',fontWeight:800,color:'var(--muted)'}}>{payLabel(p.month)}</span>
-            <span style={{fontFamily:MONO,fontSize:'10.5px',color:'var(--quiet)',flex:1}}>{fmtD(p.start)} – {fmtD(p.end)}</span>
-            <span style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)'}}>{p.start>todayStr?'Nothing yet':'No overtime'}</span>
+      {breakdownView==='list' ? (()=>{
+      const infos = PAY_PERIODS.map((p,idx)=>periodCalc(p,idx));
+      const m = currPeriodIdx>=0 ? infos[currPeriodIdx] : null;
+      const cur = m && (()=>{ const {p, idx, pE, totG, totN, sp} = m; const isExp=expanded===p.month, isCurr=true; return (
+      <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:'var(--surface)',borderRadius:'16px',border:'1px solid var(--border-2)',borderLeft:isCurr?`3px solid ${BRASS}`:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',marginBottom:'10px',overflow:'hidden'}}>
+        {/* role="button" rather than a real <button> — it contains the
+            "Awaiting submission" teaser below as a genuine nested
+            <button> of its own (jumping to CARMS is a different action
+            from expanding this card), and a real <button> may not
+            contain other interactive content per HTML5. Enter/Space
+            below reproduces what a real button gets for free. */}
+        <div role="button" tabIndex={0} onClick={()=>setExpanded(isExp?null:p.month)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setExpanded(isExp?null:p.month); } }} style={{width:'100%',textAlign:'left',padding:'16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+          {isCurr&&<div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:BRASS,color:'#fff',fontSize:'10px',fontWeight:900,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}><span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Current pay month</div>}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'2px'}}>
+            <div style={{fontWeight:900,fontSize:'18px',color:'var(--ink)',letterSpacing:'-0.3px'}}>{payLabel(p.month)}</div>
+            <div style={{fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>Shifts {fmtD(p.start)} – {fmtD(p.end)}</div>
           </div>
-        );
-        return(
-          <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:'var(--surface)',borderRadius:'16px',border:'1px solid var(--border-2)',borderLeft:isCurr?`3px solid ${BRASS}`:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',marginBottom:isWide?0:'9px',overflow:'hidden',...(isWide&&(isExp||isCurr)?{gridColumn:'1 / -1'}:{})}}>
-            {/* role="button" rather than a real <button> — it contains the
-                "Awaiting submission" teaser below as a genuine nested
-                <button> of its own (jumping to CARMS is a different action
-                from expanding this card), and a real <button> may not
-                contain other interactive content per HTML5. Enter/Space
-                below reproduces what a real button gets for free. */}
-            <div role="button" tabIndex={0} onClick={()=>setExpanded(isExp?null:p.month)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setExpanded(isExp?null:p.month); } }} style={{width:'100%',textAlign:'left',padding:'16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
-              {isCurr&&<div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:BRASS,color:'#fff',fontSize:'10px',fontWeight:900,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}><span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Current pay month</div>}
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'2px'}}>
-                <div style={{fontWeight:900,fontSize:'18px',color:'var(--ink)',letterSpacing:'-0.3px'}}>{payLabel(p.month)}</div>
-                <div style={{fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>Shifts {fmtD(p.start)} – {fmtD(p.end)}</div>
-              </div>
 
-              {/* A full-width card on desktop (the current pay month, or
-                  any open month) sets Hours, Gross and Net side by side
-                  rather than stretching three rows across the width. */}
-              {isWide&&(isCurr||isExp) ? (
-                <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',border:'1px solid var(--border-2)',borderRadius:'13px',margin:'10px 0 2px'}}>
-                  {[['clock','var(--tint-green)',GRN,'Hours submitted',fmtHrs(hrsSplit(pE).sub),GRN],
-                    ['clock','var(--tint-red)',RED,'Not submitted',fmtHrs(hrsSplit(pE).pend),hrsSplit(pE).pend>0?RED:'var(--quiet)'],
-                    ['cash','var(--tint-blue)','var(--text-navy)','Gross',fmt(totG),'var(--text-navy)'],
-                    ['cash','var(--tint-green)','#059669','Net',fmt(totN),'#059669']].map(([ic,bg,icc,lbl,val,col],n)=>(
-                    <div key={lbl} style={{display:'flex',alignItems:'center',gap:'11px',padding:'13px 16px',borderLeft:n?'1px solid var(--border-2)':'none'}}>
-                      <div style={{width:'30px',height:'30px',borderRadius:'13px',background:bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n={ic} s={15} c={icc}/></div>
-                      <div style={{minWidth:0}}>
-                        <div style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>{lbl}</div>
-                        <div style={{fontFamily:MONO,fontSize:'17px',fontWeight:600,color:col,marginTop:'1px',whiteSpace:'nowrap'}}>{val}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (<>
-              {(()=>{ const sp=hrsSplit(pE); return [['Hours submitted',sp.sub,sp.nSub,GRN,'var(--tint-green)'],['Not submitted',sp.pend,sp.nPend,sp.pend>0?RED:'var(--quiet)','var(--tint-red)']].map(([lbl,h,n,col,bg])=>(
-              <div key={lbl} style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0',borderBottom:'1px solid var(--border-2)'}}>
-                <div style={{width:'30px',height:'30px',borderRadius:'13px',background:bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="clock" s={15} c={col}/></div>
-                <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>{lbl}</div>
-                <div style={{fontFamily:MONO,fontSize:'13.5px',fontWeight:600,color:col}}>{fmtHrs(h)} <span style={{color:'var(--quiet)',fontWeight:400}}>· {n} shift{n!==1?'s':''}</span></div>
-              </div>)); })()}
-              <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0',borderBottom:'1px solid var(--border-2)'}}>
-                <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="cash" s={15} c="var(--text-navy)"/></div>
-                <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Gross</div>
-                <div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'var(--text-navy)'}}>{fmt(totG)}</div>
-              </div>
-              <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0'}}>
-                <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-green)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="cash" s={15} c="#059669"/></div>
-                <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Net</div>
-                <div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'#059669'}}>{fmt(totN)}</div>
-              </div>
-              </>)}
-
-              {(() => {
-                const g = carmsOutstanding.groups.find(g=>g.periodIdx===idx);
-                if (!g) return null;
-                return (
-                  <button onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{display:'flex',alignItems:'center',gap:'11px',width:'100%',background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginTop:'11px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
-                    <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="checklist" s={15} c={BRASS}/></div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Overtime &amp; PA to submit</div>
-                      <div style={{fontSize:'10px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>CARMS &amp; PSOP</div>
-                    </div>
-                    <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(g.periodTotal)}</div>
-                  </button>
-                );
-              })()}
-              {/* On a phone, a divider and a taller strip keep "Tap to see
-                  more" well clear of the to-submit button above it. */}
-              {!isExp&&<div style={isWide
-                ? {display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'4px',fontSize:'11.5px',fontWeight:700,color:BRASS,marginTop:'11px'}
-                : {display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',fontSize:'12.5px',fontWeight:700,color:BRASS,marginTop:'18px',paddingTop:'12px',minHeight:'40px',borderTop:'1px solid var(--border-2)'}}>
-                Tap to see more
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={BRASS} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:isExp?'rotate(180deg)':'rotate(0deg)',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
-              </div>}
-            </div>
-
-            {isExp&&(
-              <div className="accordion-in" style={{background:'var(--surface-2)',borderTop:'1px solid var(--border-2)',padding:'13px'}}>
-                {/* Same breakdown as the Calendar's totals card (the Gross,
-                    Net and Hours above already cover its top row). */}
-                <div style={{...S.card,marginBottom:'10px',paddingTop:'6px'}}>
-                  {periodBreakdownRows({pb, tierHours:{t133:tierHours.t133,t150:tierHours.t150,t200:tierHours.t200}, tierGross, tierDates, paCount:{PA1:pa1,PA2:pa2,PA3:pa3}, paGross, paDates, toilWorked:totalToilWorked, toilBanked:totalToilBanked, toilWaiting:totalToilWaiting, carmsGroup:null, periodIdx:idx})}
-                </div>
-
-                <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'9px'}}>Shifts</div>
-
-                {pE.length+lateInto(p).length===0
-                  ?<div style={{textAlign:'center',padding:'20px 10px 24px'}}>
-                    <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
-                      <Ico n="cal" s={18} c="#1e40af" w={2}/>
-                    </div>
-                    <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No shifts yet this pay month</div>
-                    <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log a shift and it'll show up here</div>
+          {/* A full-width card on desktop (the current pay month, or
+              any open month) sets Hours, Gross and Net side by side
+              rather than stretching three rows across the width. */}
+          {isWide ? (()=>{
+            // Planned shifts get their own box when there are any, so the
+            // hours here add up with the tax-year table below. On a narrow
+            // desktop the boxes go two to a row.
+            const boxes = [['clock','var(--tint-green)',GRN,'Hours submitted',fmtHrs(sp.sub),GRN],
+                ['clock','var(--tint-red)',RED,'Not submitted',fmtHrs(sp.pend),sp.pend>0?RED:'var(--quiet)'],
+                ...(sp.plan>0?[['cal','var(--chip-bg)','var(--quiet)','Planned',fmtHrs(sp.plan),'var(--quiet)']]:[]),
+                ['cash','var(--tint-blue)','var(--text-navy)','Gross',fmtGBP(totG),'var(--text-navy)'],
+                ['cash','var(--tint-green)','#059669','Net',fmtGBP(totN),'#059669']];
+            const cols = narrow ? 2 : boxes.length;
+            return (
+            <div style={{display:'grid',gridTemplateColumns:`repeat(${cols},minmax(0,1fr))`,border:'1px solid var(--border-2)',borderRadius:'13px',margin:'10px 0 2px'}}>
+              {boxes.map(([ic,bg,icc,lbl,val,col],n)=>(
+                <div key={lbl} style={{display:'flex',alignItems:'center',gap:cols>4?'9px':'11px',padding:cols>4?'13px 12px':'13px 16px',borderLeft:n%cols?'1px solid var(--border-2)':'none',borderTop:n>=cols?'1px solid var(--border-2)':'none',...(n===boxes.length-1&&n%cols===0&&cols>1?{gridColumn:'1 / -1'}:{})}}>
+                  <div style={{width:'30px',height:'30px',borderRadius:'13px',background:bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n={ic} s={15} c={icc}/></div>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>{lbl}</div>
+                    <div style={{fontFamily:MONO,fontSize:'17px',fontWeight:600,color:col,marginTop:'1px',whiteSpace:'nowrap'}}>{val}</div>
                   </div>
-                  :[...[...pE].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(p)].map(e=>{
-                    const c=calcEntry(e);
-                    const isFut=e.date>todayStr;
-                    // what this shift adds to take-home in the month it lands in
-                    const eNet = entryNet(e);
-                    return(
-                      <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:'13px',marginBottom:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
-                        {isFut&&<div style={{position:'absolute',top:'-6px',right:'9px',background:'#2563eb',color:'#fff',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Planned</div>}
-                        <div style={{marginBottom:'8px'}}>
-                          {shiftHead(e,{onEdit:()=>{setConfirmDel(null);startEdit(e);}, onDelete:()=>setConfirmDel(confirmDel===e.id?null:e.id), deleting:confirmDel===e.id})}
-                          <div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
-                            {carmsBadge(e, 10)}
-                            {/* Same neutral record-only indicator as the calendar day
-                                view — an entry with no claimable OT hours and no PA has
-                                nothing to submit, so it gets its own label rather than
-                                no badge at all or a misleading submitted/outstanding one. */}
-                            {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
-                              <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--border)',color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>ⓘ Shift Record — No OT Claim</div>
-                            )}
-                            {(()=>{ const xp = crossPeriodInfo(e); return xp && (
-                              <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-indigo)',color:'var(--text-indigo-deep)',textTransform:'uppercase',letterSpacing:'0.06em'}}>↷ {xp.both?'OT & PA':xp.ot?'OT':'PA'} Counted in {xp.label}</div>
-                            ); })()}
-                          </div>
-                        </div>
-
-                        {/* delete confirmation */}
-                        {confirmDel===e.id&&(
-                          <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
-                            <span style={{fontSize:'14px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this shift?</span>
-                            <div style={{display:'flex',gap:'7px',flexShrink:0}}>
-                              <button onClick={()=>setConfirmDel(null)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:'5px 12px',fontSize:'13px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
-                              <button onClick={()=>delEntry(e.id)} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'13px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* notes — sits under Duty/Reason with separators, matching the Calendar View popover */}
-                        {e.comments&&(
-                          <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'10px',marginBottom:'10px'}}>
-                            <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>Notes</div>
-                            <div style={{fontSize:'13px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid var(--border-2)',paddingLeft:'8px',whiteSpace:'pre-wrap',overflowWrap:'anywhere',lineHeight:1.5}}>{e.comments}</div>
-                          </div>
-                        )}
-
-                        <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px'}}>
-                          <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
-                            {c.payH1>0&&(
-                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH1)} at 1.33× <span style={{color:'var(--quiet)'}}>· £{c.r.r133.toFixed(2)}/hr</span></span>
-                                <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot1.toFixed(2)}</span>
-                              </div>
-                            )}
-                            {c.payH2>0&&(
-                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH2)} at 1.5× <span style={{color:'var(--quiet)'}}>· £{c.r.r150.toFixed(2)}/hr</span></span>
-                                <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot2.toFixed(2)}</span>
-                              </div>
-                            )}
-                            {c.payH3>0&&(
-                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH3)} at 2× <span style={{color:'var(--quiet)'}}>· £{c.r.r200.toFixed(2)}/hr</span></span>
-                                <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot3.toFixed(2)}</span>
-                              </div>
-                            )}
-                            {c.toilH>0&&(
-                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <span style={{fontSize:'13px',fontWeight:700,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} at {RATE_TIER_LABEL[c.otRateTier]}× · TOIL</span>
-                                <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} banked</span>
-                              </div>
-                            )}
-                            {e.paRate!=='None'&&(
-                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <span style={{fontSize:'13px',fontWeight:700,color:'#b45309'}}>{e.paRate} allowance</span>
-                                <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-amber-deep)'}}>£{c.pa.toFixed(2)}</span>
-                              </div>
-                            )}
-                          </div>
-                          {c.gross<0.005&&c.toilBanked>0 ? (
-                            // Taken wholly as TOIL: no pay to total up, so say so rather than
-                            // ending the card on Gross £0.00 · Net £0.00.
-                            <div style={{display:'flex',alignItems:'center',gap:'8px',background:'var(--tint-purple)',borderRadius:'10px',padding:'9px 11px',marginTop:'8px',fontSize:'12.5px',fontWeight:800,color:'var(--tag-purple)'}}>
-                              <Ico n="clock" s={13} c="var(--tag-purple)" w={2.2}/>Taken as TOIL<span style={{marginLeft:'auto',fontWeight:700}}>no pay</span>
-                            </div>
-                          ) : (
-                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'5px',borderTop:'1px solid var(--border-2)',paddingTop:'8px',marginTop:'8px'}}>
-                            <div><div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'15px',color:'var(--text-navy)'}}>{fmt(c.gross)}</div></div>
-                            <div style={{textAlign:'right'}}><div style={{fontSize:'10px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'15px',color:'#059669'}}>{fmt(eNet)}</div></div>
-                          </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                }
-                <button onClick={()=>setExpanded(null)} style={{width:'100%',marginTop:'4px',padding:'9px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'11px',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'4px'}}>
-                  Close <Ico n="cU" s={12} c={BRASS}/>
-                </button>
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
+            ); })() : (<>
+          {[['Hours submitted',sp.sub,sp.nSub,GRN,'var(--tint-green)','clock'],['Not submitted',sp.pend,sp.nPend,sp.pend>0?RED:'var(--quiet)','var(--tint-red)','clock'],...(sp.plan>0?[['Planned',sp.plan,sp.nPlan,'var(--quiet)','var(--chip-bg)','cal']]:[])].map(([lbl,h,n,col,bg,ic])=>(
+          <div key={lbl} style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0',borderBottom:'1px solid var(--border-2)'}}>
+            <div style={{width:'30px',height:'30px',borderRadius:'13px',background:bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n={ic} s={15} c={col}/></div>
+            <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>{lbl}</div>
+            <div style={{fontFamily:MONO,fontSize:'13.5px',fontWeight:600,color:col}}>{fmtHrs(h)} <span style={{color:'var(--quiet)',fontWeight:400}}>· {n} shift{n!==1?'s':''}</span></div>
+          </div>))}
+          <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0',borderBottom:'1px solid var(--border-2)'}}>
+            <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="cash" s={15} c="var(--text-navy)"/></div>
+            <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Gross</div>
+            <div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'var(--text-navy)'}}>{fmtGBP(totG)}</div>
           </div>
-        );
-      })}
+          <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0'}}>
+            <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-green)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="cash" s={15} c="#059669"/></div>
+            <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Net</div>
+            <div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'#059669'}}>{fmtGBP(totN)}</div>
+          </div>
+          </>)}
+
+          {(() => {
+            const g = m.carms;
+            if (!g) return null;
+            return (
+              <button onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{display:'flex',alignItems:'center',gap:'11px',width:'100%',background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginTop:'11px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
+                <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="checklist" s={15} c={BRASS}/></div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Overtime &amp; PA to submit</div>
+                  <div style={{fontSize:'10px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>CARMS &amp; PSOP</div>
+                </div>
+                <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(g.periodTotal)}</div>
+              </button>
+            );
+          })()}
+          {/* On a phone, a divider and a taller strip keep "Tap to see
+              more" well clear of the to-submit button above it. */}
+          {!isExp&&<div style={isWide
+            ? {display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'4px',fontSize:'11.5px',fontWeight:700,color:BRASS,marginTop:'11px'}
+            : {display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',fontSize:'12.5px',fontWeight:700,color:BRASS,marginTop:'18px',paddingTop:'12px',minHeight:'40px',borderTop:'1px solid var(--border-2)'}}>
+            Tap to see more
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={BRASS} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:isExp?'rotate(180deg)':'rotate(0deg)',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+          </div>}
+        </div>
+
+        {isExp&&monthDetail(m)}
       </div>
-      {renderFYTotalsCard()}
-      </>
-      ) : breakdownView==='compact' ? (
+      ); })();
+      return (<>
+      {/* This pay month keeps its full card on top — it's the one you can
+          still act on — then the whole tax year as one table. */}
+      {cur}
+      {monthTable(infos)}
+      </>);
+      })() : breakdownView==='compact' ? (
       <>
       {/* ══════════════════ COMPACT VIEW — one period, dense rows ══════════════════
-          Deliberately doesn't render renderFYTotalsCard() below, unlike List —
-          this view's whole point is showing just the selected month, and the
+          Deliberately doesn't render renderFYTotalsCard() below, unlike
+          Calendar — this view's whole point is showing just the selected month, and the
           financial-year archive card belongs to a different question than
           "what happened in this period". ── */}
       {(()=>{
