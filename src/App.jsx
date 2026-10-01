@@ -1822,15 +1822,19 @@ export default function App() {
       const d = new Date(y, m-1+delta, 1);
       setDatePickerMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
     };
+    // No paging into months where nothing can be picked.
+    const ym = `${y}-${String(m).padStart(2,'0')}`;
+    const noPrev = !!(bounds?.min && ym <= bounds.min.slice(0,7));
+    const noNext = !!(bounds?.max && ym >= bounds.max.slice(0,7));
     return (
       <div ref={datePickerTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Choose a date" onClick={ev=>ev.stopPropagation()} className={'alert-pop'+(closing?' pop-out':'')} style={{background:'var(--surface)',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid var(--border)',padding:'22px',width:'360px',maxWidth:'calc(100vw - 32px)',boxSizing:'border-box'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'18px'}}>
-          <button onClick={()=>changeMonth(-1)} aria-label="Previous month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cL" s={18} c="#475569"/></button>
+          <button onClick={()=>changeMonth(-1)} disabled={noPrev} aria-label="Previous month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:noPrev?'default':'pointer',opacity:noPrev?0.35:1,display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cL" s={18} c="#475569"/></button>
           <div style={{fontWeight:900,fontSize:'17px',color:'var(--ink)'}}>{monthLabel}</div>
-          <button onClick={()=>changeMonth(1)} aria-label="Next month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
+          <button onClick={()=>changeMonth(1)} disabled={noNext} aria-label="Next month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:noNext?'default':'pointer',opacity:noNext?0.35:1,display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
         </div>
         <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:'14px'}}>
-          {datePickerForV==='ot' ? 'Select the date you submitted this OT to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this PA claim to PSOP' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''}` : 'Select the date of this shift'}
+          {datePickerForV==='ot' ? 'Select the date you submitted this to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this to PSOP' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''}` : 'Select the date of this shift'}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'6px'}}>
           {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=><div key={d} style={{textAlign:'center',fontSize:'11.5px',fontWeight:800,color:'var(--quiet)',padding:'4px 0'}}>{d}</div>)}
@@ -1841,10 +1845,11 @@ export default function App() {
             const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const isSelected = dateStr===currentValue;
             const isToday = dateStr===todayStr;
+            const isMark = !!bounds?.mark && dateStr===bounds.mark && !isSelected;   // the shift's own day, shaded
             // A claim can't be made before the shift was worked, or in the future.
             const off = !!bounds && ((bounds.min && dateStr<bounds.min) || (bounds.max && dateStr>bounds.max));
             return (
-              <button key={i} disabled={off} onClick={()=>{ onSelect(dateStr); setDatePickerFor(null); }} style={{aspectRatio:'1',border:isToday&&!isSelected?`1.5px solid ${BRASS}`:'none',borderRadius:'10px',background:isSelected?BRASS:'transparent',color:isSelected?'#fff':'var(--ink)',fontWeight:isSelected?900:700,fontSize:'14.5px',cursor:off?'default':'pointer',opacity:off?0.3:1,fontFamily:'inherit'}}>{d}</button>
+              <button key={i} disabled={off} onClick={()=>{ onSelect(dateStr); setDatePickerFor(null); }} style={{aspectRatio:'1',border:isToday&&!isSelected?`1.5px solid ${BRASS}`:'none',borderRadius:'10px',background:isSelected?BRASS:isMark?'var(--chip-bg)':'transparent',color:isSelected?'#fff':'var(--ink)',fontWeight:isSelected?900:700,fontSize:'14.5px',cursor:off?'default':'pointer',opacity:off?0.3:1,fontFamily:'inherit'}}>{d}</button>
             );
           })}
         </div>
@@ -2327,7 +2332,7 @@ export default function App() {
     const c = calcEntry(e);
     const gross = c.gross;
     const net = gross>0 ? entryNet(e, editing||null) : 0;
-    return { gross, net, toilBanked:c.toilBanked, has:gross>0||c.toilBanked>0 };
+    return { gross, net, toilBanked:c.toilBanked, has:gross>0||c.toilBanked>0, c };
   },[form, editing, todayStr, calcEntry, entryNet]);
 
   // ── handlers ───────────────────────────────────────────────────────────────
@@ -4990,18 +4995,17 @@ export default function App() {
         </div>
       )}
 
-      {/* CARMS submission-date picker overlay. Also reachable via the
-           toggles now, not just the desktop edit-date button — turning a
-           toggle on opens this without pre-selecting anything, and the
-           toggle itself only actually flips once a day is genuinely
-           picked; dismissing without picking leaves both the toggle and
-           the date untouched. */}
+      {/* Shared date picker overlay: the shift date, "Other date…" on Log
+           Overtime's Mark as Submitted, and Awaits Submission's bulk mark.
+           For a claim it opens on the shift's month with the shift day
+           shaded; the claim only counts as submitted once a day is picked,
+           so dismissing it changes nothing. */}
       {datePickerMounted&&(
         <div onClick={()=>setDatePickerFor(null)} className={datePickerFor?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60}}>
           {datePickerForV==='ot'
-            ? renderDatePickerGrid(form.otSubmittedDate||'', v=>setForm(f=>({...f,otSubmittedDate:v,otSubmitted:true})), !datePickerFor, { min: form.date, max: todayStr })
+            ? renderDatePickerGrid(form.otSubmitted?(form.otSubmittedDate||''):'', v=>setForm(f=>({...f,otSubmittedDate:v,otSubmitted:true})), !datePickerFor, { min: form.date, max: todayStr, mark: form.date })
             : datePickerForV==='pa'
-            ? renderDatePickerGrid(form.paSubmittedDate||'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})), !datePickerFor, { min: form.date, max: todayStr })
+            ? renderDatePickerGrid(form.paSubmitted?(form.paSubmittedDate||''):'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})), !datePickerFor, { min: form.date, max: todayStr, mark: form.date })
             : datePickerForV==='carmsBulk'
             ? renderDatePickerGrid(todayStr, v=>bulkMarkCarmsSubmitted(v), !datePickerFor, { min: entries.filter(e=>carmsSelected[e.id]).reduce((m,e)=>e.date>m?e.date:m,''), max: todayStr })
             : renderDatePickerGrid(form.date||todayStr, v=>setForm(f=>({...f,date:v})), !datePickerFor)}

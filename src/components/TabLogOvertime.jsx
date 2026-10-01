@@ -252,41 +252,73 @@ export function TabLogOvertime({
     );
   })();
 
-  // ── step 4: submitted ────────────────────────────────────────────────────
+  // ── step 4: claim submitted ──────────────────────────────────────────────
+  // One slip per claim, saying what goes on which system and how much:
+  // overtime (or TOIL) on CARMS, PA on PSOP. "Mark as Submitted" asks for the
+  // date in place (today, the shift day, or the shared calendar pop-up for
+  // any other date). A planned shift can't be claimed yet, so it gets a note
+  // instead of buttons.
   const hasOTHours = TIERS.reduce((s,[k])=>s+(parseFloat(form[k])||0),0) > 0;
   const hasPA = form.paRate!=='None';
-  const subDate = (field, which) => (
-    <div style={{display:'flex',alignItems:isWide?'center':'stretch',flexDirection:isWide?'row':'column',gap:isWide?'10px':'5px',marginTop:'9px'}}>
-      <span style={{fontSize:'10px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.06em'}}>Submitted on</span>
-      {isWide ? (
-        <button type="button" onClick={()=>{ setDatePickerMonth((form[field]||todayStr).slice(0,7)); setDatePickerFor(which); }} style={{display:'flex',alignItems:'center',gap:'8px',background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'8px 11px',fontWeight:700,fontSize:'13px',fontFamily:'inherit',color:'var(--ink)',cursor:'pointer'}}>
-          <Ico n="cal" s={14} c="var(--quiet)"/>{dateLabel(form[field])}
-        </button>
-      ) : (
-        <input type="date" min={form.date} max={todayStr} value={form[field]||todayStr} onChange={e=>{ const v=e.target.value; if(!v) return; setForm({...form,[field]: v<form.date ? form.date : v>todayStr ? todayStr : v}); }} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'9px 11px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
-      )}
-    </div>
-  );
-  // Switching one on asks for its submission date first (App's shared date
-  // picker sets both the flag and the date); switching off just clears it.
-  const subRow = (label, sub, on, enabled, flag, which, dateField, last) => (
-    <div style={{padding:'11px 0',borderBottom:last?'none':'1px solid var(--border-2)',opacity:enabled?1:0.5}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px'}}>
-        <div>
-          <div style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>{label}</div>
-          {sub&&<div style={{fontFamily:MONO,fontSize:'10px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>{sub}</div>}
+  const isPlannedShift = !!form.date && form.date > todayStr;
+  const [askFor, setAskFor] = useState(null);   // 'ot' | 'pa' while its date choices are showing
+  useEffect(() => { setAskFor(null); }, [editing?.id, justSaved]);
+  const shortDate = d => new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}).replace(/\bSep\b/,'Sept');
+  const pc = preview.c || {};
+  const hoursAt = [['h1','1.33×'],['h2','1.5×'],['h3','2×']].filter(([k])=>(pc[k]||0)>0).map(([k,l])=>`${fmtHrs(pc[k])} at ${l}`).join(' + ');
+  const allToil = hasOTHours && (pc.toilH||0)>0 && !(pc.ot>0);
+  const otSlip = !hasOTHours ? null : allToil
+    ? { kind:'TOIL', what:`TOIL · ${hoursAt} → ${fmtHrs(pc.toilBanked||0)} banked`, amt:fmtHrs(pc.toilBanked||0) }
+    : { kind:'Overtime', what:`Overtime · ${hoursAt}${(pc.toilH||0)>0?` (${fmtHrs(pc.toilH)} as TOIL)`:''}`, amt:fmtGBP(pc.ot||0) };
+  const paSlip = hasPA ? { kind:'PA', what:`Protection Allowance · ${form.paRate}`, amt:fmtGBP(PA_RATES[form.paRate]||0) } : null;
+  const setSubmitted = (which, d) => {
+    setForm(f => which==='ot' ? {...f, otSubmitted:true, otSubmittedDate:d} : {...f, paSubmitted:true, paSubmittedDate:d});
+    setAskFor(null);
+  };
+  const linkBtn = {background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'11.5px',fontWeight:800,color:'var(--text-blue-deep)',cursor:'pointer'};
+  const chipBtn = {display:'inline-flex',alignItems:'center',gap:'5px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'999px',padding:'6px 11px',fontFamily:'inherit',fontSize:'12px',fontWeight:800,color:'var(--ink)',cursor:'pointer'};
+  const claimSlip = (which, slip, system) => {
+    const flag = which==='ot' ? 'otSubmitted' : 'paSubmitted';
+    const dateField = which==='ot' ? 'otSubmittedDate' : 'paSubmittedDate';
+    const done = !!form[flag];
+    const choices = [[todayStr,'Today']].concat(form.date && form.date!==todayStr ? [[form.date,'Shift day']] : []);
+    return (
+      <div style={{border:`1.5px solid ${done?'color-mix(in srgb, #059669 55%, transparent)':'var(--border)'}`,borderRadius:'14px',padding:'12px 13px',background:done?'var(--tint-green)':'var(--surface-2)',display:'flex',flexDirection:'column',gap:'6px',minWidth:0}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px'}}>
+          <span style={{fontSize:'9.5px',fontWeight:900,letterSpacing:'0.08em',padding:'2px 6px',borderRadius:'5px',background:'var(--chip-bg)',color:'var(--text-navy)'}}>{system}</span>
+          <span style={{fontFamily:MONO,fontSize:'17px',fontWeight:700,color:'var(--ink)'}}>{slip.amt}</span>
         </div>
-        <button type="button" role="switch" aria-checked={on} aria-label={label} disabled={!enabled} onClick={()=>{
-          if (form[flag]) { setForm({...form,[flag]:false}); return; }
-          setDatePickerMonth(todayStr.slice(0,7));
-          setDatePickerFor(which);
-        }} style={{width:'42px',height:'24px',borderRadius:'14px',position:'relative',border:'none',padding:0,cursor:enabled?'pointer':'default',flexShrink:0,background:on?'#059669':'var(--border)',transition:'background 0.15s cubic-bezier(.4,0,.2,1)'}}>
-          <span style={{width:'18px',height:'18px',borderRadius:'50%',background:'#fff',position:'absolute',top:'3px',left:on?'21px':'3px',boxShadow:'0 1px 3px rgba(0,0,0,0.2)',transition:'left 0.15s cubic-bezier(.4,0,.2,1)'}}/>
-        </button>
+        <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>{slip.what}</div>
+        {done ? (
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
+            <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-green-deep)'}}>✓ Submitted {form[dateField]?shortDate(form[dateField]):''}</span>
+            <span style={{display:'inline-flex',gap:'6px',alignItems:'center',color:'var(--quiet)',fontSize:'11px'}}>
+              <button type="button" onClick={()=>setAskFor(which)} style={linkBtn}>Change date</button>·
+              <button type="button" onClick={()=>{ setForm(f=>({...f,[flag]:false})); setAskFor(null); }} style={linkBtn}>Undo</button>
+            </span>
+          </div>
+        ) : null}
+        {askFor===which ? (
+          <>
+            <div style={{fontSize:'10.5px',fontWeight:900,color:'var(--text-blue-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginTop:'2px'}}>When did you submit it?</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
+              {choices.map(([d,l])=>(
+                <button key={l} type="button" onClick={()=>setSubmitted(which,d)} style={chipBtn}>{l}<span style={{fontWeight:600,color:'var(--muted)'}}>{shortDate(d)}</span></button>
+              ))}
+              <button type="button" onClick={()=>{ setDatePickerMonth(((done&&form[dateField])||form.date||todayStr).slice(0,7)); setDatePickerFor(which); setAskFor(null); }} style={chipBtn}><Ico n="cal" s={13} c="var(--quiet)"/>Other date…</button>
+              <button type="button" onClick={()=>setAskFor(null)} style={{...linkBtn,marginLeft:'4px'}}>Cancel</button>
+            </div>
+          </>
+        ) : !done ? (
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
+            <span style={{display:'inline-flex',alignItems:'center',gap:'6px',fontSize:'11.5px',fontWeight:800,color:'var(--ink)'}}><span style={{width:'8px',height:'8px',borderRadius:'50%',background:'#d97706'}}/>Not submitted yet</span>
+            <button type="button" onClick={()=>setAskFor(which)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'8px 12px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'var(--ink)',cursor:'pointer',whiteSpace:'nowrap'}}>Mark as Submitted</button>
+          </div>
+        ) : null}
       </div>
-      {on && subDate(dateField, which)}
-    </div>
-  );
+    );
+  };
+  const claimWhat = [otSlip&&otSlip.kind, paSlip&&'PA'].filter(Boolean).join(' or ') || 'Overtime or PA';
 
   // ── step 5: notes ────────────────────────────────────────────────────────
   const showNotes = notesOpen || !!(form.comments||'').trim();
@@ -350,11 +382,26 @@ export function TabLogOvertime({
 
         {/* carmsToggleRef/focusCarmsToggle: arriving from Awaits Submission
             scrolls here and pulses this card (see App.jsx). */}
-        {step(4,'Submitted yet?',(
+        {step(4,'Claim submitted yet?',(
           <>
-            <div style={{fontSize:'11px',color:'var(--muted)',fontWeight:600,lineHeight:1.45,margin:'4px 0 2px'}}>Leave these off if you haven't claimed it yet. It'll wait for you in Awaits Submission (future shifts join once their date arrives).</div>
-            {subRow('Overtime submitted on CARMS', hasOTHours?null:'No overtime hours on this shift', hasOTHours&&form.otSubmitted, hasOTHours, 'otSubmitted', 'ot', 'otSubmittedDate', false)}
-            {subRow('PA submitted on PSOP', hasPA?`${form.paRate} — ${fmtGBP(PA_RATES[form.paRate]||0)}`:'No PA rate selected for this shift', hasPA&&form.paSubmitted, hasPA, 'paSubmitted', 'pa', 'paSubmittedDate', true)}
+            <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,lineHeight:1.45,margin:'4px 0 2px'}}>{claimWhat} not submitted waits in <b style={{color:'var(--ink)'}}>Awaits Submission</b>. Already submitted it? Mark it below.</div>
+            {isPlannedShift && (otSlip||paSlip) ? (
+              <div style={{marginTop:'10px',background:'var(--tint-blue)',border:'1px dashed color-mix(in srgb, #2563eb 45%, transparent)',borderRadius:'12px',padding:'11px 13px',display:'flex',gap:'10px',alignItems:'flex-start',fontSize:'12.5px',color:'var(--muted)',lineHeight:1.45}}>
+                <Ico n="cal" s={16} c="#2563eb"/>
+                <div><b style={{color:'var(--ink)'}}>Planned shift · {new Date(form.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}).replace(/\bSep\b/,'Sept')}.</b> You can mark it as submitted once you've worked it. It'll appear in Awaits Submission from {shortDate(form.date)}.</div>
+              </div>
+            ) : otSlip||paSlip ? (
+              <>
+                <div style={{display:'grid',gridTemplateColumns:isWide&&otSlip&&paSlip?'repeat(2,minmax(0,1fr))':'1fr',gap:'10px',marginTop:'10px'}}>
+                  {otSlip && claimSlip('ot', otSlip, 'CARMS')}
+                  {paSlip && claimSlip('pa', paSlip, 'PSOP')}
+                </div>
+                {otSlip && !paSlip && <div style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)',marginTop:'8px'}}>No PA on this shift.</div>}
+                {paSlip && !otSlip && <div style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)',marginTop:'8px'}}>No overtime hours on this shift.</div>}
+              </>
+            ) : (
+              <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'8px'}}>Add hours or a Protection Allowance above and they'll show here to mark as submitted.</div>
+            )}
           </>
         ),{ref:carmsToggleRef,className:focusCarmsToggle?'carms-pulse':undefined,style:{border:focusCarmsToggle?'2px solid #2563eb':'1px solid var(--border-2)'}})}
 
