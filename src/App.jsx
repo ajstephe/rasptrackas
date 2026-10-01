@@ -4208,7 +4208,7 @@ export default function App() {
            index.html — without this, the OS's native date-picker icon and
            popup stay light-themed even in dark mode, exactly the bug the
            old TimeSelect had before it was rebuilt. Corporate,
-           Professional Light, Flagship, Heritage, Energy, Muji and Luftplane are fixed light looks,
+           Professional Light, Flagship, Heritage, Energy, Goji and Luftplane are fixed light looks,
            not dark-mode variants, so they're excluded here the same way an
            explicit "light" choice already is. */
         @media (prefers-color-scheme: dark){
