@@ -4193,7 +4193,7 @@ export default function App() {
         @media (max-width:1180px){.hdr-month{display:none!important}}
         /* Two-column layouts on a computer only once there's room for them
            (sidebar is 250px); narrower windows keep the single column. */
-        @media (min-width:1400px){.split-log{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:12px;align-items:start}}
+        @media (min-width:1400px){.split-log{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:12px;align-items:stretch}.split-log>div{display:flex;flex-direction:column}.split-log>div>:last-child{flex:1 1 auto}}
         @media (min-width:1360px){.split-cal{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);column-gap:14px;align-items:start}}
         .fi{animation:fi 0.22s ease}
         .setup-pulse-urgent{animation:urgentPulse 1.5s ease-in-out infinite}

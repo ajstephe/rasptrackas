@@ -277,6 +277,9 @@ export function TabLogOvertime({
   };
   const linkBtn = {background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'11.5px',fontWeight:800,color:'var(--text-blue-deep)',cursor:'pointer'};
   const chipBtn = {display:'inline-flex',alignItems:'center',gap:'5px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'999px',padding:'6px 11px',fontFamily:'inherit',fontSize:'12px',fontWeight:800,color:'var(--ink)',cursor:'pointer'};
+  // Status then button: stacked on a computer (two slips side by side are
+  // narrow), side by side on a phone — the same for a live or an idle slip.
+  const slipFoot = isWide ? {display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'8px'} : {display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',flexWrap:'wrap'};
   const claimSlip = (which, slip, system) => {
     const flag = which==='ot' ? 'otSubmitted' : 'paSubmitted';
     const dateField = which==='ot' ? 'otSubmittedDate' : 'paSubmittedDate';
@@ -310,7 +313,7 @@ export function TabLogOvertime({
             </div>
           </>
         ) : !done ? (
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
+          <div style={slipFoot}>
             <span style={{display:'inline-flex',alignItems:'center',gap:'6px',fontSize:'11.5px',fontWeight:800,color:'var(--ink)'}}><span style={{width:'8px',height:'8px',borderRadius:'50%',background:'#d97706'}}/>Not submitted yet</span>
             <button type="button" onClick={()=>setAskFor(which)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'8px 12px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'var(--ink)',cursor:'pointer',whiteSpace:'nowrap'}}>Mark as Submitted</button>
           </div>
@@ -318,6 +321,21 @@ export function TabLogOvertime({
       </div>
     );
   };
+  // A slip with nothing on it yet (no hours, no PA, or a shift still to
+  // come) keeps its place and size, so box 4 looks the same either way.
+  const idleSlip = (system, amt, what, note) => (
+    <div style={{border:'1.5px dashed var(--border)',borderRadius:'14px',padding:'12px 13px',background:'var(--surface-2)',display:'flex',flexDirection:'column',gap:'6px',minWidth:0}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px'}}>
+        <span style={{fontSize:'9.5px',fontWeight:900,letterSpacing:'0.08em',padding:'2px 6px',borderRadius:'5px',background:'var(--chip-bg)',color:'var(--quiet)'}}>{system}</span>
+        <span style={{fontFamily:MONO,fontSize:'17px',fontWeight:700,color:'var(--quiet)'}}>{amt}</span>
+      </div>
+      <div style={{fontSize:'13px',fontWeight:800,color:'var(--quiet)'}}>{what}</div>
+      <div style={slipFoot}>
+        <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--quiet)'}}>{note}</span>
+        <button type="button" disabled style={{background:'transparent',border:'1px dashed var(--border)',borderRadius:'10px',padding:'8px 12px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'var(--quiet)',cursor:'default',whiteSpace:'nowrap',opacity:0.7}}>Mark as Submitted</button>
+      </div>
+    </div>
+  );
   const claimWhat = [otSlip&&otSlip.kind, paSlip&&'PA'].filter(Boolean).join(' or ') || 'Overtime or PA';
 
   // ── step 5: notes ────────────────────────────────────────────────────────
@@ -389,23 +407,16 @@ export function TabLogOvertime({
         {step(4,'Claim submitted yet?',(
           <>
             <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,lineHeight:1.45,margin:'4px 0 2px'}}>{claimWhat} not submitted waits in <b style={{color:'var(--ink)'}}>Awaits Submission</b>. Already submitted it? Mark it below.</div>
-            {isPlannedShift && (otSlip||paSlip) ? (
-              <div style={{marginTop:'10px',background:'var(--tint-blue)',border:'1px dashed color-mix(in srgb, #2563eb 45%, transparent)',borderRadius:'12px',padding:'11px 13px',display:'flex',gap:'10px',alignItems:'flex-start',fontSize:'12.5px',color:'var(--muted)',lineHeight:1.45}}>
-                <Ico n="cal" s={16} c="#2563eb"/>
-                <div><b style={{color:'var(--ink)'}}>Planned shift · {new Date(form.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}).replace(/\bSep\b/,'Sept')}.</b> You can mark it as submitted once you've worked it. It'll appear in Awaits Submission from {shortDate(form.date)}.</div>
-              </div>
-            ) : otSlip||paSlip ? (
-              <>
-                <div style={{display:'grid',gridTemplateColumns:isWide&&otSlip&&paSlip?'repeat(2,minmax(0,1fr))':'1fr',gap:'10px',marginTop:'10px'}}>
-                  {otSlip && claimSlip('ot', otSlip, 'CARMS')}
-                  {paSlip && claimSlip('pa', paSlip, 'PSOP')}
-                </div>
-                {otSlip && !paSlip && <div style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)',marginTop:'8px'}}>No PA on this shift.</div>}
-                {paSlip && !otSlip && <div style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)',marginTop:'8px'}}>No overtime hours on this shift.</div>}
-              </>
-            ) : (
-              <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'8px'}}>Add hours or a Protection Allowance above and they'll show here to mark as submitted.</div>
-            )}
+            {/* Both slips always show — Overtime on CARMS and PA on PSOP —
+                so this box keeps one size; one with nothing to claim yet sits
+                greyed out until there is. A planned shift's slips wait until
+                it's been worked. */}
+            <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(2,minmax(0,1fr))':'1fr',gap:'10px',marginTop:'10px'}}>
+              {otSlip && !isPlannedShift ? claimSlip('ot', otSlip, 'CARMS')
+                : idleSlip('CARMS', otSlip ? otSlip.amt : '—', otSlip ? otSlip.what : 'Overtime', isPlannedShift && otSlip ? `Planned · claim from ${shortDate(form.date)}` : 'Add hours above')}
+              {paSlip && !isPlannedShift ? claimSlip('pa', paSlip, 'PSOP')
+                : idleSlip('PSOP', paSlip ? paSlip.amt : '—', paSlip ? paSlip.what : 'Protection Allowance', isPlannedShift && paSlip ? `Planned · claim from ${shortDate(form.date)}` : 'No PA chosen')}
+            </div>
           </>
         ),{ref:carmsToggleRef,className:focusCarmsToggle?'carms-pulse':undefined,style:{border:focusCarmsToggle?'2px solid #2563eb':'1px solid var(--border-2)'}})}
 
