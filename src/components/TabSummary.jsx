@@ -102,7 +102,7 @@ export function TabSummary({
   // each came from), Protection Allowance, TOIL, and anything still to submit —
   // shared by the Calendar's totals card and an opened month in Months view,
   // so the two always read the same way.
-  const periodBreakdownRows = ({pb, tierHours, tierGross, tierDates, paCount, paGross, paDates, toilWorked, toilBanked, toilWaiting=0, carmsGroup, periodIdx}) => {
+  const periodBreakdownRows = ({pb, tierHours, tierGross, tierDates, paCount, paGross, paDates, toilWorked, toilBanked, toilWaiting=0, carmsGroup, periodIdx, extra=null}) => {
     const lineRow = {display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',fontSize:'12.5px',fontWeight:700};
     const tier = (key,lbl) => tierHours[key]>0 && (
       <div key={key} style={{padding:'7px 0'}}>
@@ -146,6 +146,8 @@ export function TabSummary({
         {paLine('PA1')}{paLine('PA2')}{paLine('PA3')}
         {noPA&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this pay month</div>}
       </div>
+      {/* e.g. the Calendar's planned-shifts section */}
+      {extra}
       {linkRow(()=>setTab('graph'),'clock','#7c3aed',<>TOIL <span style={{fontFamily:MONO,fontWeight:600,color:'var(--text-purple-deep)',marginLeft:'4px'}}>{fmtHrs(toilWorked)} worked → {fmtHrs(toilBanked)}{toilWaiting>0?'':' banked'}</span></>,null,null,
         // Unsubmitted TOIL isn't in the balance yet (TOIL page) — say how
         // much of this period's figure that is, so the two pages agree.
@@ -1172,7 +1174,45 @@ export function TabSummary({
                       </div>
                     ))}
                   </div>
-                  {periodBreakdownRows({pb, tierHours:pTierHours, tierGross:pTierGross, tierDates:pTierDates, paCount:{PA1:ppa1,PA2:ppa2,PA3:ppa3}, paGross:pPaGross, paDates:pPaDates, toilWorked:pToilWorked, toilBanked:pToilBanked, toilWaiting:pToilWaiting, carmsGroup:g, periodIdx:cIdx})}
+                  {(()=>{
+                    // Planned shifts in this pay month, in sky blue and never
+                    // part of the real figures above: a phone gets one strip
+                    // under the figures; a computer gets its own section in
+                    // the breakdown listing each shift and the month's total
+                    // if they're claimed on time.
+                    const ex = totals.expected?.[cIdx];
+                    const hasEx = !!(ex && ex.n>0);
+                    const sky = {color:'var(--exp-ink)'};
+                    const skyBox = {background:'var(--exp-tint)',border:'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)',borderRadius:'11px'};
+                    const shiftsLbl = hasEx ? `Planned · ${ex.n} shift${ex.n!==1?'s':''}` : '';
+                    const strip = hasEx && !isWide && (
+                      <div style={{...skyBox,display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'9px 12px',marginBottom:'10px'}}>
+                        <span><span style={{display:'block',fontSize:'9.5px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.06em',...sky}}>{shiftsLbl}</span><span style={{fontFamily:MONO,fontSize:'17px',fontWeight:600,...sky}}>{fmtHrs(ex.hrs)}</span></span>
+                        <span style={{textAlign:'right',fontFamily:MONO,fontSize:'12.5px',fontWeight:700,...sky}}>+{fmtGBP(ex.gross)} gross<span style={{display:'block'}}>+{fmtGBP(ex.net)} net</span></span>
+                      </div>
+                    );
+                    const planned = cEntries.filter(e=>e.date>todayStr).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+                    const section = hasEx && isWide && (
+                      <div style={{borderTop:'1px solid var(--border-2)',padding:'8px 0 2px'}}>
+                        <div style={{...skyBox,padding:'9px 11px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px'}}>
+                            <span style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.06em',...sky}}>{shiftsLbl} · {fmtHrs(ex.hrs)}</span>
+                            <span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:700,...sky}}>+{fmtGBP(ex.gross)} gross · +{fmtGBP(ex.net)} net</span>
+                          </div>
+                          {planned.map(e=>{ const c=calcEntry(e); return (
+                            <div key={e.id} style={{display:'flex',justifyContent:'space-between',gap:'10px',fontSize:'12.5px',fontWeight:700,...sky,padding:'6px 0 0'}}>
+                              <span>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · {fmtHrs(c.h1+c.h2+c.h3)}{e.paRate&&e.paRate!=='None'?` · ${e.paRate}`:''}</span>
+                              <span style={{fontFamily:MONO}}>{fmtGBP(c.gross)}</span>
+                            </div>); })}
+                          <div style={{borderTop:'1px dashed color-mix(in srgb, var(--exp) 45%, transparent)',marginTop:'8px',paddingTop:'7px',fontSize:'12px',fontWeight:700,...sky}}>If claimed on time, {payLabel(cPeriod.month)} comes to <span style={{fontFamily:MONO,whiteSpace:'nowrap'}}>{fmtGBP(pb.combinedGross+ex.gross)} gross · {fmtGBP(pb.combinedNet+ex.net)} net</span></div>
+                        </div>
+                      </div>
+                    );
+                    return (<>
+                      {strip}
+                      {periodBreakdownRows({pb, tierHours:pTierHours, tierGross:pTierGross, tierDates:pTierDates, paCount:{PA1:ppa1,PA2:ppa2,PA3:ppa3}, paGross:pPaGross, paDates:pPaDates, toilWorked:pToilWorked, toilBanked:pToilBanked, toilWaiting:pToilWaiting, carmsGroup:g, periodIdx:cIdx, extra:section})}
+                    </>);
+                  })()}
                 </div>
               );
             })()}
