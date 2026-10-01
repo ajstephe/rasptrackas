@@ -70,10 +70,10 @@
          added alongside DM Sans/IBM Plex Sans so every theme beyond the
          default can load its type without a second request each. -->
     <!-- Space Grotesk (Midnight), Ysabeau Office (Flagship), Titillium
-         Web (Heritage) and Barlow Semi Condensed (Energy) added alongside the rest for the same reason Inter was —
+         Web (Heritage) Barlow Semi Condensed (Energy), Zen Kaku Gothic New (Muji) and Arimo (Luftplane) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -147,7 +147,7 @@
            any of them one token at a time. Midnight is a dark-first design
            in its own right, so this matters just as much for it as it does
            for the light ones. */
-        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]){
+        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]){
           --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
           --tag-purple:#cbb8f7;
           --page-bg:#0b1220;
@@ -541,6 +541,105 @@
         --surface-red-mid:#eea39d;
         --text-blue-deep:#0a0a0a;
       }
+
+      /* ── Muji ── quiet, natural-goods calm: kraft-paper page and soft
+         off-white cards, a warm dark-brown sidebar and header card, and a
+         deep maroon accent. The save button is cream with maroon text so it
+         stands out on the brown bar. Zen Kaku Gothic New letters (a
+         Japanese-style gothic), IBM Plex Sans figures. */
+      :root[data-theme="muji"]{
+        color-scheme: light;
+        --save-bg:#fffdf8;
+        --save-ink:#7f0019;
+        --hero-label:#f1c9a5;
+        --title-grad:linear-gradient(135deg,#3a3128,#3a3128);
+        --page-bg:#f3efe6;
+        --surface:#fffdf8;
+        --surface-rgb:255,253,248;
+        --surface-2:#f8f4ec;
+        --surface-2-rgb:248,244,236;
+        --chip-bg:#efe9dc;
+        --border:#e1d9c8;
+        --border-2:#ece6d8;
+        --ink:#3a3128;
+        --muted:#6e6253;
+        --quiet:#998c7b;
+        --navy:#4a3f35;
+        --savebar:#4a3f35;
+        --navy-rgb:74,63,53;
+        --sidebar-bg-rgb:74,63,53;
+        --accent:#7f0019;
+        --app-font:'Zen Kaku Gothic New',system-ui,sans-serif;
+        --tint-blue:#edf1f6;
+        --tint-red:#fbe9e7;
+        --tint-green:#e8f4ea;
+        --tint-green-2:#d2eadb;
+        --tint-purple:#f1ecf8;
+        --tint-amber:#fcf2df;
+        --tint-amber-2:#f6e1b6;
+        --tint-teal:#e4f1ef;
+        --text-navy:#3a3128;
+        --text-red-deep:#b0261e;
+        --text-green-deep:#1d6b3e;
+        --text-purple-deep:#5e3c9e;
+        --text-amber-deep:#8a5807;
+        --tint-blue-2:#e2e8f0;
+        --tint-brass:#f6e6e3;
+        --tint-indigo:#e9eaf7;
+        --text-indigo-deep:#3a46a3;
+        --surface-red-mid:#eaa29b;
+        --text-blue-deep:#7f0019;
+      }
+
+      /* ── Luftplane ── airline crispness: a deep ink blue for the sidebar,
+         header card, buttons and text, bright yellow for the current tab,
+         highlights and the save button (dark-blue text), on a pale-grey page
+         with white cards. Flat sidebar, no glow. Arimo letters (a
+         Helvetica-style face), IBM Plex Sans figures. */
+      :root[data-theme="luftplane"]{
+        color-scheme: light;
+        --save-bg:#ffad00;
+        --save-ink:#05164d;
+        --hero-label:#ffad00;
+        --title-grad:linear-gradient(135deg,#05164d,#05164d);
+        --page-bg:#f2f3f6;
+        --surface:#ffffff;
+        --surface-rgb:255,255,255;
+        --surface-2:#f7f8fa;
+        --surface-2-rgb:247,248,250;
+        --chip-bg:#eceef3;
+        --border:#dcdfe7;
+        --border-2:#e8eaf0;
+        --ink:#05164d;
+        --muted:#4a5378;
+        --quiet:#7c84a3;
+        --navy:#05164d;
+        --savebar:#05164d;
+        --navy-rgb:5,22,77;
+        --sidebar-bg-rgb:5,22,77;
+        --accent:#05164d;
+        --app-font:'Arimo',system-ui,sans-serif;
+        --tint-blue:#eaeef8;
+        --tint-red:#fbe9e9;
+        --tint-green:#e7f5ec;
+        --tint-green-2:#d0ecda;
+        --tint-purple:#f0ecf8;
+        --tint-amber:#fff6e0;
+        --tint-amber-2:#ffe6ad;
+        --tint-teal:#e4f2f1;
+        --text-navy:#05164d;
+        --text-red-deep:#b0212b;
+        --text-green-deep:#16693e;
+        --text-purple-deep:#5b3a9c;
+        --text-amber-deep:#8a5600;
+        --tint-blue-2:#dde3f2;
+        --tint-brass:#fff4dc;
+        --tint-indigo:#e8eaf8;
+        --text-indigo-deep:#2f3e9e;
+        --surface-red-mid:#eca2a6;
+        --text-blue-deep:#1d3f9a;
+      }
+
 
       html,body,#root{background:var(--page-bg)}
       @media (max-width:349px){.net-spark{display:none}}
