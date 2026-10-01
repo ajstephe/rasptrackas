@@ -1058,6 +1058,9 @@ export function TabSummary({
 
             <div className="hint-pulse" style={{fontSize:'14px',color:'var(--quiet)',textAlign:'center',fontWeight:600,margin:'10px 0'}}>{isWide?'Click':'Tap'} a day to see its shifts or log one</div>
 
+            {/* A computer shows the calendar and the month's breakdown side by
+                side; a phone stacks them. */}
+            <div className={isWide?'split-cal':undefined}>
             {/* calendar grid */}
             <div
               ref={calCardRef}
@@ -1230,6 +1233,7 @@ export function TabSummary({
                 </div>
               );
             })()}
+            </div>
             {renderFYTotalsCard()}
           </>
         );

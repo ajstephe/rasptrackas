@@ -175,7 +175,7 @@ export function TabLogOvertime({
         ))}
         {!rdw && row('Rostered shift','Shown on CARMS',(
           <>
-            <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,auto)':'repeat(4,minmax(0,1fr))',justifyContent:'start',gap:'6px',marginBottom:'8px'}}>
+            <div style={isWide?{display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'8px'}:{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'6px',marginBottom:'8px'}}>
               {PRESETS.map(([start,end])=>{
                 const on = form.rosteredStart===start && form.rosteredEnd===end;
                 return (
@@ -342,6 +342,9 @@ export function TabLogOvertime({
         </div>
       ) : (
       <>
+        {/* A computer has room for the form in two columns: when and the
+            hours on the left, pay, claim and notes on the right. */}
+        <div className={isWide?'split-log':undefined}><div>
         {step(1,'When and what',(
           <>
             {row('Date','', isWide ? (
@@ -366,6 +369,7 @@ export function TabLogOvertime({
           </>
         ))}
 
+        </div><div>
         {step(3,"How it's paid",(
           <>
             {form.recordShiftTimes && row('Overtime rate','',seg(tier,TIERS,h=>setForm(f=>{
@@ -422,6 +426,7 @@ export function TabLogOvertime({
         ) : (
           <button type="button" onClick={()=>{ setNotesOpen(true); setTimeout(()=>notesRef.current?.focus(),0); }} style={{background:'none',border:'none',padding:'4px 0 0',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'#2563eb',cursor:'pointer'}}>+ Add a note</button>
         ),{optional:true})}
+        </div></div>
 
         {/* One bar for the running total and Save, on both desktop and
             mobile — sticky, so it stays in view the whole way down the form.

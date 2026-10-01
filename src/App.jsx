@@ -824,7 +824,7 @@ export default function App() {
 
   // Width-based desktop detection — 960px chosen as "narrow laptop and up",
   // matching what the reviewed mockups were built against. This is purely
-  // presentational: it changes which shell renders (sidebar+glance vs the
+  // presentational: it changes which shell renders (sidebar vs the
   // existing mobile chrome), never the underlying tab/data logic, which
   // stays identical either way.
   // isWide also covers phones/tablets rotated to landscape — without this,
@@ -832,8 +832,8 @@ export default function App() {
   // shows the narrow 430px mobile column centred in a lot of empty grey
   // space either side, rather than actually using the width it has.
   // The landscape carve-out used to fire from 650px — but the wide shell
-  // itself (fixed 250px sidebar + fixed 320px "at a glance" panel, neither
-  // of which shrinks) genuinely needs close to the full 960px before
+  // itself (fixed 250px sidebar, and until it was removed a fixed 320px
+  // "at a glance" panel, neither of which shrank) genuinely needed close to the full 960px before
   // there's anything usable left for the middle column. Below that, main
   // content was measured as narrow as 108px wide, with real numbers
   // clipped mid-figure. 900px is the verified floor — confirmed clean on
@@ -2025,17 +2025,6 @@ export default function App() {
   // month's net. Used by the day pop-up, opened months and the Log Overtime
   // preview, so all three always agree with the month totals.
   const entryNet = useCallback((e, exclude=null)=>entryNetPure({ e, settings, today: todayStr, lookup: payMonthFor, exclude }),[settings, todayStr, payMonthFor]);
-
-  // Desktop's "At a Glance" sidebar (below, in the JSX) shows this same
-  // current-period Gross/Net pair Dashboard's own hero row does — but
-  // unlike every other headline figure in the app, it used to just snap to
-  // a new value instead of counting there. Declared here at the top level
-  // (rather than inside the aside's own render, which only ever runs while
-  // isWide is true) so the hook itself is called unconditionally regardless
-  // of screen width, same reasoning as every other top-level hook in here.
-  const glancePb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
-  const animatedGlanceGross = useCountUp(glancePb ? glancePb.combinedGross : 0);
-  const animatedGlanceNet = useCountUp(glancePb ? glancePb.combinedNet : 0);
 
   // The Tax & 100K+ Calculator's two columns, straight from the payslips:
   // Actual = paydays so far this tax year; Forecast = the whole year. Tax
@@ -3966,7 +3955,6 @@ export default function App() {
              is the same press feedback for those. ── */
         .tap-row{transition:transform 0.12s ease, opacity 0.12s ease, filter 0.15s ease}
         .tap-row:active{transform:scale(0.975);opacity:0.7}
-        .glance-claim-row{transition:background 0.14s ease, transform 0.14s ease}
         /* ── hover feedback, desktop only ─────────────────────────────────
              Every clickable surface got tap feedback for touch a while
              back; this is the mouse equivalent, which the app never had
@@ -3997,10 +3985,6 @@ export default function App() {
              it reads through this var() instead of setting the property
              itself, leaving the var free for this rule to set. */
           button.sidebar-nav-btn:hover{filter:none;--sidebar-hover-bg:rgba(255,255,255,0.06)}
-          /* The "At a Glance" claim rows (desktop sidebar aside) had no
-             hover feedback of any kind before this despite being real
-             onClick targets — not a re-skin of an existing treatment. */
-          .glance-claim-row:hover{background:var(--surface-2);transform:translateY(-1px)}
         }
         /* ── native-style tooltip (Tooltip.jsx) — icon-only buttons (edit/
              delete on a list entry) get a dark, arrowed label instead of
@@ -4145,7 +4129,6 @@ export default function App() {
           .save-pulse-idle{animation-duration:0.001ms}
           .badge-pop{animation-duration:0.001ms}
           .tap-row{transition-duration:0.001ms}
-          .glance-claim-row{transition-duration:0.001ms}
           .toast-enter{animation-duration:0.001ms}
           .toast-leave{animation-duration:0.001ms}
           .toast-bar{animation-duration:0.001ms}
@@ -4186,6 +4169,11 @@ export default function App() {
         .hint-pulse{animation:subtlePulse 1.8s ease-in-out infinite}
         .backup-pulse{animation:backupPulse 1.4s ease-in-out infinite}
         .save-pulse-idle{animation:savePulseIdle 1.8s ease-in-out infinite}
+        @media (max-width:1180px){.hdr-month{display:none!important}}
+        /* Two-column layouts on a computer only once there's room for them
+           (sidebar is 250px); narrower windows keep the single column. */
+        @media (min-width:1400px){.split-log{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:12px;align-items:start}}
+        @media (min-width:1360px){.split-cal{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);column-gap:14px;align-items:start}}
         .fi{animation:fi 0.22s ease}
         .setup-pulse-urgent{animation:urgentPulse 1.5s ease-in-out infinite}
         input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
@@ -4250,7 +4238,18 @@ export default function App() {
             <span style={{fontSize:'13px',fontWeight:700,color:'var(--quiet)',letterSpacing:'0.2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>by Adam Stephens</span>
           </div>
         </div>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',flexShrink:0,gap:'8px'}}>
+          {/* Computer only: this pay month and what's left to submit, one
+              click from every screen (they replaced the old At a Glance
+              column). The month pill drops out on narrower windows. */}
+          {isWide && (()=>{
+            const cp = totals.curr;
+            const pill = {display:'inline-flex',alignItems:'center',gap:'8px',border:'1px solid var(--border)',background:'var(--surface-2)',borderRadius:'999px',padding:'6px 12px',fontSize:'12.5px',fontWeight:700,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'};
+            return (<>
+              {cp&&<button type="button" className="hdr-month" onClick={()=>setTab('dashboard')} title="This pay month — open Home" style={pill}>{payLabel(cp.month)}<span style={{fontFamily:MONO,fontWeight:700,color:'var(--ink)'}}>{fmtGBP(cp.gross)}</span><span style={{fontFamily:MONO,fontWeight:700,color:'#059669'}}>{fmtGBP(cp.net)} net</span></button>}
+              {carmsOutstanding.totalClaims>0&&<button type="button" onClick={()=>setTab('carms')} title="Open Awaits Submission" style={{...pill,background:'var(--tint-red)',borderColor:'transparent',color:'var(--text-red-deep)'}}><span style={{fontFamily:MONO,fontWeight:700}}>{fmtGBP(carmsOutstanding.totalAmount)}</span> to submit · {carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''}</button>}
+            </>);
+          })()}
           {/* Desktop-only, hidden here — the fixed sidebar already carries
               its own persistent Sync button at all times, so this would
               just be a second one doing the exact same thing. */}
@@ -4480,98 +4479,6 @@ export default function App() {
       </Suspense>
       </main>
 
-      {/* ── Desktop secondary column — gives the empty space beside the
-           main column on a wide screen an actual job, rather than just
-           being padding around a phone-width layout. Left off Home and
-           Awaits Submission, where every figure it shows is already on
-           screen; those two use the full width instead. ── */}
-      {isWide && tab!=='dashboard' && tab!=='carms' && (
-        <aside className="no-print" style={{width:'320px',flexShrink:0,padding:'24px 24px 24px 0',overflowY:'auto'}}>
-          {/* fontWeight:700, not 900 — the figures font is loaded up to
-              700, so 900 would only ever render as 700. */}
-          <div style={{fontFamily:MONO,fontSize:'10px',fontWeight:700,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'12px',padding:'0 2px'}}>At a Glance</div>
-
-          <div style={{background:'var(--surface)',borderRadius:'16px',border:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.04)',padding:'4px 16px',overflow:'hidden'}}>
-          {(()=>{
-            const pb = glancePb;
-            return (
-              <div style={{padding:'14px 0',borderBottom:'1px solid var(--border-2)'}}>
-                <div style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>{pb?payLabel(pb.month):'This pay month'}</div>
-                <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'2px',marginBottom:'8px'}}>{pb?`${shiftSpan(pb.start,pb.end)} · submitted only`:'Submitted overtime only'}</div>
-                <div style={{display:'flex',justifyContent:'space-between',gap:'12px'}}>
-                  <div>
-                    <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</div>
-                    <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'var(--ink)',marginTop:'2px'}}>{pb?fmtGBP(animatedGlanceGross):'£0.00'}</div>
-                  </div>
-                  <div style={{textAlign:'right'}}>
-                    <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</div>
-                    <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'#059669',marginTop:'2px'}}>{pb?fmtGBP(animatedGlanceNet):'£0.00'}</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          <div style={{padding:'14px 0 4px'}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}}>
-              <span style={{fontWeight:900,fontSize:'10px',color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Overtime &amp; PA to submit</span>
-              {carmsOutstanding.totalClaims>0&&<span onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:700,color:BRASS,cursor:'pointer'}}>View all →</span>}
-            </div>
-            {carmsOutstanding.totalClaims===0
-              ? <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600,padding:'6px 0 14px'}}>Nothing outstanding right now.</div>
-              : (()=>{
-                  // One row per CLAIM, not per entry: an entry with both
-                  // overtime and PA outstanding is two separate submissions
-                  // (CARMS and PSOP), so it gets a row each with its own
-                  // amount — mirroring the CARMS/PA tab, and keeping the row
-                  // count consistent with the "claims to submit" total below,
-                  // which has always counted them separately.
-                  const allClaims = [];
-                  carmsOutstanding.groups.forEach(g=>g.items.forEach(it=>{
-                    if (it.otOutstanding) allClaims.push({ entry:it.entry, kind:'Overtime', amount:it.otAmt, key:it.entry.id+'-ot',
-                      // Taken wholly as TOIL: show the hours, not £0.00.
-                      toilOnly: it.toilOutstanding && it.otAmt < 0.005 ? it.toilHrs : 0 });
-                    if (it.paOutstanding) allClaims.push({ entry:it.entry, kind:it.entry.paRate, amount:it.paAmt, key:it.entry.id+'-pa' });
-                  }));
-                  const LIMIT = 5;
-                  const shown = allClaims.slice(0, LIMIT);
-                  const hidden = allClaims.length - shown.length;
-                  return (
-                    <>
-                      {shown.map((cl,i)=>(
-                        <div key={cl.key} onClick={()=>setTab('carms')} className="glance-claim-row" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',padding:'9px 8px',margin:'0 -8px',borderRadius:'9px',borderTop:i===0?'none':'1px solid var(--border-2)',cursor:'pointer'}}>
-                          <div style={{minWidth:0}}>
-                            <div style={{fontSize:'11.5px',fontWeight:700,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cl.entry.reason||'Shift'}</div>
-                            <div style={{fontSize:'9.5px',color:'var(--quiet)'}}>{cl.kind} · {new Date(cl.entry.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
-                          </div>
-                          <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:cl.toilOnly?700:600,color:cl.toilOnly?'var(--tag-purple)':BRASS,flexShrink:0}}>{cl.toilOnly?`+${fmtHrs(cl.toilOnly)} TOIL`:fmtGBP(cl.amount)}</div>
-                        </div>
-                      ))}
-                      {hidden>0&&(
-                        <button onClick={()=>setTab('carms')} style={{fontSize:'10px',fontWeight:700,color:BRASS,padding:'8px 0 0',width:'100%',background:'none',border:'none',borderTopWidth:'1px',borderTopStyle:'solid',borderTopColor:'var(--border-2)',marginTop:'2px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
-                          +{hidden} more claim{hidden!==1?'s':''} →
-                        </button>
-                      )}
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'var(--tint-brass)',borderRadius:'13px',padding:'9px 11px',marginTop:'8px'}}>
-                        <span style={{fontSize:'10px',fontWeight:700,color:'var(--text-amber-deep)'}}>{carmsOutstanding.totalClaims} CLAIM{carmsOutstanding.totalClaims!==1?'S':''} TO SUBMIT</span>
-                        <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</span>
-                      </div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'10px 11px 0'}}>
-                        <span style={{fontSize:'9.5px',fontWeight:700,color:'var(--quiet)'}}>Overtime unclaimed</span>
-                        <span style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalOtAmount)}</span>
-                      </div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'4px 11px 14px'}}>
-                        <span style={{fontSize:'9.5px',fontWeight:700,color:'var(--quiet)'}}>PA unclaimed</span>
-                        <span style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalPaAmount)}</span>
-                      </div>
-                    </>
-                  );
-                })()
-            }
-          </div>
-          </div>
-        </aside>
-      )}
       </div>
 
       {/* Financial Reports & Export — shared modal for both PDF and Spreadsheet formats */}
