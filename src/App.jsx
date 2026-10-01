@@ -3864,11 +3864,14 @@ export default function App() {
            than replacing it, so the ring never reads as the button's drop
            shadow flickering. Stops the instant justSaved flips true —
            .save-pulse's own one-shot green ring takes over from there. */
+        /* --save-bg lets a theme whose accent matches the save bar itself
+           (Corporate and Energy are black on black) give the button, and
+           so its glow, a colour that stands out; otherwise it's the accent. */
         @keyframes savePulseIdle{
-          0%,100%{box-shadow:0 3px 14px color-mix(in srgb, ${BRASS} 40%, transparent),0 0 0 0 color-mix(in srgb, ${BRASS} 0%, transparent)}
-          30%{box-shadow:0 3px 14px color-mix(in srgb, ${BRASS} 40%, transparent),0 0 0 10px color-mix(in srgb, ${BRASS} 35%, transparent)}
-          50%{box-shadow:0 3px 14px color-mix(in srgb, ${BRASS} 40%, transparent),0 0 0 0 color-mix(in srgb, ${BRASS} 0%, transparent)}
-          70%{box-shadow:0 3px 14px color-mix(in srgb, ${BRASS} 40%, transparent),0 0 0 10px color-mix(in srgb, ${BRASS} 35%, transparent)}
+          0%,100%{box-shadow:0 3px 14px color-mix(in srgb, var(--save-bg, ${BRASS}) 40%, transparent),0 0 0 0 color-mix(in srgb, var(--save-bg, ${BRASS}) 0%, transparent)}
+          30%{box-shadow:0 3px 14px color-mix(in srgb, var(--save-bg, ${BRASS}) 40%, transparent),0 0 0 10px color-mix(in srgb, var(--save-bg, ${BRASS}) 35%, transparent)}
+          50%{box-shadow:0 3px 14px color-mix(in srgb, var(--save-bg, ${BRASS}) 40%, transparent),0 0 0 0 color-mix(in srgb, var(--save-bg, ${BRASS}) 0%, transparent)}
+          70%{box-shadow:0 3px 14px color-mix(in srgb, var(--save-bg, ${BRASS}) 40%, transparent),0 0 0 10px color-mix(in srgb, var(--save-bg, ${BRASS}) 35%, transparent)}
         }
         @keyframes subtlePulse{0%{opacity:0.5}20%{opacity:1}40%{opacity:0.5}60%{opacity:1}80%,100%{opacity:0.5}}
         @keyframes entryFlash{0%{box-shadow:0 0 0 0 rgba(37,99,235,0.45)}60%{box-shadow:0 0 0 10px rgba(37,99,235,0)}100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}}

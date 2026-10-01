@@ -240,6 +240,9 @@
          themeMode in App.jsx). */
       :root[data-theme="corporate"]{
         color-scheme: light;
+        /* Save button stands out against the black save bar. */
+        --save-bg:#ffffff;
+        --save-ink:#141414;
         --title-grad:linear-gradient(135deg,#141414,#141414);
         --page-bg:#f6f5f2;
         --surface:#ffffff;
@@ -496,6 +499,9 @@
          "energy" when the app loads (see themeMode in App.jsx). */
       :root[data-theme="energy"]{
         color-scheme: light;
+        /* Save button stands out against the black save bar. */
+        --save-bg:#8cf01e;
+        --save-ink:#0a0a0a;
         --hero-label:#8cf01e;
         --title-grad:linear-gradient(135deg,#0a0a0a 45%,#3f9b0b);
         --page-bg:#eff1ee;
