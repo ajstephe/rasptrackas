@@ -725,7 +725,7 @@ export function TabSummary({
               {rows.map(r=>{ const st = ROW[r.k];
                 const box = {display:'grid',gridTemplateColumns:COLS,columnGap:'10px',alignItems:'center',borderRadius:'8px',padding:'5px 8px',background:st.bg,outline:st.dashed?'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)':'none',outlineOffset:'-1px',lineHeight:1.25};
                 const inner = (<>
-                  <span style={{minWidth:0,fontSize:'12px',fontWeight:800,color:st.lab}}>{r.lab}{r.k==='todo'&&<span style={{display:'inline-flex',alignItems:'center',gap:'3px',marginLeft:'6px',fontSize:'10.5px',fontWeight:800,textDecoration:'underline',textUnderlineOffset:'2px'}}><Ico n="cal" s={10} c="currentColor" w={2.4}/>Mark submitted</span>}<span style={{display:'block',fontSize:'10.5px',fontWeight:700,opacity:0.85}}>{r.det}</span></span>
+                  <span style={{minWidth:0,fontSize:'12px',fontWeight:800,color:st.lab}}>{r.lab}<span style={{display:'block',fontSize:'10.5px',fontWeight:700,opacity:0.85}}>{r.det}</span></span>
                   {fig(fmtGBP(r.g), st.g)}{fig(fmtGBP(r.n), st.n)}
                 </>);
                 // The "To submit" box opens the date picker to mark this
