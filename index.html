@@ -120,6 +120,11 @@
            theme except Flagship, which sets its own. Equal-width digits, so
            columns line up, without a typewriter look. */
         --num-font:'IBM Plex Sans',system-ui,sans-serif;
+        /* Expected pay from planned shifts: sky blue, kept apart from real
+           money (navy gross, green net) and every status colour. */
+        --exp:#0284c7;
+        --exp-tint:#e0f2fe;
+        --exp-ink:#075985;
         --tint-blue:#eff6ff;
         --tint-red:#fef2f2;
         --tint-green:#f0fdf4;
@@ -149,6 +154,9 @@
            for the light ones. */
         :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]){
           --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
+          --exp:#38bdf8;
+          --exp-tint:#0c2a3d;
+          --exp-ink:#7dd3fc;
           --tag-purple:#cbb8f7;
           --page-bg:#0b1220;
           --surface:#111c2e;
@@ -191,6 +199,9 @@
         color-scheme: light;
       }
       :root[data-theme="dark"]{
+        --exp:#38bdf8;
+        --exp-tint:#0c2a3d;
+        --exp-ink:#7dd3fc;
         --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
         --tag-purple:#cbb8f7;
         color-scheme: dark;
@@ -336,6 +347,9 @@
          Home/Awaits Submission statement cards still read as distinct
          surfaces against a page this dark. */
       :root[data-theme="midnight"]{
+        --exp:#38bdf8;
+        --exp-tint:#0c2a3d;
+        --exp-ink:#7dd3fc;
         --title-grad:linear-gradient(135deg,#e7ecf5,#22d3ee);
         --tag-purple:#cbb8f7;
         color-scheme: dark;
