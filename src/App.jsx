@@ -1973,6 +1973,27 @@ export default function App() {
     }
     const expectedYear = { gross: pence(sum(expected, x=>x.gross)), net: pence(sum(expected, x=>x.net)), n: planned.length, hrs: sum(expected, x=>x.hrs) };
 
+    // What each pay month's worked-but-unclaimed overtime and PA would add
+    // once claimed today — the Shifts view's "To submit" line. Worked out a
+    // month at a time, so each month's figure stands on its own.
+    const baseNet = sum(periodBreakdown, pb=>pb.combinedNet);
+    const toSubmit = PAY_PERIODS.map(p=>{
+      let gross = 0, n = 0;
+      const open = new Set();
+      fyEntries.forEach(e=>{
+        if (e.date<p.start || e.date>p.end || e.date>todayStr) return;
+        const c = calcEntry(e);
+        if (c.h1+c.h2+c.h3>0 && c.ot>0 && !isOtSubmitted(e)) { gross += c.ot; n++; open.add(e.id); }
+        if (c.pa>0 && !isPaSubmitted(e)) { gross += c.pa; n++; open.add(e.id); }
+      });
+      if (!hasPay || !open.size) return { gross: pence(gross), net: 0, n };
+      const claimed = fyEntries.map(e=>!open.has(e.id) ? e : { ...e,
+        ...(isOtSubmitted(e) ? {} : { otSubmitted:true, otSubmittedDate:todayStr }),
+        ...(isPaSubmitted(e) ? {} : { paSubmitted:true, paSubmittedDate:todayStr }) });
+      const y = buildPayYear({ periods: PAY_PERIODS, entries: claimed, settings });
+      return { gross: pence(gross), net: pence(sum(y, pb=>pb.combinedNet) - baseNet), n };
+    });
+
     return{
       totalGross, totalNet, totalHrs, periodBreakdown,
       prev:getP(currPeriodIdx-1), curr:getP(currPeriodIdx),
@@ -1981,7 +2002,7 @@ export default function App() {
       combinedGrossYTD, combinedNetYTD, pensionYTD, ytdTax, ytdNI,
       taxYearDaysElapsed, taxYearStart, taxYearFraction, taxFY,
       paidMonths, forecastYear, projectedAnnualGross,
-      expected, expectedYear,
+      expected, expectedYear, toSubmit,
       // Pay after pension so far — what the £100k taper is judged against.
       taxableGrossYTD,
     };

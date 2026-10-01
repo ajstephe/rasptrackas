@@ -4,6 +4,7 @@ import { KEYS, dualWrite } from '../lib/storage.js';
 import { fmt, fmtHrs, fmtGBP, fmtD, fmtDDMM, payLabel } from '../lib/format.js';
 import { isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate, periodIdxForDate } from '../lib/calc.js';
 import { RATE_TIER_LABEL } from '../lib/payRates.js';
+import { partNets } from '../lib/payroll.js';
 import { Ico } from './Icons.jsx';
 import { SegSlider } from './SegSlider.jsx';
 import { Tooltip } from './Tooltip.jsx';
@@ -737,6 +738,61 @@ export function TabSummary({
         // whether it was taken as pay or TOIL.
         const TIER_LABEL = { h1:'1.33×', h2:'1.5×', h3:'2.0×' };
 
+        // ── Money on each card, split by status ──
+        // Green: submitted, its share of the take-home in the month it was
+        // paid in. Red: worked but not claimed, what it would add once
+        // claimed. Sky blue: planned, expected. Gross and net sit in fixed,
+        // right-aligned columns shared with the month total below, so the
+        // figures line up all the way down.
+        const COLS = 'minmax(0,1fr) 78px 78px';
+        const claimedNet = new Map();
+        totals.periodBreakdown.forEach(mb=>partNets(mb).forEach(x=>{ const k = `${x.part.entry.id}:${x.part.kind}`; claimedNet.set(k, (claimedNet.get(k)||0) + x.net); }));
+        const covers = (ot, pa, rate) => ot&&pa ? `Overtime and ${rate}` : ot ? 'Overtime' : rate;
+        const moneyRows = (e, c) => {
+          if (c.gross<0.005) return c.toilBanked>0 ? [{k:'toil'}] : [];
+          const hasOT = c.h1+c.h2+c.h3>0 && c.ot>0, hasPA = c.pa>0;
+          if (e.date>todayStr) return [{k:'exp', lab:'Expected', det:covers(hasOT,hasPA,e.paRate), g:c.gross, n:entryNet(e)}];
+          const sOT = hasOT && isOtSubmitted(e), sPA = hasPA && isPaSubmitted(e);
+          const rows = [];
+          if (sOT||sPA) rows.push({k:'sub', lab:'✓ Submitted', det:covers(sOT,sPA,e.paRate), g:(sOT?c.ot:0)+(sPA?c.pa:0),
+            n:(sOT?claimedNet.get(`${e.id}:ot`)||0:0)+(sPA?claimedNet.get(`${e.id}:pa`)||0:0)});
+          const tOT = hasOT && !sOT, tPA = hasPA && !sPA;
+          if (tOT||tPA) {
+            // Only the unclaimed part: a shift half claimed is previewed
+            // without its claimed half, so the net is just what's left.
+            const rest = !(sOT||sPA) ? e : sOT ? {...e, hours133:'', hours150:'', hours200:'', toilHours:''} : {...e, paRate:'None'};
+            rows.push({k:'todo', lab:'To submit', det:covers(tOT,tPA,e.paRate), g:(tOT?c.ot:0)+(tPA?c.pa:0), n:entryNet(rest)});
+          }
+          return rows;
+        };
+        const ROW = {
+          sub:  {bg:'var(--tint-green)', lab:'var(--text-green-deep)', g:'var(--text-navy)', n:GRN},
+          todo: {bg:'var(--tint-red)', lab:'var(--text-red-deep)', g:'var(--text-red-deep)', n:'var(--text-red-deep)'},
+          exp:  {bg:'var(--exp-tint)', lab:'var(--exp-ink)', g:'var(--exp-ink)', n:'var(--exp)', dashed:true},
+        };
+        const fig = (v, col) => <span style={{fontFamily:MONO,fontVariantNumeric:'tabular-nums',fontSize:'13.5px',fontWeight:700,color:col,textAlign:'right',whiteSpace:'nowrap'}}>{v}</span>;
+        const colHead = {fontSize:'9.5px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'};
+        const moneyBlock = (e, c) => {
+          const rows = moneyRows(e, c);
+          if (!rows.length) return null;
+          if (rows[0].k==='toil') return (
+            <div style={{display:'flex',alignItems:'center',gap:'8px',background:'var(--tint-purple)',borderRadius:'8px',padding:'7px 8px',marginTop:'8px',fontSize:'12px',fontWeight:800,color:'var(--tag-purple)'}}>
+              <Ico n="clock" s={12} c="var(--tag-purple)" w={2.2}/>Taken as TOIL<span style={{marginLeft:'auto',fontFamily:MONO,fontWeight:700}}>{fmtHrs(c.toilBanked)} banked · no pay</span>
+            </div>
+          );
+          return (
+            <div style={{marginTop:'8px',borderTop:'1px solid var(--border-2)',paddingTop:'6px',display:'grid',gap:'4px'}}>
+              <div style={{display:'grid',gridTemplateColumns:COLS,columnGap:'10px',padding:'0 8px',...colHead}}><span/><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span></div>
+              {rows.map(r=>{ const st = ROW[r.k]; return (
+                <div key={r.k} style={{display:'grid',gridTemplateColumns:COLS,columnGap:'10px',alignItems:'center',borderRadius:'8px',padding:'5px 8px',background:st.bg,outline:st.dashed?'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)':'none',outlineOffset:'-1px',lineHeight:1.25}}>
+                  <span style={{minWidth:0,fontSize:'12px',fontWeight:800,color:st.lab}}>{r.lab}<span style={{display:'block',fontSize:'10.5px',fontWeight:700,opacity:0.85}}>{r.det}</span></span>
+                  {fig(fmtGBP(r.g), st.g)}{fig(fmtGBP(r.n), st.n)}
+                </div>
+              ); })}
+            </div>
+          );
+        };
+
         return (
           <>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'2px 3px 10px'}}>
@@ -803,6 +859,7 @@ export function TabSummary({
                         straight to the entry's own toggle) otherwise. */}
                     {carmsBadge(e, 9.5)}
                   </div>
+                  {moneyBlock(e, c)}
                   {e.comments&&(
                     <div style={{display:'grid',gridTemplateRows:notesOpen?'1fr':'0fr',transition:'grid-template-rows 0.28s cubic-bezier(.32,.72,0,1)'}}>
                       <div style={{overflow:'hidden'}}>
@@ -816,16 +873,63 @@ export function TabSummary({
               );
             })}</div>}
 
-            {cEntries.length>0 && (()=>{ const sp=hrsSplit(cEntries); return (
-              <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',rowGap:'10px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 4px',marginTop:'4px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
-                {[['Hours submitted',fmtHrs(sp.sub),GRN],['Not submitted',fmtHrs(sp.pend),sp.pend>0?RED:'var(--quiet)'],['Gross',fmt(pb.combinedGross),'var(--text-navy)'],['Net',fmt(pb.combinedNet),'#059669']].map(([k,v,col],n)=>(
-                  <div key={k} style={{textAlign:'center',padding:'0 4px',borderLeft:(isWide?n:n%2)?'1px solid var(--border-2)':'none'}}>
-                    <div style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--quiet)',marginBottom:'3px'}}>{k}</div>
-                    <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:col}}>{v}</div>
+            {cEntries.length>0 && (()=>{
+              // The month's shifts by status, in the same columns as the
+              // cards: submitted (the month's real pay), to submit (once
+              // claimed), planned (expected), and all of them together.
+              const sp = hrsSplit(cEntries), ts = totals.toSubmit?.[cIdx] || {gross:0,net:0,n:0}, ex = totals.expected?.[cIdx] || {gross:0,net:0,n:0};
+              // A month's pay can include claims for shifts listed under
+              // another month (claimed late), and a shift here can be paid in
+              // a later month. Say so, so the green line still tallies.
+              const shown = new Set([...cEntries, ...lateInto(cPeriod)].map(e=>e.id));
+              const inPb = new Set(pb.parts.map(x=>`${x.entry.id}:${x.kind}`));
+              const carriedIn = pb.parts.filter(x=>!shown.has(x.entry.id)).reduce((a,x)=>a+x.amount,0);
+              const paidElsewhere = cEntries.reduce((a,e)=>{ if (e.date>todayStr) return a; const c=calcEntry(e);
+                return a + (c.h1+c.h2+c.h3>0&&c.ot>0&&isOtSubmitted(e)&&!inPb.has(`${e.id}:ot`)?c.ot:0) + (c.pa>0&&isPaSubmitted(e)&&!inPb.has(`${e.id}:pa`)?c.pa:0); },0);
+              const notes = [carriedIn>0.005&&`Submitted includes ${fmtGBP(carriedIn)} claimed this month for shifts listed under an earlier month.`, paidElsewhere>0.005&&`${fmtGBP(paidElsewhere)} of the submitted money on these shifts is paid in another month.`].filter(Boolean);
+              const lines = [
+                {col:GRN, k:'Submitted', s:`in ${payLabel(cPeriod.month)}`, h:sp.sub, g:pb.combinedGross, n:pb.combinedNet, gc:'var(--text-navy)', nc:GRN, show:true},
+                {col:RED, k:'To submit', s:`${ts.n} claim${ts.n!==1?'s':''}, Awaits Submission`, h:sp.pend, g:ts.gross, n:ts.net, gc:'var(--text-red-deep)', nc:'var(--text-red-deep)', show:ts.gross>0.005},
+                {col:'var(--exp)', k:'Planned · expected', s:`${ex.n} shift${ex.n!==1?'s':''}, if claimed on time`, h:sp.plan, g:ex.gross, n:ex.net, gc:'var(--exp-ink)', nc:'var(--exp)', show:ex.n>0},
+              ].filter(l=>l.show);
+              const TC = isWide ? 'minmax(0,1fr) 64px 78px 78px' : COLS;
+              const allG = lines.reduce((a,l)=>a+l.g,0), allN = lines.reduce((a,l)=>a+l.n,0), allH = lines.reduce((a,l)=>a+l.h,0);
+              const row = {display:'grid',gridTemplateColumns:TC,columnGap:'10px',alignItems:'center',padding:'7px 8px',borderBottom:'1px solid var(--border-2)'};
+              const hrsCell = h => isWide && <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--ink)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtHrs(h)}</span>;
+              return (
+                <div style={{background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px',marginTop:'4px',boxShadow:'0 1px 6px rgba(0,0,0,0.05)'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',marginBottom:'8px'}}>
+                    <span style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>This month's shifts</span>
+                    <span style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)'}}>{payLabel(cPeriod.month)}</span>
                   </div>
-                ))}
-              </div>
-            ); })()}
+                  {allG>0.005&&lines.length>1&&(
+                    <div role="img" aria-label={lines.map(l=>`${l.k} ${fmtGBP(l.g)}`).join(', ')} style={{display:'flex',height:'10px',borderRadius:'6px',overflow:'hidden',marginBottom:'10px',background:'var(--chip-bg)'}}>
+                      {lines.map(l=><i key={l.k} style={{display:'block',width:`${(l.g/allG)*100}%`,background:l.k.startsWith('Planned')?'repeating-linear-gradient(135deg, var(--exp) 0 6px, color-mix(in srgb, var(--exp) 55%, white) 6px 12px)':l.col}}/>)}
+                    </div>
+                  )}
+                  <div style={{...row,padding:'0 8px 6px',...colHead}}><span/>{isWide&&<span style={{textAlign:'right'}}>Hours</span>}<span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span></div>
+                  {lines.map(l=>(
+                    <div key={l.k} style={row}>
+                      <span style={{display:'flex',alignItems:'center',gap:'7px',minWidth:0,fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>
+                        <i aria-hidden="true" style={{width:'10px',height:'10px',borderRadius:'3px',background:l.col,flexShrink:0}}/>
+                        <span style={{minWidth:0}}>{l.k}<span style={{display:'block',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)'}}>{l.s}</span></span>
+                      </span>
+                      {hrsCell(l.h)}{fig(fmtGBP(l.g), l.gc)}{fig(fmtGBP(l.n), l.nc)}
+                    </div>
+                  ))}
+                  {lines.length>1&&(
+                    <div style={{...row,borderBottom:'none',borderTop:'2px solid var(--border)'}}>
+                      <span style={{fontSize:'13.5px',fontWeight:800,color:'var(--ink)'}}>All shifts<span style={{display:'block',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)'}}>{cEntries.length} shift{cEntries.length!==1?'s':''}</span></span>
+                      {hrsCell(allH)}{fig(fmtGBP(allG),'var(--ink)')}{fig(fmtGBP(allN),'var(--ink)')}
+                    </div>
+                  )}
+                  {(lines.length>1||notes.length>0)&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',padding:'6px 8px 0',display:'grid',gap:'3px'}}>
+                    {notes.map(t=><span key={t}>{t}</span>)}
+                    {lines.length>1&&<span>Net for "to submit" is what it adds once claimed; "expected" assumes the shift is worked and claimed on time.</span>}
+                  </div>}
+                </div>
+              );
+            })()}
           </>
         );
       })()}
