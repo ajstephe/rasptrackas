@@ -25,7 +25,7 @@ export function TabSummary({
   setSelectedCalDay, setConfirmCreateDay,
   PAY_PERIODS, fyEntries, totals, carmsOutstanding, todayStr, entryNet,
   calcEntry, crossPeriodInfo, carmsBadge, renderDatePills, renderFYTotalsCard,
-  jumpTo, snapToActiveMonth, startEdit, delEntry, setTab, animClass='fi',
+  openQuickSubmit, jumpTo, snapToActiveMonth, startEdit, delEntry, setTab, animClass='fi',
 }) {
   // Hours split by claim status: overtime marked submitted on CARMS, and
   // overtime still to submit (a future shift counts as planned instead).
@@ -428,6 +428,16 @@ export function TabSummary({
 
   // ── The year: headline card, then a line per month ──
   const monthsView = infos => {
+    // Nothing logged in this tax year yet: one friendly message instead of a
+    // headline of £0.00s and a line per empty month.
+    if (fyEntries.length===0) return (
+      <div style={{...S.card,padding:'34px 20px',textAlign:'center'}}>
+        <div style={{width:'46px',height:'46px',borderRadius:'50%',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px'}}><Ico n="list" s={20} c={BRASS} w={2.2}/></div>
+        <div style={{fontSize:'16px',fontWeight:900,color:'var(--ink)'}}>No overtime yet</div>
+        <div style={{fontSize:'13px',fontWeight:600,color:'var(--muted)',margin:'4px auto 16px',maxWidth:'34ch'}}>Log your first shift and each pay month's gross, net and hours will show up here.</div>
+        <button type="button" onClick={()=>setTab('add')} style={{display:'inline-flex',alignItems:'center',gap:'6px',background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'10px 18px',fontSize:'13.5px',fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}><Ico n="plus" s={14} c="#fff" w={2.6}/>Log overtime</button>
+      </div>
+    );
     const shown = infos.filter(m => !(m.p.start>todayStr && isEmpty(m) && m.pE.length===0 && !m.carms && expanded!==m.p.month && m.idx!==currPeriodIdx));
     const later = infos.filter(m => !shown.includes(m));
     // A computer reads the year in date order; a phone puts the newest first.
@@ -688,7 +698,7 @@ export function TabSummary({
             // Only the unclaimed part: a shift half claimed is previewed
             // without its claimed half, so the net is just what's left.
             const rest = !(sOT||sPA) ? e : sOT ? {...e, hours133:'', hours150:'', hours200:'', toilHours:''} : {...e, paRate:'None'};
-            rows.push({k:'todo', lab:'To submit', det:covers(tOT,tPA,e.paRate), g:(tOT?c.ot:0)+(tPA?c.pa:0), n:entryNet(rest)});
+            rows.push({k:'todo', lab:'To submit', det:covers(tOT,tPA,e.paRate), g:(tOT?c.ot:0)+(tPA?c.pa:0), n:entryNet(rest), parts:{ot:tOT, pa:tPA}});
           }
           return rows;
         };
@@ -710,12 +720,18 @@ export function TabSummary({
           return (
             <div style={{marginTop:'8px',borderTop:'1px solid var(--border-2)',paddingTop:'6px',display:'grid',gap:'4px'}}>
               <div style={{display:'grid',gridTemplateColumns:COLS,columnGap:'10px',padding:'0 8px',...colHead}}><span/><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span></div>
-              {rows.map(r=>{ const st = ROW[r.k]; return (
-                <div key={r.k} style={{display:'grid',gridTemplateColumns:COLS,columnGap:'10px',alignItems:'center',borderRadius:'8px',padding:'5px 8px',background:st.bg,outline:st.dashed?'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)':'none',outlineOffset:'-1px',lineHeight:1.25}}>
-                  <span style={{minWidth:0,fontSize:'12px',fontWeight:800,color:st.lab}}>{r.lab}<span style={{display:'block',fontSize:'10.5px',fontWeight:700,opacity:0.85}}>{r.det}</span></span>
+              {rows.map(r=>{ const st = ROW[r.k];
+                const box = {display:'grid',gridTemplateColumns:COLS,columnGap:'10px',alignItems:'center',borderRadius:'8px',padding:'5px 8px',background:st.bg,outline:st.dashed?'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)':'none',outlineOffset:'-1px',lineHeight:1.25};
+                const inner = (<>
+                  <span style={{minWidth:0,fontSize:'12px',fontWeight:800,color:st.lab}}>{r.lab}{r.k==='todo'&&<span style={{display:'inline-flex',alignItems:'center',gap:'3px',marginLeft:'6px',fontSize:'10.5px',fontWeight:800,textDecoration:'underline',textUnderlineOffset:'2px'}}><Ico n="cal" s={10} c="currentColor" w={2.4}/>Mark submitted</span>}<span style={{display:'block',fontSize:'10.5px',fontWeight:700,opacity:0.85}}>{r.det}</span></span>
                   {fig(fmtGBP(r.g), st.g)}{fig(fmtGBP(r.n), st.n)}
-                </div>
-              ); })}
+                </>);
+                // The "To submit" box opens the date picker to mark this
+                // shift's outstanding claim(s) as submitted.
+                return r.k==='todo'
+                  ? <button key={r.k} type="button" className="tap-row" title="Mark as submitted" onClick={ev=>{ ev.stopPropagation(); openQuickSubmit(e, r.parts); }} style={{...box,width:'100%',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>{inner}</button>
+                  : <div key={r.k} style={box}>{inner}</div>;
+              })}
             </div>
           );
         };

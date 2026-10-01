@@ -1013,6 +1013,9 @@ export default function App() {
   // shown, independent of the selected value so browsing doesn't move it.
   const [datePickerFor, setDatePickerFor] = useState(null);
   const [datePickerMonth, setDatePickerMonth] = useState(todayStr.slice(0,7));
+  // One shift's claim being marked submitted straight from Summary (a day
+  // card's "To submit" box, or a not-submitted label): {id, ot, pa}.
+  const [quickSubmit, setQuickSubmit] = useState(null);
 
   // ── Escape closes whatever's open ───────────────────────────────────────
   // Every dismissible overlay in the app could so far only be closed by
@@ -1025,7 +1028,7 @@ export default function App() {
   useEscapeToClose(restoreConfirmOpen, () => setRestoreConfirmOpen(false));
   useEscapeToClose(payslipModalOpen, () => setPayslipModalOpen(false));
   useEscapeToClose(confirmCreateDay, () => setConfirmCreateDay(null));
-  useEscapeToClose(selectedCalDay, () => { setSelectedCalDay(null); setConfirmDel(null); });
+  useEscapeToClose(selectedCalDay && !datePickerFor, () => { setSelectedCalDay(null); setConfirmDel(null); });
   useEscapeToClose(datePickerFor, () => setDatePickerFor(null));
   useEscapeToClose(
     configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded,
@@ -1096,6 +1099,7 @@ export default function App() {
   const confirmCreateDayV = useLastTruthy(confirmCreateDay);
   const selectedCalDayV = useLastTruthy(selectedCalDay);
   const datePickerForV = useLastTruthy(datePickerFor);
+  const quickSubmitV = useLastTruthy(quickSubmit);
   const notesRef = useRef(null);
   // What's already been pushed to Supabase, keyed by row id — compared
   // against on every local change so only genuinely new/edited/removed
@@ -1786,6 +1790,23 @@ export default function App() {
   // four states, same colours, just a different font size for each
   // context. Extracted so the two can't quietly drift apart the way two
   // separately-maintained copies of the same logic eventually do.
+  const openQuickSubmit = (e, parts) => {
+    setQuickSubmit({ id:e.id, ot:!!parts.ot, pa:!!parts.pa });
+    setDatePickerMonth(todayStr.slice(0,7));
+    setDatePickerFor('quick');
+  };
+  const markQuickSubmitted = (dateStr) => {
+    const q = quickSubmit; if (!q) return;
+    const e0 = entries.find(x=>x.id===q.id); if (!e0) return;
+    const before = { otSubmitted:e0.otSubmitted, otSubmittedDate:e0.otSubmittedDate, paSubmitted:e0.paSubmitted, paSubmittedDate:e0.paSubmittedDate };
+    setEntries(prev => prev.map(e => e.id!==q.id ? e : { ...e,
+      ...(q.ot ? { otSubmitted:true, otSubmittedDate:dateStr } : {}),
+      ...(q.pa ? { paSubmitted:true, paSubmittedDate:dateStr } : {}) }));
+    const what = q.ot&&q.pa ? 'Overtime and PA' : q.ot ? 'Overtime' : e0.paRate;
+    addToast(`${what} marked as submitted on ${fmtD(dateStr)}`, 'undo', {label:'Undo', fn:()=>setEntries(prev=>prev.map(e=>e.id===q.id?{...e,...before}:e))}, 7000);
+    haptic();
+    setQuickSubmit(null);
+  };
   const carmsBadge = (e, fontSize) => {
     const c = calcEntry(e);
     // An entry with zero claimable OT hours (actual shift matched the
@@ -1811,11 +1832,11 @@ export default function App() {
     // A shift still to come can't be claimed yet: say it's planned rather
     // than flagging it red as if it were overdue.
     if (e.date > todayStr) return <div style={{...style,background:'var(--tint-blue)',color:'var(--text-blue-deep)'}}>Planned · claim after the shift</div>;
-    const goToEntry = (ev) => { ev.stopPropagation(); setSelectedCalDay(null); setConfirmDel(null); startEdit(e); setFocusCarmsToggle(true); };
-    const clickable = {...style,border:'1px solid var(--border-2)',background:'var(--tint-red)',color:'var(--text-red-deep)',cursor:'pointer'};
-    if (otOK && !paOK) return <button onClick={goToEntry} style={clickable}>✗ PA not submitted</button>;
-    if (!otOK && paOK) return <button onClick={goToEntry} style={clickable}>✗ Overtime not submitted</button>;
-    return <button onClick={goToEntry} style={clickable}>✗ Overtime &amp; PA not submitted</button>;
+    // Tapping one opens the date picker to mark that claim submitted, with
+    // Overtime and PA as separate buttons so each can have its own date.
+    const clickable = {...style,display:'inline-flex',alignItems:'center',gap:'5px',border:'1px solid var(--border-2)',background:'var(--tint-red)',color:'var(--text-red-deep)',cursor:'pointer'};
+    const btn = (part, label) => <button key={part} type="button" title="Mark as submitted" onClick={ev=>{ ev.stopPropagation(); openQuickSubmit(e, {[part]:true}); }} style={clickable}>✗ {label} not submitted<Ico n="cal" s={fontSize+1.5} c="var(--text-red-deep)" w={2.2}/></button>;
+    return <>{!otOK&&btn('ot','Overtime')}{!paOK&&btn('pa',e.paRate)}</>;
   };
 
   // Desktop-only custom calendar picker for the CARMS submission-date
@@ -1846,7 +1867,7 @@ export default function App() {
           <button onClick={()=>changeMonth(1)} disabled={noNext} aria-label="Next month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:noNext?'default':'pointer',opacity:noNext?0.35:1,display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
         </div>
         <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:'14px'}}>
-          {datePickerForV==='ot' ? 'Select the date you submitted this to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this to PSOP' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''}` : 'Select the date of this shift'}
+          {datePickerForV==='quick' && quickSubmitV ? (()=>{ const qe = entries.find(x=>x.id===quickSubmitV.id); return <>Select the date you submitted {quickSubmitV.ot&&quickSubmitV.pa?'this overtime and PA':quickSubmitV.ot?'this overtime to CARMS':'this PA to PSOP'}{qe&&<span style={{display:'block',fontWeight:600,color:'var(--quiet)',marginTop:'3px'}}>{new Date(qe.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · {qe.reason||'Shift'}</span>}</>; })() : datePickerForV==='ot' ? 'Select the date you submitted this to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this to PSOP' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''}` : 'Select the date of this shift'}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'6px'}}>
           {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=><div key={d} style={{textAlign:'center',fontSize:'11.5px',fontWeight:800,color:'var(--quiet)',padding:'4px 0'}}>{d}</div>)}
@@ -4435,7 +4456,7 @@ export default function App() {
             setSelectedCalDay={setSelectedCalDay} setConfirmCreateDay={setConfirmCreateDay}
             PAY_PERIODS={PAY_PERIODS} fyEntries={fyEntries} totals={totals} carmsOutstanding={carmsOutstanding} todayStr={todayStr} entryNet={entryNet}
             calcEntry={calcEntry} crossPeriodInfo={crossPeriodInfo} carmsBadge={carmsBadge} renderDatePills={renderDatePills} renderFYTotalsCard={renderFYTotalsCard}
-            jumpTo={jumpTo} snapToActiveMonth={snapToActiveMonth} startEdit={startEdit} delEntry={delEntry} setTab={setTab}
+            openQuickSubmit={openQuickSubmit} jumpTo={jumpTo} snapToActiveMonth={snapToActiveMonth} startEdit={startEdit} delEntry={delEntry} setTab={setTab}
           />
         )}
 
@@ -4846,7 +4867,8 @@ export default function App() {
               <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{new Date(selectedCalDayV.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
               <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} aria-label="Close" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={isWide?20:16} c="#64748b"/></button>
             </div>
-            {selectedCalDayV.dEntries.map(e=>{
+            {/* Read each shift fresh, so marking a claim submitted from here shows straight away. */}
+            {selectedCalDayV.dEntries.map(x=>entries.find(y=>y.id===x.id)).filter(Boolean).map(e=>{
               const c = calcEntry(e);
               const eNet = entryNet(e);
               return (
@@ -4966,6 +4988,8 @@ export default function App() {
             ? renderDatePickerGrid(form.otSubmitted?(form.otSubmittedDate||''):'', v=>setForm(f=>({...f,otSubmittedDate:v,otSubmitted:true})), !datePickerFor, { min: form.date, max: todayStr, mark: form.date })
             : datePickerForV==='pa'
             ? renderDatePickerGrid(form.paSubmitted?(form.paSubmittedDate||''):'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})), !datePickerFor, { min: form.date, max: todayStr, mark: form.date })
+            : datePickerForV==='quick'
+            ? (()=>{ const qe = entries.find(x=>x.id===quickSubmitV?.id); return renderDatePickerGrid('', v=>markQuickSubmitted(v), !datePickerFor, { min: qe?.date||'', max: todayStr, mark: qe?.date }); })()
             : datePickerForV==='carmsBulk'
             ? renderDatePickerGrid(todayStr, v=>bulkMarkCarmsSubmitted(v), !datePickerFor, { min: entries.filter(e=>carmsSelected[e.id]).reduce((m,e)=>e.date>m?e.date:m,''), max: todayStr })
             : renderDatePickerGrid(form.date||todayStr, v=>setForm(f=>({...f,date:v})), !datePickerFor)}
