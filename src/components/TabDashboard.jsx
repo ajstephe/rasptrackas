@@ -86,7 +86,7 @@ export function TabDashboard({
                 PSOP Outstanding, below) — this was the one header still
                 set as a small uppercase mono eyebrow instead, which read
                 as a different kind of label sitting in the same list. */}
-            <span style={{fontSize:compact?'13px':'14px',fontWeight:800,color:'var(--ink)'}}>Net pay this pay month</span>
+            <span style={{fontSize:compact?'13px':'14px',fontWeight:800,color:'var(--ink)'}}>Net overtime this month</span>
           </div>
           <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)',textAlign:'right'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}{!compact&&exp&&exp.n>0&&<span style={{display:'block',fontWeight:700,color:'var(--exp-ink)'}}>+{fmtGBP(exp.gross)} expected</span>}</span>
         </div>
