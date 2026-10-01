@@ -158,8 +158,20 @@ const THEME_PALETTES = {
     sidebarGlow:'rgba(140,240,30,0.55)', sidebarPill:'rgba(140,240,30,0.14)',
     sidebarBtnBg:'rgba(140,240,30,0.1)', sidebarBtnBorder:'rgba(140,240,30,0.45)', sidebarBtnSubtext:'rgba(140,240,30,0.75)',
   },
+  muji: {
+    brass:'#7f0019', brassLight:'#f1c9a5', navActiveIcon:'#f1c9a5', pillShadow:'rgba(74,63,53,0.3)',
+    sidebarText:'#c9bba8', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(255,255,255,0.12)',
+    sidebarGlow:null, sidebarPill:'rgba(255,255,255,0.12)',
+    sidebarBtnBg:'rgba(255,255,255,0.08)', sidebarBtnBorder:'rgba(255,255,255,0.3)', sidebarBtnSubtext:'rgba(255,255,255,0.65)',
+  },
+  luftplane: {
+    brass:'#05164d', brassLight:'#ffad00', navActiveIcon:'#ffad00', pillShadow:'rgba(5,22,77,0.3)',
+    sidebarText:'#aab3d6', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(255,255,255,0.12)',
+    sidebarGlow:null, sidebarPill:'rgba(255,255,255,0.12)',
+    sidebarBtnBg:'rgba(255,173,0,0.1)', sidebarBtnBorder:'rgba(255,173,0,0.45)', sidebarBtnSubtext:'rgba(255,173,0,0.75)',
+  },
 };
-const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy'];
+const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy','muji','luftplane'];
 // Same check TabSummary's calendar swipe already makes before its own
 // snap-back — used by the pull-to-refresh indicator's settle transition
 // below for the same reason: the live drag tracks the finger regardless
@@ -4170,11 +4182,11 @@ export default function App() {
            index.html — without this, the OS's native date-picker icon and
            popup stay light-themed even in dark mode, exactly the bug the
            old TimeSelect had before it was rebuilt. Corporate,
-           Professional Light, Flagship, Heritage and Energy are fixed light looks,
+           Professional Light, Flagship, Heritage, Energy, Muji and Luftplane are fixed light looks,
            not dark-mode variants, so they're excluded here the same way an
            explicit "light" choice already is. */
         @media (prefers-color-scheme: dark){
-          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]) input[type=date]{color-scheme:dark}
+          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]) input[type=date]{color-scheme:dark}
         }
         :root[data-theme="dark"] input[type=date]{color-scheme:dark}
         :root[data-theme="midnight"] input[type=date]{color-scheme:dark}
