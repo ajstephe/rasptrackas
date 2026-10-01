@@ -173,7 +173,7 @@ export function TabDashboard({
             {[
               ['Overtime', totals.otPaidGross, totals.otPaidNet],
               ['Protection Allowance', totals.paPaidGross, totals.paPaidNet],
-              ...(totals.onItsWayGross>0.005 ? [['Claimed, on a later payday', totals.onItsWayGross, totals.onItsWayNet]] : []),
+              ...(totals.onItsWayGross>0.005 ? [['Submitted, not paid yet', totals.onItsWayGross, totals.onItsWayNet]] : []),
             ].map(([label,gross,net])=>(
               <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{label}</span>
