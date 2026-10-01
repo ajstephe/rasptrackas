@@ -226,138 +226,15 @@ export function TabSummary({
       totalToilWorked, totalToilBanked, totalToilWaiting, sp:hrsSplit(pE), carms:carmsOutstanding.groups.find(g=>g.periodIdx===idx) };
   };
 
-  // An opened month: the same breakdown as the Calendar's totals card, then
-  // the shifts worked in its dates. Used by the current month's card and by
-  // any other month opened from the tax-year table.
-  const monthDetail = ({p, idx, pE, pb, tierHours, tierGross, tierDates, paCount, paGross, paDates, totalToilWorked, totalToilBanked, totalToilWaiting}) => (
-    <div className="accordion-in" style={{background:'var(--surface-2)',borderTop:'1px solid var(--border-2)',padding:'13px'}}>
-      {/* Same breakdown as the Calendar's totals card (the Gross,
-          Net and Hours above already cover its top row). */}
-      <div style={{...S.card,marginBottom:'10px',paddingTop:'6px'}}>
-        {periodBreakdownRows({pb, tierHours:{t133:tierHours.t133,t150:tierHours.t150,t200:tierHours.t200}, tierGross, tierDates, paCount, paGross, paDates, toilWorked:totalToilWorked, toilBanked:totalToilBanked, toilWaiting:totalToilWaiting, carmsGroup:null, periodIdx:idx})}
-      </div>
-
-      <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'center',marginBottom:'9px'}}>Shifts</div>
-
-      {pE.length+lateInto(p).length===0
-        ?<div style={{textAlign:'center',padding:'20px 10px 24px'}}>
-          <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
-            <Ico n="cal" s={18} c="#1e40af" w={2}/>
-          </div>
-          <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No shifts yet this pay month</div>
-          <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log a shift and it'll show up here</div>
-        </div>
-        // A computer shows the shifts as a grid of smaller cards, a few to a
-        // row, rather than one long column of full-width ones.
-        :<div style={isWide?{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))',gap:'9px',alignItems:'start',margin:'6px 0 10px'}:undefined}>{[...[...pE].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(p)].map(e=>{
-          const c=calcEntry(e);
-          const isFut=e.date>todayStr;
-          // what this shift adds to take-home in the month it lands in
-          const eNet = entryNet(e);
-          return(
-            <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',borderRadius:'13px',border:focusEntryId===e.id?'2px solid #2563eb':isFut?'1px solid var(--border-2)':'1px solid #94a3b8',padding:isWide?'11px':'13px',marginBottom:isWide?0:'7px',position:'relative',transition:'background 0.4s ease, border-color 0.4s ease'}}>
-              {isFut&&<div style={{position:'absolute',top:'-6px',right:'9px',background:'#2563eb',color:'#fff',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Planned</div>}
-              <div style={{marginBottom:'8px'}}>
-                {shiftHead(e,{onEdit:()=>{setConfirmDel(null);startEdit(e);}, onDelete:()=>setConfirmDel(confirmDel===e.id?null:e.id), deleting:confirmDel===e.id})}
-                <div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
-                  {carmsBadge(e, 10)}
-                  {/* Same neutral record-only indicator as the calendar day
-                      view — an entry with no claimable OT hours and no PA has
-                      nothing to submit, so it gets its own label rather than
-                      no badge at all or a misleading submitted/outstanding one. */}
-                  {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
-                    <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--border)',color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>ⓘ Shift Record — No OT Claim</div>
-                  )}
-                  {(()=>{ const xp = crossPeriodInfo(e); return xp && (
-                    <div style={{display:'inline-block',fontSize:'10px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-indigo)',color:'var(--text-indigo-deep)',textTransform:'uppercase',letterSpacing:'0.06em'}}>↷ {xp.both?'OT & PA':xp.ot?'OT':'PA'} Counted in {xp.label}</div>
-                  ); })()}
-                </div>
-              </div>
-
-              {/* delete confirmation */}
-              {confirmDel===e.id&&(
-                <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginBottom:'9px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
-                  <span style={{fontSize:'14px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this shift?</span>
-                  <div style={{display:'flex',gap:'7px',flexShrink:0}}>
-                    <button onClick={()=>setConfirmDel(null)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:'5px 12px',fontSize:'13px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
-                    <button onClick={()=>delEntry(e.id)} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:'5px 12px',fontSize:'13px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
-                  </div>
-                </div>
-              )}
-
-              {/* notes — sits under Duty/Reason with separators, matching the Calendar View popover */}
-              {e.comments&&(
-                <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'10px',marginBottom:'10px'}}>
-                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>Notes</div>
-                  <div style={{fontSize:'13px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid var(--border-2)',paddingLeft:'8px',whiteSpace:'pre-wrap',overflowWrap:'anywhere',lineHeight:1.5}}>{e.comments}</div>
-                </div>
-              )}
-
-              <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px'}}>
-                <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
-                  {c.payH1>0&&(
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH1)} at 1.33× <span style={{color:'var(--quiet)'}}>· £{c.r.r133.toFixed(2)}/hr</span></span>
-                      <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot1.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {c.payH2>0&&(
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH2)} at 1.5× <span style={{color:'var(--quiet)'}}>· £{c.r.r150.toFixed(2)}/hr</span></span>
-                      <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot2.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {c.payH3>0&&(
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{fmtHrs(c.payH3)} at 2× <span style={{color:'var(--quiet)'}}>· £{c.r.r200.toFixed(2)}/hr</span></span>
-                      <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-navy)'}}>£{c.ot3.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {c.toilH>0&&(
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--tag-purple)'}}>{fmtHrs(c.toilH)} at {RATE_TIER_LABEL[c.otRateTier]}× · TOIL</span>
-                      <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} banked</span>
-                    </div>
-                  )}
-                  {e.paRate!=='None'&&(
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <span style={{fontSize:'13px',fontWeight:700,color:'#b45309'}}>{e.paRate} allowance</span>
-                      <span style={{fontSize:'14px',fontWeight:900,color:'var(--text-amber-deep)'}}>£{c.pa.toFixed(2)}</span>
-                    </div>
-                  )}
-                </div>
-                {c.gross<0.005&&c.toilBanked>0 ? (
-                  // Taken wholly as TOIL: no pay to total up, so say so rather than
-                  // ending the card on Gross £0.00 · Net £0.00.
-                  <div style={{display:'flex',alignItems:'center',gap:'8px',background:'var(--tint-purple)',borderRadius:'10px',padding:'9px 11px',marginTop:'8px',fontSize:'12.5px',fontWeight:800,color:'var(--tag-purple)'}}>
-                    <Ico n="clock" s={13} c="var(--tag-purple)" w={2.2}/>Taken as TOIL<span style={{marginLeft:'auto',fontWeight:700}}>no pay</span>
-                  </div>
-                ) : (
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'5px',borderTop:'1px solid var(--border-2)',paddingTop:'8px',marginTop:'8px'}}>
-                  <div><div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'15px',color:'var(--text-navy)'}}>{fmt(c.gross)}</div></div>
-                  <div style={{textAlign:'right'}}><div style={{fontSize:'10px',fontWeight:900,color:'#059669',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</div><div style={{fontFamily:MONO,fontWeight:600,fontSize:'15px',color:'#059669'}}>{fmt(eNet)}</div></div>
-                </div>
-                )}
-              </div>
-            </div>
-          );
-        })}</div>
-      }
-      <button onClick={()=>setExpanded(null)} style={{width:'100%',marginTop:'4px',padding:'9px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'11px',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'4px'}}>
-        Close <Ico n="cU" s={12} c={BRASS}/>
-      </button>
-    </div>
-  );
-
-  // ── Tax-year table (Months view) ─────────────────────────────────────────
-  // One line per pay month under the current month's card, so the whole year
-  // can be compared on one screen. A computer with room for it gets columns
-  // (hours, gross, net, CARMS/PSOP status); a phone, or a desktop window too
-  // narrow for the columns, gets a two-line list: gross with net under it on
-  // the right, hours and shifts under the month, and anything still to
-  // submit tagged under that. Opening a month shows its breakdown and shifts
-  // under its line; the current month opens in its own card above instead.
+  // ── Months view ──────────────────────────────────────────────────────────
+  // A headline card with the tax year so far (and this pay month's hours
+  // split), then one line per pay month: a bar for its size, gross and net
+  // in columns, and a status that only speaks up when there's something to
+  // do. Planned shifts show in sky blue under the figures they'd add to.
+  // Opening a month shows its breakdown beside a list of its shifts; opening
+  // a shift shows its rates, notes, and Edit / Delete.
   const listRef = useRef(null);
+  const [openShift, setOpenShift] = useState(null);
   const [listW, setListW] = useState(null);
   useEffect(() => {
     const el = listRef.current;
@@ -366,140 +243,280 @@ export function TabSummary({
     ro.observe(el);
     return () => ro.disconnect();
   }, [breakdownView]);
-  const narrow = listW!==null && listW<560;
-  const layout = isWide && !narrow ? 'table' : 'stack';
-  const GRID = 'minmax(0,1fr) 80px 104px 104px 132px 16px';
-  const gap = '8px';
+  const W = listW ?? (isWide ? 1000 : 360);
+  const rowCols = isWide && W>=760;              // month lines in columns
+  const roomy = W>=1150;                         // wider name and figure columns
+  const sideBySide = isWide && W>=1080;          // opened month: breakdown beside shifts
+  const shiftCols = isWide && (sideBySide ? W-356 : W-32)>=720;  // shift list in columns
+  const MONTH_COLS = roomy ? '190px minmax(0,1fr) 112px 104px 176px 18px' : '160px minmax(0,1fr) 100px 92px 160px 18px';
+  const SHIFT_COLS = '96px minmax(0,1fr) 72px 96px 96px 104px 14px';
+  const label = {fontSize:'10.5px',fontWeight:900,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--quiet)'};
 
-  const monthStatus = m => m.carms ? {col:RED, chip:<span style={{display:'inline-block',fontSize:'11px',fontWeight:800,padding:'2px 8px',borderRadius:'999px',background:'var(--tint-red)',color:'var(--text-red-deep)',whiteSpace:'nowrap'}}>{fmtGBP(m.carms.periodTotal)} to submit</span>}
-    : (m.sp.nSub>0||m.totG>0) ? {col:GRN, chip:<span style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'11px',fontWeight:800,padding:'2px 8px',borderRadius:'999px',background:'var(--tint-green)',color:'var(--text-green-deep)',whiteSpace:'nowrap'}}><Ico n="check" s={10} c="var(--text-green-deep)" w={3.2}/>All submitted</span>}
-    : m.sp.nPlan>0 ? {col:'var(--exp)', chip:<span style={{display:'inline-block',fontSize:'11px',fontWeight:800,padding:'2px 8px',borderRadius:'999px',background:'var(--exp-tint)',color:'var(--exp-ink)',border:'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)',whiteSpace:'nowrap'}}>Planned · {fmtHrs(m.sp.plan)}</span>}
-    : {col:'var(--border)', chip:<span style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)',whiteSpace:'nowrap'}}>No overtime</span>};
-
-  // Expected pay from planned shifts: a dashed strip in its own colour under
-  // a month (or the total), never part of the real figures in the row.
-  const expStrip = (label, figs) => (
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'4px 10px',flexWrap:'wrap',margin:'2px 6px 8px',padding:'6px 10px',borderRadius:'10px',background:'var(--exp-tint)',border:'1px dashed color-mix(in srgb, var(--exp) 50%, transparent)',fontSize:'12px',fontWeight:700,color:'var(--exp-ink)'}}>
-      <span>{label}</span><span style={{fontFamily:MONO,whiteSpace:'nowrap'}}>{figs}</span>
-    </div>
+  const chevron = open => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.25s',transform:open?'rotate(180deg)':'none',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>;
+  const tick = <span title="All submitted" aria-label="All submitted" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:'20px',height:'20px',borderRadius:'50%',background:'var(--tint-green)',flexShrink:0}}><Ico n="check" s={11} c="var(--text-green-deep)" w={3.2}/></span>;
+  const nowTag = <span style={{fontSize:'9px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#fff',background:BRASS,borderRadius:'999px',padding:'1px 6px',flexShrink:0}}>Now</span>;
+  const tag = (txt,bg,col) => <span key={txt} style={{fontSize:'10.5px',fontWeight:800,padding:'1px 7px',borderRadius:'6px',background:bg,color:col,whiteSpace:'nowrap'}}>{txt}</span>;
+  const money = (v,col,size=14.5,w=600) => <span style={{fontFamily:MONO,fontSize:`${size}px`,fontWeight:w,color:col,whiteSpace:'nowrap'}}>{v}</span>;
+  const planned = v => <div style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--exp-ink)',marginTop:'2px',whiteSpace:'nowrap'}}>{v}</div>;
+  const dash = <span style={{fontFamily:MONO,fontSize:'14px',color:'var(--quiet)'}}>—</span>;
+  const lineItem = (l,r,col='var(--ink)') => <div style={{display:'flex',justifyContent:'space-between',gap:'10px',fontSize:'12.5px',fontWeight:600,color:'var(--muted)',padding:'3px 0'}}><span>{l}</span><span style={{fontFamily:MONO,fontWeight:600,color:col,whiteSpace:'nowrap'}}>{r}</span></div>;
+  const goSubmit = (ev, idx) => { ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); };
+  const submitLink = (m, size=12) => (
+    <button type="button" onClick={ev=>goSubmit(ev,m.idx)} style={{display:'inline-flex',alignItems:'center',gap:'5px',background:'var(--tint-red)',color:'var(--text-red-deep)',border:'none',borderRadius:'999px',padding:'3px 10px',fontSize:`${size}px`,fontWeight:800,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>
+      {fmtGBP(m.carms.periodTotal)} to submit <Ico n="cR" s={10} c="var(--text-red-deep)" w={2.6}/>
+    </button>
   );
+  const toggleMonth = m => setExpanded(expanded===m.p.month?null:m.p.month);
+  // A month line contains the to-submit button, so it's a role="button"
+  // div rather than a <button> (which may not hold another button).
+  const pressable = fn => ({role:'button', tabIndex:0, onClick:fn, onKeyDown:e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fn(); } }});
+  // Planned shifts get their own sky-blue line, so they're only named here
+  // when a month has nothing else in it.
+  const shiftsTxt = m => { const n=m.sp.nSub+m.sp.nPend; return n===0&&m.sp.nPlan>0 ? `${m.sp.nPlan} planned shift${m.sp.nPlan!==1?'s':''}` : `${n} shift${n!==1?'s':''}`; };
+  // Nothing worked or paid yet (planned shifts don't count).
+  const isEmpty = m => m.totG===0 && m.totN===0 && !m.carms && m.pE.every(e=>e.date>todayStr) && lateInto(m.p).length===0;
+  const monthStatus = m => m.carms ? submitLink(m, 11.5)
+    : !isEmpty(m) ? tick
+    : m.pE.length>0 ? <span style={{fontSize:'12px',fontWeight:700,color:'var(--exp-ink)'}}>Planned</span> : null;
 
-  const monthRow = m => {
-    const {p, idx, sp, totG, totN} = m;
-    const isCurr = idx===currPeriodIdx, isExp = expanded===p.month && !isCurr;
-    const st = monthStatus(m);
-    const hrs = sp.sub+sp.pend, n = sp.nSub+sp.nPend;
-    const shiftsTxt = n===0&&sp.nPlan>0 ? `${sp.nPlan} planned shift${sp.nPlan!==1?'s':''}` : `${n} shift${n!==1?'s':''}${sp.nPlan>0?` · ${sp.nPlan} planned`:''}`;
-    const ex = totals.expected?.[idx];
-    // The current month opens in its card at the top, so its line here
-    // jumps up to that instead of opening a second copy.
-    const open = () => isCurr ? jumpTo(p.month) : setExpanded(isExp?null:p.month);
-    const nowTag = isCurr&&<span style={{fontSize:'9px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#fff',background:BRASS,borderRadius:'999px',padding:'1px 6px',flexShrink:0}}>Now</span>;
-    const name = <span style={{display:'flex',alignItems:'center',gap:'7px',minWidth:0,fontWeight:800,fontSize:'14px',color:'var(--ink)'}}>
-      <span aria-hidden="true" style={{width:'8px',height:'8px',borderRadius:'50%',background:st.col,flexShrink:0}}/>
-      <span style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{payLabel(p.month)}</span>{nowTag}
-    </span>;
-    const chev = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.25s',transform:isExp?'rotate(180deg)':'none',flexShrink:0,justifySelf:'end'}}><polyline points="6 9 12 15 18 9"/></svg>;
-    const sub = {fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'};
-    const num = (v, col, w=600) => <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:w,color:col,textAlign:'right',whiteSpace:'nowrap'}}>{v}</span>;
-    // A month with shifts shows its money even at £0.00 (its claims went into
-    // a later month), rather than a gap; only an empty month shows "No overtime".
-    const onlyPlanned = n===0 && sp.nPlan>0 && totG===0 && totN===0;
-    const money = !onlyPlanned && (totG>0||totN>0||m.pE.length>0) ? (
-      <span style={{textAlign:'right',flexShrink:0}}>
-        <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'var(--text-navy)',whiteSpace:'nowrap'}}>{fmtGBP(totG)}</div>
-        <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:GRN,whiteSpace:'nowrap',marginTop:'1px'}}>{fmtGBP(totN)} net</div>
-      </span>
-    ) : null;
-    const rowStyle = {width:'100%',textAlign:'left',background:isExp?'var(--surface-2)':isCurr?'var(--tint-brass)':'none',border:'none',borderBottom:isExp?'none':'1px solid var(--border-2)',borderRadius:isExp?'12px 12px 0 0':0,padding:'11px 6px',cursor:'pointer',fontFamily:'inherit',color:'inherit'};
+  // ── An opened month ──
+  const tierLines = m => [['t133','1.33×'],['t150','1.5×'],['t200','2×']].filter(([k])=>m.tierHours[k]>0).map(([k,l])=>({lbl:l,h:m.tierHours[k],g:m.tierGross[k]}));
+  const paLines = m => ['PA1','PA2','PA3'].filter(k=>m.paCount[k]>0).map(k=>({lbl:k,n:m.paCount[k],g:m.paGross[k]}));
+
+  // What the month's pay is made of: one bar (overtime blue, PA amber), the
+  // rate lines under each part, then TOIL.
+  const monthMakeUp = m => {
+    const ot=m.pb.ot, pa=m.pb.pa, tot=ot+pa;
+    const head = (col,sw,txt,v) => <div style={{display:'flex',alignItems:'center',gap:'7px',fontSize:'11.5px',fontWeight:900,letterSpacing:'0.04em',textTransform:'uppercase',color:col,marginTop:'10px'}}><span style={{width:'9px',height:'9px',borderRadius:'3px',background:sw,flexShrink:0}}/>{txt}<span style={{marginLeft:'auto',fontFamily:MONO,fontWeight:700,letterSpacing:0}}>{fmt(v)}</span></div>;
     return (
-      <div key={p.month} ref={isCurr?undefined:el=>monthRefs.current[p.month]=el}>
-        <button type="button" onClick={open} aria-expanded={isCurr?undefined:isExp} className="tap-row" style={layout==='stack'
-          ? {...rowStyle,display:'flex',alignItems:'center',gap:'10px'}
-          : {...rowStyle,display:'grid',gridTemplateColumns:GRID,gap,alignItems:'center'}}>
-          {layout==='table' ? (<>
-            <span style={{minWidth:0}}>{name}<div style={sub}>{fmtD(p.start)} – {fmtD(p.end)} · {shiftsTxt}</div></span>
-            {num(fmtHrs(hrs),'var(--ink)',500)}
-            {num(fmtGBP(totG),'var(--text-navy)')}
-            {num(fmtGBP(totN),GRN)}
-            <span style={{textAlign:'right'}}>{st.chip}</span>
-          </>) : (<>
-            <span style={{flex:1,minWidth:0}}>
-              {name}
-              <div style={sub}>{onlyPlanned ? shiftsTxt : `${fmtHrs(hrs)} · ${shiftsTxt}`}</div>
-              {m.carms&&<div style={{marginTop:'5px'}}>{st.chip}</div>}
-            </span>
-            {money||<span style={{flexShrink:0}}>{st.chip}</span>}
-          </>)}
-          {chev}
+      <div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',flexWrap:'wrap'}}>
+          {money(fmtGBP(m.totG),'var(--text-navy)',22,700)}{money(`${fmtGBP(m.totN)} net`,GRN,15,700)}
+        </div>
+        {tot>0.005 && <div aria-hidden="true" style={{display:'flex',height:'12px',borderRadius:'6px',overflow:'hidden',margin:'10px 0 2px',background:'var(--surface-2)'}}>
+          <div style={{width:`${ot/tot*100}%`,background:'#2563eb'}}/><div style={{width:`${pa/tot*100}%`,background:'#d97706'}}/>
+        </div>}
+        {head('var(--text-blue-deep)','#2563eb','Overtime',ot)}
+        <div style={{paddingLeft:'16px'}}>{tierLines(m).map(r=><div key={r.lbl}>{lineItem(`${fmtHrs(r.h)} at ${r.lbl}`,fmt(r.g),'var(--muted)')}</div>)}</div>
+        {head('var(--text-amber-deep)','#d97706','Protection Allowance',pa)}
+        <div style={{paddingLeft:'16px'}}>{paLines(m).map(r=><div key={r.lbl}>{lineItem(`${r.lbl} × ${r.n}`,fmt(r.g),'var(--muted)')}</div>)}</div>
+        <button type="button" onClick={ev=>{ev.stopPropagation(); setTab('graph');}} className="tap-row" style={{display:'flex',alignItems:'center',gap:'8px',width:'100%',marginTop:'12px',padding:'10px 0 2px',borderTop:'1px solid var(--border-2)',borderLeft:'none',borderRight:'none',borderBottom:'none',background:'none',fontFamily:'inherit',cursor:'pointer',textAlign:'left'}}>
+          <Ico n="clock" s={14} c="#7c3aed"/>
+          <span style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>TOIL <span style={{color:'var(--text-purple-deep)',fontFamily:MONO,fontWeight:600}}>{fmtHrs(m.totalToilWorked)} → {fmtHrs(m.totalToilBanked)}{m.totalToilWaiting>0?'':' banked'}</span>
+            {/* Unsubmitted TOIL isn't in the balance yet (TOIL page) — say how much of this is, so the two pages agree. */}
+            {m.totalToilWaiting>0&&<span style={{display:'block',fontSize:'11px',fontWeight:600,color:'var(--muted)',marginTop:'2px'}}>{m.totalToilBanked-m.totalToilWaiting>1e-6?`${fmtHrs(m.totalToilBanked-m.totalToilWaiting)} in your balance · `:''}{fmtHrs(m.totalToilWaiting)} waiting to submit</span>}
+          </span>
+          <Ico n="cR" s={13} c="var(--quiet)" w={2.2}/>
         </button>
-        {ex&&ex.n>0&&!isExp&&(layout==='table'
-          ? expStrip(`Expected from ${ex.n} planned shift${ex.n!==1?'s':''}${ex.hrs>0?` · ${fmtHrs(ex.hrs)}`:''}`, <>+{fmtGBP(ex.gross)} gross · +{fmtGBP(ex.net)} net → <b>{fmtGBP(totN+ex.net)}</b> net</>)
-          : expStrip(`${ex.n} planned${ex.hrs>0?` · ${fmtHrs(ex.hrs)}`:''}`, <>+{fmtGBP(ex.net)} net expected</>))}
-        {isExp&&<div style={{borderRadius:'0 0 12px 12px',overflow:'hidden',marginBottom:'8px',border:'1px solid var(--border-2)',borderTop:'none'}}>{monthDetail(m)}</div>}
+      </div>);
+  };
+
+  // One shift as a line: date, duty, hours, gross, net and status, with
+  // small tags. Opening it shows its rates, PA, note, and Edit / Delete.
+  const shiftLine = (e, m) => {
+    const c=calcEntry(e), open=openShift===e.id, fut=e.date>todayStr;
+    const hrs=c.h1+c.h2+c.h3, hasPA=e.paRate&&e.paRate!=='None', hasClaim=hrs>0||hasPA;
+    const sub=(hrs===0||isOtSubmitted(e))&&(!hasPA||isPaSubmitted(e));
+    const net=c.gross>0.005?entryNet(e):0;
+    const toilOnly=c.gross<0.005&&c.toilBanked>0;
+    const late=e.date<m.p.start||e.date>m.p.end, xp=crossPeriodInfo(e);
+    const focus=focusEntryId===e.id;
+    const status = fut ? <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--exp-ink)'}}>Planned</span>
+      : !hasClaim ? <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--quiet)'}}>Record only</span>
+      : sub ? tick : <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)',whiteSpace:'nowrap'}}>Not submitted</span>;
+    const tags = [
+      e.takeAs==='toil'&&tag('TOIL','var(--tint-purple)','var(--tag-purple)'),
+      e.takeAs==='mix'&&tag('Part TOIL','var(--tint-purple)','var(--tag-purple)'),
+      hasPA&&tag(e.paRate,'var(--tint-amber)','var(--text-amber-deep)'),
+      late&&tag('Late claim','var(--tint-indigo)','var(--text-indigo-deep)'),
+      xp&&tag(`Paid in ${xp.label}`,'var(--tint-indigo)','var(--text-indigo-deep)'),
+      e.comments&&tag('Note','var(--chip-bg)','var(--muted)'),
+    ].filter(Boolean);
+    const date = new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+    const gCol = fut?'var(--exp-ink)':'var(--text-navy)', nCol = fut?'var(--exp-ink)':GRN;
+    const toggle = () => { setConfirmDel(null); setOpenShift(open?null:e.id); };
+    const base = {...pressable(toggle), 'aria-expanded':open, className:`tap-row${focus?' entry-flash':''}`};
+    const rowBg = focus ? 'var(--tint-blue)' : 'transparent';
+    const btn = {borderRadius:'8px',padding:'6px 12px',fontSize:'12.5px',fontWeight:800,cursor:'pointer',fontFamily:'inherit'};
+    return (
+      <div key={e.id} ref={el=>entryRefs.current[e.id]=el}>
+        {shiftCols ? (
+          <div {...base} style={{display:'grid',gridTemplateColumns:SHIFT_COLS,gap:'8px',alignItems:'center',padding:'9px 4px',borderBottom:open?'none':'1px solid var(--border-2)',cursor:'pointer',background:rowBg,borderRadius:'8px',transition:'background 0.4s ease'}}>
+            <span style={{fontWeight:800,fontSize:'13px',color:'var(--ink)',whiteSpace:'nowrap'}}>{date}</span>
+            <span style={{minWidth:0,display:'flex',alignItems:'center',gap:'6px'}}><span style={{fontSize:'13px',fontWeight:600,color:'var(--muted)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{e.reason||'Shift'}</span>{tags}</span>
+            <span style={{textAlign:'right'}}>{money(fmtHrs(hrs),'var(--ink)',13.5,500)}</span>
+            {toilOnly ? <span style={{gridColumn:'span 2',textAlign:'right',fontSize:'12.5px',fontWeight:700,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} TOIL · no pay</span> : (<>
+              <span style={{textAlign:'right'}}>{money(fmt(c.gross),gCol,13.5)}</span>
+              <span style={{textAlign:'right'}}>{money(fmt(net),nCol,13.5)}</span></>)}
+            <span style={{textAlign:'right'}}>{status}</span>
+            {chevron(open)}
+          </div>
+        ) : (
+          <div {...base} style={{display:'flex',alignItems:'flex-start',gap:'10px',padding:'10px 2px',borderBottom:open?'none':'1px solid var(--border-2)',cursor:'pointer',background:rowBg,borderRadius:'8px',transition:'background 0.4s ease'}}>
+            <span style={{flex:1,minWidth:0}}>
+              <span style={{display:'flex',alignItems:'center',gap:'8px'}}><span style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>{date}</span>{status}</span>
+              <span style={{display:'block',fontSize:'12.5px',fontWeight:600,color:'var(--muted)',marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{fmtHrs(hrs)} · {e.reason||'Shift'}</span>
+              {tags.length>0&&<span style={{display:'flex',flexWrap:'wrap',gap:'4px',marginTop:'4px'}}>{tags}</span>}
+            </span>
+            <span style={{textAlign:'right'}}>
+              {toilOnly ? <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} TOIL</span> : (<>
+                <span style={{display:'block'}}>{money(fmt(c.gross),gCol,13.5)}</span><span style={{display:'block',marginTop:'2px'}}>{money(fmt(net),nCol,13.5)}</span></>)}
+            </span>
+            <span style={{paddingTop:'3px'}}>{chevron(open)}</span>
+          </div>
+        )}
+        {open&&(
+          <div className="accordion-in" style={{background:'var(--surface-2)',borderRadius:'10px',padding:'10px 12px',margin:shiftCols?'0 0 8px 104px':'0 0 8px'}}>
+            {c.payH1>0&&lineItem(`${fmtHrs(c.payH1)} at 1.33× · £${c.r.r133.toFixed(2)}/hr`,fmt(c.ot1))}
+            {c.payH2>0&&lineItem(`${fmtHrs(c.payH2)} at 1.5× · £${c.r.r150.toFixed(2)}/hr`,fmt(c.ot2))}
+            {c.payH3>0&&lineItem(`${fmtHrs(c.payH3)} at 2× · £${c.r.r200.toFixed(2)}/hr`,fmt(c.ot3))}
+            {c.toilH>0&&lineItem(`${fmtHrs(c.toilH)} at ${RATE_TIER_LABEL[c.otRateTier]}× as TOIL`,`${fmtHrs(c.toilBanked)} banked`,'var(--text-purple-deep)')}
+            {hasPA&&lineItem(`${e.paRate} allowance`,fmt(c.pa),'var(--text-amber-deep)')}
+            {!hasClaim&&!toilOnly&&<div style={{fontSize:'12.5px',fontWeight:600,color:'var(--muted)'}}>A record of the shift — no overtime or allowance to claim.</div>}
+            {xp&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--text-indigo-deep)',marginTop:'4px'}}>{xp.both?'Overtime and PA':xp.ot?'Overtime':'PA'} counted in {xp.label}</div>}
+            {e.comments&&<div style={{fontSize:'12.5px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid var(--border)',paddingLeft:'8px',margin:'8px 0 2px',whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{e.comments}</div>}
+            <div style={{display:'flex',gap:'8px',marginTop:'10px',flexWrap:'wrap',alignItems:'center'}}>
+              {confirmDel===e.id ? (<>
+                <span style={{fontSize:'13px',fontWeight:800,color:'var(--text-red-deep)',marginRight:'auto'}}>Delete this shift?</span>
+                <button type="button" onClick={()=>setConfirmDel(null)} style={{...btn,background:'var(--surface)',border:'1px solid var(--border)',color:'var(--muted)'}}>Cancel</button>
+                <button type="button" onClick={()=>delEntry(e.id)} style={{...btn,background:'#dc2626',border:'none',color:'#fff'}}>Delete</button>
+              </>) : (<>
+                <button type="button" onClick={()=>startEdit(e)} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--surface)',border:'1px solid var(--border)',color:'var(--ink)'}}><Ico n="edit" s={12} c="var(--muted)"/>Edit shift</button>
+                <button type="button" onClick={()=>setConfirmDel(e.id)} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'transparent',border:'none',color:'#dc2626'}}><Ico n="trash" s={12} c="#ef4444"/>Delete</button>
+              </>)}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
 
-  const monthTable = infos => {
-    // Months still to come with nothing in them fold into one line at the
-    // end; opening one from the month buttons gives it a line of its own.
-    const shown = infos.filter(m => !(m.p.start>todayStr && m.pE.length===0 && m.totG===0 && !m.carms && expanded!==m.p.month && m.idx!==currPeriodIdx));
+  const shiftList = m => {
+    const list=[...[...m.pE].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0), ...lateInto(m.p)];
+    return (<div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',flexWrap:'wrap',margin:'2px 0 6px'}}>
+        <span style={label}>Shifts · {list.length}</span>
+        {list.length>0&&<span style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)'}}>{isWide?'Click':'Tap'} a shift for its rates, notes and edit</span>}
+      </div>
+      {shiftCols&&list.length>0&&<div style={{display:'grid',gridTemplateColumns:SHIFT_COLS,gap:'8px',padding:'0 4px 6px',borderBottom:'1px solid var(--border)',...label,fontSize:'10px'}}><span>Date</span><span>Duty</span><span style={{textAlign:'right'}}>Hours</span><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span><span style={{textAlign:'right'}}>Status</span><span/></div>}
+      {list.length===0
+        ? <div style={{padding:'18px 0 8px',textAlign:'center'}}><div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>No shifts yet this pay month</div><div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Log a shift and it'll show up here</div></div>
+        : list.map(e=>shiftLine(e,m))}
+    </div>);
+  };
+
+  const monthOpened = m => {
+    const banner = m.carms && (
+      <button type="button" onClick={ev=>goSubmit(ev,m.idx)} style={{display:'flex',alignItems:'center',gap:'10px',width:'100%',background:'var(--tint-red)',border:'none',borderRadius:'11px',padding:'10px 12px',marginBottom:'12px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
+        <Ico n="checklist" s={15} c="var(--text-red-deep)"/>
+        <span style={{flex:1,fontSize:'13px',fontWeight:800,color:'var(--text-red-deep)'}}>{fmtGBP(m.carms.periodTotal)} still to submit on CARMS / PSOP</span>
+        <span style={{fontSize:'12.5px',fontWeight:800,color:'var(--text-red-deep)',whiteSpace:'nowrap'}}>Open Awaits ›</span>
+      </button>);
+    const close = <button type="button" onClick={()=>setExpanded(null)} style={{display:'flex',alignItems:'center',gap:'4px',margin:'10px auto 0',background:'none',border:'none',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>Close {payLabel(m.p.month)} <Ico n="cU" s={12} c={BRASS}/></button>;
+    const dates = <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginBottom:'10px'}}>Shifts worked {fmtD(m.p.start)} – {fmtD(m.p.end)}</div>;
+    return sideBySide ? (
+      <div className="accordion-in" style={{padding:'16px',display:'grid',gridTemplateColumns:'300px minmax(0,1fr)',gap:'24px'}}>
+        <div>{dates}{banner}{monthMakeUp(m)}</div>
+        <div>{shiftList(m)}{close}</div>
+      </div>
+    ) : (
+      <div className="accordion-in" style={{padding:isWide?'14px 16px':'12px'}}>
+        {dates}{banner}<div style={{marginBottom:'16px',maxWidth:isWide?'460px':undefined}}>{monthMakeUp(m)}</div>{shiftList(m)}{close}
+      </div>
+    );
+  };
+
+  // ── The year: headline card, then a line per month ──
+  const monthsView = infos => {
+    const shown = infos.filter(m => !(m.p.start>todayStr && isEmpty(m) && m.pE.length===0 && !m.carms && expanded!==m.p.month && m.idx!==currPeriodIdx));
     const later = infos.filter(m => !shown.includes(m));
     // A computer reads the year in date order; a phone puts the newest first.
     const rows = isWide ? shown : [...shown].reverse();
     const T = shown.reduce((a,m)=>({hrs:a.hrs+m.sp.sub+m.sp.pend, n:a.n+m.sp.nSub+m.sp.nPend, g:a.g+m.totG, net:a.net+m.totN}), {hrs:0,n:0,g:0,net:0});
-    const plan = infos.reduce((a,m)=>({h:a.h+m.sp.plan, n:a.n+m.sp.nPlan}), {h:0,n:0});
+    const EY = totals.expectedYear;
+    const exOf = m => { const ex = totals.expected?.[m.idx]; return ex&&ex.n>0 ? ex : null; };
+    const max = Math.max(1, ...shown.map(m=>m.totG+(exOf(m)?.gross||0)));
     const fy = String(PAY_PERIODS[0].month).split(' ')[1];
-    const head = {fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'};
-    const headRow = {padding:'0 6px 7px',borderBottom:'1px solid var(--border)',...head};
-    const totShifts = `${T.n} shift${T.n!==1?'s':''}`;
-    const totLbl = <span style={{fontWeight:800,fontSize:'14px',color:'var(--ink)',minWidth:0}}>Total so far<div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'2px',whiteSpace:'nowrap'}}>{layout==='table'?totShifts:`${fmtHrs(T.hrs)} · ${totShifts}`}</div></span>;
-    const totMoney = (
-      <span style={{textAlign:'right',flexShrink:0}}>
-        <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:700,color:'var(--text-navy)',whiteSpace:'nowrap'}}>{fmtGBP(T.g)}</div>
-        <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:GRN,whiteSpace:'nowrap',marginTop:'1px'}}>{fmtGBP(T.net)} net</div>
-      </span>
-    );
-    const totRow = {padding:'11px 6px 2px',borderTop:'2px solid var(--border)',marginTop:'-1px'};
-    return (
-      <div ref={listRef} style={{...S.card,padding:isWide?'16px 16px 14px':'14px 12px 12px'}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',flexWrap:'wrap',padding:'0 6px 8px'}}>
-          <span style={{fontWeight:900,fontSize:'16px',color:'var(--ink)',letterSpacing:'-0.3px'}}>Tax year {fy}/{String(Number(fy)+1).slice(-2)}</span>
-          <span style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)'}}>{isWide?'Click':'Tap'} a month to open it</span>
+    const cm = currPeriodIdx>=0 ? infos[currPeriodIdx] : null;
+
+    const bar = m => { const ex=exOf(m), g=m.totG, n=m.totN, eg=ex?ex.gross:0; const seg = (w,bg) => <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${Math.min(100,w/max*100)}%`,background:bg,borderRadius:'5px'}}/>;
+      return <div aria-hidden="true" style={{position:'relative',height:'10px',borderRadius:'5px',background:'var(--surface-2)',overflow:'hidden'}}>
+        {eg>0&&seg(g+eg,'repeating-linear-gradient(135deg, color-mix(in srgb, var(--exp) 50%, transparent) 0 4px, color-mix(in srgb, var(--exp) 22%, transparent) 4px 8px)')}
+        {seg(g,'repeating-linear-gradient(135deg, color-mix(in srgb, var(--text-navy) 38%, transparent) 0 4px, color-mix(in srgb, var(--text-navy) 22%, transparent) 4px 8px)')}
+        {seg(n,GRN)}
+      </div>; };
+
+    const big = (lbl,v,col,sub,subCol='var(--exp-ink)') => <div style={{minWidth:0}}>
+      <div style={label}>{lbl}</div>
+      <div style={{fontFamily:MONO,fontSize:isWide?'24px':'19px',fontWeight:700,color:col,marginTop:'2px',whiteSpace:'nowrap'}}>{v}</div>
+      {sub&&<div style={{fontSize:'11.5px',fontWeight:700,color:subCol,marginTop:'2px',whiteSpace:'nowrap'}}>{sub}</div>}
+    </div>;
+
+    const monthLine = m => {
+      const {p, idx, sp, totG, totN} = m;
+      const isCurr=idx===currPeriodIdx, open=expanded===p.month, ex=exOf(m), empty=isEmpty(m);
+      const name = <span style={{display:'flex',alignItems:'center',gap:'7px',minWidth:0,fontWeight:800,fontSize:'14.5px',color:'var(--ink)'}}><span style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{payLabel(p.month)}</span>{isCurr&&nowTag}</span>;
+      const sub = <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{empty?shiftsTxt(m):`${fmtHrs(sp.sub+sp.pend)} · ${shiftsTxt(m)}`}</div>;
+      const lineStyle = {cursor:'pointer',padding:'11px 8px',borderBottom:open?'none':'1px solid var(--border-2)',background:open?'var(--surface-2)':isCurr?'var(--tint-brass)':'transparent',borderRadius:open?'12px 12px 0 0':isCurr?'10px':0,boxShadow:isCurr&&!open?`inset 3px 0 0 ${BRASS}`:'none'};
+      return (
+        <div key={p.month} ref={el=>monthRefs.current[p.month]=el}>
+          <div {...pressable(()=>toggleMonth(m))} aria-expanded={open} className="tap-row" style={lineStyle}>
+            {rowCols ? (
+              <div style={{display:'grid',gridTemplateColumns:MONTH_COLS,gap:'14px',alignItems:'center'}}>
+                <span style={{minWidth:0}}>{name}{sub}</span>
+                {bar(m)}
+                <span style={{textAlign:'right'}}>{empty?dash:money(fmtGBP(totG),'var(--text-navy)')}{ex&&planned(`+${fmtGBP(ex.gross)}`)}</span>
+                <span style={{textAlign:'right'}}>{empty?dash:money(fmtGBP(totN),GRN,13.5)}{ex&&planned(`+${fmtGBP(ex.net)}`)}</span>
+                <span style={{display:'flex',justifyContent:'flex-end'}}>{monthStatus(m)}</span>
+                {chevron(open)}
+              </div>
+            ) : (<>
+              <div style={{display:'flex',alignItems:'flex-start',gap:'8px'}}>
+                <span style={{flex:1,minWidth:0}}>{name}{sub}{ex&&planned(`+${fmtGBP(ex.gross)} · +${fmtGBP(ex.net)} net planned`)}</span>
+                <span style={{textAlign:'right',flexShrink:0}}>
+                  {empty ? <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--quiet)'}}>—</span> : <span>{money(fmtGBP(totG),'var(--text-navy)')}<span style={W>=340?{marginLeft:'9px'}:{display:'block',textAlign:'right',marginTop:'2px'}}>{money(fmtGBP(totN),GRN,13)}</span></span>}
+                </span>
+                <span style={{paddingTop:'3px'}}>{chevron(open)}</span>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:'10px',marginTop:'8px',marginRight:'21px'}}>
+                <span style={{flex:1}}>{bar(m)}</span>{monthStatus(m)}
+              </div>
+            </>)}
+          </div>
+          {open&&<div style={{borderRadius:'0 0 12px 12px',marginBottom:'8px',border:'1px solid var(--border-2)',borderTop:'none',background:'var(--surface)'}}>{monthOpened(m)}</div>}
         </div>
-        {layout==='table' ? (
-          <div style={{display:'grid',gridTemplateColumns:GRID,gap,...headRow}}>
-            <span>Pay month</span><span style={{textAlign:'right'}}>Hours</span><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span><span style={{textAlign:'right'}}>CARMS / PSOP</span><span/>
-          </div>
-        ) : (
-          <div style={{display:'flex',justifyContent:'space-between',...headRow}}><span>Pay month</span><span style={{paddingRight:'23px'}}>Gross / net</span></div>
-        )}
-        {rows.map(monthRow)}
-        {later.length>0&&(
-          <div style={{display:'flex',justifyContent:'space-between',gap:'8px',padding:'11px 6px',borderBottom:'1px solid var(--border-2)',fontSize:'13px',fontWeight:700,color:'var(--quiet)'}}>
-            <span>{later.length>1?`${String(later[0].p.month).split(' ')[0]} – ${payLabel(later[later.length-1].p.month)}`:payLabel(later[0].p.month)}</span><span>Nothing yet</span>
-          </div>
-        )}
-        {/* The total is the sum of the lines above, so it always adds up;
-            planned shifts sit on their own line under it. */}
-        {layout==='table' ? (
-          <div style={{display:'grid',gridTemplateColumns:GRID,gap,alignItems:'center',...totRow}}>
-            {totLbl}
-            <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--ink)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtHrs(T.hrs)}</span>
-            <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:'var(--text-navy)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(T.g)}</span>
-            <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:GRN,textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(T.net)}</span>
-            <span/><span/>
-          </div>
-        ) : (
-          <div style={{display:'flex',alignItems:'center',gap:'10px',...totRow,paddingRight:'29px'}}>
-            <span style={{flex:1,minWidth:0}}>{totLbl}</span>{totMoney}
-          </div>
-        )}
-        {totals.expectedYear?.n>0 ? <div style={{marginTop:'8px'}}>{expStrip(`Plus ${totals.expectedYear.n} planned shift${totals.expectedYear.n!==1?'s':''}${plan.h>0?` (${fmtHrs(plan.h)})`:''}, if claimed on time`, <>+{fmtGBP(totals.expectedYear.gross)} gross · +{fmtGBP(totals.expectedYear.net)} net</>)}</div>
-          : plan.h>0&&<div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',padding:'8px 6px 0'}}>Plus {fmtHrs(plan.h)} planned ({plan.n} shift{plan.n!==1?'s':''}), not counted until worked.</div>}
+      );
+    };
+
+    const swatch = (bg,txt) => <span style={{display:'inline-flex',alignItems:'center',gap:'5px'}}><span style={{width:'10px',height:'10px',borderRadius:'3px',background:bg}}/>{txt}</span>;
+    return (<>
+      <div style={{...S.card,padding:isWide?'18px 20px':'16px',marginBottom:'10px'}}>
+        <div style={{fontWeight:900,fontSize:'15px',color:'var(--ink)',marginBottom:'12px'}}>Tax year {fy}/{String(Number(fy)+1).slice(-2)} so far</div>
+        <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(3,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',gap:'14px'}}>
+          {big('Gross',fmtGBP(T.g),'var(--text-navy)',EY?.n>0?`+${fmtGBP(EY.gross)} planned`:null)}
+          {big('Net',fmtGBP(T.net),GRN,EY?.n>0?`+${fmtGBP(EY.net)} planned`:null)}
+          {isWide&&big('Hours',fmtHrs(T.hrs),'var(--ink)',`${T.n} shift${T.n!==1?'s':''}`,'var(--muted)')}
+        </div>
+        {!isWide&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginTop:'10px'}}>{fmtHrs(T.hrs)} over {T.n} shift{T.n!==1?'s':''}</div>}
+        {EY?.n>0&&<div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'6px'}}>Planned: {EY.n} shift{EY.n!==1?'s':''} still to work, if claimed on time.</div>}
+        {cm&&(cm.sp.sub+cm.sp.pend+cm.sp.plan>0||cm.carms)&&<div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'6px 16px',marginTop:'14px',paddingTop:'12px',borderTop:'1px solid var(--border-2)',fontSize:'12.5px',fontWeight:700}}>
+          <span style={{color:'var(--ink)'}}>{payLabel(cm.p.month)}:</span>
+          {cm.sp.sub>0&&<span style={{color:'var(--text-green-deep)'}}>{fmtHrs(cm.sp.sub)} submitted</span>}
+          {cm.sp.pend>0&&<span style={{color:'var(--text-red-deep)'}}>{fmtHrs(cm.sp.pend)} not submitted</span>}
+          {cm.sp.plan>0&&<span style={{color:'var(--exp-ink)'}}>{fmtHrs(cm.sp.plan)} planned</span>}
+          {cm.carms&&<span style={{marginLeft:'auto'}}>{submitLink(cm)}</span>}
+        </div>}
       </div>
-    );
+      <div ref={listRef} style={{...S.card,padding:isWide?'14px 16px':'12px 10px'}}>
+        <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'6px 14px',padding:'2px 8px 10px',fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>
+          {swatch(GRN,'Net')}{swatch('color-mix(in srgb, var(--text-navy) 30%, transparent)','Gross')}{EY?.n>0&&swatch('color-mix(in srgb, var(--exp) 50%, transparent)','Planned')}
+          <span style={{marginLeft:'auto',fontWeight:600,color:'var(--quiet)'}}>{isWide?'Click':'Tap'} a month to open it</span>
+        </div>
+        {rowCols&&<div style={{display:'grid',gridTemplateColumns:MONTH_COLS,gap:'14px',padding:'0 8px 7px',borderBottom:'1px solid var(--border)',...label,fontSize:'10px'}}><span>Pay month</span><span/><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span><span style={{textAlign:'right'}}>Status</span><span/></div>}
+        {rows.map(monthLine)}
+        {later.length>0&&<div style={{display:'flex',justifyContent:'space-between',gap:'8px',padding:'12px 8px 4px',fontSize:'13px',fontWeight:600,color:'var(--quiet)'}}><span>{later.length>1?`${String(later[0].p.month).split(' ')[0]} – ${payLabel(later[later.length-1].p.month)}`:payLabel(later[0].p.month)}</span><span>Nothing yet</span></div>}
+      </div>
+    </>);
   };
 
   return (
@@ -628,97 +645,7 @@ export function TabSummary({
       <div key={breakdownView} className="fi">
       {breakdownView==='list' ? (()=>{
       const infos = PAY_PERIODS.map((p,idx)=>periodCalc(p,idx));
-      const m = currPeriodIdx>=0 ? infos[currPeriodIdx] : null;
-      const cur = m && (()=>{ const {p, idx, pE, totG, totN, sp} = m; const isExp=expanded===p.month, isCurr=true; return (
-      <div key={p.month} ref={el=>monthRefs.current[p.month]=el} style={{background:'var(--surface)',borderRadius:'16px',border:'1px solid var(--border-2)',borderLeft:isCurr?`3px solid ${BRASS}`:'1px solid var(--border-2)',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',marginBottom:'10px',overflow:'hidden'}}>
-        {/* role="button" rather than a real <button> — it contains the
-            "Awaiting submission" teaser below as a genuine nested
-            <button> of its own (jumping to CARMS is a different action
-            from expanding this card), and a real <button> may not
-            contain other interactive content per HTML5. Enter/Space
-            below reproduces what a real button gets for free. */}
-        <div role="button" tabIndex={0} onClick={()=>setExpanded(isExp?null:p.month)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setExpanded(isExp?null:p.month); } }} style={{width:'100%',textAlign:'left',padding:'16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
-          {isCurr&&<div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:BRASS,color:'#fff',fontSize:'10px',fontWeight:900,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}><span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Current pay month</div>}
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'2px'}}>
-            <div style={{fontWeight:900,fontSize:'18px',color:'var(--ink)',letterSpacing:'-0.3px'}}>{payLabel(p.month)}</div>
-            <div style={{fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>Shifts {fmtD(p.start)} – {fmtD(p.end)}</div>
-          </div>
-
-          {/* A full-width card on desktop (the current pay month, or
-              any open month) sets Hours, Gross and Net side by side
-              rather than stretching three rows across the width. */}
-          {isWide ? (()=>{
-            // Planned shifts get their own box when there are any, so the
-            // hours here add up with the tax-year table below. On a narrow
-            // desktop the boxes go two to a row.
-            const boxes = [['clock','var(--tint-green)',GRN,'Hours submitted',fmtHrs(sp.sub),GRN],
-                ['clock','var(--tint-red)',RED,'Not submitted',fmtHrs(sp.pend),sp.pend>0?RED:'var(--quiet)'],
-                ...(sp.plan>0?[['cal','var(--chip-bg)','var(--quiet)','Planned',fmtHrs(sp.plan),'var(--quiet)']]:[]),
-                ['cash','var(--tint-blue)','var(--text-navy)','Gross',fmtGBP(totG),'var(--text-navy)'],
-                ['cash','var(--tint-green)','#059669','Net',fmtGBP(totN),'#059669']];
-            const cols = narrow ? 2 : boxes.length;
-            return (
-            <div style={{display:'grid',gridTemplateColumns:`repeat(${cols},minmax(0,1fr))`,border:'1px solid var(--border-2)',borderRadius:'13px',margin:'10px 0 2px'}}>
-              {boxes.map(([ic,bg,icc,lbl,val,col],n)=>(
-                <div key={lbl} style={{display:'flex',alignItems:'center',gap:cols>4?'9px':'11px',padding:cols>4?'13px 12px':'13px 16px',borderLeft:n%cols?'1px solid var(--border-2)':'none',borderTop:n>=cols?'1px solid var(--border-2)':'none',...(n===boxes.length-1&&n%cols===0&&cols>1?{gridColumn:'1 / -1'}:{})}}>
-                  <div style={{width:'30px',height:'30px',borderRadius:'13px',background:bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n={ic} s={15} c={icc}/></div>
-                  <div style={{minWidth:0}}>
-                    <div style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>{lbl}</div>
-                    <div style={{fontFamily:MONO,fontSize:'17px',fontWeight:600,color:col,marginTop:'1px',whiteSpace:'nowrap'}}>{val}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            ); })() : (<>
-          {[['Hours submitted',sp.sub,sp.nSub,GRN,'var(--tint-green)','clock'],['Not submitted',sp.pend,sp.nPend,sp.pend>0?RED:'var(--quiet)','var(--tint-red)','clock'],...(sp.plan>0?[['Planned',sp.plan,sp.nPlan,'var(--quiet)','var(--chip-bg)','cal']]:[])].map(([lbl,h,n,col,bg,ic])=>(
-          <div key={lbl} style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0',borderBottom:'1px solid var(--border-2)'}}>
-            <div style={{width:'30px',height:'30px',borderRadius:'13px',background:bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n={ic} s={15} c={col}/></div>
-            <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>{lbl}</div>
-            <div style={{fontFamily:MONO,fontSize:'13.5px',fontWeight:600,color:col}}>{fmtHrs(h)} <span style={{color:'var(--quiet)',fontWeight:400}}>· {n} shift{n!==1?'s':''}</span></div>
-          </div>))}
-          <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0',borderBottom:'1px solid var(--border-2)'}}>
-            <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="cash" s={15} c="var(--text-navy)"/></div>
-            <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Gross</div>
-            <div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'var(--text-navy)'}}>{fmtGBP(totG)}</div>
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:'11px',padding:'11px 0'}}>
-            <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-green)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="cash" s={15} c="#059669"/></div>
-            <div style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Net</div>
-            <div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'#059669'}}>{fmtGBP(totN)}</div>
-          </div>
-          </>)}
-
-          {(() => {
-            const g = m.carms;
-            if (!g) return null;
-            return (
-              <button onClick={ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(idx); }} className="nav-add-pulse" style={{display:'flex',alignItems:'center',gap:'11px',width:'100%',background:'var(--tint-amber)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginTop:'11px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
-                <div style={{width:'30px',height:'30px',borderRadius:'13px',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="checklist" s={15} c={BRASS}/></div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>Overtime &amp; PA to submit</div>
-                  <div style={{fontSize:'10px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>CARMS &amp; PSOP</div>
-                </div>
-                <div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(g.periodTotal)}</div>
-              </button>
-            );
-          })()}
-          {/* A divider and a taller strip keep "Tap to see more" well clear
-              of the to-submit button above it, on a phone and a computer. */}
-          {!isExp&&<div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',fontSize:'12.5px',fontWeight:700,color:BRASS,marginTop:isWide?'22px':'18px',paddingTop:'12px',minHeight:'40px',borderTop:'1px solid var(--border-2)'}}>
-            Tap to see more
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={BRASS} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:isExp?'rotate(180deg)':'rotate(0deg)',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
-          </div>}
-        </div>
-
-        {isExp&&monthDetail(m)}
-      </div>
-      ); })();
-      return (<>
-      {/* This pay month keeps its full card on top — it's the one you can
-          still act on — then the whole tax year as one table. */}
-      {cur}
-      {monthTable(infos)}
-      </>);
+      return monthsView(infos);
       })() : breakdownView==='compact' ? (
       <>
       {/* ══════════════════ COMPACT VIEW — one period, dense rows ══════════════════
