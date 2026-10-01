@@ -63,6 +63,7 @@ export function TabDashboard({
 
   const netHeroRow = (compact) => {
     const prevPb = currPeriodIdx>0  ? totals.periodBreakdown[currPeriodIdx-1] : null;
+    const exp = currPeriodIdx>=0 ? totals.expected?.[currPeriodIdx] : null;
     const delta  = (pb&&prevPb) ? (pb.combinedNet - prevPb.combinedNet) : null;
     const sparkFrom = Math.max(0, currPeriodIdx - 5);
     const sparkVals = currPeriodIdx>=0 ? totals.periodBreakdown.slice(sparkFrom, currPeriodIdx+1).map(p=>p.combinedNet) : [];
@@ -87,7 +88,7 @@ export function TabDashboard({
                 as a different kind of label sitting in the same list. */}
             <span style={{fontSize:compact?'13px':'14px',fontWeight:800,color:'var(--ink)'}}>Net pay this pay month</span>
           </div>
-          <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}</span>
+          <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)',textAlign:'right'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}{!compact&&exp&&exp.n>0&&<span style={{display:'block',fontWeight:700,color:'var(--exp-ink)'}}>+{fmtGBP(exp.gross)} expected</span>}</span>
         </div>
         <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'12px',paddingLeft:compact?'42px':'46px'}}>
           {/* The figure and trend pill keep their width; when a phone is
@@ -97,6 +98,7 @@ export function TabDashboard({
               index.html — as it would only be a sliver. */}
           <div style={{flexShrink:0}}>
             <div style={{fontFamily:MONO,fontSize:compact?'22px':'25px',fontWeight:700,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.1}}>{fmtGBP(animatedNet)}</div>
+            <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'6px'}}>
             {/* Tapping the trend pill jumps straight to the period it's
                 actually comparing against (currPeriodIdx-1, not the
                 current one) — same drill-down instinct as every other
@@ -111,6 +113,14 @@ export function TabDashboard({
                 <Ico n="cR" s={9} c="currentColor" w={2.5}/>
               </button>
             )}
+            {/* What this month's planned shifts should add once worked and
+                claimed — its own colour, never part of the figure above. */}
+            {exp&&exp.n>0&&(
+              <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10.5px',fontWeight:800,color:'var(--exp-ink)',background:'var(--exp-tint)',border:'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)',padding:'2px 8px',borderRadius:'20px',marginTop:'4px',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
+                <span style={{fontFamily:MONO}}>+{fmtGBP(exp.net)}</span> expected{compact?'':` · ${exp.n} planned shift${exp.n!==1?'s':''}`}
+              </button>
+            )}
+            </div>
           </div>
           {pts.length>1&&(
             <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="net-spark" preserveAspectRatio="xMaxYMax meet" style={{flexShrink:1,minWidth:0,marginBottom:'2px'}}>

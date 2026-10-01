@@ -372,14 +372,24 @@ export function TabSummary({
 
   const monthStatus = m => m.carms ? {col:RED, chip:<span style={{display:'inline-block',fontSize:'11px',fontWeight:800,padding:'2px 8px',borderRadius:'999px',background:'var(--tint-red)',color:'var(--text-red-deep)',whiteSpace:'nowrap'}}>{fmtGBP(m.carms.periodTotal)} to submit</span>}
     : (m.sp.nSub>0||m.totG>0) ? {col:GRN, chip:<span style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'11px',fontWeight:800,padding:'2px 8px',borderRadius:'999px',background:'var(--tint-green)',color:'var(--text-green-deep)',whiteSpace:'nowrap'}}><Ico n="check" s={10} c="var(--text-green-deep)" w={3.2}/>All submitted</span>}
+    : m.sp.nPlan>0 ? {col:'var(--exp)', chip:<span style={{display:'inline-block',fontSize:'11px',fontWeight:800,padding:'2px 8px',borderRadius:'999px',background:'var(--exp-tint)',color:'var(--exp-ink)',border:'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)',whiteSpace:'nowrap'}}>Planned · {fmtHrs(m.sp.plan)}</span>}
     : {col:'var(--border)', chip:<span style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)',whiteSpace:'nowrap'}}>No overtime</span>};
+
+  // Expected pay from planned shifts: a dashed strip in its own colour under
+  // a month (or the total), never part of the real figures in the row.
+  const expStrip = (label, figs) => (
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'4px 10px',flexWrap:'wrap',margin:'2px 6px 8px',padding:'6px 10px',borderRadius:'10px',background:'var(--exp-tint)',border:'1px dashed color-mix(in srgb, var(--exp) 50%, transparent)',fontSize:'12px',fontWeight:700,color:'var(--exp-ink)'}}>
+      <span>{label}</span><span style={{fontFamily:MONO,whiteSpace:'nowrap'}}>{figs}</span>
+    </div>
+  );
 
   const monthRow = m => {
     const {p, idx, sp, totG, totN} = m;
     const isCurr = idx===currPeriodIdx, isExp = expanded===p.month && !isCurr;
     const st = monthStatus(m);
     const hrs = sp.sub+sp.pend, n = sp.nSub+sp.nPend;
-    const shiftsTxt = `${n} shift${n!==1?'s':''}`;
+    const shiftsTxt = n===0&&sp.nPlan>0 ? `${sp.nPlan} planned shift${sp.nPlan!==1?'s':''}` : `${n} shift${n!==1?'s':''}${sp.nPlan>0?` · ${sp.nPlan} planned`:''}`;
+    const ex = totals.expected?.[idx];
     // The current month opens in its card at the top, so its line here
     // jumps up to that instead of opening a second copy.
     const open = () => isCurr ? jumpTo(p.month) : setExpanded(isExp?null:p.month);
@@ -393,7 +403,8 @@ export function TabSummary({
     const num = (v, col, w=600) => <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:w,color:col,textAlign:'right',whiteSpace:'nowrap'}}>{v}</span>;
     // A month with shifts shows its money even at £0.00 (its claims went into
     // a later month), rather than a gap; only an empty month shows "No overtime".
-    const money = (totG>0||totN>0||m.pE.length>0) ? (
+    const onlyPlanned = n===0 && sp.nPlan>0 && totG===0 && totN===0;
+    const money = !onlyPlanned && (totG>0||totN>0||m.pE.length>0) ? (
       <span style={{textAlign:'right',flexShrink:0}}>
         <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:'var(--text-navy)',whiteSpace:'nowrap'}}>{fmtGBP(totG)}</div>
         <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:GRN,whiteSpace:'nowrap',marginTop:'1px'}}>{fmtGBP(totN)} net</div>
@@ -414,13 +425,16 @@ export function TabSummary({
           </>) : (<>
             <span style={{flex:1,minWidth:0}}>
               {name}
-              <div style={sub}>{fmtHrs(hrs)} · {shiftsTxt}</div>
+              <div style={sub}>{onlyPlanned ? shiftsTxt : `${fmtHrs(hrs)} · ${shiftsTxt}`}</div>
               {m.carms&&<div style={{marginTop:'5px'}}>{st.chip}</div>}
             </span>
             {money||<span style={{flexShrink:0}}>{st.chip}</span>}
           </>)}
           {chev}
         </button>
+        {ex&&ex.n>0&&!isExp&&(layout==='table'
+          ? expStrip(`Expected from ${ex.n} planned shift${ex.n!==1?'s':''}${ex.hrs>0?` · ${fmtHrs(ex.hrs)}`:''}`, <>+{fmtGBP(ex.gross)} gross · +{fmtGBP(ex.net)} net → <b>{fmtGBP(totN+ex.net)}</b> net</>)
+          : expStrip(`${ex.n} planned${ex.hrs>0?` · ${fmtHrs(ex.hrs)}`:''}`, <>+{fmtGBP(ex.net)} net expected</>))}
         {isExp&&<div style={{borderRadius:'0 0 12px 12px',overflow:'hidden',marginBottom:'8px',border:'1px solid var(--border-2)',borderTop:'none'}}>{monthDetail(m)}</div>}
       </div>
     );
@@ -481,7 +495,8 @@ export function TabSummary({
             <span style={{flex:1,minWidth:0}}>{totLbl}</span>{totMoney}
           </div>
         )}
-        {plan.h>0&&<div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',padding:'8px 6px 0'}}>Plus {fmtHrs(plan.h)} planned ({plan.n} shift{plan.n!==1?'s':''}), not counted until worked.</div>}
+        {totals.expectedYear?.n>0 ? <div style={{marginTop:'8px'}}>{expStrip(`Plus ${totals.expectedYear.n} planned shift${totals.expectedYear.n!==1?'s':''}${plan.h>0?` (${fmtHrs(plan.h)})`:''}, if claimed on time`, <>+{fmtGBP(totals.expectedYear.gross)} gross · +{fmtGBP(totals.expectedYear.net)} net</>)}</div>
+          : plan.h>0&&<div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',padding:'8px 6px 0'}}>Plus {fmtHrs(plan.h)} planned ({plan.n} shift{plan.n!==1?'s':''}), not counted until worked.</div>}
       </div>
     );
   };

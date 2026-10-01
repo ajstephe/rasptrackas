@@ -1957,6 +1957,22 @@ export default function App() {
     })) }) : [];
     const projectedAnnualGross = hasPay ? sum(forecastYear, pb=>pb.monthGross) : 0;
 
+    // What planned (future-dated) shifts should add, shown as "expected" in
+    // its own colour and never mixed into the real totals: the pay year is
+    // run again with each planned shift treated as claimed on its own date,
+    // and the difference per pay month is what it should bring. Assumes the
+    // shift is worked as planned and claimed before that payday.
+    const pence = x => Math.round(x*100)/100;
+    const expected = periodBreakdown.map(()=>({ gross:0, net:0, n:0, hrs:0 }));
+    const planned = fyEntries.filter(e=>e.date>todayStr && e.date<=FY_END && calcEntry(e).gross>0);
+    if (hasPay && planned.length) {
+      const asClaimed = fyEntries.map(e=>e.date>todayStr ? { ...e, otSubmitted:true, otSubmittedDate:e.date, paSubmitted:true, paSubmittedDate:e.date } : e);
+      const withPlanned = buildPayYear({ periods: PAY_PERIODS, entries: asClaimed, settings });
+      withPlanned.forEach((pb,i)=>{ expected[i].gross = pence(pb.combinedGross - periodBreakdown[i].combinedGross); expected[i].net = pence(pb.combinedNet - periodBreakdown[i].combinedNet); });
+      planned.forEach(e=>{ const i = PAY_PERIODS.findIndex(p=>e.date>=p.start&&e.date<=p.end); if (i>=0) { const c = calcEntry(e); expected[i].n++; expected[i].hrs += c.h1+c.h2+c.h3; } });
+    }
+    const expectedYear = { gross: pence(sum(expected, x=>x.gross)), net: pence(sum(expected, x=>x.net)), n: planned.length, hrs: sum(expected, x=>x.hrs) };
+
     return{
       totalGross, totalNet, totalHrs, periodBreakdown,
       prev:getP(currPeriodIdx-1), curr:getP(currPeriodIdx),
@@ -1965,6 +1981,7 @@ export default function App() {
       combinedGrossYTD, combinedNetYTD, pensionYTD, ytdTax, ytdNI,
       taxYearDaysElapsed, taxYearStart, taxYearFraction, taxFY,
       paidMonths, forecastYear, projectedAnnualGross,
+      expected, expectedYear,
       // Pay after pension so far — what the £100k taper is judged against.
       taxableGrossYTD,
     };
