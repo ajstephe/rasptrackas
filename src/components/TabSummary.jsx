@@ -471,7 +471,7 @@ export function TabSummary({
       const {p, idx, sp, totG, totN} = m;
       const isCurr=idx===currPeriodIdx, open=expanded===p.month, ex=exOf(m), empty=isEmpty(m);
       const name = <span style={{display:'flex',alignItems:'center',gap:'7px',minWidth:0,fontWeight:800,fontSize:'14.5px',color:'var(--ink)'}}><span style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{payLabel(p.month)}</span>{isCurr&&nowTag}</span>;
-      const sub = <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{empty?shiftsTxt(m):`${fmtHrs(sp.sub+sp.pend)} · ${shiftsTxt(m)}`}</div>;
+      const sub = <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{empty?shiftsTxt(m):(sp.nSub+sp.nPend===0&&!sp.nPlan)?'Claims from earlier shifts':`${fmtHrs(sp.sub+sp.pend)} · ${shiftsTxt(m)}`}</div>;
       const lineStyle = {cursor:'pointer',padding:'11px 8px',borderBottom:open?'none':'1px solid var(--border-2)',background:open?'var(--surface-2)':isCurr?'var(--tint-brass)':'transparent',borderRadius:open?'12px 12px 0 0':isCurr?'10px':0,boxShadow:isCurr&&!open?`inset 3px 0 0 ${BRASS}`:'none'};
       return (
         <div key={p.month} ref={el=>monthRefs.current[p.month]=el}>

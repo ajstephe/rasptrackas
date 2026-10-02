@@ -5012,7 +5012,7 @@ export default function App() {
             {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
               // zIndex: the active tab's icon is scaled (.nav-ico.active), and
               // that transform paints it over this earlier sibling otherwise.
-              <div className="badge-pop" style={{position:'absolute',top:'2px',right:'calc(50% - 16px)',zIndex:2,background:'#d97706',color:'#fff',fontSize:'8px',fontWeight:900,width:'14px',height:'14px',borderRadius:'50%',boxShadow:'0 0 0 1.5px var(--surface)',display:'flex',alignItems:'center',justifyContent:'center'}}>{carmsOutstanding.totalClaims>9?'9+':carmsOutstanding.totalClaims}</div>
+              <div className="badge-pop" style={{position:'absolute',top:'2px',right:'calc(50% - 16px)',zIndex:2,background:'#dc2626',color:'#fff',fontSize:'8px',fontWeight:900,minWidth:'14px',height:'14px',padding:'0 3px',boxSizing:'border-box',borderRadius:'999px',boxShadow:'0 0 0 1.5px var(--surface)',display:'flex',alignItems:'center',justifyContent:'center'}}>{carmsOutstanding.totalClaims>99?'99+':carmsOutstanding.totalClaims}</div>
             )}
             {t.id==='add' ? (
               <span className={`nav-ico-add${showAddNudge&&tab!==t.id?' nav-add-pulse':''}`} style={{display:'flex'}}><Ico n={t.n} s={21} c="#10b981" w={2.5}/></span>
@@ -5102,7 +5102,7 @@ export default function App() {
                     one tab that reads smaller. */}
                 <span className={(isAdd&&entries.length===0&&!isActive)?'nav-add-pulse':''} style={t.id==='carms'?{whiteSpace:'normal',lineHeight:1.25}:undefined}>{t.lbl}</span>
                 {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
-                  <span className="badge-pop" style={{marginLeft:'auto',background:'#d97706',color:'#fff',fontSize:'10px',fontWeight:900,padding:'1px 7px',borderRadius:'10px',display:'inline-block'}}>{carmsOutstanding.totalClaims>99?'99+':carmsOutstanding.totalClaims}</span>
+                  <span className="badge-pop" style={{marginLeft:'auto',background:'#dc2626',color:'#fff',fontSize:'10px',fontWeight:900,padding:'1px 7px',borderRadius:'10px',display:'inline-block'}}>{carmsOutstanding.totalClaims>99?'99+':carmsOutstanding.totalClaims}</span>
                 )}
               </button>
             );
