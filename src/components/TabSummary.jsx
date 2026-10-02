@@ -411,7 +411,7 @@ export function TabSummary({
     const banner = m.carms && (
       <button type="button" onClick={ev=>goSubmit(ev,m.idx)} style={{display:'flex',alignItems:'center',gap:'10px',width:'100%',background:'var(--tint-red)',border:'none',borderRadius:'11px',padding:'10px 12px',marginBottom:'12px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
         <Ico n="checklist" s={15} c="var(--text-red-deep)"/>
-        <span style={{flex:1,fontSize:'13px',fontWeight:800,color:'var(--text-red-deep)'}}>{fmtGBP(m.carms.periodTotal)} still to submit on CARMS / PSOP</span>
+        <span style={{flex:1,fontSize:'13px',fontWeight:800,color:'var(--text-red-deep)'}}>{fmtGBP(m.carms.periodTotal)} still to submit on CARMS &amp; PSOP</span>
         <span style={{fontSize:'12.5px',fontWeight:800,color:'var(--text-red-deep)',whiteSpace:'nowrap'}}>Review ›</span>
       </button>);
     const close = <button type="button" onClick={()=>setExpanded(null)} style={{display:'flex',alignItems:'center',gap:'4px',margin:'10px auto 0',background:'none',border:'none',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>Close {payLabel(m.p.month)} <Ico n="cU" s={12} c={BRASS}/></button>;
@@ -984,9 +984,7 @@ export function TabSummary({
               <button onClick={()=>setCalPeriodIdx(i=>Math.max(0,(i===null?currPeriodIdx:i)-1))} disabled={cIdx===0} aria-label="Previous period" style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===0?'default':'pointer',opacity:cIdx===0?0.3:1}}><Ico n="cL" s={18} c={BRASS}/></button>
               <div style={{textAlign:'center'}}>
                 {cIdx===currPeriodIdx&&(
-                  <div style={{display:'inline-flex',alignItems:'center',gap:'4px',background:BRASS,color:'#fff',fontSize:'10px',fontWeight:900,padding:'3px 9px',borderRadius:'8px',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>
-                    <span style={{width:'5px',height:'5px',borderRadius:'50%',background:'#fff'}}/>Current pay month
-                  </div>
+                  <div style={{display:'flex',justifyContent:'center',marginBottom:'4px'}}>{nowTag}</div>
                 )}
                 <div style={{fontWeight:900,fontSize:'22px',color:cIdx===currPeriodIdx?BRASS:'var(--ink)'}}>{payLabel(cPeriod.month)}</div>
                 <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:'var(--quiet)'}}>Shifts {fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
@@ -1196,7 +1194,7 @@ export function TabSummary({
                       <div style={{borderTop:'1px solid var(--border-2)',padding:'8px 0 2px'}}>
                         <div style={{...skyBox,padding:'9px 11px'}}>
                           <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px'}}>
-                            <span style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.06em',...sky}}>{shiftsLbl} · {fmtHrs(ex.hrs)}</span>
+                            <span style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.06em',...sky}}>{shiftsLbl} · <span style={{textTransform:'none'}}>{fmtHrs(ex.hrs)}</span></span>
                             <span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:700,...sky}}>+{fmtGBP(ex.gross)} gross · +{fmtGBP(ex.net)} net</span>
                           </div>
                           {planned.map(e=>{ const c=calcEntry(e); return (

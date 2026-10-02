@@ -344,7 +344,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
            thing to know about it (it isn't in your gross yet) ── */}
       <div style={{background:'var(--navy)',borderRadius:'18px',padding:isWide?'20px 22px':'18px',position:'relative',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.05)',display:isWide?'flex':'block',justifyContent:'space-between',alignItems:'flex-end',gap:'18px',flexWrap:'wrap'}}>
         <div>
-          <div style={{fontSize:'11.5px',fontWeight:800,color:'#93c5fd',marginBottom:'4px'}}>Still to claim on CARMS &amp; PSOP</div>
+          <div style={{fontSize:'11.5px',fontWeight:800,color:'#93c5fd',marginBottom:'4px'}}>Still to submit on CARMS &amp; PSOP</div>
           <div style={{fontFamily:MONO,fontSize:isWide?'30px':'28px',fontWeight:600,color:'#fff',letterSpacing:'-0.02em',marginBottom:'4px'}}>{fmtGBP(animatedTotal)}</div>
           {anyOutstanding&&(
             <div style={{fontSize:'12px',color:'#cbd5e1',fontWeight:600}}>

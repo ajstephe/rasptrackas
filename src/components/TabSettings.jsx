@@ -290,7 +290,7 @@ export function TabSettings({
         </div>
         <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,lineHeight:1.6}}>
           A lot of late nights, caffeine, and swearing went into building and hosting this. If it's making your life easier and you'd like to say thanks, you can{' '}
-          <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:'#2563eb',fontWeight:800,textDecoration:'underline'}}>Buy me a coffee</a> (via Starling Bank).
+          <a href="https://settleup.starlingbank.com/adam-stephens-2b95aa" target="_blank" rel="noopener noreferrer" style={{color:BRASS,fontWeight:800,textDecoration:'none'}}>Buy me a coffee</a> (via Starling Bank).
         </div>
         <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
       </div>
@@ -1071,7 +1071,7 @@ export function TabSettings({
           <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px',flexShrink:0}}><Ico n="mail" s={isWide?21:17} c="#2563eb"/></div>
           <div style={{flex:1}}>
             <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Help &amp; suggestions</div>
-            <div style={{fontSize:'11px',color:'#3b82f6',fontWeight:700,marginTop:'2px'}}>ajstephe@me.com</div>
+            <div style={{fontSize:'11px',color:BRASS,fontWeight:700,marginTop:'2px'}}>ajstephe@me.com</div>
           </div>
           <Ico n="cR" s={16} c="#94a3b8"/>
         </a>
@@ -1090,7 +1090,7 @@ export function TabSettings({
           <Ico n="cR" s={16} c="#94a3b8"/>
         </button>
       </div>
-      {privacyNoticeOpen && <PrivacyNotice onClose={()=>setPrivacyNoticeOpen(false)}/>}
+      {privacyNoticeOpen && <PrivacyNotice brass={BRASS} onClose={()=>setPrivacyNoticeOpen(false)}/>}
       </div>
 
       {/* ── Backdrop for the desktop popup cards above — click

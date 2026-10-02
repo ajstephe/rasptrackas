@@ -157,7 +157,7 @@ export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth,
               <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,textAlign:'right'}}>{change(l)}</span>
               <span/>
               <span style={{fontSize:'11px',color:'var(--quiet)',display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>{sub(l)}{removeCtl(l)}</span>
-              <span style={{fontFamily:MONO,fontSize:'10.5px',color:'var(--quiet)',textAlign:'right',whiteSpace:'nowrap'}}>{l.type==='pending'?'—':`bal ${fmtHrs(l.balanceAfter)}`}</span>
+              <span style={{fontFamily:MONO,fontSize:'10.5px',color:'var(--quiet)',textAlign:'right',whiteSpace:'nowrap'}}>{l.type==='pending'?'—':`Balance ${fmtHrs(l.balanceAfter)}`}</span>
             </div>
           ))}
         </div>

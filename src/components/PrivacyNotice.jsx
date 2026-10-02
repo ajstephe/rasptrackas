@@ -20,7 +20,7 @@ import { PRIVACY_VERSION } from '../lib/legal.js';
 // an account at sign-up. If you edit the substance of any section below,
 // bump that constant too — otherwise existing sign-ups' recorded version
 // silently stops matching what this component now shows.
-export function PrivacyNotice({ onClose }) {
+export function PrivacyNotice({ onClose, brass = '#b8823f' }) {
   const boxRef = useRef(null);
   useFocusTrap(true, boxRef);
   useEscapeToClose(true, onClose);
@@ -49,7 +49,7 @@ export function PrivacyNotice({ onClose }) {
 
         <div style={sec}>
           <h3 style={h3}>Who's responsible for your data</h3>
-          <p style={p}>Overtime &amp; Shift Tracker is built and run by <span style={strong}>Adam Stephens</span>, who's the data controller for everything this notice covers — the person who decides what's collected and why, and who you can contact about it. Reach the controller at <a href="mailto:ajstephe@me.com" style={{ color: '#2563eb', fontWeight: 700 }}>ajstephe@me.com</a>.</p>
+          <p style={p}>Overtime &amp; Shift Tracker is built and run by <span style={strong}>Adam Stephens</span>, who's the data controller for everything this notice covers — the person who decides what's collected and why, and who you can contact about it. Reach the controller at <a href="mailto:ajstephe@me.com" style={{ color: brass, fontWeight: 700 }}>ajstephe@me.com</a>.</p>
         </div>
 
         <div style={sec}>
@@ -76,7 +76,7 @@ export function PrivacyNotice({ onClose }) {
         <div style={sec}>
           <h3 style={h3}>How long it's kept</h3>
           <ul style={{ margin: '0 0 8px', paddingLeft: '18px' }}>
-            <li style={li}>Cloud copy: entries from the last three complete financial years. Older entries stay on your own device but aren't kept in the cloud.</li>
+            <li style={li}>Cloud copy: entries from the last three complete tax years. Older entries stay on your own device but aren't kept in the cloud.</li>
             <li style={li}>Account data: kept until you delete your account, at which point it's removed within a few minutes, not just marked hidden.</li>
             <li style={li}>Local device copy: stays on your device until you clear it yourself, independent of what's in the cloud.</li>
           </ul>
@@ -95,7 +95,7 @@ export function PrivacyNotice({ onClose }) {
             <li style={li}><span style={strong}>Rectification</span> — edit any entry or TOIL record directly.</li>
             <li style={li}><span style={strong}>Erasure</span> — More.. → Account &amp; data → Delete account removes your account and cloud data permanently.</li>
             <li style={li}><span style={strong}>Object, or raise a concern</span> — email the controller above.</li>
-            <li style={li}><span style={strong}>Complain to the regulator</span> — you can also contact the Information Commissioner's Office at <a href="https://ico.org.uk" target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontWeight: 700 }}>ico.org.uk</a> or 0303 123 1113, at any time.</li>
+            <li style={li}><span style={strong}>Complain to the regulator</span> — you can also contact the Information Commissioner's Office at <a href="https://ico.org.uk" target="_blank" rel="noreferrer" style={{ color: brass, fontWeight: 700 }}>ico.org.uk</a> or 0303 123 1113, at any time.</li>
           </ul>
         </div>
 
@@ -106,7 +106,7 @@ export function PrivacyNotice({ onClose }) {
       </div>
 
       <div style={{ padding: '14px 20px 18px', borderTop: '1px solid var(--border-2)', flexShrink: 0 }}>
-        <button onClick={onClose} style={{ width: '100%', padding: '12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--ink)', fontWeight: 900, fontSize: '11px', fontFamily: 'inherit', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Close</button>
+        <button onClick={onClose} style={{ width: '100%', padding: '12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--ink)', fontWeight: 800, fontSize: '13px', fontFamily: 'inherit', cursor: 'pointer' }}>Close</button>
       </div>
     </div>
   );

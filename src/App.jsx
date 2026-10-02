@@ -632,7 +632,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
           version is ready" PWA-update prompt) would silently queue into
           state with nothing rendering it, and never be seen. */}
       <ToastStack toasts={toasts} onDismiss={dismissToast} isWide={isWide}/>
-      {showPrivacyNotice && <PrivacyNotice onClose={()=>setShowPrivacyNotice(false)}/>}
+      {showPrivacyNotice && <PrivacyNotice brass={BRASS} onClose={()=>setShowPrivacyNotice(false)}/>}
     </div>
   );
 }
@@ -3635,7 +3635,7 @@ export default function App() {
   // used to be a bright blue card that ignored the theme).
   const renderFYTotalsCard = () => (
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',flexWrap:'wrap',background:'var(--surface-2)',border:'1px dashed var(--border)',borderRadius:'14px',padding:'11px 14px',marginTop:'10px'}}>
-      <span style={{fontSize:'11px',fontWeight:800,color:'var(--muted)'}}>Tax year {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)} · overtime &amp; PA</span>
+      <span style={{fontSize:'11px',fontWeight:800,color:'var(--muted)'}}>Overtime &amp; PA · tax year {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</span>
       <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>
         <span style={{fontFamily:MONO,color:'var(--ink)'}}>{fmtGBP(totals.totalGross)}</span> gross · <span style={{fontFamily:MONO,color:'#059669'}}>{fmtGBP(totals.totalNet)}</span> net · <span style={{fontFamily:MONO,color:'var(--ink)'}}>{fmtHrs(totals.totalHrs)}</span>
       </span>
