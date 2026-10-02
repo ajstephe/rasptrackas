@@ -135,6 +135,9 @@ export function TabSummary({
     );
     const noOT = tierHours.t133+tierHours.t150+tierHours.t200===0;
     const noPA = paCount.PA1+paCount.PA2+paCount.PA3===0;
+    if (noOT && noPA && !extra && !toilWorked && !carmsGroup) return (
+      <div style={{padding:'18px 0 8px',textAlign:'center'}}><div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>No overtime or PA yet</div><div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'3px'}}>Pick a day on the calendar to log a shift.</div></div>
+    );
     return (<>
       <div style={section}>
         {secHead('Overtime','var(--text-blue-deep)',pb.ot,pb.otResult.net)}
@@ -990,7 +993,8 @@ export function TabSummary({
                 <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:'var(--quiet)'}}>Shifts {fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
                 {/* On a computer the shift count and hours are left to the calendar
                     and the totals card below, which already show them. */}
-                {!isWide&&(<>
+                {!isWide&&cEntries.length===0&&<div style={{fontSize:'12px',fontWeight:700,color:'var(--quiet)',marginTop:'3px'}}>No overtime or PA yet</div>}
+                {!isWide&&cEntries.length>0&&(<>
                   <div style={{fontSize:'12px',fontWeight:700,color:'var(--muted)',marginTop:'3px'}}>{cEntries.length} shift{cEntries.length!==1?'s':''}</div>
                   <div style={{fontSize:'12px',fontWeight:700,marginTop:'1px',display:'flex',flexWrap:'wrap',justifyContent:'center',columnGap:'6px'}}><span style={{color:GRN,whiteSpace:'nowrap'}}>{fmtHrs(hrsSplit(cEntries).sub)} submitted</span><span style={{color:hrsSplit(cEntries).pend>0?RED:'var(--quiet)',whiteSpace:'nowrap'}}>{fmtHrs(hrsSplit(cEntries).pend)} not submitted</span></div>
                 </>)}

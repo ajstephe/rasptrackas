@@ -33,7 +33,7 @@ export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth,
     <div style={{background:overdrawn?'var(--tint-red)':'var(--tint-purple)',border:'1.5px solid var(--border-2)',borderRadius:'16px',padding:'16px',display:'flex',flexDirection:'column',justifyContent:'center',marginBottom:isWide?0:'12px'}}>
       <div style={{fontSize:'10px',fontWeight:900,color:overdrawn?'#dc2626':'var(--tag-purple)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>TOIL balance{overdrawn?' · overdrawn':''}</div>
       <div style={{fontFamily:MONO,fontSize:'27px',fontWeight:600,color:overdrawn?'var(--text-red-deep)':'var(--text-purple-deep)'}}>{fmtHrs(animatedBalance)}</div>
-      <div style={{fontSize:'11.5px',fontWeight:700,color:overdrawn?'#dc2626':'#7c3aed',marginTop:'2px'}}>About {Math.abs(days).toFixed(1)} {Math.abs(days).toFixed(1)==='1.0'?'day':'days'}{overdrawn?' overdrawn':''} at 8h a day</div>
+      <div style={{fontSize:'11.5px',fontWeight:700,color:overdrawn?'#dc2626':'#7c3aed',marginTop:'2px'}}>{Math.abs(days)<0.005?'None banked yet':<>About {Math.abs(days).toFixed(1)} {Math.abs(days).toFixed(1)==='1.0'?'day':'days'}{overdrawn?' overdrawn':''} at 8h a day</>}</div>
       {pendingHours>0&&(
         <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'7px',background:'var(--surface)',borderRadius:'10px',padding:'8px 10px',fontSize:'11.5px',fontWeight:700,color:'var(--tag-purple)'}}>
           <Ico n="clock" s={13} c="var(--tag-purple)" w={2.2}/>

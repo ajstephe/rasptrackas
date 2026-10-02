@@ -36,7 +36,7 @@ export function TabDashboard({
   // can be tapped (they always could; nothing said so).
   const chev = <Ico n="cR" s={14} c="var(--quiet)" w={2.2}/>;
   const days = Math.abs(toilLedger.balance/8).toFixed(1);
-  const toilSub = `About ${days} ${days==='1.0'?'day':'days'}${toilLedger.balance<0?' overdrawn':''} at 8h a day`;
+  const toilSub = toilLedger.balance===0 ? 'None banked yet' : `About ${days} ${days==='1.0'?'day':'days'}${toilLedger.balance<0?' overdrawn':''} at 8h a day`;
   const taxYearLine = settings.rank&&settings.service
     ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)}`
     : 'Set your rank & pay point in More..';

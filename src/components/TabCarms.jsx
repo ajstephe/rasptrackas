@@ -338,7 +338,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:'0 0 18px',letterSpacing:'-0.5px'}}>Awaits Submission</h2>
-      <div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',margin:'-14px 0 16px'}}>Overtime to claim on CARMS, Protection Allowance on PSOP</div>
+      <div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',margin:'-14px 0 16px'}}>Overtime to submit on CARMS, Protection Allowance on PSOP</div>
 
       {/* ── one summary card: the total, what it's made of, and the one
            thing to know about it (it isn't in your gross yet) ── */}
@@ -355,7 +355,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
         <div style={{fontSize:'11px',color:'#fcd34d',fontWeight:600,lineHeight:1.5,marginTop:isWide?0:'10px',maxWidth:isWide?'330px':'none'}}>
           {anyOutstanding
             ? <>Not counted in your gross pay until you mark it submitted. Spacing claims out can keep a payday steadier.</>
-            : <>Everything logged has been claimed. Shifts dated in the future join once their date arrives.</>}
+            : <>Everything logged has been submitted. Shifts dated in the future join once their date arrives.</>}
         </div>
       </div>
 

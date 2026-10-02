@@ -26,13 +26,14 @@ export function MonthlyChart({ totals, PAY_PERIODS, MONO, chartTap, setChartTap,
   const shown = pts.slice(0, lastIdx+1);
   const gp = shown.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.yG}`).join(' ');
   const np = shown.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.yN}`).join(' ');
-  const endLabels = lastIdx < data.length-1 && shown.length>0;
-  const futureFill = dark ? 'rgba(148,163,184,0.35)' : '#dbe1e9';
+  const noData = data.every(d=>!(d.gross>0));
+  const endLabels = lastIdx < data.length-1 && shown.length>0 && !noData;
+  const futureFill = dark ? 'rgba(148,163,184,0.35)' : 'var(--border)';
   const tapPt = (chartTap && chartTap.chart==='mon' && chartTap.big===big) ? pts[chartTap.i] : null;
   const toggle = i => setChartTap(t=>(t&&t.chart==='mon'&&t.i===i&&t.big===big)?null:{chart:'mon',i,big});
   // Dark variant sits on the navy Total Gross YTD card, so grid/label
   // colours flip to bright blue-white instead of slate-on-white.
-  const gridStroke = dark ? 'rgba(255,255,255,0.08)' : '#f1f5f9';
+  const gridStroke = dark ? 'rgba(255,255,255,0.08)' : 'var(--border-2)';
   // The theme's quiet text colour on the plain card, so the £ scale reads
   // clearly in every theme rather than fading into the background.
   const axisFill    = dark ? '#64748b' : 'var(--quiet)';
@@ -77,6 +78,7 @@ export function MonthlyChart({ totals, PAY_PERIODS, MONO, chartTap, setChartTap,
           <text x={p.x+ptR+5} y={p.yG-(gap?4:0)} dominantBaseline="middle" style={{fill:'#2563eb'}}>{fmtGBP(p.g)}</text>
           <text x={p.x+ptR+5} y={p.yN+(gap?6:0)} dominantBaseline="middle" style={{fill:'#059669'}}>{fmtGBP(p.n)}</text>
         </g>); })()}
+      {noData&&<text x={W/2} y={H-pY-eH*0.55} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?13:9,fontWeight:800,fill:lblFill}}>No overtime or PA yet</text>}
       {tooltip}
     </svg>
   );
