@@ -1011,6 +1011,15 @@ export default function App() {
     if (prevTabForSetupPopup === 'settings' && justCompletedSetup) setJustCompletedSetup(false);
   }
   const goToConfigSetup = () => { setSetupPopupRequested(true); setTab('settings'); };
+  // Picking the first pay point finishes setup: leave the card up for a
+  // moment so the choice visibly lands (the Saved tick, the rates), then
+  // close the popup and collapse the card underneath it, rather than
+  // leaving it open until it's clicked shut.
+  useEffect(() => {
+    if (!justCompletedSetup) return;
+    const t = setTimeout(() => { setJustCompletedSetup(false); setSetupPopupRequested(false); setConfigExpanded(false); }, 1000);
+    return () => clearTimeout(t);
+  }, [justCompletedSetup]);
   const [financialYearsExpanded, setFinancialYearsExpanded] = useState(false);
   const [pulseBackupBtn, setPulseBackupBtn] = useState(false);
 
