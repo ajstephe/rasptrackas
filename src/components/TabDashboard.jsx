@@ -444,7 +444,7 @@ export function TabDashboard({
                 <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} pay month{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             </div>
-            <div style={{display:'flex',alignItems:'center',gap:'8px'}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>
+            <div style={{display:'flex',alignItems:'center',gap:'8px'}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>
           </button>
         )}
       </div>

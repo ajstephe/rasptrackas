@@ -51,7 +51,7 @@ export function ToastStack({ toasts, onDismiss, isWide }) {
             <div key={t.id} className={t.leaving?'toast-leave':'toast-enter'} style={{background:'#0f172a',color:'#fff',borderRadius:'16px',padding:'15px 16px 15px 13px',borderLeft:'5px solid #ef4444',boxShadow:'0 6px 26px rgba(15,23,42,0.42)',pointerEvents:'all'}}>
               <div style={{display:'flex',alignItems:'flex-start',gap:'11px',marginBottom:t.action?'12px':0}}>
                 <div style={{background:'rgba(239,68,68,0.22)',borderRadius:'10px',padding:'7px',flexShrink:0,display:'flex'}}>
-                  <Ico n="uPlus" s={17} c="#f87171" w={2.5}/>
+                  <Ico n="warn" s={17} c="#f87171" w={2.5}/>
                 </div>
                 <div style={{flex:1}}>
                   {t.title&&<div style={{fontSize:'14px',fontWeight:900,marginBottom:'3px'}}>{t.title}</div>}

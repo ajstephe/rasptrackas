@@ -379,8 +379,8 @@ export function TabLogOvertime({
         {step(2,'Your hours',(
           <>
             <div role="radiogroup" aria-label="How to record hours" style={{position:'relative',display:'flex',gap:'3px',background:'var(--chip-bg)',borderRadius:'11px',padding:'3px',margin:'8px 0 2px'}}>
-              {modeBtn(true,'Shift Time Input','Rostered vs Worked, auto calculated','clock')}
-              {modeBtn(false,'Enter Hours','Manually enter hours','edit')}
+              {modeBtn(true,'Shift time input','Rostered vs Worked, auto calculated','clock')}
+              {modeBtn(false,'Enter hours','Manually enter hours','edit')}
               <span aria-hidden="true" style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',width:'26px',height:'26px',borderRadius:'50%',background:'var(--surface)',border:'1.5px solid var(--border)',boxShadow:'0 1px 4px rgba(15,23,42,0.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'9px',fontWeight:900,letterSpacing:'0.04em',color:'var(--muted)',pointerEvents:'none',zIndex:1}}>OR</span>
             </div>
             {hoursRows}
@@ -435,7 +435,7 @@ export function TabLogOvertime({
               }
             }}/>
         ) : (
-          <button type="button" onClick={()=>{ setNotesOpen(true); setTimeout(()=>notesRef.current?.focus(),0); }} style={{background:'none',border:'none',padding:'4px 0 0',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'#2563eb',cursor:'pointer'}}>+ Add a note</button>
+          <button type="button" onClick={()=>{ setNotesOpen(true); setTimeout(()=>notesRef.current?.focus(),0); }} style={{background:'none',border:'none',padding:'4px 0 0',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer'}}>+ Add a note</button>
         ),{optional:true})}
         </div></div>
 
@@ -446,16 +446,16 @@ export function TabLogOvertime({
           <div style={{minWidth:0}}>
             <div style={{display:'flex',gap:isWide?'20px':'14px'}}>
               <div>
-                <div style={{fontSize:'9.5px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.08em',color:'#93c5fd'}}>Gross</div>
+                <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.07em',color:'#93c5fd'}}>Gross</div>
                 <div style={{fontFamily:MONO,fontSize:isWide?'20px':'17px',fontWeight:600,color:'#fff'}}>{fmt(animatedPreviewGross)}</div>
               </div>
               <div>
-                <div style={{fontSize:'9.5px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.08em',color:'#6ee7b7'}}>Net</div>
+                <div style={{fontSize:'10px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.07em',color:'#6ee7b7'}}>Net</div>
                 <div style={{fontFamily:MONO,fontSize:isWide?'20px':'17px',fontWeight:600,color:'#34d399'}}>{fmt(animatedPreviewNet)}</div>
               </div>
             </div>
             {preview.toilBanked>0&&(
-              <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#c4b5fd',marginTop:'3px'}}>+ {fmtHrs(preview.toilBanked)} TOIL banked</div>
+              <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'#c4b5fd',marginTop:'3px'}}>+{fmtHrs(preview.toilBanked)} TOIL banked</div>
             )}
           </div>
           <button onClick={handleSave} disabled={justSaved} className={justSaved?'save-pulse':'save-pulse-idle'} style={{marginLeft:'auto',flexShrink:0,background:justSaved?'#059669':`var(--save-bg, ${BRASS})`,color:justSaved?'#fff':'var(--save-ink, #fff)',boxShadow:justSaved?'0 3px 14px rgba(5,150,105,0.4)':undefined,padding:isWide?'13px 26px':'12px 16px',borderRadius:'12px',border:'none',fontWeight:900,fontSize:isWide?'14px':'13px',fontFamily:'inherit',cursor:justSaved?'default':'pointer',display:'flex',alignItems:'center',gap:'8px',transition:'background 0.3s'}}>

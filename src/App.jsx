@@ -4316,7 +4316,7 @@ export default function App() {
             <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>Do you want to create a backup before proceeding?</div>
             <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
               <button onClick={async ()=>{ setRestoreConfirmOpen(false); await handleExport(); fileRef.current.click(); }} style={{padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Back up, then restore</button>
-              <button onClick={()=>{ setRestoreConfirmOpen(false); fileRef.current.click(); }} style={{padding:'12px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',color:'var(--text-red-deep)',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:'pointer',textTransform:'uppercase',letterSpacing:'0.06em'}}>Restore without backup</button>
+              <button onClick={()=>{ setRestoreConfirmOpen(false); fileRef.current.click(); }} style={{padding:'12px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Restore without backup</button>
               <button onClick={()=>setRestoreConfirmOpen(false)} style={{padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--muted)',fontWeight:700,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>
@@ -4541,7 +4541,7 @@ export default function App() {
 
               <div style={{display:'flex',gap:'6px',background:'var(--chip-bg)',borderRadius:'12px',padding:'3px',marginBottom:'16px'}}>
                 <button onClick={()=>setPayslipMode('period')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='period'?'var(--surface)':'transparent',color:payslipMode==='period'?BRASS:'var(--muted)',boxShadow:payslipMode==='period'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Pay month</button>
-                <button onClick={()=>setPayslipMode('custom')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='custom'?'var(--surface)':'transparent',color:payslipMode==='custom'?BRASS:'var(--muted)',boxShadow:payslipMode==='custom'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Custom Range</button>
+                <button onClick={()=>setPayslipMode('custom')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='custom'?'var(--surface)':'transparent',color:payslipMode==='custom'?BRASS:'var(--muted)',boxShadow:payslipMode==='custom'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Custom range</button>
                 <button onClick={()=>setPayslipMode('financialYear')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='financialYear'?'var(--surface)':'transparent',color:payslipMode==='financialYear'?BRASS:'var(--muted)',boxShadow:payslipMode==='financialYear'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Tax year</button>
               </div>
 
@@ -4550,7 +4550,7 @@ export default function App() {
                   {sanitiseNotes&&<Ico n="check" s={12} c="#fff" w={3}/>}
                 </div>
                 <div>
-                  <div style={{fontSize:'12px',fontWeight:800,color:'var(--text-red-deep)'}}>Sanitise Notes Field</div>
+                  <div style={{fontSize:'12px',fontWeight:800,color:'var(--text-red-deep)'}}>Sanitise notes</div>
                   <div style={{fontSize:'10.5px',color:'var(--text-red-deep)',marginTop:'2px',lineHeight:1.5}}>Recommended — shift notes may hold operationally sensitive detail.</div>
                 </div>
               </button>
@@ -4560,12 +4560,12 @@ export default function App() {
                   <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Pay months</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'7px',marginBottom:'6px'}}>
                     {periodChoices.map(p=>(
-                      <div key={p.idx} onClick={()=>setPayslipPeriodIdx(p.idx)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:p.idx===payslipPeriodIdx?'1.5px solid #2563eb':'1.5px solid var(--border-2)',background:p.idx===payslipPeriodIdx?'var(--tint-blue)':'var(--surface)',cursor:'pointer'}}>
+                      <div key={p.idx} onClick={()=>setPayslipPeriodIdx(p.idx)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:p.idx===payslipPeriodIdx?`1.5px solid ${BRASS}`:'1.5px solid var(--border-2)',background:p.idx===payslipPeriodIdx?'var(--tint-brass)':'var(--surface)',cursor:'pointer'}}>
                         <div>
-                          <div style={{fontWeight:800,fontSize:'12.5px',color:'var(--ink)'}}>{p.month}{p.idx===currPeriodIdx&&<span style={{color:'#2563eb',fontSize:'9px',marginLeft:'6px'}}>· Current</span>}</div>
+                          <div style={{fontWeight:800,fontSize:'12.5px',color:'var(--ink)'}}>{payLabel(p.month)}{p.idx===currPeriodIdx&&<span style={{fontSize:'9px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#fff',background:BRASS,borderRadius:'999px',padding:'1px 6px',marginLeft:'7px'}}>Now</span>}</div>
                           <div style={{fontFamily:MONO,fontSize:'9.5px',color:'var(--quiet)',marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)}</div>
                         </div>
-                        <div style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${p.idx===payslipPeriodIdx?'#2563eb':'#cbd5e1'}`,flexShrink:0,position:'relative'}}>
+                        <div style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${p.idx===payslipPeriodIdx?BRASS:'#cbd5e1'}`,flexShrink:0,position:'relative'}}>
                           {p.idx===payslipPeriodIdx&&<div style={{position:'absolute',inset:'3px',background:BRASS,borderRadius:'50%'}}/>}
                         </div>
                       </div>
@@ -4574,7 +4574,7 @@ export default function App() {
                 </>
               ) : payslipMode==='custom' ? (
                 <>
-                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Custom Range</div>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Custom range</div>
                   <div style={{display:'flex',gap:'10px',marginBottom:'6px'}}>
                     <div style={{flex:1}}>
                       <label style={{display:'block',fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>Start</label>
@@ -4864,7 +4864,7 @@ export default function App() {
           <div ref={selectedCalDayTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Day detail" onClick={e=>e.stopPropagation()} className={isWide?'alert-pop'+(selectedCalDay?'':' pop-out'):'sheet-pop'+(!selectedCalDay&&!selectedCalDayDrag.isDragClosing?' pop-out':'')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none',...(!isWide?selectedCalDayDrag.sheetDragStyle:null)}}>
             {!isWide && <div className="sheet-grabber" {...selectedCalDayDrag.grabberProps}><div className="sheet-grabber-pill"/></div>}
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
-              <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{new Date(selectedCalDayV.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>
+              <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{new Date(selectedCalDayV.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}).replace(/^(\w+) /,'$1, ').replace(/\bSep\b/,'Sept')}</div>
               <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} aria-label="Close" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={isWide?20:16} c="#64748b"/></button>
             </div>
             {/* Read each shift fresh, so marking a claim submitted from here shows straight away. */}
@@ -5067,7 +5067,7 @@ export default function App() {
             return (
               <div style={{textAlign:'center',padding:'0 8px 16px',borderBottom:`1px solid ${THEME.sidebarDivider}`,marginBottom:'16px'}}>
                 <div style={{fontSize:'10px',fontWeight:900,color:THEME.sidebarText,textTransform:'uppercase',letterSpacing:'0.06em'}}>{dayName}</div>
-                <div style={{fontSize:'15px',fontWeight:900,color:THEME.sidebarTextActive,marginTop:'2px',whiteSpace:'nowrap'}}>{dd}{suffix} {monthName}</div>
+                <div style={{fontSize:'15px',fontWeight:900,color:THEME.sidebarTextActive,marginTop:'2px',whiteSpace:'nowrap'}}>{dd} {monthName}</div>
               </div>
             );
           })()}

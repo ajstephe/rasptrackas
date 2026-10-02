@@ -252,7 +252,7 @@ export function TabSummary({
   const shiftCols = isWide && (sideBySide ? W-356 : W-32)>=720;  // shift list in columns
   const MONTH_COLS = roomy ? '190px minmax(0,1fr) 112px 104px 176px 18px' : '160px minmax(0,1fr) 100px 92px 160px 18px';
   const SHIFT_COLS = '96px minmax(0,1fr) 72px 96px 96px 104px 14px';
-  const label = {fontSize:'10.5px',fontWeight:900,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--quiet)'};
+  const label = {fontSize:'10px',fontWeight:900,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--quiet)'};
 
   const chevron = open => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.25s',transform:open?'rotate(180deg)':'none',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>;
   const tick = <span title="All submitted" aria-label="All submitted" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:'20px',height:'20px',borderRadius:'50%',background:'var(--tint-green)',flexShrink:0}}><Ico n="check" s={11} c="var(--text-green-deep)" w={3.2}/></span>;
@@ -375,7 +375,7 @@ export function TabSummary({
             {c.toilH>0&&lineItem(`${fmtHrs(c.toilH)} at ${RATE_TIER_LABEL[c.otRateTier]}× as TOIL`,`${fmtHrs(c.toilBanked)} banked`,'var(--text-purple-deep)')}
             {hasPA&&lineItem(`${e.paRate} allowance`,fmt(c.pa),'var(--text-amber-deep)')}
             {!hasClaim&&!toilOnly&&<div style={{fontSize:'12.5px',fontWeight:600,color:'var(--muted)'}}>A record of the shift — no overtime or allowance to claim.</div>}
-            {xp&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--text-indigo-deep)',marginTop:'4px'}}>{xp.both?'Overtime and PA':xp.ot?'Overtime':'PA'} counted in {xp.label}</div>}
+            {xp&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--text-indigo-deep)',marginTop:'4px'}}>{xp.both?'Overtime & PA':xp.ot?'Overtime':'PA'} counted in {xp.label}</div>}
             {e.comments&&<div style={{fontSize:'12.5px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid var(--border)',paddingLeft:'8px',margin:'8px 0 2px',whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{e.comments}</div>}
             <div style={{display:'flex',gap:'8px',marginTop:'10px',flexWrap:'wrap',alignItems:'center'}}>
               {confirmDel===e.id ? (<>
@@ -412,7 +412,7 @@ export function TabSummary({
       <button type="button" onClick={ev=>goSubmit(ev,m.idx)} style={{display:'flex',alignItems:'center',gap:'10px',width:'100%',background:'var(--tint-red)',border:'none',borderRadius:'11px',padding:'10px 12px',marginBottom:'12px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
         <Ico n="checklist" s={15} c="var(--text-red-deep)"/>
         <span style={{flex:1,fontSize:'13px',fontWeight:800,color:'var(--text-red-deep)'}}>{fmtGBP(m.carms.periodTotal)} still to submit on CARMS / PSOP</span>
-        <span style={{fontSize:'12.5px',fontWeight:800,color:'var(--text-red-deep)',whiteSpace:'nowrap'}}>Open Awaits ›</span>
+        <span style={{fontSize:'12.5px',fontWeight:800,color:'var(--text-red-deep)',whiteSpace:'nowrap'}}>Review ›</span>
       </button>);
     const close = <button type="button" onClick={()=>setExpanded(null)} style={{display:'flex',alignItems:'center',gap:'4px',margin:'10px auto 0',background:'none',border:'none',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>Close {payLabel(m.p.month)} <Ico n="cU" s={12} c={BRASS}/></button>;
     const dates = <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginBottom:'10px'}}>Shifts worked {fmtD(m.p.start)} – {fmtD(m.p.end)}</div>;
@@ -461,7 +461,7 @@ export function TabSummary({
     const big = (lbl,v,col,sub,subCol='var(--exp-ink)') => <div style={{minWidth:0}}>
       <div style={label}>{lbl}</div>
       <div style={{fontFamily:MONO,fontSize:isWide?'24px':'19px',fontWeight:700,color:col,marginTop:'2px',whiteSpace:'nowrap'}}>{v}</div>
-      {sub&&<div style={{fontSize:'11.5px',fontWeight:700,color:subCol,marginTop:'2px',whiteSpace:'nowrap'}}>{sub}</div>}
+      {sub&&<div style={{fontFamily:/£/.test(sub)?MONO:undefined,fontSize:'11.5px',fontWeight:700,color:subCol,marginTop:'2px',whiteSpace:'nowrap'}}>{sub}</div>}
     </div>;
 
     const monthLine = m => {
@@ -484,7 +484,7 @@ export function TabSummary({
               </div>
             ) : (<>
               <div style={{display:'flex',alignItems:'flex-start',gap:'8px'}}>
-                <span style={{flex:1,minWidth:0}}>{name}{sub}{ex&&planned(`+${fmtGBP(ex.gross)} · +${fmtGBP(ex.net)} net planned`)}</span>
+                <span style={{flex:1,minWidth:0}}>{name}{sub}{ex&&planned(`+${fmtGBP(ex.gross)} · +${fmtGBP(ex.net)} net expected`)}</span>
                 <span style={{textAlign:'right',flexShrink:0}}>
                   {empty ? <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--quiet)'}}>—</span> : <span>{money(fmtGBP(totG),'var(--text-navy)')}<span style={W>=340?{marginLeft:'9px'}:{display:'block',textAlign:'right',marginTop:'2px'}}>{money(fmtGBP(totN),GRN,13)}</span></span>}
                 </span>
@@ -503,10 +503,10 @@ export function TabSummary({
     const swatch = (bg,txt) => <span style={{display:'inline-flex',alignItems:'center',gap:'5px'}}><span style={{width:'10px',height:'10px',borderRadius:'3px',background:bg}}/>{txt}</span>;
     return (<>
       <div style={{...S.card,padding:isWide?'18px 20px':'16px',marginBottom:'10px'}}>
-        <div style={{fontWeight:900,fontSize:'15px',color:'var(--ink)',marginBottom:'12px'}}>Tax year {fy}/{String(Number(fy)+1).slice(-2)} so far</div>
+        <div style={{fontWeight:900,fontSize:'15px',color:'var(--ink)',marginBottom:'12px'}}>Overtime &amp; PA · tax year {fy}/{String(Number(fy)+1).slice(-2)} so far</div>
         <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(3,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',gap:'14px'}}>
-          {big('Gross',fmtGBP(T.g),'var(--text-navy)',EY?.n>0?`+${fmtGBP(EY.gross)} planned`:null)}
-          {big('Net',fmtGBP(T.net),GRN,EY?.n>0?`+${fmtGBP(EY.net)} planned`:null)}
+          {big('Gross',fmtGBP(T.g),'var(--text-navy)',EY?.n>0?`+${fmtGBP(EY.gross)} expected`:null)}
+          {big('Net',fmtGBP(T.net),GRN,EY?.n>0?`+${fmtGBP(EY.net)} expected`:null)}
           {isWide&&big('Hours',fmtHrs(T.hrs),'var(--ink)',`${T.n} shift${T.n!==1?'s':''}`,'var(--muted)')}
         </div>
         {!isWide&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginTop:'10px'}}>{fmtHrs(T.hrs)} over {T.n} shift{T.n!==1?'s':''}</div>}
@@ -577,7 +577,7 @@ export function TabSummary({
                       switch itself, so it's visible whichever view is open.
                       The others keep an invisible tag of the same size so
                       all three segments stay the same height. */}
-                  <span style={{fontSize:'8.5px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',padding:'1px 6px',borderRadius:'6px',lineHeight:1.4,visibility:isDef?'visible':'hidden',background:on?'rgba(255,255,255,0.22)':'var(--surface)',color:on?'#fff':BRASS,border:on?'none':`1px solid color-mix(in srgb, ${BRASS} 40%, transparent)`}}>Default</span>
+                  <span style={{fontSize:'9px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',padding:'1px 6px',borderRadius:'999px',lineHeight:1.4,visibility:isDef?'visible':'hidden',background:on?'rgba(255,255,255,0.22)':'var(--surface)',color:on?'#fff':BRASS,border:on?'none':`1px solid color-mix(in srgb, ${BRASS} 40%, transparent)`}}>Default</span>
                 </button>
                 );
               })}
@@ -686,7 +686,7 @@ export function TabSummary({
         const COLS = 'minmax(0,1fr) 78px 78px';
         const claimedNet = new Map();
         totals.periodBreakdown.forEach(mb=>partNets(mb).forEach(x=>{ const k = `${x.part.entry.id}:${x.part.kind}`; claimedNet.set(k, (claimedNet.get(k)||0) + x.net); }));
-        const covers = (ot, pa, rate) => ot&&pa ? `Overtime and ${rate}` : ot ? 'Overtime' : rate;
+        const covers = (ot, pa, rate) => ot&&pa ? `Overtime & ${rate}` : ot ? 'Overtime' : rate;
         const moneyRows = (e, c) => {
           if (c.gross<0.005) return c.toilBanked>0 ? [{k:'toil'}] : [];
           const hasOT = c.h1+c.h2+c.h3>0 && c.ot>0, hasPA = c.pa>0;
@@ -710,7 +710,7 @@ export function TabSummary({
           exp:  {bg:'var(--exp-tint)', lab:'var(--exp-ink)', g:'var(--exp-ink)', n:'var(--exp)', dashed:true},
         };
         const fig = (v, col) => <span style={{fontFamily:MONO,fontVariantNumeric:'tabular-nums',fontSize:'13.5px',fontWeight:700,color:col,textAlign:'right',whiteSpace:'nowrap'}}>{v}</span>;
-        const colHead = {fontSize:'9.5px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'};
+        const colHead = {fontSize:'10px',fontWeight:900,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--quiet)'};
         const moneyBlock = (e, c) => {
           const rows = moneyRows(e, c);
           if (!rows.length) return null;
@@ -1123,9 +1123,9 @@ export function TabSummary({
                 </div>
               ) : (
               <div style={{marginTop:'12px',paddingTop:'12px',borderTop:'1px solid var(--border-2)'}}>
-                <button onClick={()=>setCalLegendExpanded(v=>!v)} style={{width:'100%',background:'none',border:'none',padding:0,display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'#2563eb',cursor:'pointer'}}>
+                <button onClick={()=>setCalLegendExpanded(v=>!v)} style={{width:'100%',background:'none',border:'none',padding:0,display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer'}}>
                   What do the colours mean?
-                  <span style={{display:'flex',transform:calLegendExpanded?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.15s'}}><Ico n="cR" s={11} c="#2563eb" w={2.5}/></span>
+                  <span style={{display:'flex',transform:calLegendExpanded?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.15s'}}><Ico n="cR" s={11} c={BRASS} w={2.5}/></span>
                 </button>
                 {calLegendExpanded&&(
                 <div className="accordion-in" style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginTop:'14px'}}>
@@ -1169,7 +1169,7 @@ export function TabSummary({
                   <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',rowGap:'12px',textAlign:'center',marginBottom:'10px'}}>
                     {[['Gross',fmt(pb.combinedGross),'var(--text-navy)'],['Net',fmt(pb.combinedNet),'#059669'],['Hours submitted',fmtHrs(hrsSplit(cEntries).sub),GRN],['Not submitted',fmtHrs(hrsSplit(cEntries).pend),hrsSplit(cEntries).pend>0?RED:'var(--quiet)']].map(([k,v,col],n)=>(
                       <div key={k} style={{borderLeft:(isWide?n:n%2)?'1px solid var(--border-2)':'none',padding:'2px 4px'}}>
-                        <div style={{fontSize:'9.5px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>{k}</div>
+                        <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.07em'}}>{k}</div>
                         <div style={{fontFamily:MONO,fontSize:isWide?'20px':'17px',fontWeight:600,color:col,marginTop:'2px'}}>{v}</div>
                       </div>
                     ))}

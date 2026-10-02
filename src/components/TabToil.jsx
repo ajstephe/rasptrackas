@@ -50,7 +50,7 @@ export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth,
         <label style={{minWidth:0}}><span style={lbl}>Date</span>
           {/* A computer uses the app's own date picker, as Log Overtime does. */}
           {isWide ? (
-            <button type="button" onClick={()=>{ setDatePickerMonth((toilTakenForm.date||'').slice(0,7)||new Date().toISOString().slice(0,7)); setDatePickerFor('toil'); }} style={{...field,display:'flex',alignItems:'center',gap:'8px',textAlign:'left',cursor:'pointer',fontFamily:'inherit'}}>
+            <button type="button" onClick={()=>{ setDatePickerMonth((toilTakenForm.date||'').slice(0,7)||new Date().toISOString().slice(0,7)); setDatePickerFor('toil'); }} style={{...field,display:'flex',alignItems:'center',gap:'8px',textAlign:'left',cursor:'pointer',fontFamily:'inherit',fontSize:'14px',fontWeight:700}}>
               <Ico n="cal" s={14} c="var(--quiet)"/>{toilTakenForm.date ? new Date(toilTakenForm.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}).replace(/\bSep\b/,'Sept') : 'Choose a date'}
             </button>
           ) : (
@@ -86,13 +86,13 @@ export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth,
 
   const removeCtl = l => l.type!=='taken' ? null : (confirmDelId===l.rawId ? (
     <span style={{display:'inline-flex',alignItems:'center',gap:'5px'}}>
-      <span style={{fontSize:'10.5px',fontWeight:700,color:'#dc2626'}}>Remove?</span>
+      <span style={{fontSize:'10.5px',fontWeight:700,color:'#dc2626'}}>Delete?</span>
       <button onClick={()=>{ setConfirmDelId(null); deleteToilTaken(l.rawId); }} aria-label="Confirm remove" style={{background:'#dc2626',border:'none',borderRadius:'7px',padding:'3px 8px',color:'#fff',fontWeight:900,fontSize:'12px',fontFamily:'inherit',cursor:'pointer'}}>Yes</button>
       <button onClick={()=>setConfirmDelId(null)} aria-label="Cancel remove" style={{background:'var(--surface)',border:'1.5px solid var(--border-2)',borderRadius:'7px',padding:'3px 8px',color:'var(--muted)',fontWeight:900,fontSize:'12px',fontFamily:'inherit',cursor:'pointer'}}>No</button>
     </span>
   ) : (
     <button onClick={()=>setConfirmDelId(l.rawId)} aria-label="Remove this TOIL taken entry" style={{display:'inline-flex',alignItems:'center',gap:'3px',background:'none',border:'none',padding:0,color:'#dc2626',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>
-      <Ico n="trash" s={10} c="#dc2626"/> Remove
+      <Ico n="trash" s={10} c="#dc2626"/> Delete
     </button>
   ));
   // Adds the year for anything outside this calendar year, so rows from

@@ -489,7 +489,7 @@ export function TabSettings({
         )}
         <div style={{display:'flex',alignItems:'center',gap:'8px',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}}>
           <div style={{background:'var(--tint-blue)',padding:'9px',borderRadius:'13px'}}><Ico n="clock" s={17} c="#2563eb"/></div>
-          <span style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Hourly Rates & Payscales</span>
+          <span style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Hourly rates &amp; payscales</span>
         </div>
 
         {/* Same defensive gate as the Pay Point block above — checks the
@@ -501,7 +501,7 @@ export function TabSettings({
           return (
             <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'14px'}}>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
-                {[['Pre 1 Sep 2026','pre','var(--muted)','var(--surface-2)'],['From 1 Sep 2026','post','#2563eb','var(--surface)']].map(([label,key,col,bg])=>(
+                {[['Pre 1 Sept 2026','pre','var(--muted)','var(--surface-2)'],['From 1 Sept 2026','post','#2563eb','var(--surface)']].map(([label,key,col,bg])=>(
                   <div key={key} style={{background:bg,borderRadius:'12px',padding:'12px',border:key==='post'?'1.5px solid var(--border-2)':'1px solid var(--border-2)'}}>
                     <div style={{fontSize:'10px',fontWeight:900,color:col,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>{label}</div>
                     {['Base','1.33×','1.5×','2×'].map((lbl,i)=>(
@@ -625,7 +625,7 @@ export function TabSettings({
 
         const col = (label, value) => (
           <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'10px',textAlign:'center'}}>
-            <div style={{fontSize:'9px',fontWeight:700,color:'var(--quiet)',marginBottom:'3px'}}>{label}</div>
+            <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>{label}</div>
             <div style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--ink)'}}>{value}</div>
           </div>
         );
@@ -660,11 +660,11 @@ export function TabSettings({
 
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
                   <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'10px',textAlign:'center'}}>
-                    <div style={{fontSize:'9px',fontWeight:700,color:'#2563eb',marginBottom:'3px'}}>Pension ({(pensionA.rate*100).toFixed(2)}%)</div>
+                    <div style={{fontSize:'10px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Pension ({(pensionA.rate*100).toFixed(2)}%)</div>
                     <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionA.amount)}</div>
                   </div>
                   <div style={{background:'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'10px',textAlign:'center'}}>
-                    <div style={{fontSize:'9px',fontWeight:700,color:'#2563eb',marginBottom:'3px'}}>Pension ({(pensionF.rate*100).toFixed(2)}%)</div>
+                    <div style={{fontSize:'10px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Pension ({(pensionF.rate*100).toFixed(2)}%)</div>
                     <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionF.amount)}</div>
                   </div>
                 </div>
@@ -720,7 +720,7 @@ export function TabSettings({
                   <div style={{borderTop:'2px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
                       <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full Calculation — Actual (YTD)</div>
-                      <span onClick={()=>setTaxCalcActualDetailOpen(false)} style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',cursor:'pointer'}}>Show less</span>
+                      <span onClick={()=>setTaxCalcActualDetailOpen(false)} style={{fontSize:'11px',fontWeight:800,color:BRASS,cursor:'pointer'}}>Show less</span>
                     </div>
                     <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(ytd)}</span></div>
@@ -751,7 +751,7 @@ export function TabSettings({
                   <div style={{borderTop:'2px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
                       <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full Calculation — Forecast</div>
-                      <span onClick={()=>setTaxCalcForecastDetailOpen(false)} style={{fontSize:'9px',fontWeight:800,color:'#2563eb',textDecoration:'underline',cursor:'pointer'}}>Show less</span>
+                      <span onClick={()=>setTaxCalcForecastDetailOpen(false)} style={{fontSize:'11px',fontWeight:800,color:BRASS,cursor:'pointer'}}>Show less</span>
                     </div>
                     <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (full year)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(proj)}</span></div>
@@ -871,13 +871,13 @@ export function TabSettings({
                 const isCurrent = y===CURRENT_FY_YEAR;
                 const label = `${y} / ${(y+1).toString().slice(-2)}`;
                 return (
-                  <div key={y} onClick={()=>{ if(!isCurrent){ setArchiveExpandedPeriod(null); setFySummaryPrintMode(false); setFySummaryYear(y); } }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',background:isCurrent?'var(--tint-blue)':'var(--surface-2)',border:isCurrent?'2px solid #2563eb':'1px solid var(--border-2)',cursor:isCurrent?'default':'pointer'}}>
+                  <div key={y} onClick={()=>{ if(!isCurrent){ setArchiveExpandedPeriod(null); setFySummaryPrintMode(false); setFySummaryYear(y); } }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',background:isCurrent?'var(--tint-brass)':'var(--surface-2)',border:isCurrent?`2px solid ${BRASS}`:'1px solid var(--border-2)',cursor:isCurrent?'default':'pointer'}}>
                     <div>
                       <div style={{fontWeight:800,fontSize:'13px',color:'var(--ink)'}}>{label}</div>
                       <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>{yPeriods[0].month} – {yPeriods[11].month}</div>
                     </div>
                     {isCurrent
-                      ? <span style={{fontSize:'8px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1px',padding:'2px 7px',borderRadius:'20px',background:BRASS,color:'#fff'}}>Current</span>
+                      ? <span style={{fontSize:'9px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.06em',padding:'1px 6px',borderRadius:'999px',background:BRASS,color:'#fff'}}>This year</span>
                       : <Ico n="cR" s={14} c="#94a3b8"/>}
                   </div>
                 );

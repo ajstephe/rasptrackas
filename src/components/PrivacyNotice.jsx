@@ -91,9 +91,9 @@ export function PrivacyNotice({ onClose }) {
           <h3 style={h3}>Your rights</h3>
           <p style={p}>Most of these are already built into the app, not something you need to email anyone for:</p>
           <ul style={{ margin: '0 0 8px', paddingLeft: '18px' }}>
-            <li style={li}><span style={strong}>Access &amp; portability</span> — More.. → Account &amp; Data Management → Backup gives you a full, structured copy of everything held on you.</li>
+            <li style={li}><span style={strong}>Access &amp; portability</span> — More.. → Account &amp; data → Backup gives you a full, structured copy of everything held on you.</li>
             <li style={li}><span style={strong}>Rectification</span> — edit any entry or TOIL record directly.</li>
-            <li style={li}><span style={strong}>Erasure</span> — More.. → Account &amp; Data Management → Delete account removes your account and cloud data permanently.</li>
+            <li style={li}><span style={strong}>Erasure</span> — More.. → Account &amp; data → Delete account removes your account and cloud data permanently.</li>
             <li style={li}><span style={strong}>Object, or raise a concern</span> — email the controller above.</li>
             <li style={li}><span style={strong}>Complain to the regulator</span> — you can also contact the Information Commissioner's Office at <a href="https://ico.org.uk" target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontWeight: 700 }}>ico.org.uk</a> or 0303 123 1113, at any time.</li>
           </ul>
