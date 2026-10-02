@@ -750,8 +750,8 @@ export function TabSummary({
                 <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
                   <Ico n="cal" s={18} c="#1e40af" w={2}/>
                 </div>
-                <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No shifts yet this pay month</div>
-                <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log a shift and it'll show up here</div>
+                <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No overtime yet</div>
+                <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log your first shift and each pay month's gross, net and hours will show up here.</div>
               </div>
             ) : <div style={isWide?{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'8px',alignItems:'start',marginBottom:'8px'}:undefined}>{[...[...cEntries].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(cPeriod)].map(e=>{
               const c = calcEntry(e);
