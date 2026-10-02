@@ -135,10 +135,9 @@ function SidebarThemes({ themeMode, setTheme, THEME }) {
             <SbSwatch c={c} size={14}/>{lbl}{on&&<span style={{marginLeft:'auto',display:'flex'}}><Ico n="check" s={12} c="var(--ink)" w={3}/></span>}
           </button>); })}
       </div>}
-      <button onClick={()=>setOpen(o=>!o)} aria-haspopup="listbox" aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',gap:'10px',padding:'10px 12px',borderRadius:'11px',border:`1px solid ${THEME.sidebarBtnBorder}`,background:THEME.sidebarBtnBg,cursor:'pointer',fontFamily:'inherit',color:THEME.sidebarTextActive,textAlign:'left'}}>
-        <SbSwatch c={cur[2]} size={18}/>
-        <span style={{display:'flex',flexDirection:'column',lineHeight:1.2}}><span style={{fontSize:'10px',fontWeight:800,color:THEME.sidebarBtnSubtext,textTransform:'uppercase',letterSpacing:'0.06em'}}>Theme</span><span style={{fontSize:'13px',fontWeight:900}}>{cur[1]}</span></span>
-        <span style={{marginLeft:'auto',display:'flex',transform:open?'rotate(180deg)':'none',transition:'transform 0.15s'}}><Ico n="cU" s={14} c={THEME.sidebarText} w={2.5}/></span>
+      <button onClick={()=>setOpen(o=>!o)} aria-haspopup="listbox" aria-expanded={open} aria-label={`Theme: ${cur[1]}`} style={{width:'100%',minHeight:'50px',boxSizing:'border-box',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'2px',padding:'9px 11px',borderRadius:'10px',border:`1px solid ${THEME.sidebarBtnBorder}`,background:THEME.sidebarBtnBg,cursor:'pointer',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:THEME.brassLight}}>
+        <span style={{display:'flex',alignItems:'center',gap:'7px'}}><SbSwatch c={cur[2]} size={14}/> Theme</span>
+        <span style={{fontSize:'10px',fontWeight:600,color:THEME.sidebarBtnSubtext}}>{cur[1]}</span>
       </button>
     </div>);
 }
@@ -1007,6 +1006,9 @@ export default function App() {
   if (tab !== prevTabForSetupPopup) {
     setPrevTabForSetupPopup(tab);
     if (prevTabForSetupPopup === 'settings' && setupPopupRequested) setSetupPopupRequested(false);
+    // Leaving More.. right after finishing setup ends the keep-it-open
+    // grace too, so the card is back to its normal collapsed state next visit.
+    if (prevTabForSetupPopup === 'settings' && justCompletedSetup) setJustCompletedSetup(false);
   }
   const goToConfigSetup = () => { setSetupPopupRequested(true); setTab('settings'); };
   const [financialYearsExpanded, setFinancialYearsExpanded] = useState(false);
@@ -5155,7 +5157,7 @@ export default function App() {
             // two buttons used to share with nothing else nearby. Themed via
             // THEME.sidebarBtnBg/Border/sidebarBtnSubtext + THEME.brassLight
             // rather than the literal brass rgba() this used to hardcode.
-            <button onClick={handleManualSync} disabled={manualSyncing} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'2px',background:syncJustSucceeded?'rgba(5,150,105,0.35)':THEME.sidebarBtnBg,border:syncJustSucceeded?'1px solid transparent':`1px solid ${THEME.sidebarBtnBorder}`,borderRadius:'10px',padding:lastSyncedAt?'9px 11px':'11px',fontSize:'12.5px',fontWeight:800,color:syncJustSucceeded?'#fff':THEME.brassLight,cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'10px',transition:'background 0.3s'}}>
+            <button onClick={handleManualSync} disabled={manualSyncing} style={{minHeight:'50px',boxSizing:'border-box',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'2px',background:syncJustSucceeded?'rgba(5,150,105,0.35)':THEME.sidebarBtnBg,border:syncJustSucceeded?'1px solid transparent':`1px solid ${THEME.sidebarBtnBorder}`,borderRadius:'10px',padding:lastSyncedAt?'9px 11px':'11px',fontSize:'12.5px',fontWeight:800,color:syncJustSucceeded?'#fff':THEME.brassLight,cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'10px',transition:'background 0.3s'}}>
               <span style={{display:'flex',alignItems:'center',gap:'7px'}}>
                 <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={14} c={syncJustSucceeded?'#fff':THEME.brassLight}/></span> {syncJustSucceeded?'Synced':'Sync'}
               </span>
@@ -5163,7 +5165,7 @@ export default function App() {
             </button>
           )}
           {session&&(
-            <button onClick={()=>setSignOutConfirmOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:THEME.sidebarBtnBg,border:`1px solid ${THEME.sidebarBtnBorder}`,borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:THEME.brassLight,cursor:'pointer',fontFamily:'inherit',marginTop:'10px'}}>
+            <button onClick={()=>setSignOutConfirmOpen(true)} style={{minHeight:'50px',boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:THEME.sidebarBtnBg,border:`1px solid ${THEME.sidebarBtnBorder}`,borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:THEME.brassLight,cursor:'pointer',fontFamily:'inherit',marginTop:'10px'}}>
               <FireExitIcon size={14} color={THEME.brassLight}/> Sign Out
             </button>
           )}
