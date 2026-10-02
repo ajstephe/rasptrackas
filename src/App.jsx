@@ -4597,7 +4597,7 @@ export default function App() {
                       return (
                         <div key={y} onClick={()=>setPayslipFYYear(y)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:y===payslipFYYear?'1.5px solid #2563eb':'1.5px solid var(--border-2)',background:y===payslipFYYear?'var(--tint-blue)':'var(--surface)',cursor:'pointer'}}>
                           <div>
-                            <div style={{fontWeight:800,fontSize:'12.5px',color:'var(--ink)'}}>{y} / {(y+1).toString().slice(-2)}{isCurrent&&<span style={{color:'#2563eb',fontSize:'9px',marginLeft:'6px'}}>· Current</span>}</div>
+                            <div style={{fontWeight:800,fontSize:'12.5px',color:'var(--ink)'}}>{y}/{(y+1).toString().slice(-2)}{isCurrent&&<span style={{color:'#2563eb',fontSize:'9px',marginLeft:'6px'}}>· Current</span>}</div>
                             <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>{yPeriods[0].month} – {yPeriods[11].month}{!isCurrent&&exportFormat==='pdf'&&' · gross only, no tax/NI'}</div>
                           </div>
                           <div style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${y===payslipFYYear?'#2563eb':'#cbd5e1'}`,flexShrink:0,position:'relative'}}>
@@ -4754,7 +4754,7 @@ export default function App() {
       {/* Financial Years — full-screen archived-year detail, entries grouped by pay period */}
       {fySummaryYear!=null&&(()=>{
         const y = computeArchivedYear(fySummaryYear);
-        const label = `${fySummaryYear} / ${(fySummaryYear+1).toString().slice(-2)}`;
+        const label = `${fySummaryYear}/${(fySummaryYear+1).toString().slice(-2)}`;
         // This same tree renders both the normal (themed) archive-browsing
         // screen and, once Print is tapped, the print/PDF output — only
         // fySummaryPrintMode's classes and disabled interactions used to
@@ -4811,7 +4811,7 @@ export default function App() {
                   <div key={p.short} style={{background:c('#ffffff','var(--surface)'),borderRadius:'14px',padding:'13px',border:`1px solid ${c('#f1f5f9','var(--border-2)')}`,marginBottom:'9px'}}>
                     <button disabled={fySummaryPrintMode} onClick={()=>setArchiveExpandedPeriod(expanded?null:p.short+fySummaryYear)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:fySummaryPrintMode?'default':'pointer'}}>
                       <div>
-                        <div style={{fontWeight:900,fontSize:'13px',color:c('#0f172a','var(--ink)')}}>{p.month}</div>
+                        <div style={{fontWeight:900,fontSize:'13px',color:c('#0f172a','var(--ink)')}}>{payLabel(p.month)}</div>
                         <div style={{fontFamily:MONO,fontSize:'9.5px',color:c('#78849b','var(--quiet)'),marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)} · {p.entries.length} shift{p.entries.length===1?'':'s'}</div>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
@@ -4952,7 +4952,7 @@ export default function App() {
                       )}
                       {e.paRate!=='None'&&(
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#b45309'}}>{e.paRate} allowance</span>
+                          <span style={{fontSize:isWide?'13px':'11px',fontWeight:700,color:'#b45309'}}>{e.paRate}</span>
                           <span style={{fontSize:isWide?'14px':'12px',fontWeight:900,color:'var(--text-amber-deep)'}}>£{c.pa.toFixed(2)}</span>
                         </div>
                       )}

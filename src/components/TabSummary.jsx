@@ -376,7 +376,7 @@ export function TabSummary({
             {c.payH2>0&&lineItem(`${fmtHrs(c.payH2)} at 1.5× · £${c.r.r150.toFixed(2)}/hr`,fmt(c.ot2))}
             {c.payH3>0&&lineItem(`${fmtHrs(c.payH3)} at 2× · £${c.r.r200.toFixed(2)}/hr`,fmt(c.ot3))}
             {c.toilH>0&&lineItem(`${fmtHrs(c.toilH)} at ${RATE_TIER_LABEL[c.otRateTier]}× as TOIL`,`${fmtHrs(c.toilBanked)} banked`,'var(--text-purple-deep)')}
-            {hasPA&&lineItem(`${e.paRate} allowance`,fmt(c.pa),'var(--text-amber-deep)')}
+            {hasPA&&lineItem(`${e.paRate}`,fmt(c.pa),'var(--text-amber-deep)')}
             {!hasClaim&&!toilOnly&&<div style={{fontSize:'12.5px',fontWeight:600,color:'var(--muted)'}}>A record of the shift — no overtime or allowance to claim.</div>}
             {xp&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--text-indigo-deep)',marginTop:'4px'}}>{xp.both?'Overtime & PA':xp.ot?'Overtime':'PA'} counted in {xp.label}</div>}
             {e.comments&&<div style={{fontSize:'12.5px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid var(--border)',paddingLeft:'8px',margin:'8px 0 2px',whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{e.comments}</div>}

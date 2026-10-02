@@ -869,7 +869,7 @@ export function TabSettings({
               {[CURRENT_FY_YEAR, ...yearsWithData].map(y=>{
                 const yPeriods = generateFYPeriods(y);
                 const isCurrent = y===CURRENT_FY_YEAR;
-                const label = `${y} / ${(y+1).toString().slice(-2)}`;
+                const label = `${y}/${(y+1).toString().slice(-2)}`;
                 return (
                   <div key={y} onClick={()=>{ if(!isCurrent){ setArchiveExpandedPeriod(null); setFySummaryPrintMode(false); setFySummaryYear(y); } }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',background:isCurrent?'var(--tint-brass)':'var(--surface-2)',border:isCurrent?`2px solid ${BRASS}`:'1px solid var(--border-2)',cursor:isCurrent?'default':'pointer'}}>
                     <div>
