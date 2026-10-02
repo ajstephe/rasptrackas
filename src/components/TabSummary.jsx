@@ -139,19 +139,17 @@ export function TabSummary({
       <div style={{padding:'18px 0 8px',textAlign:'center'}}><div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>No overtime or PA yet</div><div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'3px'}}>Pick a day on the calendar to log a shift.</div></div>
     );
     return (<>
-      <div style={section}>
+      {!noOT&&<div style={section}>
         {secHead('Overtime','var(--text-blue-deep)',pb.ot,pb.otResult.net)}
         {tier('t133','1.33×')}{tier('t150','1.5×')}{tier('t200','2×')}
-        {noOT&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this pay month</div>}
-      </div>
-      <div style={section}>
+      </div>}
+      {!noPA&&<div style={section}>
         {secHead('Protection Allowance','var(--text-amber-deep)',pb.pa,pb.paResult.net)}
         {paLine('PA1')}{paLine('PA2')}{paLine('PA3')}
-        {noPA&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this pay month</div>}
-      </div>
+      </div>}
       {/* e.g. the Calendar's planned-shifts section */}
       {extra}
-      {linkRow(()=>setTab('graph'),'clock','#7c3aed',<>TOIL <span style={{fontFamily:MONO,fontWeight:600,color:'var(--text-purple-deep)',marginLeft:'4px'}}>{fmtHrs(toilWorked)} worked → {fmtHrs(toilBanked)}{toilWaiting>0?'':' banked'}</span></>,null,null,
+      {(toilWorked>0||toilBanked>0)&&linkRow(()=>setTab('graph'),'clock','#7c3aed',<>TOIL <span style={{fontFamily:MONO,fontWeight:600,color:'var(--text-purple-deep)',marginLeft:'4px'}}>{fmtHrs(toilWorked)} worked → {fmtHrs(toilBanked)}{toilWaiting>0?'':' banked'}</span></>,null,null,
         // Unsubmitted TOIL isn't in the balance yet (TOIL page) — say how
         // much of this period's figure that is, so the two pages agree.
         toilWaiting>0 ? `${toilBanked-toilWaiting>1e-6?`${fmtHrs(toilBanked-toilWaiting)} in your balance · `:''}${fmtHrs(toilWaiting)} waiting to submit` : null)}
@@ -301,18 +299,18 @@ export function TabSummary({
         {tot>0.005 && <div aria-hidden="true" style={{display:'flex',height:'12px',borderRadius:'6px',overflow:'hidden',margin:'10px 0 2px',background:'var(--surface-2)'}}>
           <div style={{width:`${ot/tot*100}%`,background:'#2563eb'}}/><div style={{width:`${pa/tot*100}%`,background:'#d97706'}}/>
         </div>}
-        {head('var(--text-blue-deep)','#2563eb','Overtime',ot)}
-        <div style={{paddingLeft:'16px'}}>{tierLines(m).map(r=><div key={r.lbl}>{lineItem(`${fmtHrs(r.h)} at ${r.lbl}`,fmt(r.g),'var(--muted)')}</div>)}</div>
-        {head('var(--text-amber-deep)','#d97706','Protection Allowance',pa)}
-        <div style={{paddingLeft:'16px'}}>{paLines(m).map(r=><div key={r.lbl}>{lineItem(`${r.lbl} × ${r.n}`,fmt(r.g),'var(--muted)')}</div>)}</div>
-        <button type="button" onClick={ev=>{ev.stopPropagation(); setTab('graph');}} className="tap-row" style={{display:'flex',alignItems:'center',gap:'8px',width:'100%',marginTop:'12px',padding:'10px 0 2px',borderTop:'1px solid var(--border-2)',borderLeft:'none',borderRight:'none',borderBottom:'none',background:'none',fontFamily:'inherit',cursor:'pointer',textAlign:'left'}}>
+        {ot>0.005&&<>{head('var(--text-blue-deep)','#2563eb','Overtime',ot)}
+        <div style={{paddingLeft:'16px'}}>{tierLines(m).map(r=><div key={r.lbl}>{lineItem(`${fmtHrs(r.h)} at ${r.lbl}`,fmt(r.g),'var(--muted)')}</div>)}</div></>}
+        {pa>0.005&&<>{head('var(--text-amber-deep)','#d97706','Protection Allowance',pa)}
+        <div style={{paddingLeft:'16px'}}>{paLines(m).map(r=><div key={r.lbl}>{lineItem(`${r.lbl} × ${r.n}`,fmt(r.g),'var(--muted)')}</div>)}</div></>}
+        {(m.totalToilWorked>0||m.totalToilBanked>0)&&<button type="button" onClick={ev=>{ev.stopPropagation(); setTab('graph');}} className="tap-row" style={{display:'flex',alignItems:'center',gap:'8px',width:'100%',marginTop:'12px',padding:'10px 0 2px',borderTop:'1px solid var(--border-2)',borderLeft:'none',borderRight:'none',borderBottom:'none',background:'none',fontFamily:'inherit',cursor:'pointer',textAlign:'left'}}>
           <Ico n="clock" s={14} c="#7c3aed"/>
           <span style={{flex:1,fontSize:'12.5px',fontWeight:700,color:'var(--ink)'}}>TOIL <span style={{color:'var(--text-purple-deep)',fontFamily:MONO,fontWeight:600}}>{fmtHrs(m.totalToilWorked)} → {fmtHrs(m.totalToilBanked)}{m.totalToilWaiting>0?'':' banked'}</span>
             {/* Unsubmitted TOIL isn't in the balance yet (TOIL page) — say how much of this is, so the two pages agree. */}
             {m.totalToilWaiting>0&&<span style={{display:'block',fontSize:'11px',fontWeight:600,color:'var(--muted)',marginTop:'2px'}}>{m.totalToilBanked-m.totalToilWaiting>1e-6?`${fmtHrs(m.totalToilBanked-m.totalToilWaiting)} in your balance · `:''}{fmtHrs(m.totalToilWaiting)} waiting to submit</span>}
           </span>
           <Ico n="cR" s={13} c="var(--quiet)" w={2.2}/>
-        </button>
+        </button>}
       </div>);
   };
 

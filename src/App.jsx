@@ -1056,6 +1056,10 @@ export default function App() {
   // (which field it's editing); datePickerMonth is the YYYY-MM currently
   // shown, independent of the selected value so browsing doesn't move it.
   const [datePickerFor, setDatePickerFor] = useState(null);
+  // Any other screen can borrow the same calendar pop-up: it hands over the
+  // current value, what to do with the pick and the line shown above the grid.
+  const customPickerRef = useRef(null);
+  const openCustomDatePicker = (value, onSelect, title) => { customPickerRef.current = { value, onSelect, title }; setDatePickerMonth((value||todayStr).slice(0,7)); setDatePickerFor('custom'); };
   const [datePickerMonth, setDatePickerMonth] = useState(todayStr.slice(0,7));
   // One shift's claim being marked submitted straight from Summary (a day
   // card's "To submit" box, or a not-submitted label): {id, ot, pa}.
@@ -1911,7 +1915,7 @@ export default function App() {
           <button onClick={()=>changeMonth(1)} disabled={noNext} aria-label="Next month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:noNext?'default':'pointer',opacity:noNext?0.35:1,display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
         </div>
         <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:'14px'}}>
-          {datePickerForV==='quick' && quickSubmitV ? (()=>{ const qe = entries.find(x=>x.id===quickSubmitV.id); return <>Select the date you submitted {quickSubmitV.ot&&quickSubmitV.pa?'this overtime and PA':quickSubmitV.ot?'this overtime to CARMS':'this PA to PSOP'}{qe&&<span style={{display:'block',fontWeight:600,color:'var(--quiet)',marginTop:'3px'}}>{new Date(qe.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · {qe.reason||'Shift'}</span>}</>; })() : datePickerForV==='ot' ? 'Select the date you submitted this to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this to PSOP' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''}` : (datePickerForV==='toil' ? 'Select the day you took the TOIL' : 'Select the date of this shift')}
+          {datePickerForV==='quick' && quickSubmitV ? (()=>{ const qe = entries.find(x=>x.id===quickSubmitV.id); return <>Select the date you submitted {quickSubmitV.ot&&quickSubmitV.pa?'this overtime and PA':quickSubmitV.ot?'this overtime to CARMS':'this PA to PSOP'}{qe&&<span style={{display:'block',fontWeight:600,color:'var(--quiet)',marginTop:'3px'}}>{new Date(qe.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · {qe.reason||'Shift'}</span>}</>; })() : datePickerForV==='ot' ? 'Select the date you submitted this to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this to PSOP' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''}` : datePickerForV==='custom' ? (customPickerRef.current?.title||'Select a date') : (datePickerForV==='toil' ? 'Select the day you took the TOIL' : 'Select the date of this shift')}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'6px'}}>
           {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=><div key={d} style={{textAlign:'center',fontSize:'11.5px',fontWeight:800,color:'var(--quiet)',padding:'4px 0'}}>{d}</div>)}
@@ -4517,7 +4521,7 @@ export default function App() {
 
         {/* ══════════════════════════════════════════ SETTINGS */}
         {tab==='settings'&&(
-          <TabSettings
+          <TabSettings openCustomDatePicker={openCustomDatePicker}
             animClass={tabAnimClass}
             isWide={isWide} S={S} MONO={MONO} BRASS={BRASS}
             savedBadge={savedBadge} themeMode={themeMode} setTheme={setTheme} pillShadow={THEME.pillShadow}
@@ -4558,7 +4562,7 @@ export default function App() {
               {!isWide && <div className="sheet-grabber" {...payslipDrag.grabberProps}><div className="sheet-grabber-pill"/></div>}
               {exportFormat===null ? (
                 <>
-                  <div style={{fontSize:'15px',fontWeight:900,marginBottom:'4px'}}>Financial Reports &amp; Export</div>
+                  <div style={{fontSize:'15px',fontWeight:900,marginBottom:'4px'}}>Reports &amp; export</div>
                   <div style={{fontSize:'11px',color:'var(--quiet)',marginBottom:'18px'}}>Choose a format to continue</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
                     <button onClick={()=>setExportFormat('pdf')} style={{display:'flex',alignItems:'center',gap:'12px',padding:'16px',borderRadius:'13px',border:'1.5px solid var(--border-2)',background:'var(--tint-blue)',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
@@ -5034,6 +5038,8 @@ export default function App() {
             ? renderDatePickerGrid(form.paSubmitted?(form.paSubmittedDate||''):'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})), !datePickerFor, { min: form.date, max: todayStr, mark: form.date })
             : datePickerForV==='quick'
             ? (()=>{ const qe = entries.find(x=>x.id===quickSubmitV?.id); return renderDatePickerGrid('', v=>markQuickSubmitted(v), !datePickerFor, { min: qe?.date||'', max: todayStr, mark: qe?.date }); })()
+            : datePickerForV==='custom'
+            ? renderDatePickerGrid(customPickerRef.current?.value||todayStr, v=>customPickerRef.current?.onSelect(v), !datePickerFor)
             : datePickerForV==='toil'
             ? renderDatePickerGrid(toilTakenForm.date, v=>setToilTakenForm(f=>({...f,date:v})), !datePickerFor)
             : datePickerForV==='carmsBulk'

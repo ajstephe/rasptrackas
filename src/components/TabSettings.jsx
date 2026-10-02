@@ -27,6 +27,7 @@ const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['luf
 export function TabSettings({
   isWide, S, MONO, BRASS,
   savedBadge, themeMode, setTheme, pillShadow,
+  openCustomDatePicker,
   configExpanded, setConfigExpanded, configShown, configSetupIncomplete,
   justCompletedSetup, setJustCompletedSetup,
   setupPopupRequested, setSetupPopupRequested,
@@ -466,12 +467,12 @@ export function TabSettings({
             {pendingPay.service ? (<>
               <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>When did {pendingPay.service} start?</div>
               <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',lineHeight:1.5,marginBottom:'9px'}}>Shifts and paydays before this date keep {settings.service}'s rates.</div>
-              <input type="date" value={pendingFrom} onChange={e=>setPendingFrom(e.target.value)} style={{...S.inp,marginBottom:'9px'}}/>
+              <button type="button" onClick={()=>openCustomDatePicker(pendingFrom, v=>setPendingFrom(v), `When did ${pendingPay?.service||"it"} start?`)} style={{...S.inp,marginBottom:'9px',display:'flex',alignItems:'center',gap:'8px',textAlign:'left',cursor:'pointer',fontFamily:'inherit',fontSize:'14px',fontWeight:700,color:'var(--ink)'}}><Ico n="cal" s={15} c="var(--muted)"/>{pendingFrom?new Date(pendingFrom+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}).replace(/^(\w+) /,'$1, ').replace(/\bSep\b/,'Sept'):'Pick a date'}</button>
               <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
-                <button onClick={()=>confirmPayChange(false)} style={{flex:'1 1 140px',background:'#2563eb',color:'#fff',border:'none',borderRadius:'10px',padding:'10px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Save change</button>
+                <button onClick={()=>confirmPayChange(false)} style={{flex:'1 1 140px',background:BRASS,color:'#fff',border:'none',borderRadius:'10px',padding:'10px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Save change</button>
                 <button onClick={()=>setPendingPay(null)} style={{flex:'0 0 auto',background:'var(--surface)',color:'var(--muted)',border:'1px solid var(--border)',borderRadius:'10px',padding:'10px 14px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
               </div>
-              <button onClick={()=>confirmPayChange(true)} style={{background:'none',border:'none',padding:'9px 0 0',fontSize:'11.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',cursor:'pointer',fontFamily:'inherit'}}>It was always {pendingPay.service} — correct it for every date</button>
+              <button onClick={()=>confirmPayChange(true)} style={{background:'none',border:'none',padding:'9px 0 0',fontSize:'11.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>It was always {pendingPay.service} — correct it for every date</button>
             </>) : (
               <div style={{fontSize:'12px',fontWeight:700,color:'var(--muted)'}}>Now choose the new pay point. <button onClick={()=>setPendingPay(null)} style={{background:'none',border:'none',padding:0,color:'#2563eb',fontWeight:800,cursor:'pointer',fontFamily:'inherit',textDecoration:'underline',fontSize:'12px'}}>Cancel</button></div>
             )}
@@ -882,7 +883,7 @@ export function TabSettings({
                   </div>
                 );
               })}
-              {yearsWithData.length===0&&<div style={{fontSize:'10.5px',color:'var(--quiet)',textAlign:'center',padding:'6px 0'}}>Past years will appear here once you have entries from before this financial year.</div>}
+              {yearsWithData.length===0&&<div style={{fontSize:'10.5px',color:'var(--quiet)',textAlign:'center',padding:'6px 0'}}>Past years will appear here once you have entries from before this tax year.</div>}
             </div>
             <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'10px',lineHeight:1.5}}>Dates follow your pay pattern (4-5-4 weeks, 52 weeks a year). The cloud keeps this year and the last 3; your device keeps everything.</div>
           </>
