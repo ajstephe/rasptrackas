@@ -300,7 +300,7 @@ export function TabSettings({
            expand". Sits outside the grid on desktop too, full-width,
            since a 2-up grid cell would leave it looking cramped next
            to a tall accordion. ── */}
-      <div style={{...S.card,padding:'13px 16px',marginBottom:'12px'}}>
+      {!isWide&&<div style={{...S.card,padding:'13px 16px',marginBottom:'12px'}}>
         <div style={{display:'flex',alignItems:'center',gap:'9px',marginBottom:'9px'}}>
           <div style={{background:'var(--tint-amber)',padding:'6px',borderRadius:'11px',flexShrink:0}}><Ico n="sun" s={14} c={BRASS}/></div>
           <div>
@@ -359,7 +359,7 @@ export function TabSettings({
             <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'7px'}}>{THEME_OPTIONS.length} themes · swipe or use the arrows to see them all</div>
           </>
         )}
-      </div>
+      </div>}
 
       <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}:undefined}>
 
