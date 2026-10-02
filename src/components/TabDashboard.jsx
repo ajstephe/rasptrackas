@@ -55,7 +55,7 @@ export function TabDashboard({
       </div>
       {carmsOutstanding.totalAmount>0&&(
         <button onClick={()=>setTab('carms')} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'6px',marginTop:compact?'12px':0,fontSize:'11.5px',fontWeight:800,color:'#fbbf24',background:'rgba(251,191,36,0.14)',border:'none',borderRadius:'20px',padding:'6px 12px',cursor:'pointer',fontFamily:'inherit',position:'relative'}}>
-          {fmtGBP(carmsOutstanding.totalAmount)} not yet submitted · Review <Ico n="cR" s={11} c="#fbbf24" w={2.5}/>
+          {fmtGBP(carmsOutstanding.totalAmount)} to submit · Review <Ico n="cR" s={11} c="#fbbf24" w={2.5}/>
         </button>
       )}
     </div>
@@ -88,7 +88,7 @@ export function TabDashboard({
                 as a different kind of label sitting in the same list. */}
             <span style={{fontSize:compact?'13px':'14px',fontWeight:800,color:'var(--ink)'}}>Net overtime this month</span>
           </div>
-          <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)',textAlign:'right'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}{!compact&&exp&&exp.n>0&&<span style={{display:'block',fontWeight:700,color:'var(--exp-ink)'}}>+{fmtGBP(exp.gross)} expected</span>}</span>
+          <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)',textAlign:'right'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}{exp&&exp.n>0&&<span style={{display:'block',fontWeight:700,color:'var(--exp-ink)'}}>+{fmtGBP(exp.gross)} expected</span>}</span>
         </div>
         <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'12px',paddingLeft:compact?'42px':'46px'}}>
           {/* The figure and trend pill keep their width; when a phone is
@@ -117,7 +117,7 @@ export function TabDashboard({
                 claimed — its own colour, never part of the figure above. */}
             {exp&&exp.n>0&&(
               <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10.5px',fontWeight:800,color:'var(--exp-ink)',background:'var(--exp-tint)',border:'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)',padding:'2px 8px',borderRadius:'20px',marginTop:'4px',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
-                <span style={{fontFamily:MONO}}>+{fmtGBP(exp.net)}</span> expected{compact?'':` · ${exp.n} planned shift${exp.n!==1?'s':''}`}
+                <span style={{fontFamily:MONO}}>+{fmtGBP(exp.net)}</span>{compact?` · ${exp.n} planned`:` expected · ${exp.n} planned shift${exp.n!==1?'s':''}`}
               </button>
             )}
             </div>
@@ -163,7 +163,7 @@ export function TabDashboard({
           {/* breakdown rows — London Weighting/Allowance shown as YTD out of full year */}
           <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',display:'flex',flexDirection:'column',gap:'6px'}}>
             {[
-              ['Base Salary (YTD)', totals.salaryYTD, null],
+              ['Base salary (YTD)', totals.salaryYTD, null],
               ['London Weighting', settings.rank&&settings.service ? totals.lwYTD : null, totals.lwAnnualTotal],
               ['London Allowance', settings.rank&&settings.service ? totals.laYTD : null, totals.laAnnualTotal],
             ].map(([label,val,fullYear])=>(
@@ -225,7 +225,7 @@ export function TabDashboard({
                   <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross Salary (Actual)</div>
                   <div style={{fontSize:'10px',fontWeight:800,color:barColor}}>{statusText}</div>
                 </div>
-                <div style={{fontSize:'9.5px',fontWeight:600,color:'var(--quiet)',marginBottom:'19px'}}>Before pension &amp; deductions — rough guide only; see Tax &amp; 100K+ Calculator for your exact taxable position</div>
+                <div style={{fontSize:'9.5px',fontWeight:600,color:'var(--quiet)',marginBottom:'19px'}}>Before pension &amp; deductions — rough guide only; see Tax &amp; £100k+ calculator for your exact taxable position</div>
                 <div style={{position:'relative',marginBottom:pct(125140)-pct(100000)<15?'28px':'16px'}}>
                   <div style={{background:'var(--border)',borderRadius:'2px',height:'10px',overflow:'hidden',position:'relative'}}>
                     <div style={{width:`${pct(grossYTD)}%`,height:'100%',background:barColor,transition:'width 0.3s, background 0.3s'}}/>
@@ -306,8 +306,8 @@ export function TabDashboard({
               {renderMonthlyChart(false, false, false)}
             </div>
             <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
-              <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#059669',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</span></div>
-              <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#ef4444',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</span></div>
+              <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#3b82f6',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</span></div>
+              <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#10b981',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</span></div>
             </div>
             <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'var(--quiet)'}}>{isWide?'Click':'Tap'} any point for that pay month's figures</div>
           </div>
@@ -392,7 +392,7 @@ export function TabDashboard({
                 <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} pay month{carmsOutstanding.periodCount!==1?'s':''}</div>
               </div>
             </div>
-            <div style={{display:'flex',alignItems:'center',gap:'10px'}}><div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:BRASS}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>
+            <div style={{display:'flex',alignItems:'center',gap:'10px'}}><div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>
           </button>
         )}
       </div>

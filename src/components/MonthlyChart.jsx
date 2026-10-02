@@ -62,20 +62,20 @@ export function MonthlyChart({ totals, PAY_PERIODS, MONO, chartTap, setChartTap,
     <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',overflow:'visible'}} preserveAspectRatio="none">
       {[0,0.5,1].map(v=>(<g key={v}><line x1={pX} y1={H-pY-v*eH} x2={W-pX} y2={H-pY-v*eH} stroke={gridStroke} strokeWidth="1" strokeDasharray={v===0?'0':'3 4'}/><text x={pX-4} y={H-pY-v*eH} textAnchor="end" dominantBaseline="middle" style={{fontSize:fsAxis,fill:axisFill,fontWeight:700}}>£{Math.round(max*v).toLocaleString('en-GB')}</text></g>))}
       {pts.map((p,i)=><text key={i} x={p.x} y={H-pY+(big?17:11)} textAnchor="middle" style={{fontSize:fsLbl,fill:i>lastIdx?futureFill:lblFill,fontWeight:900}}>{p.lbl}</text>)}
-      <path d={np} fill="none" stroke="#f87171" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
-      <path d={gp} fill="none" stroke="#34d399" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
+      <path d={np} fill="none" stroke="#10b981" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
+      <path d={gp} fill="none" stroke="#3b82f6" strokeWidth={lineW} strokeLinecap="round" strokeLinejoin="round"/>
       {shown.map((p,i)=>(
         <g key={i}>
-          <circle cx={p.x} cy={p.yG} r={i===lastIdx&&endLabels?ptR+1.5:ptR} fill="#34d399" stroke={dotStroke} strokeWidth="1.5" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
+          <circle cx={p.x} cy={p.yG} r={i===lastIdx&&endLabels?ptR+1.5:ptR} fill="#3b82f6" stroke={dotStroke} strokeWidth="1.5" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
           <circle cx={p.x} cy={p.yG} r={ptR+7} fill="transparent" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
-          <circle cx={p.x} cy={p.yN} r={i===lastIdx&&endLabels?ptR+1.5:ptR} fill="#f87171" stroke={dotStroke} strokeWidth="1.5" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
+          <circle cx={p.x} cy={p.yN} r={i===lastIdx&&endLabels?ptR+1.5:ptR} fill="#10b981" stroke={dotStroke} strokeWidth="1.5" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
           <circle cx={p.x} cy={p.yN} r={ptR+7} fill="transparent" style={{cursor:'pointer'}} onClick={()=>toggle(i)}/>
         </g>
       ))}
       {endLabels&&!tapPt&&(()=>{ const p=shown[lastIdx], gap=Math.abs(p.yN-p.yG)<(big?14:10);
         return (<g style={{fontFamily:MONO,fontSize:big?11:8,fontWeight:700}}>
-          <text x={p.x+ptR+5} y={p.yG-(gap?4:0)} dominantBaseline="middle" style={{fill:'#10b981'}}>{fmtGBP(p.g)}</text>
-          <text x={p.x+ptR+5} y={p.yN+(gap?6:0)} dominantBaseline="middle" style={{fill:'#ef4444'}}>{fmtGBP(p.n)}</text>
+          <text x={p.x+ptR+5} y={p.yG-(gap?4:0)} dominantBaseline="middle" style={{fill:'#2563eb'}}>{fmtGBP(p.g)}</text>
+          <text x={p.x+ptR+5} y={p.yN+(gap?6:0)} dominantBaseline="middle" style={{fill:'#059669'}}>{fmtGBP(p.n)}</text>
         </g>); })()}
       {tooltip}
     </svg>

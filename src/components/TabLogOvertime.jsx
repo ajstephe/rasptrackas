@@ -315,7 +315,7 @@ export function TabLogOvertime({
         ) : !done ? (
           <div style={slipFoot}>
             <span style={{display:'inline-flex',alignItems:'center',gap:'6px',fontSize:'11.5px',fontWeight:800,color:'var(--ink)'}}><span style={{width:'8px',height:'8px',borderRadius:'50%',background:'#d97706'}}/>Not submitted yet</span>
-            <button type="button" onClick={()=>setAskFor(which)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'8px 12px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'var(--ink)',cursor:'pointer',whiteSpace:'nowrap'}}>Mark as Submitted</button>
+            <button type="button" onClick={()=>setAskFor(which)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'8px 12px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'var(--ink)',cursor:'pointer',whiteSpace:'nowrap'}}>Mark submitted</button>
           </div>
         ) : null}
       </div>
@@ -332,7 +332,7 @@ export function TabLogOvertime({
       <div style={{fontSize:'13px',fontWeight:800,color:'var(--quiet)'}}>{what}</div>
       <div style={slipFoot}>
         <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--quiet)'}}>{note}</span>
-        <button type="button" disabled style={{background:'transparent',border:'1px dashed var(--border)',borderRadius:'10px',padding:'8px 12px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'var(--quiet)',cursor:'default',whiteSpace:'nowrap',opacity:0.7}}>Mark as Submitted</button>
+        <button type="button" disabled style={{background:'transparent',border:'1px dashed var(--border)',borderRadius:'10px',padding:'8px 12px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'var(--quiet)',cursor:'default',whiteSpace:'nowrap',opacity:0.7}}>Mark submitted</button>
       </div>
     </div>
   );

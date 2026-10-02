@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { buildCalendarWeeks, localDateStr } from '../lib/payPeriods.js';
 import { KEYS, dualWrite } from '../lib/storage.js';
-import { fmt, fmtHrs, fmtGBP, fmtD, fmtDDMM, payLabel } from '../lib/format.js';
+import { fmt, fmtHrs, fmtGBP, fmtD, payLabel } from '../lib/format.js';
 import { isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate, periodIdxForDate } from '../lib/calc.js';
 import { RATE_TIER_LABEL } from '../lib/payRates.js';
 import { partNets } from '../lib/payroll.js';
@@ -138,7 +138,7 @@ export function TabSummary({
     return (<>
       <div style={section}>
         {secHead('Overtime','var(--text-blue-deep)',pb.ot,pb.otResult.net)}
-        {tier('t133','1.33×')}{tier('t150','1.5×')}{tier('t200','2.0×')}
+        {tier('t133','1.33×')}{tier('t150','1.5×')}{tier('t200','2×')}
         {noOT&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)',padding:'6px 0'}}>None counted this pay month</div>}
       </div>
       <div style={section}>
@@ -152,7 +152,7 @@ export function TabSummary({
         // Unsubmitted TOIL isn't in the balance yet (TOIL page) — say how
         // much of this period's figure that is, so the two pages agree.
         toilWaiting>0 ? `${toilBanked-toilWaiting>1e-6?`${fmtHrs(toilBanked-toilWaiting)} in your balance · `:''}${fmtHrs(toilWaiting)} waiting to submit` : null)}
-      {carmsGroup&&linkRow(ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(periodIdx); },'checklist',BRASS,'Overtime & PA to submit',fmtGBP(carmsGroup.periodTotal),BRASS)}
+      {carmsGroup&&linkRow(ev=>{ ev.stopPropagation(); setTab('carms'); setPulsePeriodIdx(periodIdx); },'checklist',BRASS,'Overtime & PA to submit',fmtGBP(carmsGroup.periodTotal),'var(--text-red-deep)')}
     </>);
   };
 
@@ -213,14 +213,14 @@ export function TabSummary({
       const paCounted = isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e))===idx;
       const isCross = periodIdxForDate(e.date)!==idx;
       if (otCounted) {
-        if (c.payH1>0) { tierHours.t133+=c.payH1; tierDates.t133.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t133+=c.ot1; }
-        if (c.payH2>0) { tierHours.t150+=c.payH2; tierDates.t150.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t150+=c.ot2; }
-        if (c.payH3>0) { tierHours.t200+=c.payH3; tierDates.t200.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); tierGross.t200+=c.ot3; }
+        if (c.payH1>0) { tierHours.t133+=c.payH1; tierDates.t133.push({d:fmtD(e.date),counted:true,cross:isCross}); tierGross.t133+=c.ot1; }
+        if (c.payH2>0) { tierHours.t150+=c.payH2; tierDates.t150.push({d:fmtD(e.date),counted:true,cross:isCross}); tierGross.t150+=c.ot2; }
+        if (c.payH3>0) { tierHours.t200+=c.payH3; tierDates.t200.push({d:fmtD(e.date),counted:true,cross:isCross}); tierGross.t200+=c.ot3; }
       }
       if (paCounted) {
-        if(e.paRate==='PA1'){pa1++; paDates.PA1.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA1+=c.pa;}
-        else if(e.paRate==='PA2'){pa2++; paDates.PA2.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA2+=c.pa;}
-        else if(e.paRate==='PA3'){pa3++; paDates.PA3.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); paGross.PA3+=c.pa;}
+        if(e.paRate==='PA1'){pa1++; paDates.PA1.push({d:fmtD(e.date),counted:true,cross:isCross}); paGross.PA1+=c.pa;}
+        else if(e.paRate==='PA2'){pa2++; paDates.PA2.push({d:fmtD(e.date),counted:true,cross:isCross}); paGross.PA2+=c.pa;}
+        else if(e.paRate==='PA3'){pa3++; paDates.PA3.push({d:fmtD(e.date),counted:true,cross:isCross}); paGross.PA3+=c.pa;}
       }
     });
     const totG=pb.combinedGross, totN=pb.combinedNet;
@@ -328,7 +328,7 @@ export function TabSummary({
       : sub ? tick : <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)',whiteSpace:'nowrap'}}>Not submitted</span>;
     const tags = [
       e.takeAs==='toil'&&tag('TOIL','var(--tint-purple)','var(--tag-purple)'),
-      e.takeAs==='mix'&&tag('Part TOIL','var(--tint-purple)','var(--tag-purple)'),
+      e.takeAs==='mix'&&tag('Mix','var(--tint-purple)','var(--tag-purple)'),
       hasPA&&tag(e.paRate,'var(--tint-amber)','var(--text-amber-deep)'),
       late&&tag('Late claim','var(--tint-indigo)','var(--text-indigo-deep)'),
       xp&&tag(`Paid in ${xp.label}`,'var(--tint-indigo)','var(--text-indigo-deep)'),
@@ -675,7 +675,7 @@ export function TabSummary({
         // (payH1/payH2/payH3) the old per-tier breakdown box used — "rate"
         // here answers "what was this shift worked at", separately from
         // whether it was taken as pay or TOIL.
-        const TIER_LABEL = { h1:'1.33×', h2:'1.5×', h3:'2.0×' };
+        const TIER_LABEL = { h1:'1.33×', h2:'1.5×', h3:'2×' };
 
         // ── Money on each card, split by status ──
         // Green: submitted, its share of the take-home in the month it was
@@ -857,14 +857,14 @@ export function TabSummary({
                     <div key={l.k} style={row}>
                       <span style={{display:'flex',alignItems:'center',gap:'7px',minWidth:0,fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>
                         <i aria-hidden="true" style={{width:'10px',height:'10px',borderRadius:'3px',background:l.col,flexShrink:0}}/>
-                        <span style={{minWidth:0}}>{l.k}<span style={{display:'block',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)'}}>{l.s}</span></span>
+                        <span style={{minWidth:0}}>{l.k}<span style={{display:'block',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)'}}>{isWide?l.s:`${fmtHrs(l.h)} · ${l.s}`}</span></span>
                       </span>
                       {hrsCell(l.h)}{fig(fmtGBP(l.g), l.gc)}{fig(fmtGBP(l.n), l.nc)}
                     </div>
                   ))}
                   {lines.length>1&&(
                     <div style={{...row,borderBottom:'none',borderTop:'2px solid var(--border)'}}>
-                      <span style={{fontSize:'13.5px',fontWeight:800,color:'var(--ink)'}}>All shifts<span style={{display:'block',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)'}}>{cEntries.length} shift{cEntries.length!==1?'s':''}</span></span>
+                      <span style={{fontSize:'13.5px',fontWeight:800,color:'var(--ink)'}}>All shifts<span style={{display:'block',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)'}}>{isWide?'':`${fmtHrs(allH)} · `}{cEntries.length} shift{cEntries.length!==1?'s':''}</span></span>
                       {hrsCell(allH)}{fig(fmtGBP(allG),'var(--ink)')}{fig(fmtGBP(allN),'var(--ink)')}
                     </div>
                   )}
@@ -914,14 +914,14 @@ export function TabSummary({
           const paCounted = isPaSubmitted(e) && periodIdxForDate(effectivePaDate(e))===cIdx;
           const isCross = periodIdxForDate(e.date)!==cIdx;
           if (otCounted) {
-            if (c.payH1>0) { pTierHours.t133+=c.payH1; pTierDates.t133.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pTierGross.t133+=c.ot1; }
-            if (c.payH2>0) { pTierHours.t150+=c.payH2; pTierDates.t150.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pTierGross.t150+=c.ot2; }
-            if (c.payH3>0) { pTierHours.t200+=c.payH3; pTierDates.t200.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pTierGross.t200+=c.ot3; }
+            if (c.payH1>0) { pTierHours.t133+=c.payH1; pTierDates.t133.push({d:fmtD(e.date),counted:true,cross:isCross}); pTierGross.t133+=c.ot1; }
+            if (c.payH2>0) { pTierHours.t150+=c.payH2; pTierDates.t150.push({d:fmtD(e.date),counted:true,cross:isCross}); pTierGross.t150+=c.ot2; }
+            if (c.payH3>0) { pTierHours.t200+=c.payH3; pTierDates.t200.push({d:fmtD(e.date),counted:true,cross:isCross}); pTierGross.t200+=c.ot3; }
           }
           if (paCounted) {
-            if(e.paRate==='PA1'){ppa1++; pPaDates.PA1.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pPaGross.PA1+=c.pa;}
-            else if(e.paRate==='PA2'){ppa2++; pPaDates.PA2.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pPaGross.PA2+=c.pa;}
-            else if(e.paRate==='PA3'){ppa3++; pPaDates.PA3.push({d:fmtDDMM(e.date),counted:true,cross:isCross}); pPaGross.PA3+=c.pa;}
+            if(e.paRate==='PA1'){ppa1++; pPaDates.PA1.push({d:fmtD(e.date),counted:true,cross:isCross}); pPaGross.PA1+=c.pa;}
+            else if(e.paRate==='PA2'){ppa2++; pPaDates.PA2.push({d:fmtD(e.date),counted:true,cross:isCross}); pPaGross.PA2+=c.pa;}
+            else if(e.paRate==='PA3'){ppa3++; pPaDates.PA3.push({d:fmtD(e.date),counted:true,cross:isCross}); pPaGross.PA3+=c.pa;}
           }
         });
 
@@ -1103,7 +1103,7 @@ export function TabSummary({
                     <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-red)',border:'1.5px solid color-mix(in srgb, #dc2626 45%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Not submitted</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-green)',border:'1.5px solid color-mix(in srgb, #059669 45%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Submitted</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-blue)',border:'1.5px dashed color-mix(in srgb, #2563eb 55%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Planned</span></div>
-                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--border)',border:'1.5px solid color-mix(in srgb, #64748b 35%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>No OT — Info Only</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--border)',border:'1.5px solid color-mix(in srgb, #64748b 35%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>No OT · info only</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
                       <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Counted in another pay month</span>
@@ -1133,7 +1133,7 @@ export function TabSummary({
                     <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-red)',border:'1.5px solid color-mix(in srgb, #dc2626 45%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Not submitted</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-green)',border:'1.5px solid color-mix(in srgb, #059669 45%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Submitted</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-blue)',border:'1.5px dashed color-mix(in srgb, #2563eb 55%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Planned</span></div>
-                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--border)',border:'1.5px solid color-mix(in srgb, #64748b 35%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>No OT — Info Only</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--border)',border:'1.5px solid color-mix(in srgb, #64748b 35%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>No OT · info only</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
                       <div style={{width:'11px',display:'flex',justifyContent:'center',flexShrink:0}}>
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>

@@ -8,7 +8,7 @@ import { useCountUp } from '../lib/useCountUp.js';
 // one column, each row showing the balance after it. Desktop sets the
 // ledger out as a table. Everything it needs comes in as props rather than
 // closing over App()'s state directly.
-export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTakenForm, addToilTaken, deleteToilTaken, animClass='fi' }) {
+export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth, toilLedger, toilTakenForm, setToilTakenForm, addToilTaken, deleteToilTaken, animClass='fi' }) {
   // Counts up/down instead of jumping whenever the balance changes —
   // logging a TOIL shift or recording hours taken in the form below.
   const animatedBalance = useCountUp(toilLedger.balance);
@@ -48,7 +48,14 @@ export function TabToil({ isWide, S, MONO, toilLedger, toilTakenForm, setToilTak
       <div style={{...S.lbl,fontSize:'11px'}}>Record TOIL taken</div>
       <div style={{display:'grid',gridTemplateColumns:'minmax(0,1.4fr) minmax(0,0.8fr) minmax(0,0.8fr)',gap:'8px'}}>
         <label style={{minWidth:0}}><span style={lbl}>Date</span>
-          <input type="date" style={field} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
+          {/* A computer uses the app's own date picker, as Log Overtime does. */}
+          {isWide ? (
+            <button type="button" onClick={()=>{ setDatePickerMonth((toilTakenForm.date||'').slice(0,7)||new Date().toISOString().slice(0,7)); setDatePickerFor('toil'); }} style={{...field,display:'flex',alignItems:'center',gap:'8px',textAlign:'left',cursor:'pointer',fontFamily:'inherit'}}>
+              <Ico n="cal" s={14} c="var(--quiet)"/>{toilTakenForm.date ? new Date(toilTakenForm.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}).replace(/\bSep\b/,'Sept') : 'Choose a date'}
+            </button>
+          ) : (
+            <input type="date" style={field} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
+          )}
         </label>
         <label style={{minWidth:0}}><span style={lbl}>Hours</span>
           <input type="number" min="0" step="1" inputMode="numeric" placeholder="0" style={{...field,textAlign:'center'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>

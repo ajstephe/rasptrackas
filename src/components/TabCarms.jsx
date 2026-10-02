@@ -186,7 +186,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
 
   const filterSeg = (compact) => (
     <SegSlider activeKey={carmsFilter} trackStyle={{display:'flex',gap:compact?'4px':'6px',flex:1}} indicatorStyle={{background:BRASS,borderRadius:compact?'8px':'10px'}}>
-      {[{id:'all',lbl:'All'},{id:'ot',lbl:compact?'OT':'Overtime'},{id:'pa',lbl:'PA'},{id:'toil',lbl:'TOIL'}].map(f=>(
+      {[{id:'all',lbl:'All'},{id:'ot',lbl:'Overtime'},{id:'pa',lbl:'PA'},{id:'toil',lbl:'TOIL'}].map(f=>(
         <div key={f.id} data-seg-key={f.id} onClick={()=>setCarmsFilter(f.id)} className="tap-row" style={{position:'relative',zIndex:1,flex:1,textAlign:'center',padding:compact?'6px 3px':'8px 4px',borderRadius:compact?'8px':'10px',fontSize:compact?'9.5px':'11px',fontWeight:800,cursor:'pointer',background:'transparent',color:carmsFilter===f.id?'#fff':'var(--muted)',border:carmsFilter===f.id?'none':'1px solid var(--border-2)'}}>{f.lbl}</div>
       ))}
     </SegSlider>
@@ -250,7 +250,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                     <span style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>{payLabel(g.period.month)}{g.otherYear?` ${g.period.month.split(' ')[1]}`:''}</span>
                     <span style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginLeft:'8px'}}>{shiftSpan(g.period.start,g.period.end)} · {groupRows.length} claim{groupRows.length!==1?'s':''}</span>
                   </td>
-                  <td style={{padding:'9px 12px',background:'var(--surface-2)',borderBottom:'1px solid var(--border-2)',textAlign:'right',fontFamily:MONO,fontSize:'13px',fontWeight:700,color:BRASS,whiteSpace:'nowrap'}}>{groupTotal(visibleItems)}</td>
+                  <td style={{padding:'9px 12px',background:'var(--surface-2)',borderBottom:'1px solid var(--border-2)',textAlign:'right',fontFamily:MONO,fontSize:'13px',fontWeight:700,color:'var(--text-red-deep)',whiteSpace:'nowrap'}}>{groupTotal(visibleItems)}</td>
                   <td style={{background:'var(--surface-2)',borderBottom:'1px solid var(--border-2)'}}/>
                 </tr>,
                 ...groupRows.map(row=>{
@@ -272,7 +272,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',textAlign:'right'}}>
                     <button className="awaits-quick" onClick={e=>{ e.stopPropagation(); selectCarmsClaim(row.entryId,row.claimKey); openCarmsBulkConfirm(); }}
                       style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:800,color:'var(--text-green-deep)',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'7px',padding:'4px 9px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
-                      <Ico n="check" s={10} c="var(--text-green-deep)" w={3}/> Submit
+                      <Ico n="check" s={10} c="var(--text-green-deep)" w={3}/> Mark submitted
                     </button>
                   </td>
                 </tr>
@@ -305,8 +305,8 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
     return (
       <div key={g.periodIdx} ref={el=>periodGroupRefs.current[g.periodIdx]=el} className={pulsePeriodIdx===g.periodIdx?'carms-pulse':''} style={{marginBottom:'14px',borderRadius:'14px',border:pulsePeriodIdx===g.periodIdx?'2px solid #2563eb':'2px solid transparent'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'8px 4px',borderBottom:'1px solid var(--border-2)'}}>
-          <span><span style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{payLabel(g.period.month)}{g.otherYear?` ${g.period.month.split(' ')[1]}`:''}</span> <span style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>· {shiftSpan(g.period.start,g.period.end).replace('Shifts','shifts')}</span></span>
-          <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:BRASS}}>{groupTotalLabel}</span>
+          <span><span style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{payLabel(g.period.month)}{g.otherYear?` ${g.period.month.split(' ')[1]}`:''}</span> <span style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>{shiftSpan(g.period.start,g.period.end)} · {rows.length} claim{rows.length!==1?'s':''}</span></span>
+          <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:'var(--text-red-deep)'}}>{groupTotalLabel}</span>
         </div>
         <div style={{padding:'10px 0 2px'}}>
           {rows.map((row,i)=>{
@@ -324,7 +324,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                   {row.kind==='ot+toil'&&!row.toilOnly&&<div style={{fontFamily:MONO,fontSize:'9px',fontWeight:700,color:'#7c3aed'}}>+{fmtHrs(row.toilHrs)} TOIL</div>}
                   <button onClick={e=>{ e.stopPropagation(); selectCarmsClaim(row.entryId,row.claimKey); openCarmsBulkConfirm(); }}
                     style={{display:'flex',alignItems:'center',gap:'3px',fontSize:'8.5px',fontWeight:800,color:'var(--text-green-deep)',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'6px',padding:'3px 6px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
-                    <Ico n="check" s={8} c="var(--text-green-deep)" w={3}/> Submit
+                    <Ico n="check" s={8} c="var(--text-green-deep)" w={3}/> Mark submitted
                   </button>
                 </div>
               </div>
@@ -390,7 +390,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
             <div style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>{barCount} selected</div>
             <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:BRASS}}>{fmtGBP(barTotal)}</div>
           </div>
-          <button onClick={openCarmsBulkConfirm} style={{width:'100%',background:BRASS,border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'12.5px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Mark as Submitted</button>
+          <button onClick={openCarmsBulkConfirm} style={{width:'100%',background:BRASS,border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'12.5px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Mark submitted</button>
         </div>
       )}
     </div>

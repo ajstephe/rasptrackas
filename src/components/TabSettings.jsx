@@ -377,7 +377,7 @@ export function TabSettings({
           <button disabled={configSetupIncomplete} onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setJustCompletedSetup(false); setSetupPopupRequested(false); setConfigExpanded(v=>!v); }} className={configSetupIncomplete?'':'tap-row'} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete||justCompletedSetup))?'13px':0}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
-              <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Config, Rates &amp; Payscales</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Rank, pay point, rates</div></div>
+              <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Config, rates &amp; payscales</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Rank, pay point, rates</div></div>
             </div>
             {!configSetupIncomplete && (
               <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
@@ -634,7 +634,7 @@ export function TabSettings({
           <button onClick={()=>{ if(isWide){setConfigExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setTaxImpactExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(taxImpactExpanded&&!isWide)?'12px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:over?'var(--tint-red)':'var(--tint-green)',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="calc" s={isWide?21:17} c={over?'#dc2626':'#059669'}/></div>
-              <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Tax & 100K+ Calculator</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Your tax band and the £100k taper</div></div>
+              <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Tax &amp; £100k+ calculator</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Your tax band and the £100k taper</div></div>
             </div>
             <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:taxImpactExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
@@ -670,8 +670,8 @@ export function TabSettings({
                 </div>
 
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
-                  {col('Personal Allowance Remaining', fmtGBP(paRemainingA))}
-                  {col('Personal Allowance Remaining', fmtGBP(paRemainingF))}
+                  {col('Personal allowance remaining', fmtGBP(paRemainingA))}
+                  {col('Personal allowance remaining', fmtGBP(paRemainingF))}
                 </div>
 
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
@@ -856,7 +856,7 @@ export function TabSettings({
           <button onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setFinancialYearsExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(financialYearsExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="cal" s={isWide?21:17} c="#2563eb"/></div>
-              <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Archived Financial Years</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Past tax years</div></div>
+              <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Archived tax years</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Past tax years</div></div>
             </div>
             <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:financialYearsExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
@@ -908,7 +908,7 @@ export function TabSettings({
           <button onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setDataManagementExpanded(false);} setExportDataExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(exportDataExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-amber)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="share" s={isWide?21:17} c="#d97706"/></div>
-              <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Financial Reports &amp; Export</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Payslip, year summary, PDF or spreadsheet</div></div>
+              <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Reports &amp; export</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Payslip, year summary, PDF or spreadsheet</div></div>
             </div>
             <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:exportDataExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
@@ -949,7 +949,7 @@ export function TabSettings({
           <button onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);} setDataManagementExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer',marginBottom:(dataManagementExpanded&&!isWide)?'13px':0}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="user" s={isWide?21:17} c="#2563eb"/></div>
-              <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Account &amp; Data Management</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Sign-in, backup, restore, wipe data</div></div>
+              <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Account &amp; data</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Sign-in, backup, restore, wipe data</div></div>
             </div>
             <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:dataManagementExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
@@ -1070,7 +1070,7 @@ export function TabSettings({
         <a href="mailto:ajstephe@me.com?subject=Overtime%20Tracker%20—%20Feedback" style={{display:'flex',alignItems:'center',gap:'8px',textDecoration:'none',cursor:'pointer'}}>
           <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px',flexShrink:0}}><Ico n="mail" s={isWide?21:17} c="#2563eb"/></div>
           <div style={{flex:1}}>
-            <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Help & Suggestions</div>
+            <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Help &amp; suggestions</div>
             <div style={{fontSize:'11px',color:'#3b82f6',fontWeight:700,marginTop:'2px'}}>ajstephe@me.com</div>
           </div>
           <Ico n="cR" s={16} c="#94a3b8"/>
@@ -1084,7 +1084,7 @@ export function TabSettings({
         <button onClick={()=>setPrivacyNoticeOpen(true)} style={{display:'flex',alignItems:'center',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
           <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px',flexShrink:0}}><Ico n="shield" s={isWide?21:17} c="#2563eb"/></div>
           <div style={{flex:1}}>
-            <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Privacy Notice</div>
+            <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Privacy notice</div>
             <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:700,marginTop:'2px'}}>What's collected, and why</div>
           </div>
           <Ico n="cR" s={16} c="#94a3b8"/>

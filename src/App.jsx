@@ -1831,7 +1831,7 @@ export default function App() {
     }
     // A shift still to come can't be claimed yet: say it's planned rather
     // than flagging it red as if it were overdue.
-    if (e.date > todayStr) return <div style={{...style,background:'var(--tint-blue)',color:'var(--text-blue-deep)'}}>Planned · claim after the shift</div>;
+    if (e.date > todayStr) return <div style={{...style,background:'var(--tint-blue)',color:'var(--text-blue-deep)'}}>Planned · claim from {new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}).replace(/\bSep\b/,'Sept')}</div>;
     // Tapping one opens the date picker to mark that claim submitted, with
     // Overtime and PA as separate buttons so each can have its own date.
     const clickable = {...style,display:'inline-flex',alignItems:'center',gap:'5px',border:'1px solid var(--border-2)',background:'var(--tint-red)',color:'var(--text-red-deep)',cursor:'pointer'};
@@ -1867,7 +1867,7 @@ export default function App() {
           <button onClick={()=>changeMonth(1)} disabled={noNext} aria-label="Next month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:noNext?'default':'pointer',opacity:noNext?0.35:1,display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
         </div>
         <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:'14px'}}>
-          {datePickerForV==='quick' && quickSubmitV ? (()=>{ const qe = entries.find(x=>x.id===quickSubmitV.id); return <>Select the date you submitted {quickSubmitV.ot&&quickSubmitV.pa?'this overtime and PA':quickSubmitV.ot?'this overtime to CARMS':'this PA to PSOP'}{qe&&<span style={{display:'block',fontWeight:600,color:'var(--quiet)',marginTop:'3px'}}>{new Date(qe.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · {qe.reason||'Shift'}</span>}</>; })() : datePickerForV==='ot' ? 'Select the date you submitted this to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this to PSOP' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''}` : 'Select the date of this shift'}
+          {datePickerForV==='quick' && quickSubmitV ? (()=>{ const qe = entries.find(x=>x.id===quickSubmitV.id); return <>Select the date you submitted {quickSubmitV.ot&&quickSubmitV.pa?'this overtime and PA':quickSubmitV.ot?'this overtime to CARMS':'this PA to PSOP'}{qe&&<span style={{display:'block',fontWeight:600,color:'var(--quiet)',marginTop:'3px'}}>{new Date(qe.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · {qe.reason||'Shift'}</span>}</>; })() : datePickerForV==='ot' ? 'Select the date you submitted this to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this to PSOP' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''}` : (datePickerForV==='toil' ? 'Select the day you took the TOIL' : 'Select the date of this shift')}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'6px'}}>
           {['Mo','Tu','We','Th','Fr','Sa','Su'].map(d=><div key={d} style={{textAlign:'center',fontSize:'11.5px',fontWeight:800,color:'var(--quiet)',padding:'4px 0'}}>{d}</div>)}
@@ -4468,7 +4468,7 @@ export default function App() {
 
         {/* ══════════════════════════════════════════ TOIL */}
         {tab==='graph'&&(
-          <TabToil animClass={tabAnimClass} isWide={isWide} S={S} MONO={MONO} toilLedger={toilLedger} toilTakenForm={toilTakenForm} setToilTakenForm={setToilTakenForm} addToilTaken={addToilTaken} deleteToilTaken={deleteToilTaken}/>
+          <TabToil animClass={tabAnimClass} isWide={isWide} setDatePickerFor={setDatePickerFor} setDatePickerMonth={setDatePickerMonth} S={S} MONO={MONO} toilLedger={toilLedger} toilTakenForm={toilTakenForm} setToilTakenForm={setToilTakenForm} addToilTaken={addToilTaken} deleteToilTaken={deleteToilTaken}/>
         )}
 
         {/* ══════════════════════════════════════════ SETTINGS */}
@@ -4542,7 +4542,7 @@ export default function App() {
               <div style={{display:'flex',gap:'6px',background:'var(--chip-bg)',borderRadius:'12px',padding:'3px',marginBottom:'16px'}}>
                 <button onClick={()=>setPayslipMode('period')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='period'?'var(--surface)':'transparent',color:payslipMode==='period'?BRASS:'var(--muted)',boxShadow:payslipMode==='period'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Pay month</button>
                 <button onClick={()=>setPayslipMode('custom')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='custom'?'var(--surface)':'transparent',color:payslipMode==='custom'?BRASS:'var(--muted)',boxShadow:payslipMode==='custom'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Custom Range</button>
-                <button onClick={()=>setPayslipMode('financialYear')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='financialYear'?'var(--surface)':'transparent',color:payslipMode==='financialYear'?BRASS:'var(--muted)',boxShadow:payslipMode==='financialYear'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Financial Year</button>
+                <button onClick={()=>setPayslipMode('financialYear')} style={{flex:1,textAlign:'center',padding:'9px 4px',borderRadius:'9px',fontWeight:800,fontSize:'11.5px',border:'none',fontFamily:'inherit',cursor:'pointer',background:payslipMode==='financialYear'?'var(--surface)':'transparent',color:payslipMode==='financialYear'?BRASS:'var(--muted)',boxShadow:payslipMode==='financialYear'?'0 2px 6px rgba(0,0,0,0.1)':'none'}}>Tax year</button>
               </div>
 
               <button role="checkbox" aria-checked={sanitiseNotes} onClick={()=>setSanitiseNotes(v=>!v)} style={{display:'flex',alignItems:'flex-start',gap:'10px',width:'100%',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px 14px',marginBottom:'16px',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
@@ -4589,7 +4589,7 @@ export default function App() {
                 </>
               ) : (
                 <>
-                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Financial Year</div>
+                  <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>Tax year</div>
                   <div style={{display:'flex',flexDirection:'column',gap:'7px',marginBottom:'6px'}}>
                     {[CURRENT_FY_YEAR, ...yearsWithData].map(y=>{
                       const yPeriods = generateFYPeriods(y);
@@ -4779,7 +4779,7 @@ export default function App() {
             )}
             <div className={fySummaryPrintMode?'payslip-print-doc':''} style={{background:c('#0f2744','var(--navy)'),color:'#fff',padding:'16px',margin:fySummaryPrintMode?'12px':0,borderRadius:fySummaryPrintMode?'12px':0}}>
               <button className="no-print" onClick={()=>{ if(fySummaryPrintMode){ setFySummaryPrintMode(false); } else { setFySummaryYear(null); } }} aria-label="Back" style={{background:'rgba(255,255,255,0.12)',border:'none',borderRadius:'9px',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',cursor:'pointer',marginBottom:'12px'}}><Ico n="back" s={16} c="#fff"/></button>
-              <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Financial Year</div>
+              <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Tax year</div>
               <div style={{fontSize:'19px',fontWeight:900}}>{label}</div>
               <div style={{fontFamily:MONO,fontSize:'9.5px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
               <div style={{background:c('#1e3a5f','var(--text-navy)'),borderRadius:'14px',padding:'14px',display:'flex',marginTop:'12px'}}>
@@ -4990,6 +4990,8 @@ export default function App() {
             ? renderDatePickerGrid(form.paSubmitted?(form.paSubmittedDate||''):'', v=>setForm(f=>({...f,paSubmittedDate:v,paSubmitted:true})), !datePickerFor, { min: form.date, max: todayStr, mark: form.date })
             : datePickerForV==='quick'
             ? (()=>{ const qe = entries.find(x=>x.id===quickSubmitV?.id); return renderDatePickerGrid('', v=>markQuickSubmitted(v), !datePickerFor, { min: qe?.date||'', max: todayStr, mark: qe?.date }); })()
+            : datePickerForV==='toil'
+            ? renderDatePickerGrid(toilTakenForm.date, v=>setToilTakenForm(f=>({...f,date:v})), !datePickerFor)
             : datePickerForV==='carmsBulk'
             ? renderDatePickerGrid(todayStr, v=>bulkMarkCarmsSubmitted(v), !datePickerFor, { min: entries.filter(e=>carmsSelected[e.id]).reduce((m,e)=>e.date>m?e.date:m,''), max: todayStr })
             : renderDatePickerGrid(form.date||todayStr, v=>setForm(f=>({...f,date:v})), !datePickerFor)}
