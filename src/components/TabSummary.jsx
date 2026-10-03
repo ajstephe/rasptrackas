@@ -363,9 +363,10 @@ export function TabSummary({
         ) : (
           <div {...base} style={{display:'flex',alignItems:'flex-start',gap:'10px',padding:'10px 2px',borderBottom:open?'none':'1px solid var(--border-2)',cursor:'pointer',background:rowBg,borderRadius:'8px',transition:'background 0.4s ease'}}>
             <span style={{flex:1,minWidth:0}}>
-              <span style={{display:'flex',alignItems:'center',gap:'8px'}}><span style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>{date}</span>{status}</span>
+              <span style={{display:'flex',alignItems:'center',gap:'8px'}}><span style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>{date}</span>{(fut||!hasClaim)&&status}</span>
               <span style={{display:'block',fontSize:'12.5px',fontWeight:600,color:'var(--muted)',marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{fmtHrs(hrs)} · {e.reason||'Shift'}</span>
               {tags.length>0&&<span style={{display:'flex',flexWrap:'wrap',gap:'4px',marginTop:'4px'}}>{tags}</span>}
+              {!fut&&hasClaim&&carmsBadge(e, 9, true)}
             </span>
             <span style={{textAlign:'right'}}>
               {toilOnly ? <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} TOIL</span> : (<>
@@ -844,8 +845,9 @@ export function TabSummary({
                     {/* On a computer the Submitted / To submit rows below say the
                         same thing (and the red row marks it submitted), so the
                         chip is left off there to keep cards one height. */}
-                    {!isWide&&carmsBadge(e, 9.5)}
+
                   </div>
+                  {!isWide&&carmsBadge(e, 9.5, true)}
                   {moneyBlock(e, c)}
                   {e.comments&&(
                     <div style={{display:'grid',gridTemplateRows:notesOpen?'1fr':'0fr',transition:'grid-template-rows 0.28s cubic-bezier(.32,.72,0,1)'}}>

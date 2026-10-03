@@ -1127,7 +1127,6 @@ export default function App() {
   const signOutDrag = useDraggableSheet(signOutConfirmOpen, () => setSignOutConfirmOpen(false));
   const restoreDrag = useDraggableSheet(restoreConfirmOpen, () => setRestoreConfirmOpen(false));
   const payslipDrag = useDraggableSheet(payslipModalOpen, () => setPayslipModalOpen(false));
-  const selectedCalDayDrag = useDraggableSheet(!!selectedCalDay, () => { setSelectedCalDay(null); setConfirmDel(null); });
   // ── focus management for every overlay above ─────────────────────────────
   // Moves focus into each dialog the instant it opens, traps Tab/Shift+Tab
   // among its own controls while open, and restores focus to whatever
@@ -1856,7 +1855,7 @@ export default function App() {
     haptic();
     setQuickSubmit(null);
   };
-  const carmsBadge = (e, fontSize) => {
+  const carmsBadge = (e, fontSize, grid=false) => {
     const c = calcEntry(e);
     // An entry with zero claimable OT hours (actual shift matched the
     // roster — logged for the record, not as an overtime claim) has
@@ -1871,6 +1870,19 @@ export default function App() {
     // figures row, hence the explicit family), a touch larger than the
     // old capitals so it reads at the same weight.
     const style = {display:'inline-block',fontFamily:'var(--app-font)',fontSize:(fontSize+1.5)+'px',fontWeight:700,padding:'2px 8px',borderRadius:'7px',marginTop:'5px',marginLeft:'4px'};
+    if (grid && e.date<=todayStr && (hasOTHours||hasPA)) {
+      const clickable = {...style,display:'inline-flex',alignItems:'center',gap:'5px',border:'1px solid var(--border-2)',background:'var(--tint-red)',color:'var(--text-red-deep)',cursor:'pointer'};
+      // Phone cards: two fixed slots so Overtime always sits on the left and
+      // PA on the right, lining up card to card. A claim already in shows
+      // as a quiet green tick in its slot.
+      const cell = {...clickable, marginTop:0, marginLeft:0, width:'100%', boxSizing:'border-box', justifyContent:'center', padding:'5px 6px'};
+      const done = lbl => <div aria-label={`${lbl} submitted`} style={{...style, marginTop:0, marginLeft:0, display:'flex', justifyContent:'center', padding:'5px 6px', background:'var(--tint-green)', color:'var(--text-green-deep)'}}>✓ {lbl}</div>;
+      const gbtn = (part, label) => <button key={part} type="button" title="Mark as submitted" onClick={ev=>{ ev.stopPropagation(); openQuickSubmit(e, {[part]:true}); }} aria-label={`${label} not submitted. Mark as submitted`} style={cell}>✗ {label}<Ico n="cal" s={fontSize+1} c="var(--text-red-deep)" w={2.2}/></button>;
+      return <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px',marginTop:'7px',width:'100%'}}>
+        <div>{hasOTHours ? (otOK ? done('Overtime') : gbtn('ot','Overtime')) : null}</div>
+        <div>{hasPA ? (paOK ? done(e.paRate) : gbtn('pa',e.paRate)) : null}</div>
+      </div>;
+    }
     if (otOK && paOK) {
       // Nothing was ever submittable on this entry at all (no OT hours,
       // no PA) — the shift is purely a record, so a "Submitted" badge
@@ -4917,9 +4929,8 @@ export default function App() {
 
       {/* Calendar View — day detail popover */}
       {selectedCalDayMounted&&(
-        <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} className={selectedCalDay?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:40}}>
-          <div ref={selectedCalDayTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Day detail" onClick={e=>e.stopPropagation()} className={isWide?'alert-pop'+(selectedCalDay?'':' pop-out'):'sheet-pop'+(!selectedCalDay&&!selectedCalDayDrag.isDragClosing?' pop-out':'')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',padding:isWide?'28px':'20px',width:'100%',maxWidth:isWide?'580px':'430px',maxHeight:'76%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none',...(!isWide?selectedCalDayDrag.sheetDragStyle:null)}}>
-            {!isWide && <div className="sheet-grabber" {...selectedCalDayDrag.grabberProps}><div className="sheet-grabber-pill"/></div>}
+        <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} className={selectedCalDay?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:40}}>
+          <div ref={selectedCalDayTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Day detail" onClick={e=>e.stopPropagation()} className={'alert-pop'+(selectedCalDay?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',padding:isWide?'28px':'18px',width:'100%',maxWidth:isWide?'580px':'400px',maxHeight:isWide?'76%':'80%',overflowY:'auto',boxSizing:'border-box',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
               <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{new Date(selectedCalDayV.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}).replace(/^(\w+) /,'$1, ').replace(/\bSep\b/,'Sept')}</div>
               <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} aria-label="Close" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={isWide?20:16} c="#64748b"/></button>
@@ -4944,7 +4955,7 @@ export default function App() {
                       <Tooltip label="Delete shift"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this shift" style={{marginLeft:'6px',background:confirmDel===e.id?'var(--tint-red)':'transparent',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button></Tooltip>
                     </div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
-                      {carmsBadge(e, isWide?11.5:10.5)}
+                      {isWide ? carmsBadge(e, 11.5) : carmsBadge(e, 10.5, true)}
                       {/* Grey record-only pill — shown only here in the calendar
                           day view, not in List View, CARMS/PA, or any export.
                           A shift with no claimable OT hours and no PA has
