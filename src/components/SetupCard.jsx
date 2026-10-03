@@ -2,29 +2,17 @@ import { PAY_RATES } from '../lib/payRates.js';
 import { Ico } from './Icons.jsx';
 
 // The one place a new person sets their rank and pay point, shown on Home
-// and in Log Overtime until both are chosen. Once they are, Home keeps a
-// short "you're set up" version with a button to log the first shift.
+// and in Log Overtime until both are chosen, then gone.
 export const isSetUp = settings => !!(settings?.rank && settings?.service && PAY_RATES[settings.rank]?.[settings.service]);
 
-export function SetupCard({ settings, saveSett, S, BRASS, hasEntries, onLogShift, where = 'home' }) {
-  const done = isSetUp(settings);
-  if (done && (hasEntries || where !== 'home')) return null;
+export function SetupCard({ settings, saveSett, S, BRASS, where = 'home' }) {
+  if (isSetUp(settings)) return null;
 
   const rank = PAY_RATES[settings?.rank] ? settings.rank : '';
   const points = rank ? Object.keys(PAY_RATES[rank]) : [];
   const card = { background:'var(--surface)', border:'1px solid var(--border-2)', borderRadius:'16px', padding:'16px', marginBottom:'12px', boxShadow:`inset 3px 0 0 ${BRASS}` };
   const lbl = { display:'block', fontSize:'11px', fontWeight:900, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' };
   const chevron = <div style={{position:'absolute',right:'13px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex'}}><Ico n="cD" s={13} c="var(--quiet)" w={2.5}/></div>;
-
-  if (done) {
-    return (
-      <div style={card}>
-        <div style={{fontSize:'15px',fontWeight:900,color:'var(--ink)',marginBottom:'3px'}}>You're set up</div>
-        <div style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,marginBottom:'12px'}}>{settings.rank}, {settings.service}. You can change this any time in More.. › Config, rates &amp; payscales.</div>
-        <button type="button" onClick={onLogShift} style={{width:'100%',padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13.5px',fontFamily:'inherit',cursor:'pointer'}}>Log your first shift</button>
-      </div>
-    );
-  }
 
   return (
     <div style={card} role="region" aria-label="Set up your pay">

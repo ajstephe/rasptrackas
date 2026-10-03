@@ -15,7 +15,7 @@ export function TabDashboard({
   scrollToTaxImpact, setTaxImpactExpanded,
   skipBreakdownReset, setBreakdownView, setCalPeriodIdx,
   renderMonthlyChart, S, MONO, BRASS, animClass='fi',
-  session, setSignOutConfirmOpen, saveSett, hasEntries,
+  session, setSignOutConfirmOpen, saveSett,
 }) {
   // The two headline mono figures count up/down when they change instead
   // of jumping straight to the new value — logging a shift, editing one,
@@ -321,7 +321,7 @@ export function TabDashboard({
 
   return (
   <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
-    <SetupCard where="home" settings={settings} saveSett={saveSett} S={S} BRASS={BRASS} hasEntries={hasEntries} onLogShift={()=>setTab('add')}/>
+    <SetupCard where="home" settings={settings} saveSett={saveSett} S={S} BRASS={BRASS}/>
 
     {isWide ? (<>
     {/* ── "One statement" layout (ledger redesign) — the hero,

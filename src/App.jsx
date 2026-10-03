@@ -4729,7 +4729,7 @@ export default function App() {
             salaryBreakdownExpanded={salaryBreakdownExpanded} setSalaryBreakdownExpanded={setSalaryBreakdownExpanded}
             scrollToTaxImpact={scrollToTaxImpact} setTaxImpactExpanded={setTaxImpactExpanded}
             skipBreakdownReset={skipBreakdownReset} setBreakdownView={setBreakdownView} setCalPeriodIdx={setCalPeriodIdx}
-            renderMonthlyChart={renderMonthlyChart} S={S} MONO={MONO} BRASS={BRASS} saveSett={saveSett} hasEntries={entries.length>0}
+            renderMonthlyChart={renderMonthlyChart} S={S} MONO={MONO} BRASS={BRASS} saveSett={saveSett}
             session={session} setSignOutConfirmOpen={setSignOutConfirmOpen}
           />
         )}
