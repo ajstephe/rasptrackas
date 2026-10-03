@@ -1124,7 +1124,6 @@ export default function App() {
   // sheet-pop class purely for its pop-in/out timing but is a small
   // rounded-all-corners toolbar with no backdrop, not an edge-to-edge sheet,
   // so it's deliberately not wired up here.
-  const signOutDrag = useDraggableSheet(signOutConfirmOpen, () => setSignOutConfirmOpen(false));
   const restoreDrag = useDraggableSheet(restoreConfirmOpen, () => setRestoreConfirmOpen(false));
   const payslipDrag = useDraggableSheet(payslipModalOpen, () => setPayslipModalOpen(false));
   // ── focus management for every overlay above ─────────────────────────────
@@ -4358,12 +4357,11 @@ export default function App() {
       {/* ── sign-out confirmation — bottom sheet, same pattern as the export
            modal, with an explicit close (×) as well as Cancel ── */}
       {signOutMounted&&(
-        <div onClick={()=>setSignOutConfirmOpen(false)} className={signOutConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-          <div ref={signOutTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Sign out?" onClick={e=>e.stopPropagation()} className={isWide?'alert-pop'+(signOutConfirmOpen?'':' pop-out'):'sheet-pop'+(!signOutConfirmOpen&&!signOutDrag.isDragClosing?' pop-out':'')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none',...(!isWide?signOutDrag.sheetDragStyle:null)}}>
+        <div onClick={()=>setSignOutConfirmOpen(false)} className={signOutConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:60}}>
+          <div ref={signOutTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Sign out?" onClick={e=>e.stopPropagation()} className={'alert-pop'+(signOutConfirmOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',width:'100%',maxWidth:isWide?'430px':'400px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
             <button onClick={()=>setSignOutConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
-            {!isWide && <div className="sheet-grabber" {...signOutDrag.grabberProps}><div className="sheet-grabber-pill"/></div>}
             <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>Sign out?</div>
             <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>You'll need your password again to get back in. Data already synced stays exactly as it is.</div>
             <div style={{display:'flex',gap:'8px'}}>
