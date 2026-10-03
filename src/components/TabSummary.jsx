@@ -733,12 +733,11 @@ export function TabSummary({
           if (sOT||sPA) rows.push({k:'sub', lab:'✓ Submitted', det:covers(sOT,sPA,e.paRate), g:(sOT?c.ot:0)+(sPA?c.pa:0),
             n:(sOT?claimedNet.get(`${e.id}:ot`)||0:0)+(sPA?claimedNet.get(`${e.id}:pa`)||0:0)});
           const tOT = hasOT && !sOT, tPA = hasPA && !sPA;
-          if (tOT||tPA) {
-            // Only the unclaimed part: a shift half claimed is previewed
-            // without its claimed half, so the net is just what's left.
-            const rest = !(sOT||sPA) ? e : sOT ? {...e, hours133:'', hours150:'', hours200:'', toilHours:''} : {...e, paRate:'None'};
-            rows.push({k:'todo', lab:'To submit', det:covers(tOT,tPA,e.paRate), g:(tOT?c.ot:0)+(tPA?c.pa:0), n:entryNet(rest), parts:{ot:tOT, pa:tPA}});
-          }
+          // Overtime (CARMS) and PA (PSOP) are separate claims that can go in
+          // on different days, so each outstanding one gets its own row and
+          // button. Each net is what that claim adds on its own.
+          if (tOT) rows.push({k:'todo', key:'todo-ot', lab:'To submit', det:'Overtime', g:c.ot, n:entryNet({...e, paRate:'None'}), parts:{ot:true}});
+          if (tPA) rows.push({k:'todo', key:'todo-pa', lab:'To submit', det:e.paRate, g:c.pa, n:entryNet({...e, hours133:'', hours150:'', hours200:'', toilHours:''}), parts:{pa:true}});
           return rows;
         };
         const ROW = {
@@ -768,8 +767,8 @@ export function TabSummary({
                 // The "To submit" box opens the date picker to mark this
                 // shift's outstanding claim(s) as submitted.
                 return r.k==='todo'
-                  ? <button key={r.k} type="button" className="tap-row" title="Mark as submitted" onClick={ev=>{ ev.stopPropagation(); openQuickSubmit(e, r.parts); }} style={{...box,width:'100%',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>{inner}</button>
-                  : <div key={r.k} style={box}>{inner}</div>;
+                  ? <button key={r.key||r.k} type="button" className="tap-row" title={`Mark ${r.det} as submitted`} onClick={ev=>{ ev.stopPropagation(); openQuickSubmit(e, r.parts); }} style={{...box,width:'100%',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>{inner}</button>
+                  : <div key={r.key||r.k} style={box}>{inner}</div>;
               })}
             </div>
           );
