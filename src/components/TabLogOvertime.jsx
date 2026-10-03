@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fmt, fmtHrs, fmtGBP } from '../lib/format.js';
+import { submitWindow, daysUntil, shortDay } from '../lib/deadline.js';
 import { toMinutesOfDay, shiftDurationMinutes, generateShiftTimesLine } from '../lib/shiftTimes.js';
 import { getRates, PA_LABELS, PA_RATES, RATE_TIER_MULT, RATE_TIER_LABEL } from '../lib/payRates.js';
 import { useCountUp } from '../lib/useCountUp.js';
@@ -35,6 +36,7 @@ export function TabLogOvertime({
   const [notesOpen, setNotesOpen] = useState(false);
   useEffect(() => { if (justSaved) setNotesOpen(false); }, [justSaved]);
 
+  const planRange = d => { const w=submitWindow(d); if(!w) return ''; const a=shortDay(d), b=w.byShort; const [ad,am]=a.split(' '), [bd,bm]=b.split(' '); return am===bm?`${ad}–${b}`:`${a}–${b}`; };
   const dateLabel = d => new Date((d||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
   // Glow in the theme's own accent (BRASS is each theme's accent hex).
   const pillShadow = `0 3px 9px color-mix(in srgb, ${BRASS} 35%, transparent)`;
@@ -413,9 +415,9 @@ export function TabLogOvertime({
                 it's been worked. */}
             <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(2,minmax(0,1fr))':'1fr',gap:'10px',marginTop:'10px'}}>
               {otSlip && !isPlannedShift ? claimSlip('ot', otSlip, 'CARMS')
-                : idleSlip('CARMS', otSlip ? otSlip.amt : '—', otSlip ? otSlip.what : 'Overtime', isPlannedShift && otSlip ? `Planned · claim from ${shortDate(form.date)}` : 'Add hours above')}
+                : idleSlip('CARMS', otSlip ? otSlip.amt : '—', otSlip ? otSlip.what : 'Overtime', isPlannedShift && otSlip ? `Planned · submit ${planRange(form.date)} for ${submitWindow(form.date)?.month||'its pay month'}` : 'Add hours above')}
               {paSlip && !isPlannedShift ? claimSlip('pa', paSlip, 'PSOP')
-                : idleSlip('PSOP', paSlip ? paSlip.amt : '—', paSlip ? paSlip.what : 'Protection Allowance', isPlannedShift && paSlip ? `Planned · claim from ${shortDate(form.date)}` : 'No PA chosen')}
+                : idleSlip('PSOP', paSlip ? paSlip.amt : '—', paSlip ? paSlip.what : 'Protection Allowance', isPlannedShift && paSlip ? `Planned · submit ${planRange(form.date)} for ${submitWindow(form.date)?.month||'its pay month'}` : 'No PA chosen')}
             </div>
           </>
         ),{ref:carmsToggleRef,className:focusCarmsToggle?'carms-pulse':undefined,style:{border:focusCarmsToggle?'2px solid #2563eb':'1px solid var(--border-2)'}})}

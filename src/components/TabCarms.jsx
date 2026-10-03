@@ -5,6 +5,8 @@ import { useCountUp } from '../lib/useCountUp.js';
 import { SegSlider } from './SegSlider.jsx';
 import { useMountTransition } from '../lib/useMountTransition.js';
 import { countSelectedClaims } from '../lib/carms.js';
+import { localDateStr } from '../lib/payPeriods.js';
+import { submitWindow, daysUntil, shortDay } from '../lib/deadline.js';
 
 // ─── CARMS & PSOP Awaiting Submission tab — "Table View" ───────────────────────────────
 // Desktop gets a real sortable table (click Date/Amount to reorder, a
@@ -162,6 +164,12 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
     return rows;
   };
 
+  // Each group's own deadline: submit by the last day of its shift window to
+  // be paid that month. Once it has passed, what's left is paid in whichever
+  // month it's submitted in, so say which that is today.
+  const deadlineNote = (g, block=false) => { const t=localDateStr(); const own=submitWindow(g.period.end); if(!own) return null; const late=g.period.end<t, now=submitWindow(t);
+    const txt = late ? `Deadline was ${own.byShort} · submitted now, paid in ${now?now.month:'a later month'}` : `Submit by ${own.byLong} for ${own.month} · after that, ${own.next}`;
+    return <span style={{display:block?'block':'inline',marginLeft:block?0:'10px',marginTop:block?'3px':0,fontSize:'11px',fontWeight:700,color:late?'var(--text-amber-deep)':'var(--text-red-deep)'}}>{late?'⚠ ':''}{txt}</span>; };
   const goToEntry = (entry) => { startEdit(entry); setFocusCarmsToggle(true); };
 
   // "Select all" — every row's *required* markers (whichever of ot/pa that
@@ -249,6 +257,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                   <td colSpan={5} style={{padding:'9px 12px',background:'var(--surface-2)',borderBottom:'1px solid var(--border-2)'}}>
                     <span style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>{payLabel(g.period.month)}{g.otherYear?` ${g.period.month.split(' ')[1]}`:''}</span>
                     <span style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginLeft:'8px'}}>{shiftSpan(g.period.start,g.period.end)} · {groupRows.length} claim{groupRows.length!==1?'s':''}</span>
+                    {deadlineNote(g)}
                   </td>
                   <td style={{padding:'9px 12px',background:'var(--surface-2)',borderBottom:'1px solid var(--border-2)',textAlign:'right',fontFamily:MONO,fontSize:'13px',fontWeight:700,color:'var(--text-red-deep)',whiteSpace:'nowrap'}}>{groupTotal(visibleItems)}</td>
                   <td style={{background:'var(--surface-2)',borderBottom:'1px solid var(--border-2)'}}/>
@@ -305,7 +314,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
     return (
       <div key={g.periodIdx} ref={el=>periodGroupRefs.current[g.periodIdx]=el} className={pulsePeriodIdx===g.periodIdx?'carms-pulse':''} style={{marginBottom:'14px',borderRadius:'14px',border:pulsePeriodIdx===g.periodIdx?'2px solid #2563eb':'2px solid transparent'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'8px 4px',borderBottom:'1px solid var(--border-2)'}}>
-          <span><span style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{payLabel(g.period.month)}{g.otherYear?` ${g.period.month.split(' ')[1]}`:''}</span> <span style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>{shiftSpan(g.period.start,g.period.end)} · {rows.length} claim{rows.length!==1?'s':''}</span></span>
+          <span><span style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{payLabel(g.period.month)}{g.otherYear?` ${g.period.month.split(' ')[1]}`:''}</span> <span style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)'}}>{shiftSpan(g.period.start,g.period.end)} · {rows.length} claim{rows.length!==1?'s':''}</span>{deadlineNote(g, true)}</span>
           <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:700,color:'var(--text-red-deep)'}}>{groupTotalLabel}</span>
         </div>
         <div style={{padding:'10px 0 2px'}}>
@@ -354,7 +363,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
         </div>
         <div style={{fontSize:'11px',color:'#fcd34d',fontWeight:600,lineHeight:1.5,marginTop:isWide?0:'10px',maxWidth:isWide?'330px':'none'}}>
           {anyOutstanding
-            ? <>Not counted in your gross pay until you mark it submitted. Spacing claims out can keep a payday steadier.</>
+            ? (()=>{ const t=localDateStr(), w=submitWindow(t), left=w?daysUntil(t,w.by):0; return w ? <>Submit by <b style={{color:'#fff'}}>{w.byLong}</b>{left>0?` (${left} day${left!==1?'s':''} left)`:' (today)'} to be paid in <b style={{color:'#fff'}}>{w.month}</b> on {w.paidOn}. Anything submitted after that is paid in {w.next}.<br/>Not counted in your gross pay until you mark it submitted.</> : <>Not counted in your gross pay until you mark it submitted.</>; })()
             : <>Everything logged has been submitted. Shifts dated in the future join once their date arrives.</>}
         </div>
       </div>

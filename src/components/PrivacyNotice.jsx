@@ -58,7 +58,7 @@ export function PrivacyNotice({ onClose, brass = '#b8823f' }) {
             <li style={li}>Your account email address</li>
             <li style={li}>The shifts, overtime, and TOIL you log — dates, times, duty type, and rate tier</li>
             <li style={li}>Your rank and pay point (and the dates they changed), used to calculate pay</li>
-            <li style={li}>Whether and when you've claimed overtime on CARMS and Protection Allowance on PSOP</li>
+            <li style={li}>Whether and when you've submitted overtime on CARMS and Protection Allowance on PSOP</li>
           </ul>
           <p style={p}>Nothing beyond this is collected — no location tracking, no device fingerprinting, no analytics or advertising identifiers, and nothing that UK GDPR treats as special category data (health, biometric, etc.).</p>
         </div>

@@ -1,6 +1,8 @@
 import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
+import { localDateStr } from '../lib/payPeriods.js';
+import { submitWindow, daysUntil, shortDay } from '../lib/deadline.js';
 
 // ─── Home (dashboard) tab ────────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='dashboard' IIFE — no behaviour
@@ -389,7 +391,7 @@ export function TabDashboard({
               <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
               <div>
                 <div style={{fontSize:'14px',fontWeight:800,color:'var(--ink)'}}>Overtime &amp; PA to submit</div>
-                <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} pay month{carmsOutstanding.periodCount!==1?'s':''}</div>
+                <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · submit by {submitWindow(localDateStr())?.byShort} for {submitWindow(localDateStr())?.month}</div>
               </div>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}><div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>
@@ -441,7 +443,7 @@ export function TabDashboard({
               <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
               <div>
                 <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>Overtime &amp; PA to submit</div>
-                <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · {carmsOutstanding.periodCount} pay month{carmsOutstanding.periodCount!==1?'s':''}</div>
+                <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · submit by {submitWindow(localDateStr())?.byShort} for {submitWindow(localDateStr())?.month}</div>
               </div>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>

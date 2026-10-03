@@ -20,6 +20,7 @@ import {
   payeTaxBreakdown, taperExtra,
 } from './lib/tax.js';
 import { fmt, fmtHM, fmtHrs, fmtGBP, fmtD, fmtRelTime, payLabel, shiftSpan } from './lib/format.js';
+import { submitWindow, shortDay } from './lib/deadline.js';
 import {
   calcAutoOTHours, syncShiftTimesIntoForm,
 } from './lib/shiftTimes.js';
@@ -1879,7 +1880,7 @@ export default function App() {
     }
     // A shift still to come can't be claimed yet: say it's planned rather
     // than flagging it red as if it were overdue.
-    if (e.date > todayStr) return <div style={{...style,background:'var(--tint-blue)',color:'var(--text-blue-deep)'}}>Planned · claim from {new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}).replace(/\bSep\b/,'Sept')}</div>;
+    if (e.date > todayStr) return <div style={{...style,background:'var(--tint-blue)',color:'var(--text-blue-deep)'}}>Planned · submit {(()=>{ const w=submitWindow(e.date); if(!w) return 'once worked'; const a=shortDay(e.date).split(' '), b=w.byShort.split(' '); return a[1]===b[1]?`${a[0]}–${w.byShort}`:`${shortDay(e.date)}–${w.byShort}`; })()}</div>;
     // Tapping one opens the date picker to mark that claim submitted, with
     // Overtime and PA as separate buttons so each can have its own date.
     const clickable = {...style,display:'inline-flex',alignItems:'center',gap:'5px',border:'1px solid var(--border-2)',background:'var(--tint-red)',color:'var(--text-red-deep)',cursor:'pointer'};

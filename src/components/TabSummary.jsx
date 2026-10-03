@@ -8,6 +8,7 @@ import { partNets } from '../lib/payroll.js';
 import { Ico } from './Icons.jsx';
 import { SegSlider } from './SegSlider.jsx';
 import { Tooltip } from './Tooltip.jsx';
+import { submitWindow, daysUntil, shortDay } from '../lib/deadline.js';
 
 // ─── Summary tab (List View + Calendar View) ────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='months' block — no behaviour
@@ -545,7 +546,7 @@ export function TabSummary({
           {isWide&&big('Hours',fmtHrs(T.hrs),'var(--ink)',`${T.n} shift${T.n!==1?'s':''}`,'var(--muted)')}
         </div>
         {!isWide&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginTop:'10px'}}>{fmtHrs(T.hrs)} over {T.n} shift{T.n!==1?'s':''}</div>}
-        {EY?.n>0&&<div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'6px'}}>Planned: {EY.n} shift{EY.n!==1?'s':''} still to work, if claimed on time.</div>}
+        {EY?.n>0&&<div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'6px'}}>Planned: {EY.n} shift{EY.n!==1?'s':''} still to work. Each is paid in its own pay month if submitted by that month's deadline.</div>}
         {cm&&(cm.sp.sub+cm.sp.pend+cm.sp.plan>0||cm.carms)&&<div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'6px 16px',marginTop:'14px',paddingTop:'12px',borderTop:'1px solid var(--border-2)',fontSize:'12.5px',fontWeight:700}}>
           <span style={{color:'var(--ink)'}}>{payLabel(cm.p.month)}:</span>
           {cm.sp.sub>0&&<span style={{color:'var(--text-green-deep)'}}>{fmtHrs(cm.sp.sub)} submitted</span>}
@@ -872,11 +873,11 @@ export function TabSummary({
               const carriedIn = pb.parts.filter(x=>!shown.has(x.entry.id)).reduce((a,x)=>a+x.amount,0);
               const paidElsewhere = cEntries.reduce((a,e)=>{ if (e.date>todayStr) return a; const c=calcEntry(e);
                 return a + (c.h1+c.h2+c.h3>0&&c.ot>0&&isOtSubmitted(e)&&!inPb.has(`${e.id}:ot`)?c.ot:0) + (c.pa>0&&isPaSubmitted(e)&&!inPb.has(`${e.id}:pa`)?c.pa:0); },0);
-              const notes = [carriedIn>0.005&&`Submitted includes ${fmtGBP(carriedIn)} claimed this month for shifts listed under an earlier month.`, paidElsewhere>0.005&&`${fmtGBP(paidElsewhere)} of the submitted money on these shifts is paid in another month.`].filter(Boolean);
+              const notes = [carriedIn>0.005&&`Submitted includes ${fmtGBP(carriedIn)} submitted this month for shifts listed under an earlier month.`, paidElsewhere>0.005&&`${fmtGBP(paidElsewhere)} of the submitted money on these shifts is paid in another month.`].filter(Boolean);
               const lines = [
                 {col:GRN, k:'Submitted', s:`in ${payLabel(cPeriod.month)}`, h:sp.sub, g:pb.combinedGross, n:pb.combinedNet, gc:'var(--text-navy)', nc:GRN, show:true},
-                {col:RED, k:'To submit', s:`${ts.n} claim${ts.n!==1?'s':''}, Awaits Submission`, h:sp.pend, g:ts.gross, n:ts.net, gc:'var(--text-red-deep)', nc:'var(--text-red-deep)', show:ts.gross>0.005},
-                {col:'var(--exp)', k:'Planned · expected', s:`${ex.n} shift${ex.n!==1?'s':''}, if claimed on time`, h:sp.plan, g:ex.gross, n:ex.net, gc:'var(--exp-ink)', nc:'var(--exp)', show:ex.n>0},
+                {col:RED, k:'To submit', s:`${ts.n} claim${ts.n!==1?'s':''} · `+(cPeriod.end<todayStr?`submitted now, paid in ${submitWindow(todayStr)?.month||'a later month'}`:`submit by ${submitWindow(cPeriod.end)?.byShort} for ${payLabel(cPeriod.month)}`), h:sp.pend, g:ts.gross, n:ts.net, gc:'var(--text-red-deep)', nc:'var(--text-red-deep)', show:ts.gross>0.005},
+                {col:'var(--exp)', k:'Planned', s:`${ex.n} shift${ex.n!==1?'s':''}, if submitted by ${submitWindow(cPeriod.end)?.byShort}`, h:sp.plan, g:ex.gross, n:ex.net, gc:'var(--exp-ink)', nc:'var(--exp)', show:ex.n>0},
               ].filter(l=>l.show);
               const TC = isWide ? 'minmax(0,1fr) 64px 78px 78px' : COLS;
               const allG = lines.reduce((a,l)=>a+l.g,0), allN = lines.reduce((a,l)=>a+l.n,0), allH = lines.reduce((a,l)=>a+l.h,0);
@@ -911,7 +912,7 @@ export function TabSummary({
                   )}
                   {(lines.length>1||notes.length>0)&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',padding:'6px 8px 0',display:'grid',gap:'3px'}}>
                     {notes.map(t=><span key={t}>{t}</span>)}
-                    {lines.length>1&&<span>Net for "to submit" is what it adds once claimed; "expected" assumes the shift is worked and claimed on time.</span>}
+                    {lines.length>1&&<span>Net for "to submit" is what it adds once submitted. "Planned" assumes the shift is worked and submitted by {submitWindow(cPeriod.end)?.byShort}; anything submitted later is paid in {submitWindow(cPeriod.end)?.next}.</span>}
                   </div>}
                 </div>
               );
@@ -1207,9 +1208,9 @@ export function TabSummary({
               return (
                 <div style={{...S.card,marginTop:'2px'}}>
                   <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',rowGap:'12px',textAlign:'center',marginBottom:'10px'}}>
-                    {[['Gross',fmt(pb.combinedGross),'var(--text-navy)'],['Net',fmt(pb.combinedNet),'#059669'],['Hours submitted',fmtHrs(hrsSplit(cEntries).sub),GRN],['Not submitted',fmtHrs(hrsSplit(cEntries).pend),hrsSplit(cEntries).pend>0?RED:'var(--quiet)']].map(([k,v,col],n)=>(
+                    {[['Gross',fmt(pb.combinedGross),'var(--text-navy)'],['Net',fmt(pb.combinedNet),'#059669'],['Submitted',fmtHrs(hrsSplit(cEntries).sub),GRN],['Not submitted',fmtHrs(hrsSplit(cEntries).pend),hrsSplit(cEntries).pend>0?RED:'var(--quiet)']].map(([k,v,col],n)=>(
                       <div key={k} style={{borderLeft:(isWide?n:n%2)?'1px solid var(--border-2)':'none',padding:'2px 4px'}}>
-                        <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.07em'}}>{k}</div>
+                        <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.07em',whiteSpace:'nowrap'}}>{k}</div>
                         <div style={{fontFamily:MONO,fontSize:isWide?'20px':'17px',fontWeight:600,color:col,marginTop:'2px'}}>{v}</div>
                       </div>
                     ))}
@@ -1244,7 +1245,7 @@ export function TabSummary({
                               <span>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · {fmtHrs(c.h1+c.h2+c.h3)}{e.paRate&&e.paRate!=='None'?` · ${e.paRate}`:''}</span>
                               <span style={{fontFamily:MONO}}>{fmtGBP(c.gross)}</span>
                             </div>); })}
-                          <div style={{borderTop:'1px dashed color-mix(in srgb, var(--exp) 45%, transparent)',marginTop:'8px',paddingTop:'7px',fontSize:'12px',fontWeight:700,...sky}}>If claimed on time, {payLabel(cPeriod.month)} comes to <span style={{fontFamily:MONO,whiteSpace:'nowrap'}}>{fmtGBP(pb.combinedGross+ex.gross)} gross · {fmtGBP(pb.combinedNet+ex.net)} net</span></div>
+                          <div style={{borderTop:'1px dashed color-mix(in srgb, var(--exp) 45%, transparent)',marginTop:'8px',paddingTop:'7px',fontSize:'12px',fontWeight:700,...sky}}>Submit by {submitWindow(cPeriod.end)?.byLong} and {payLabel(cPeriod.month)} comes to <span style={{fontFamily:MONO,whiteSpace:'nowrap'}}>{fmtGBP(pb.combinedGross+ex.gross)} gross · {fmtGBP(pb.combinedNet+ex.net)} net</span></div><div style={{fontSize:'11.5px',fontWeight:600,marginTop:'3px',...sky}}>Submitted after that, they're paid in {submitWindow(cPeriod.end)?.next}.</div>
                         </div>
                       </div>
                     );
