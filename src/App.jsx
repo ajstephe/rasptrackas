@@ -4729,7 +4729,7 @@ export default function App() {
             salaryBreakdownExpanded={salaryBreakdownExpanded} setSalaryBreakdownExpanded={setSalaryBreakdownExpanded}
             scrollToTaxImpact={scrollToTaxImpact} setTaxImpactExpanded={setTaxImpactExpanded}
             skipBreakdownReset={skipBreakdownReset} setBreakdownView={setBreakdownView} setCalPeriodIdx={setCalPeriodIdx}
-            renderMonthlyChart={renderMonthlyChart} S={S} MONO={MONO} BRASS={BRASS}
+            renderMonthlyChart={renderMonthlyChart} S={S} MONO={MONO} BRASS={BRASS} saveSett={saveSett} hasEntries={entries.length>0}
             session={session} setSignOutConfirmOpen={setSignOutConfirmOpen}
           />
         )}
@@ -4738,7 +4738,7 @@ export default function App() {
         {tab==='add'&&(
           <TabLogOvertime
             animClass={tabAnimClass}
-            editing={editing} setEditing={setEditing} onCancelEdit={()=>leaveEditThen(()=>setTab('months'))} setTab={setTab} goToConfigSetup={goToConfigSetup} settings={settings} isWide={isWide}
+            editing={editing} setEditing={setEditing} onCancelEdit={()=>leaveEditThen(()=>setTab('months'))} saveSett={saveSett} setTab={setTab} goToConfigSetup={goToConfigSetup} settings={settings} isWide={isWide}
             S={S} MONO={MONO} BRASS={BRASS} form={form} setForm={setForm} todayStr={todayStr} notesRef={notesRef}
             effectiveTier={effectiveTier} preview={preview} handleSave={handleSave} justSaved={justSaved}
             carmsToggleRef={carmsToggleRef} focusCarmsToggle={focusCarmsToggle}

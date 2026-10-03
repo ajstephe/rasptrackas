@@ -8,13 +8,14 @@ import { submitWindow, daysUntil, shortDay } from '../lib/deadline.js';
 // Extracted verbatim from App.jsx's tab==='dashboard' IIFE — no behaviour
 // change. renderMonthlyChart, S and the various setters/refs all come in as
 // props rather than being closed over directly.
+import { SetupCard } from './SetupCard.jsx';
 export function TabDashboard({
   isWide, settings, setTab, goToConfigSetup, totals, currPeriodIdx, toilLedger, carmsOutstanding,
   salaryBreakdownExpanded, setSalaryBreakdownExpanded,
   scrollToTaxImpact, setTaxImpactExpanded,
   skipBreakdownReset, setBreakdownView, setCalPeriodIdx,
   renderMonthlyChart, S, MONO, BRASS, animClass='fi',
-  session, setSignOutConfirmOpen,
+  session, setSignOutConfirmOpen, saveSett, hasEntries,
 }) {
   // The two headline mono figures count up/down when they change instead
   // of jumping straight to the new value — logging a shift, editing one,
@@ -320,16 +321,7 @@ export function TabDashboard({
 
   return (
   <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
-    {!settings.rank&&(
-      <div className="setup-pulse-urgent" style={{background:'var(--tint-red)',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'13px 14px',marginBottom:'12px',display:'flex',gap:'11px',alignItems:'flex-start'}}>
-        <Ico n="uPlus" s={19} c="#dc2626"/>
-        <div style={{flex:1}}>
-          <div style={{fontWeight:900,color:'var(--text-red-deep)',fontSize:'13px',marginBottom:'3px'}}>Setup Required</div>
-          <div style={{color:'var(--text-red-deep)',fontSize:'12px',marginBottom:'8px'}}>Set your rank and pay point in More..</div>
-          <button onClick={goToConfigSetup} style={{background:'var(--surface-red-mid)',border:'none',borderRadius:'8px',padding:'5px 11px',fontWeight:900,fontSize:'11px',color:'var(--text-red-deep)',cursor:'pointer',fontFamily:'inherit'}}>Go to More.. →</button>
-        </div>
-      </div>
-    )}
+    <SetupCard where="home" settings={settings} saveSett={saveSett} S={S} BRASS={BRASS} hasEntries={hasEntries} onLogShift={()=>setTab('add')}/>
 
     {isWide ? (<>
     {/* ── "One statement" layout (ledger redesign) — the hero,

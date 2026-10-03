@@ -17,8 +17,9 @@ const hm = mins => { const h = Math.floor(mins/60), m = Math.round(mins%60); ret
 // about a shift: when it was, the hours, how it's paid, whether it's already
 // been submitted, then notes. Gross/net and Save share one bar that stays on
 // screen. Same fields and behaviour as before — only the arrangement changed.
+import { SetupCard, isSetUp } from './SetupCard.jsx';
 export function TabLogOvertime({
-  editing, setEditing, onCancelEdit, setTab, goToConfigSetup, settings, isWide, S, MONO, BRASS,
+  editing, setEditing, onCancelEdit, saveSett, setTab, goToConfigSetup, settings, isWide, S, MONO, BRASS,
   form, setForm, todayStr, notesRef, effectiveTier, preview, handleSave, justSaved,
   carmsToggleRef, focusCarmsToggle, setDatePickerMonth, setDatePickerFor,
   syncShiftTimesIntoForm, animClass='fi',
@@ -361,16 +362,8 @@ export function TabLogOvertime({
         <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>{editing?'Edit shift':'Log Overtime'}</h2>
       </div>
 
-      {!settings.rank||!settings.service ? (
-        /* ── blocked until rank & pay point are configured — no figures can be entered until then ── */
-        <div style={{background:'var(--tint-red)',border:'1.5px solid var(--border-2)',borderRadius:'18px',padding:'26px 20px',textAlign:'center'}}>
-          <div style={{width:'52px',height:'52px',borderRadius:'50%',background:'var(--tint-red)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px'}}>
-            <Ico n="uPlus" s={24} c="#dc2626"/>
-          </div>
-          <div style={{fontWeight:900,fontSize:'15px',color:'var(--text-red-deep)',marginBottom:'6px'}}>Setup Required</div>
-          <div style={{fontSize:'12px',color:'var(--text-red-deep)',lineHeight:1.6,marginBottom:'16px'}}>You need to select your rank and pay point in More.. before you can log overtime. This ensures your pay is calculated correctly from the start.</div>
-          <button onClick={goToConfigSetup} style={{background:'#dc2626',border:'none',borderRadius:'11px',padding:'12px 22px',fontWeight:900,fontSize:'12px',color:'#fff',cursor:'pointer',fontFamily:'inherit',boxShadow:'0 4px 14px rgba(220,38,38,0.3)'}}>Go to More.. →</button>
-        </div>
+      {!isSetUp(settings) ? (
+        <SetupCard where="log" settings={settings} saveSett={saveSett} S={S} BRASS={BRASS}/>
       ) : (
       <>
         {/* A computer has room for the form in two columns: when and the
