@@ -439,14 +439,14 @@ export function TabDashboard({
         </button>
         {carmsOutstanding.totalClaims>0&&(
           <button onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'14px 0',cursor:'pointer',background:'none',border:'none',textAlign:'left',fontFamily:'inherit'}}>
-            <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'10px',minWidth:0,flex:1}}>
               <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
               <div>
                 <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>Overtime &amp; PA to submit</div>
                 <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · submit by {submitWindow(localDateStr())?.byShort} for {submitWindow(localDateStr())?.month}</div>
               </div>
             </div>
-            <div style={{display:'flex',alignItems:'center',gap:'8px'}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>
+            <div style={{display:'flex',alignItems:'center',gap:'8px',flexShrink:0,marginLeft:'10px'}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>
           </button>
         )}
       </div>

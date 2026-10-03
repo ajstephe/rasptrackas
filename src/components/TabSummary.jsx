@@ -1227,9 +1227,12 @@ export function TabSummary({
                     const skyBox = {background:'var(--exp-tint)',border:'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)',borderRadius:'11px'};
                     const shiftsLbl = hasEx ? `Planned · ${ex.n} shift${ex.n!==1?'s':''}` : '';
                     const strip = hasEx && !isWide && (
-                      <div style={{...skyBox,display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'9px 12px',marginBottom:'10px'}}>
+                      <div style={{...skyBox,padding:'9px 12px',marginBottom:'10px'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px'}}>
                         <span><span style={{display:'block',fontSize:'9.5px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.06em',...sky}}>{shiftsLbl}</span><span style={{fontFamily:MONO,fontSize:'17px',fontWeight:600,...sky}}>{fmtHrs(ex.hrs)}</span></span>
                         <span style={{textAlign:'right',fontFamily:MONO,fontSize:'12.5px',fontWeight:700,...sky}}>+{fmtGBP(ex.gross)} gross<span style={{display:'block'}}>+{fmtGBP(ex.net)} net</span></span>
+                      </div>
+                      <div style={{borderTop:'1px dashed color-mix(in srgb, var(--exp) 45%, transparent)',marginTop:'8px',paddingTop:'7px',fontSize:'11.5px',fontWeight:700,lineHeight:1.4,...sky}}>Submit by {submitWindow(cPeriod.end)?.byLong} for {payLabel(cPeriod.month)}. Submitted after that, they're paid in {submitWindow(cPeriod.end)?.next}.</div>
                       </div>
                     );
                     const planned = cEntries.filter(e=>e.date>todayStr).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);

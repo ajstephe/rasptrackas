@@ -36,7 +36,7 @@ export function TabLogOvertime({
   const [notesOpen, setNotesOpen] = useState(false);
   useEffect(() => { if (justSaved) setNotesOpen(false); }, [justSaved]);
 
-  const planRange = d => { const w=submitWindow(d); if(!w) return ''; const a=shortDay(d), b=w.byShort; const [ad,am]=a.split(' '), [bd,bm]=b.split(' '); return am===bm?`${ad}–${b}`:`${a}–${b}`; };
+  const planRange = d => { const w=submitWindow(d); if(!w) return ''; if(d===w.by) return `on ${w.byShort}`; const a=shortDay(d), b=w.byShort; const [ad,am]=a.split(' '), [bd,bm]=b.split(' '); return am===bm?`${ad}–${b}`:`${a}–${b}`; };
   const dateLabel = d => new Date((d||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
   // Glow in the theme's own accent (BRASS is each theme's accent hex).
   const pillShadow = `0 3px 9px color-mix(in srgb, ${BRASS} 35%, transparent)`;
