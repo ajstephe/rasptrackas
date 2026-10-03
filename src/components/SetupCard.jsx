@@ -32,7 +32,7 @@ export function SetupCard({ settings, saveSett, S, BRASS, hasEntries, onLogShift
       <div style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,marginBottom:'14px'}}>
         {where==='home' ? 'Two quick choices so your pay works out right.' : 'Pick your rank and pay point so your overtime is worked out at the right rates.'}
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr',gap:'12px'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:'12px',maxWidth:'720px'}}>
         <div>
           <label htmlFor={`setup-rank-${where}`} style={lbl}>Rank</label>
           <div style={{position:'relative'}}>

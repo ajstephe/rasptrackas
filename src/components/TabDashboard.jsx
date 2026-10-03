@@ -42,7 +42,7 @@ export function TabDashboard({
   const toilSub = toilLedger.balance===0 ? 'None banked yet' : `About ${days} ${days==='1.0'?'day':'days'}${toilLedger.balance<0?' overdrawn':''} at 8h a day`;
   const taxYearLine = settings.rank&&settings.service
     ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)}`
-    : 'Set your rank & pay point in More..';
+    : 'Pick your rank and pay point above to see it';
   // The statement masthead: one plain label, the figure, how far into the
   // tax year, and — when there's anything unclaimed — a pill that says
   // where tapping it goes.
