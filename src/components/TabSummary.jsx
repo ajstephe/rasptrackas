@@ -846,7 +846,8 @@ export function TabSummary({
                         chip is left off there to keep cards one height. */}
 
                   </div>
-                  {!isWide&&carmsBadge(e, 9.5, true)}
+                  {/* Status chips aren't needed here any more: each claim has its own
+                      Submitted / To submit row below, and a red row marks it submitted. */}
                   {moneyBlock(e, c)}
                   {e.comments&&(
                     <div style={{display:'grid',gridTemplateRows:notesOpen?'1fr':'0fr',transition:'grid-template-rows 0.28s cubic-bezier(.32,.72,0,1)'}}>

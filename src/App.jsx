@@ -4953,7 +4953,7 @@ export default function App() {
                       <Tooltip label="Delete shift"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this shift" style={{marginLeft:'6px',background:confirmDel===e.id?'var(--tint-red)':'transparent',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button></Tooltip>
                     </div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
-                      {isWide ? carmsBadge(e, 11.5) : carmsBadge(e, 10.5, true)}
+                      {carmsBadge(e, isWide?11.5:10.5, true)}
                       {/* Grey record-only pill — shown only here in the calendar
                           day view, not in List View, CARMS/PA, or any export.
                           A shift with no claimable OT hours and no PA has
