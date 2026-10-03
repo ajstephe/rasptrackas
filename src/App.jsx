@@ -2337,7 +2337,7 @@ export default function App() {
         const claimed = effectiveOtDate(e);
         const workedOn = claimed!==e.date ? ` · worked ${new Date(e.date+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'})}` : '';
         return {
-          id:'earn-'+e.id, date:claimed, type:'earned',
+          id:'earn-'+e.id, entryId:e.id, date:claimed, type:'earned',
           hours: calcEntry(e).toilBanked,
           note: `${e.reason||'Shift'}`, detail: `${fmtHrs(worked)} at ${RATE_TIER_LABEL[e.otRateTier]}×${workedOn}`,
         };
@@ -2363,7 +2363,7 @@ export default function App() {
     // show it's on its way rather than leaving it invisible.
     const pending = entries
       .filter(e=>e.otRateTier && (parseFloat(e.toilHours)||0) > 0 && !isOtSubmitted(e) && e.date<=todayStr)
-      .map(e=>({ id:'pend-'+e.id, date:e.date, type:'pending', hours: calcEntry(e).toilBanked, note: `${e.reason||'Shift'}` }))
+      .map(e=>({ id:'pend-'+e.id, entryId:e.id, date:e.date, type:'pending', hours: calcEntry(e).toilBanked, note: `${e.reason||'Shift'}` }))
       .sort((a,b)=>b.date.localeCompare(a.date));
     const pendingHours = pending.reduce((s,p)=>s+p.hours,0);
     return { rows, balance: running, pending, pendingHours };
@@ -2511,42 +2511,50 @@ export default function App() {
 
       // Show the person the record they just saved, in whichever Breakdown view
       // they've set as their default.
-      const periodIdx = PAY_PERIODS.findIndex(p=>targetDate>=p.start&&targetDate<=p.end);
-      const period = periodIdx>=0 ? PAY_PERIODS[periodIdx] : null;
-      skipBreakdownReset.current = true; // this navigation targets a specific entry
-
-      if(defaultBreakdownView==='calendar' && period){
-        setBreakdownView('calendar');
-        setCalPeriodIdx(periodIdx);
-        // open that day's detail popover so the entry is visible straight away
-        const dEntries = updatedEntries.filter(e=>e.date===targetDate);
-        const dayTotals = dEntries.reduce((acc,e)=>{
-          const c=calcEntry(e);
-          acc.hrs += c.h1+c.h2+c.h3;
-          if(e.paRate && e.paRate!=='None') acc.pa = true;
-          return acc;
-        },{hrs:0,pa:false});
-        setSelectedCalDay({
-          ds: targetDate, dEntries, periodIdx,
-          totalHrs: dayTotals.hrs, hasPA: dayTotals.pa, hasOT: true,
-        });
-        if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'});
-      } else if(defaultBreakdownView==='compact' && period){
-        setBreakdownView('compact');
-        setCalPeriodIdx(periodIdx);
-        setFocusEntryId(savedId);
-        if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'});
-      } else {
-        setBreakdownView('list');
-        if(period) setExpanded(period.month);
-        setFocusEntryId(savedId);
-      }
-      setTab('months');
+      showEntryInSummary(targetDate, savedId, updatedEntries);
 
       setForm({...blankForm,date:todayStr}); setEditing(null);
       setJustSaved(false);
     }, 480);
   };
+
+  // Opens Summary on one shift, in whichever Breakdown view is the default:
+  // its day pop-up on the calendar, or scrolled to and flashed in Shifts or
+  // Months. Used after saving a shift and from the TOIL ledger.
+  const showEntryInSummary = (targetDate, entryId, list=entries) => {
+    const periodIdx = PAY_PERIODS.findIndex(p=>targetDate>=p.start&&targetDate<=p.end);
+    const period = periodIdx>=0 ? PAY_PERIODS[periodIdx] : null;
+    skipBreakdownReset.current = true; // this navigation targets a specific entry
+
+    if(defaultBreakdownView==='calendar' && period){
+      setBreakdownView('calendar');
+      setCalPeriodIdx(periodIdx);
+      // open that day's detail popover so the entry is visible straight away
+      const dEntries = list.filter(e=>e.date===targetDate);
+      const dayTotals = dEntries.reduce((acc,e)=>{
+        const c=calcEntry(e);
+        acc.hrs += c.h1+c.h2+c.h3;
+        if(e.paRate && e.paRate!=='None') acc.pa = true;
+        return acc;
+      },{hrs:0,pa:false});
+      setSelectedCalDay({
+        ds: targetDate, dEntries, periodIdx,
+        totalHrs: dayTotals.hrs, hasPA: dayTotals.pa, hasOT: true,
+      });
+      if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'});
+    } else if(defaultBreakdownView==='compact' && period){
+      setBreakdownView('compact');
+      setCalPeriodIdx(periodIdx);
+      setFocusEntryId(entryId);
+      if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'});
+    } else {
+      setBreakdownView('list');
+      if(period) setExpanded(period.month);
+      setFocusEntryId(entryId);
+    }
+    setTab('months');
+  };
+  const showEntryById = id => { const e = entries.find(x=>x.id===id); if (e) showEntryInSummary(e.date, e.id); };
 
   const startEdit=e=>{ setForm(e); setEditing(e); setTab('add'); };
   const delEntry=id=>{
@@ -4516,7 +4524,7 @@ export default function App() {
 
         {/* ══════════════════════════════════════════ TOIL */}
         {tab==='graph'&&(
-          <TabToil animClass={tabAnimClass} isWide={isWide} setDatePickerFor={setDatePickerFor} setDatePickerMonth={setDatePickerMonth} S={S} MONO={MONO} toilLedger={toilLedger} toilTakenForm={toilTakenForm} setToilTakenForm={setToilTakenForm} addToilTaken={addToilTaken} deleteToilTaken={deleteToilTaken}/>
+          <TabToil animClass={tabAnimClass} isWide={isWide} setDatePickerFor={setDatePickerFor} setDatePickerMonth={setDatePickerMonth} S={S} MONO={MONO} toilLedger={toilLedger} showEntryById={showEntryById} BRASS={BRASS} toilTakenForm={toilTakenForm} setToilTakenForm={setToilTakenForm} addToilTaken={addToilTaken} deleteToilTaken={deleteToilTaken}/>
         )}
 
         {/* ══════════════════════════════════════════ SETTINGS */}

@@ -8,7 +8,7 @@ import { useCountUp } from '../lib/useCountUp.js';
 // one column, each row showing the balance after it. Desktop sets the
 // ledger out as a table. Everything it needs comes in as props rather than
 // closing over App()'s state directly.
-export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth, toilLedger, toilTakenForm, setToilTakenForm, addToilTaken, deleteToilTaken, animClass='fi' }) {
+export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth, toilLedger, showEntryById, BRASS, toilTakenForm, setToilTakenForm, addToilTaken, deleteToilTaken, animClass='fi' }) {
   // Counts up/down instead of jumping whenever the balance changes —
   // logging a TOIL shift or recording hours taken in the form below.
   const animatedBalance = useCountUp(toilLedger.balance);
@@ -101,6 +101,15 @@ export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth,
   const change = l => <span style={{color:l.type==='pending'?'var(--tag-purple)':l.type==='earned'?'#059669':'#dc2626'}}>{l.hours>=0?'+':''}{fmtHrs(l.hours)}</span>;
   const sub = l => l.type==='pending' ? 'Waiting to submit · not in balance yet' : l.type==='earned' ? (l.detail||'Banked from a shift') : (l.note==='TOIL taken' ? '' : 'TOIL taken');
 
+  // Rows from a shift open that shift in Summary.
+  const fromShift = l => !!(l.entryId && showEntryById);
+  const rowProps = l => fromShift(l) ? {
+    role:'button', tabIndex:0, className:'tap-row', title:'Show this shift',
+    onClick:()=>showEntryById(l.entryId),
+    onKeyDown:ev=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); showEntryById(l.entryId); } },
+  } : {};
+  const viewLink = <span style={{display:'inline-flex',alignItems:'center',gap:'3px',color:BRASS,fontWeight:800,fontSize:'11.5px',whiteSpace:'nowrap'}}>View shift<Ico n="cR" s={10} c={BRASS} w={2.6}/></span>;
+
   const key = (
     <div style={{display:'flex',flexWrap:'wrap',columnGap:'16px',rowGap:'4px',fontSize:'11px',color:'var(--muted)',fontWeight:700,margin:'4px 2px 8px'}}>
       <span style={{display:'flex',alignItems:'center',gap:'6px'}}><span style={{width:'9px',height:'9px',borderRadius:'3px',background:'#059669'}}/>Banked from a shift</span>
@@ -117,7 +126,7 @@ export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth,
         <div style={{display:'grid',gridTemplateColumns:'1fr 1.3fr',gap:'16px',alignItems:'stretch',marginBottom:'16px'}}>{balanceCard}{takenForm}</div>
       ) : (<>{balanceCard}{takenForm}</>)}
 
-      <div style={{...S.lbl,fontSize:'11px',margin:'6px 2px 2px'}}>Ledger · newest first</div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',margin:'6px 2px 2px'}}><div style={{...S.lbl,fontSize:'11px'}}>Ledger · newest first</div>{rows.some(fromShift)&&<span style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)'}}>{isWide?'Click':'Tap'} a shift to see it</span>}</div>
       {key}
       {rows.length===0 ? (
         <div style={{textAlign:'center',padding:'22px 10px 26px'}}>
@@ -137,12 +146,12 @@ export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth,
             </tr></thead>
             <tbody>
               {rows.map(l=>(
-                <tr key={l.id} style={{borderBottom:'1px solid var(--border-2)',...(l.type==='pending'?{background:'var(--tint-purple)'}:{})}}>
+                <tr key={l.id} {...rowProps(l)} style={{borderBottom:'1px solid var(--border-2)',...(fromShift(l)?{cursor:'pointer'}:{}),...(l.type==='pending'?{background:'var(--tint-purple)'}:{})}}>
                   <td style={{padding:'10px 14px',fontFamily:MONO,fontSize:'12px',color:'var(--muted)',whiteSpace:'nowrap'}}>{shortDate(l.date)}</td>
                   <td style={{padding:'10px 14px'}}><span style={{fontWeight:800,color:'var(--ink)'}}>{l.note}</span> {sub(l)&&<span style={{color:'var(--quiet)',fontSize:'12px'}}>· {sub(l)}</span>}</td>
                   <td style={{padding:'10px 14px',fontFamily:MONO,fontWeight:700,textAlign:'right',whiteSpace:'nowrap'}}>{change(l)}</td>
                   <td style={{padding:'10px 14px',fontFamily:MONO,fontWeight:700,textAlign:'right',whiteSpace:'nowrap',color:l.balanceAfter<0?'var(--text-red-deep)':l.type==='pending'?'var(--quiet)':'var(--ink)'}}>{l.type==='pending'?'—':fmtHrs(l.balanceAfter)}</td>
-                  <td style={{padding:'10px 14px',textAlign:'right',whiteSpace:'nowrap'}}>{removeCtl(l)}</td>
+                  <td style={{padding:'10px 14px',textAlign:'right',whiteSpace:'nowrap'}}>{fromShift(l)?viewLink:removeCtl(l)}</td>
                 </tr>
               ))}
             </tbody>
@@ -151,10 +160,11 @@ export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth,
       ) : (
         <div style={{...S.card,padding:0}}>
           {rows.map((l,i)=>(
-            <div key={l.id} style={{display:'grid',gridTemplateColumns:'auto minmax(0,1fr) auto',columnGap:'12px',rowGap:'2px',alignItems:'center',padding:'12px 14px',borderTop:i?'1px solid var(--border-2)':'none',...(l.type==='pending'?{background:'var(--tint-purple)',borderRadius:i?0:'16px 16px 0 0'}:{})}}>
+            <div key={l.id} {...rowProps(l)} style={{...(fromShift(l)?{cursor:'pointer'}:{}),display:'grid',gridTemplateColumns:'auto minmax(0,1fr) auto 10px',columnGap:'12px',rowGap:'2px',alignItems:'center',padding:'12px 14px',borderTop:i?'1px solid var(--border-2)':'none',...(l.type==='pending'?{background:'var(--tint-purple)',borderRadius:i?0:'16px 16px 0 0'}:{})}}>
               <span style={{fontFamily:MONO,fontSize:'11px',color:'var(--muted)',whiteSpace:'nowrap'}}>{shortDate(l.date)}</span>
               <span style={{fontSize:'13.5px',fontWeight:800,color:'var(--ink)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.note}</span>
               <span style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,textAlign:'right'}}>{change(l)}</span>
+              <span style={{gridRow:'span 2',display:'flex',alignItems:'center',justifyContent:'flex-end'}}>{fromShift(l)&&<Ico n="cR" s={11} c="var(--quiet)" w={2.6}/>}</span>
               <span/>
               <span style={{fontSize:'11px',color:'var(--quiet)',display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>{sub(l)}{removeCtl(l)}</span>
               <span style={{fontFamily:MONO,fontSize:'10.5px',color:'var(--quiet)',textAlign:'right',whiteSpace:'nowrap'}}>{l.type==='pending'?'—':`Balance ${fmtHrs(l.balanceAfter)}`}</span>

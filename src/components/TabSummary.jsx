@@ -238,6 +238,7 @@ export function TabSummary({
   // a shift shows its rates, notes, and Edit / Delete.
   const listRef = useRef(null);
   const [openShift, setOpenShift] = useState(null);
+  const [hoverM, setHoverM] = useState(null);   // Months bar under the mouse: {idx, x, below}
   const [listW, setListW] = useState(null);
   useEffect(() => {
     const el = listRef.current;
@@ -459,6 +460,31 @@ export function TabSummary({
         {seg(n,GRN)}
       </div>; };
 
+    // Computer only: hovering a bar shows what's in it. It follows the mouse
+    // along the bar, opening below for months in the top half of the screen
+    // and above for the rest, so the sticky header never covers it.
+    const tipRow = (sw,lbl,sub,gv,nv,col) => <div style={{display:'grid',gridTemplateColumns:'14px minmax(0,1fr) 78px 78px',columnGap:'8px',alignItems:'center',padding:'4px 0'}}>
+      <span style={{width:'10px',height:'10px',borderRadius:'3px',background:sw||'transparent'}}/>
+      <span style={{minWidth:0,fontSize:'12px',fontWeight:800,color:col||'var(--ink)'}}>{lbl}{sub&&<span style={{display:'block',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)'}}>{sub}</span>}</span>
+      <span style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:700,color:col==='var(--muted)'?'var(--muted)':'var(--text-navy)',textAlign:'right',whiteSpace:'nowrap'}}>{gv}</span>
+      <span style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:700,color:col==='var(--muted)'?'var(--muted)':GRN,textAlign:'right',whiteSpace:'nowrap'}}>{nv}</span>
+    </div>;
+    const barTip = m => { const ex=exOf(m), ts=totals.toSubmit?.[m.idx], hrs=m.sp.sub+m.sp.pend, nSh=m.sp.nSub+m.sp.nPend, ot=m.pb.ot, pa=m.pb.pa;
+      const parts = [ot>0.005&&`Overtime ${fmtGBP(ot)}`, pa>0.005&&`PA ${fmtGBP(pa)}`].filter(Boolean).join(' · ');
+      return <div role="tooltip" style={{position:'absolute',left:`${hoverM.x}px`,...(hoverM.below?{top:'calc(100% + 2px)'}:{bottom:'calc(100% + 2px)'}),transform:'translateX(-50%)',zIndex:20,width:'380px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'12px',boxShadow:'0 10px 30px rgba(15,23,42,0.18)',padding:'10px 12px 8px',pointerEvents:'none',textAlign:'left'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',paddingBottom:'6px',borderBottom:'1px solid var(--border-2)',marginBottom:'2px'}}>
+          <span style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>{payLabel(m.p.month)}</span>
+          <span style={{display:'flex',gap:'24px',...label}}><span>Gross</span><span>Net</span></span>
+        </div>
+        {(m.totG>0.005||!ex)&&tipRow(GRN,'Claimed',parts||null,fmtGBP(m.totG),fmtGBP(m.totN))}
+        {m.totG>0.005&&tipRow(null,'Tax, NI & pension',null,'',`−${fmtGBP(m.totG-m.totN)}`,'var(--muted)')}
+        {ex&&tipRow('var(--exp)','Planned',`${ex.n} shift${ex.n!==1?'s':''} · ${fmtHrs(ex.hrs)}`,`+${fmtGBP(ex.gross)}`,`+${fmtGBP(ex.net)}`,'var(--exp-ink)')}
+        {ts&&ts.n>0&&ts.gross>0.005&&tipRow('#dc2626','To submit','Not in the bar until claimed',fmtGBP(ts.gross),fmtGBP(ts.net),'var(--text-red-deep)')}
+        {hrs>0&&<div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',borderTop:'1px solid var(--border-2)',marginTop:'4px',paddingTop:'6px'}}>{fmtHrs(hrs)} worked over {nSh} shift{nSh!==1?'s':''}</div>}
+      </div>; };
+    const onBarMove = (ev, m) => { const r=ev.currentTarget.getBoundingClientRect(); const x=Math.max(190,Math.min(r.width-190,ev.clientX-r.left)); const below=r.top<window.innerHeight/2;
+      setHoverM(h=>h&&h.idx===m.idx&&Math.abs(h.x-x)<2&&h.below===below?h:{idx:m.idx,x,below}); };
+
     const big = (lbl,v,col,sub,subCol='var(--exp-ink)') => <div style={{minWidth:0}}>
       <div style={label}>{lbl}</div>
       <div style={{fontFamily:MONO,fontSize:isWide?'24px':'19px',fontWeight:700,color:col,marginTop:'2px',whiteSpace:'nowrap'}}>{v}</div>
@@ -470,14 +496,14 @@ export function TabSummary({
       const isCurr=idx===currPeriodIdx, open=expanded===p.month, ex=exOf(m), empty=isEmpty(m);
       const name = <span style={{display:'flex',alignItems:'center',gap:'7px',minWidth:0,fontWeight:800,fontSize:'14.5px',color:'var(--ink)'}}><span style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{payLabel(p.month)}</span>{isCurr&&nowTag}</span>;
       const sub = <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{empty?shiftsTxt(m):(sp.nSub+sp.nPend===0&&!sp.nPlan)?'Claims from earlier shifts':`${fmtHrs(sp.sub+sp.pend)} · ${shiftsTxt(m)}`}</div>;
-      const lineStyle = {cursor:'pointer',padding:'11px 8px',borderBottom:open?'none':'1px solid var(--border-2)',background:open?'var(--surface-2)':isCurr?'var(--tint-brass)':'transparent',borderRadius:open?'12px 12px 0 0':isCurr?'10px':0,boxShadow:isCurr&&!open?`inset 3px 0 0 ${BRASS}`:'none'};
+      const lineStyle = {cursor:'pointer',padding:'11px 8px',borderBottom:open?'none':'1px solid var(--border-2)',background:open?'var(--surface-2)':isCurr?'var(--tint-brass)':'transparent',borderRadius:open?'12px 12px 0 0':isCurr?'10px':0,boxShadow:isCurr&&!open?`inset 3px 0 0 ${BRASS}`:'none',...(hoverM?.idx===idx?{position:'relative',zIndex:30}:{})};
       return (
         <div key={p.month} ref={el=>monthRefs.current[p.month]=el}>
           <div {...pressable(()=>toggleMonth(m))} aria-expanded={open} className="tap-row" style={lineStyle}>
             {rowCols ? (
               <div style={{display:'grid',gridTemplateColumns:MONTH_COLS,gap:'14px',alignItems:'center'}}>
                 <span style={{minWidth:0}}>{name}{sub}</span>
-                {bar(m)}
+                <div data-bar onMouseMove={ev=>onBarMove(ev,m)} onMouseLeave={()=>setHoverM(h=>h&&h.idx===m.idx?null:h)} style={{position:'relative',padding:'10px 0'}}>{bar(m)}{hoverM?.idx===m.idx&&barTip(m)}</div>
                 <span style={{textAlign:'right'}}>{empty?dash:money(fmtGBP(totG),'var(--text-navy)')}{ex&&planned(`+${fmtGBP(ex.gross)}`)}</span>
                 <span style={{textAlign:'right'}}>{empty?dash:money(fmtGBP(totN),GRN,13.5)}{ex&&planned(`+${fmtGBP(ex.net)}`)}</span>
                 <span style={{display:'flex',justifyContent:'flex-end'}}>{monthStatus(m)}</span>
@@ -754,7 +780,7 @@ export function TabSummary({
                 <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No overtime yet</div>
                 <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log your first shift and each pay month's gross, net and hours will show up here.</div>
               </div>
-            ) : <div style={isWide?{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'8px',alignItems:'start',marginBottom:'8px'}:undefined}>{[...[...cEntries].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(cPeriod)].map(e=>{
+            ) : <div style={isWide?{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'8px',alignItems:'stretch',marginBottom:'8px'}:undefined}>{[...[...cEntries].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(cPeriod)].map(e=>{
               const c = calcEntry(e);
               const tiers = [];
               if (c.h1>0) tiers.push(TIER_LABEL.h1);
@@ -769,7 +795,10 @@ export function TabSummary({
                 onKeyDown:ev=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); toggleNotes(e.id); } },
               } : {};
               return (
-                <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} {...cardProps} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',border:focusEntryId===e.id?'2px solid #2563eb':'1px solid var(--border-2)',borderRadius:'12px',padding:'10px 12px',marginBottom:isWide?0:'6px',transition:'background 0.4s ease, border-color 0.4s ease',cursor:e.comments?'pointer':'default'}}>
+                // On a computer every card is the same height (room for two
+                // money rows), so the grid lines up; opening notes only grows
+                // that card's row.
+                <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focusEntryId===e.id?'entry-flash':''} {...cardProps} style={{background:focusEntryId===e.id?'var(--tint-blue)':'var(--surface)',border:focusEntryId===e.id?'2px solid #2563eb':'1px solid var(--border-2)',borderRadius:'12px',padding:'10px 12px',marginBottom:isWide?0:'6px',...(isWide?{minHeight:'200px',boxSizing:'border-box'}:{}),transition:'background 0.4s ease, border-color 0.4s ease',cursor:e.comments?'pointer':'default'}}>
                   {/* The date is the heading; the reason sits under it in
                       normal letters, then hours, rate, PA and status. Edit
                       stays beside the date; delete is a quieter icon set
@@ -803,7 +832,10 @@ export function TabSummary({
                         record with nothing to submit, green when everything
                         claimable on this entry is in, red (and tappable
                         straight to the entry's own toggle) otherwise. */}
-                    {carmsBadge(e, 9.5)}
+                    {/* On a computer the Submitted / To submit rows below say the
+                        same thing (and the red row marks it submitted), so the
+                        chip is left off there to keep cards one height. */}
+                    {!isWide&&carmsBadge(e, 9.5)}
                   </div>
                   {moneyBlock(e, c)}
                   {e.comments&&(
