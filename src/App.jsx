@@ -892,6 +892,10 @@ export default function App() {
   }, []);
   const [dataKey,      setDataKey]      = useState(null); // unwrapped CryptoKey, in memory only, never persisted
   const [manualSyncing, setManualSyncing] = useState(false);
+  // What this device has changed that hasn't reached the cloud yet, worked
+  // out after every push and pull. Shown by the Sync buttons and checked
+  // before signing out, since signing out clears this device.
+  const [unsynced, setUnsynced] = useState([]);
   const [syncJustSucceeded, setSyncJustSucceeded] = useState(false);
   // Epoch ms of the last successful sync of any kind — manual, initial
   // catch-up pull, realtime reconnect, or a routine background push
@@ -1147,6 +1151,17 @@ export default function App() {
   // Mirrors each overlay's own backdrop-click behaviour exactly, including
   // the Settings popovers closing all five expand flags at once.
   useEscapeToClose(signOutConfirmOpen, () => setSignOutConfirmOpen(false));
+  // Opening Sign out tries to send anything still waiting, so the box can
+  // say plainly whether signing out would lose anything.
+  useEffect(()=>{
+    if (!signOutConfirmOpen) return;
+    Promise.all([
+      pushRowChanges('entries', entriesRef.current, lastSyncedEntriesRef, persistLastSyncedEntries),
+      pushRowChanges('toil_taken', toilTakenRef.current, lastSyncedToilRef, persistLastSyncedToil),
+      settingsRef.current ? pushSettingsChange(settingsRef.current) : 0,
+    ]).catch(()=>{}).finally(refreshUnsynced);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[signOutConfirmOpen]);
   useEscapeToClose(restoreConfirmOpen, () => setRestoreConfirmOpen(false));
   useEscapeToClose(payslipModalOpen, () => setPayslipModalOpen(false));
   useEscapeToClose(confirmCreateDay, () => setConfirmCreateDay(null));
@@ -1297,6 +1312,20 @@ export default function App() {
   // here is silently dropped rather than lost data, since local storage
   // already has the real copy; that gap is closed by pull-and-merge on
   // sign-in, which is the next piece, not this one.
+  function refreshUnsynced() {
+    if (!session || !dataKey || !initialSyncDoneRef.current) { setUnsynced(u => u.length ? [] : u); return; }
+    const e = computeRowPushDiff(entriesRef.current, lastSyncedEntriesRef.current);
+    const t = computeRowPushDiff(toilTakenRef.current, lastSyncedToilRef.current);
+    const dels = e.toDelete.length + t.toDelete.length;
+    const list = [
+      ...[...e.toUpsert].sort((a,b)=>a.date<b.date?-1:1).map(x => ({ key:'e'+x.id, text: longDay(x.date) + (x.reason ? ' · ' + x.reason : '') })),
+      ...t.toUpsert.map(x => ({ key:'t'+x.id, text: 'TOIL taken · ' + longDay(x.date) })),
+      ...(dels ? [{ key:'del', text: dels === 1 ? '1 deleted item' : dels + ' deleted items' }] : []),
+      ...(settingsRef.current && lastSyncedSettingsRef.current !== JSON.stringify(settingsRef.current) ? [{ key:'set', text:'Rank, pay point and settings' }] : []),
+    ];
+    setUnsynced(u => (u.length === list.length && u.every((x,i)=>x.key===list[i].key && x.text===list[i].text)) ? u : list);
+  }
+
   async function pushRowChanges(table, items, lastSyncedRef, persistFn) {
     if (!supabase || !session || !dataKey || !initialSyncDoneRef.current) return;
     // Serialized per table via pushChainRef, rather than left free to race:
@@ -1323,21 +1352,26 @@ export default function App() {
       // calling this function until the initial pull has finished, which
       // is exactly what initialSyncDoneRef above guards.
       const { toUpsert, toDelete } = computeRowPushDiff(items, lastSyncedRef.current);
-      if (toUpsert.length === 0 && toDelete.length === 0) return;
+      if (toUpsert.length === 0 && toDelete.length === 0) return 0;
       const now = new Date().toISOString();
+      let failed = 0;
       for (const item of toUpsert) {
         try {
           const ciphertext = await encryptWithDataKey(dataKey, item);
           const { error } = await supabase.from(table).upsert({ id: item.id, user_id: uid, ciphertext, updated_at: now, deleted_at: null });
           if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); markSynced(); }
-          else console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error);
-        } catch (e) { console.error(`[sync] push threw for ${table} id=${item.id}:`, e.message || e); }
+          else { failed++; console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error); }
+        } catch (e) { failed++; console.error(`[sync] push threw for ${table} id=${item.id}:`, e.message || e); }
       }
       for (const id of toDelete) {
-        const { error } = await supabase.from(table).update({ deleted_at: now, updated_at: now }).eq('id', id).eq('user_id', uid);
-        if (!error) { lastSyncedRef.current.delete(id); persistFn(); markSynced(); }
-        else console.error(`[sync] soft-delete failed for ${table} id=${id}:`, error.message || error);
+        try {
+          const { error } = await supabase.from(table).update({ deleted_at: now, updated_at: now }).eq('id', id).eq('user_id', uid);
+          if (!error) { lastSyncedRef.current.delete(id); persistFn(); markSynced(); }
+          else { failed++; console.error(`[sync] soft-delete failed for ${table} id=${id}:`, error.message || error); }
+        } catch (e) { failed++; console.error(`[sync] soft-delete threw for ${table} id=${id}:`, e.message || e); }
       }
+      refreshUnsynced();
+      return failed;
     };
     return chainSequential(pushChainRef.current, table, run);
   }
@@ -1365,7 +1399,7 @@ export default function App() {
     // whichever the network happened to finish first.
     const run = async () => {
       const json = JSON.stringify(settingsObj);
-      if (lastSyncedSettingsRef.current === json) return;
+      if (lastSyncedSettingsRef.current === json) return 0;
       try {
         const ciphertext = await encryptWithDataKey(dataKey, settingsObj);
         const now = new Date().toISOString();
@@ -1374,9 +1408,13 @@ export default function App() {
           lastSyncedSettingsRef.current = json; persistLastSyncedSettings();
           lastSettingsUpdatedAtRef.current = now; persistLastSettingsUpdatedAt();
           markSynced();
+          refreshUnsynced();
+          return 0;
         }
-        else console.error('[sync] push failed for settings:', error.message || error);
+        console.error('[sync] push failed for settings:', error.message || error);
       } catch (e) { console.error('[sync] push threw for settings:', e.message || e); }
+      refreshUnsynced();
+      return 1;
     };
     return chainSequential(pushChainRef.current, 'settings', run);
   }
@@ -1398,7 +1436,7 @@ export default function App() {
     if (!supabase || !session || !dataKey) return;
     const uid = session.user.id;
     const { data: rows, error } = await supabase.from(table).select('id, ciphertext, deleted_at').eq('user_id', uid);
-    if (error) { console.error(`[sync] pull failed for ${table}:`, error.message || error); return; }
+    if (error) { console.error(`[sync] pull failed for ${table}:`, error.message || error); throw new Error(error.message || 'pull failed'); }
     if (!rows) return;
     const remoteMap = new Map();
     const failedIds = [];
@@ -1436,7 +1474,8 @@ export default function App() {
   async function pullAndMergeSettings() {
     if (!supabase || !session || !dataKey) return;
     const { data: row, error } = await supabase.from('settings').select('ciphertext, updated_at').eq('user_id', session.user.id).maybeSingle();
-    if (error || !row) return;
+    if (error) throw new Error(error.message || 'pull failed');
+    if (!row) return;
     try {
       const remoteSettings = await decryptWithDataKey(dataKey, row.ciphertext);
       // A device that's never synced settings before (lastSyncedSettingsRef
@@ -1500,11 +1539,16 @@ export default function App() {
   useEffect(()=>{
     if (!dataKey) { initialSyncDoneRef.current = false; return; }
     initialSyncDoneRef.current = false;
-    Promise.all([
+    Promise.allSettled([
       pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries),
       pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil),
       pullAndMergeSettings(),
-    ]).finally(()=>{ initialSyncDoneRef.current = true; });
+    ]).then(res=>{
+      initialSyncDoneRef.current = true;
+      if (res.some(r=>r.status==='rejected')) addToast("Couldn't reach the cloud. Your changes are saved on this device and will sync when you're back online.",'warn',null,6000);
+      // the pushes that ran (or were skipped) while this was in flight
+      setTimeout(refreshUnsynced, 1500);
+    });
     pruneOldCloudData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[dataKey]);
@@ -1611,9 +1655,9 @@ export default function App() {
       .subscribe((status)=>{
         if (status === 'SUBSCRIBED') {
           if (hasConnectedOnce) {
-            pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries);
-            pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil);
-            pullAndMergeSettings();
+            pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries).catch(()=>{});
+            pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil).catch(()=>{});
+            pullAndMergeSettings().catch(()=>{});
           }
           hasConnectedOnce = true;
         }
@@ -3489,6 +3533,14 @@ export default function App() {
     // visible action rather than a flicker.
     const minSpin = new Promise(r=>setTimeout(r, 700));
     try {
+      // Send anything still waiting first (a push that failed earlier is
+      // otherwise only retried on the next edit), then fetch.
+      const failedPushes = (await Promise.all([
+        pushRowChanges('entries', entriesRef.current, lastSyncedEntriesRef, persistLastSyncedEntries),
+        pushRowChanges('toil_taken', toilTakenRef.current, lastSyncedToilRef, persistLastSyncedToil),
+        settingsRef.current ? pushSettingsChange(settingsRef.current) : 0,
+      ])).reduce((a,b)=>a+(b||0),0);
+      if (failedPushes) throw new Error('push failed');
       await Promise.all([
         pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries),
         pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil),
@@ -3507,9 +3559,10 @@ export default function App() {
       setTimeout(()=>setSyncJustSucceeded(false), 2200);
     } catch (e) {
       await minSpin; // same floor on a fast failure \u2014 Promise.all above rejects the instant one call fails, without waiting for this
-      addToast('Sync failed \u2014 check your connection', 'warn');
+      addToast("Sync failed. Check your signal and try again. Your changes are still saved on this device.", 'warn', null, 5000, 'Not synced');
     } finally {
       setManualSyncing(false);
+      refreshUnsynced();
     }
   };
 
@@ -4464,9 +4517,10 @@ export default function App() {
             // header pill (the sidebar's equivalent button has it, below)
             // — a title attribute at least surfaces it on hover for anyone
             // on a mouse, at zero layout cost.
-            <button onClick={handleManualSync} disabled={manualSyncing} aria-label="Sync now" title={lastSyncedAt?`Last synced ${fmtRelTime(lastSyncedAt)}`:undefined} style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:syncJustSucceeded?'var(--tint-green)':'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',color:syncJustSucceeded?'#059669':'#2563eb',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap',transition:'background 0.3s, color 0.3s'}}>
-              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={13} c={syncJustSucceeded?'#059669':'#2563eb'}/></span> {syncJustSucceeded?'Synced':'Sync'}
-            </button>
+            (()=>{ const pend = !syncJustSucceeded && !manualSyncing && unsynced.length>0; const col = syncJustSucceeded?'#059669':pend?'var(--text-amber-deep)':'#2563eb'; return (
+            <button onClick={handleManualSync} disabled={manualSyncing} aria-label={pend?`Sync now: ${unsynced.length} not synced`:'Sync now'} title={pend?`${unsynced.length} change${unsynced.length!==1?'s':''} not synced yet`:lastSyncedAt?`Last synced ${fmtRelTime(lastSyncedAt)}`:undefined} style={{display:'flex',alignItems:'center',gap:'6px',padding:'8px 13px',background:syncJustSucceeded?'var(--tint-green)':pend?'var(--tint-amber)':'var(--tint-blue)',border:'1px solid var(--border-2)',borderRadius:'9px',color:col,fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',whiteSpace:'nowrap',transition:'background 0.3s, color 0.3s'}}>
+              <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={13} c={col}/></span> {syncJustSucceeded?'Synced':pend?`Sync · ${unsynced.length}`:'Sync'}
+            </button>); })()
           )}
         </div>
       </header>
@@ -4479,12 +4533,30 @@ export default function App() {
             <button onClick={()=>setSignOutConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
+            {unsynced.length>0 ? (<>
+              <div style={{width:'42px',height:'42px',borderRadius:'50%',background:'var(--tint-amber)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}><Ico n="bell" s={20} c="var(--text-amber-deep)"/></div>
+              <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>{unsynced.length===1?'1 change hasn\u2019t synced':`${unsynced.length} changes haven\u2019t synced`}</div>
+              <div style={{fontSize:'12.5px',color:'var(--muted)',textAlign:'center',marginBottom:'12px',lineHeight:1.5}}>Signing out removes your data from this device. {unsynced.length===1?'This isn\u2019t':'These aren\u2019t'} in the cloud yet and would be lost:</div>
+              <div style={{background:'var(--tint-amber)',borderRadius:'11px',padding:'10px 12px',marginBottom:'16px',display:'flex',flexDirection:'column',gap:'4px'}}>
+                {unsynced.slice(0,4).map(u=><div key={u.key} style={{fontSize:'12.5px',fontWeight:700,color:'var(--text-amber-deep)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{u.text}</div>)}
+                {unsynced.length>4&&<div style={{fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)',opacity:0.8}}>and {unsynced.length-4} more</div>}
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+                <button onClick={handleManualSync} disabled={manualSyncing} style={{padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={14} c="#fff"/></span>{manualSyncing?'Syncing\u2026':'Sync now'}</button>
+                <button onClick={handleExport} style={{padding:'12px',background:'var(--chip-bg)',border:'none',borderRadius:'11px',color:'var(--ink)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Download a backup</button>
+                <div style={{display:'flex',gap:'8px'}}>
+                  <button onClick={()=>{ setSignOutConfirmOpen(false); handleSignOut(); }} style={{flex:1,padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Sign out anyway</button>
+                  <button onClick={()=>setSignOutConfirmOpen(false)} style={{flex:1,padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--muted)',fontWeight:700,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
+                </div>
+              </div>
+            </>) : (<>
             <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>Sign out?</div>
-            <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>You'll need your password again to get back in. Data already synced stays exactly as it is.</div>
+            <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>You'll need your password again to get back in. Everything's synced, so it'll all be here when you do.</div>
             <div style={{display:'flex',gap:'8px'}}>
               <button onClick={()=>{ setSignOutConfirmOpen(false); handleSignOut(); }} style={{flex:1,padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Sign out</button>
               <button onClick={()=>setSignOutConfirmOpen(false)} style={{flex:1,padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--muted)',fontWeight:700,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
             </div>
+            </>)}
           </div>
         </div>
       )}
@@ -5321,11 +5393,13 @@ export default function App() {
             // two buttons used to share with nothing else nearby. Themed via
             // THEME.sidebarBtnBg/Border/sidebarBtnSubtext + THEME.brassLight
             // rather than the literal brass rgba() this used to hardcode.
-            <button onClick={handleManualSync} disabled={manualSyncing} style={{minHeight:'50px',boxSizing:'border-box',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'2px',background:syncJustSucceeded?'rgba(5,150,105,0.35)':THEME.sidebarBtnBg,border:syncJustSucceeded?'1px solid transparent':`1px solid ${THEME.sidebarBtnBorder}`,borderRadius:'10px',padding:lastSyncedAt?'9px 11px':'11px',fontSize:'12.5px',fontWeight:800,color:syncJustSucceeded?'#fff':THEME.brassLight,cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'10px',transition:'background 0.3s'}}>
+            <button onClick={handleManualSync} disabled={manualSyncing} style={{minHeight:'50px',boxSizing:'border-box',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'2px',background:syncJustSucceeded?'rgba(5,150,105,0.35)':THEME.sidebarBtnBg,border:syncJustSucceeded?'1px solid transparent':`1px solid ${THEME.sidebarBtnBorder}`,borderRadius:'10px',padding:(lastSyncedAt||unsynced.length)?'9px 11px':'11px',fontSize:'12.5px',fontWeight:800,color:syncJustSucceeded?'#fff':THEME.brassLight,cursor:manualSyncing?'default':'pointer',fontFamily:'inherit',marginTop:'10px',transition:'background 0.3s'}}>
               <span style={{display:'flex',alignItems:'center',gap:'7px'}}>
                 <span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n={syncJustSucceeded?'check':'refresh'} s={14} c={syncJustSucceeded?'#fff':THEME.brassLight}/></span> {syncJustSucceeded?'Synced':'Sync'}
               </span>
-              {lastSyncedAt&&<span style={{fontSize:'10px',fontWeight:600,color:syncJustSucceeded?'rgba(255,255,255,0.7)':THEME.sidebarBtnSubtext}}>Synced {fmtRelTime(lastSyncedAt)}</span>}
+              {!syncJustSucceeded&&!manualSyncing&&unsynced.length>0
+                ? <span style={{fontSize:'10px',fontWeight:800,color:'#fbbf24'}}>{unsynced.length} change{unsynced.length!==1?'s':''} not synced</span>
+                : lastSyncedAt&&<span style={{fontSize:'10px',fontWeight:600,color:syncJustSucceeded?'rgba(255,255,255,0.7)':THEME.sidebarBtnSubtext}}>Synced {fmtRelTime(lastSyncedAt)}</span>}
             </button>
           )}
           {session&&(
