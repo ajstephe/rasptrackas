@@ -272,7 +272,9 @@ export function TabSummary({
       {fmtGBP(m.carms.periodTotal)} to submit <Ico n="cR" s={10} c="var(--text-red-deep)" w={2.6}/>
     </button>
   );
-  const toggleMonth = m => setExpanded(expanded===m.p.month?null:m.p.month);
+  // Opening or closing a month also clears the bar's hover box, so it
+  // doesn't sit over the month that's just opened.
+  const toggleMonth = m => { setHoverM(null); setExpanded(expanded===m.p.month?null:m.p.month); };
   // A month line contains the to-submit button, so it's a role="button"
   // div rather than a <button> (which may not hold another button).
   const pressable = fn => ({role:'button', tabIndex:0, onClick:fn, onKeyDown:e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fn(); } }});
@@ -483,9 +485,9 @@ export function TabSummary({
           <span style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>{payLabel(m.p.month)}</span>
           <span style={{display:'flex',gap:'24px',...label}}><span>Gross</span><span>Net</span></span>
         </div>
-        {(m.totG>0.005||!ex)&&tipRow(GRN,'Claimed',parts||null,fmtGBP(m.totG),fmtGBP(m.totN))}
+        {(m.totG>0.005||!ex)&&tipRow(GRN,'Submitted',parts||null,fmtGBP(m.totG),fmtGBP(m.totN))}
         {ex&&tipRow('var(--exp)','Planned',`${ex.n} shift${ex.n!==1?'s':''} · ${fmtHrs(ex.hrs)}`,`+${fmtGBP(ex.gross)}`,`+${fmtGBP(ex.net)}`,'var(--exp-ink)')}
-        {ts&&ts.n>0&&ts.gross>0.005&&tipRow('#dc2626','To submit','Not in the bar until claimed',fmtGBP(ts.gross),fmtGBP(ts.net),'var(--text-red-deep)')}
+        {ts&&ts.n>0&&ts.gross>0.005&&tipRow('#dc2626','To submit','Not in the bar until submitted',fmtGBP(ts.gross),fmtGBP(ts.net),'var(--text-red-deep)')}
         {hrs>0&&<div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',borderTop:'1px solid var(--border-2)',marginTop:'4px',paddingTop:'6px'}}>{fmtHrs(hrs)} worked over {nSh} shift{nSh!==1?'s':''}</div>}
       </div>; };
     const onBarMove = (ev, m) => { const r=ev.currentTarget.getBoundingClientRect(); const x=Math.max(190,Math.min(r.width-190,ev.clientX-r.left)); const below=r.top<window.innerHeight/2;
@@ -723,7 +725,7 @@ export function TabSummary({
         const moneyRows = (e, c) => {
           if (c.gross<0.005) return c.toilBanked>0 ? [{k:'toil'}] : [];
           const hasOT = c.h1+c.h2+c.h3>0 && c.ot>0, hasPA = c.pa>0;
-          if (e.date>todayStr) return [{k:'exp', lab:'Expected', det:covers(hasOT,hasPA,e.paRate), g:c.gross, n:entryNet(e)}];
+          if (e.date>todayStr) return [{k:'exp', lab:'Planned', det:covers(hasOT,hasPA,e.paRate), g:c.gross, n:entryNet(e)}];
           const sOT = hasOT && isOtSubmitted(e), sPA = hasPA && isPaSubmitted(e);
           const rows = [];
           if (sOT||sPA) rows.push({k:'sub', lab:'✓ Submitted', det:covers(sOT,sPA,e.paRate), g:(sOT?c.ot:0)+(sPA?c.pa:0),
@@ -1115,7 +1117,7 @@ export function TabSummary({
                           )}
                           <span style={{fontSize:isWide?'16px':'13px',fontWeight:info.hasOT?900:600,color:info.isRecordOnly?'var(--muted)':info.isPlanned?'var(--text-blue-deep)':info.hasOT?(info.isFullySubmitted?'#15803d':'var(--text-red-deep)'):'var(--quiet)',lineHeight:1}}>{date.getDate()}</span>
                           {info.totalHrs>0&&(
-                            <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{fmtHrs(info.totalHrs).replace(/h (\d+)m$/,'h$1')}</span>
+                            <span style={{fontSize:isWide?'10.5px':'9px',fontWeight:900,color:info.rateColor,lineHeight:1,maxWidth:'100%',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>{isWide ? fmtHrs(info.totalHrs) : fmtHrs(info.totalHrs).replace(/h (\d+)m$/,'h$1')}</span>
                           )}
                           {(info.hasPA||info.hasToil)&&(
                             <div style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>

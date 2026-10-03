@@ -502,7 +502,7 @@ export function TabSettings({
           return (
             <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'14px'}}>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
-                {[['Pre 1 Sept 2026','pre','var(--muted)','var(--surface-2)'],['From 1 Sept 2026','post','#2563eb','var(--surface)']].map(([label,key,col,bg])=>(
+                {[['Before 1 Sept 2026','pre','var(--muted)','var(--surface-2)'],['From 1 Sept 2026','post','#2563eb','var(--surface)']].map(([label,key,col,bg])=>(
                   <div key={key} style={{background:bg,borderRadius:'12px',padding:'12px',border:key==='post'?'1.5px solid var(--border-2)':'1px solid var(--border-2)'}}>
                     <div style={{fontSize:'10px',fontWeight:900,color:col,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'8px'}}>{label}</div>
                     {['Base','1.33×','1.5×','2×'].map((lbl,i)=>(
@@ -535,8 +535,8 @@ export function TabSettings({
                     <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-navy)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'}}>{rank}</div>
                     <div style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',gap:0,alignItems:'center'}}>
                       <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Pay Point</div>
-                      <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Pre-Sept</div>
-                      <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Post-Sept</div>
+                      <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Before 1 Sept</div>
+                      <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>From 1 Sept</div>
                       {visiblePoints(rank).map(point=>{
                         const data = PAY_RATES[rank][point];
                         const me = rank===settings.rank && point===settings.service;
@@ -557,7 +557,7 @@ export function TabSettings({
                 )}
                   </>);
                 })()}
-                <div style={{marginTop:'12px',fontSize:'9px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Excludes London Weighting (£3,150 pre-Sept / £3,260 post-Sept) and London Allowance (£6,588), which are added separately.</div>
+                <div style={{marginTop:'12px',fontSize:'9px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Excludes London Weighting (£3,150 before 1 Sept / £3,260 from 1 Sept) and London Allowance (£6,588), which are added separately.</div>
               </div>
             </div>
           );
