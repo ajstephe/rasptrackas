@@ -20,9 +20,9 @@ import {
   payeTaxBreakdown, taperExtra,
 } from './lib/tax.js';
 import { fmt, fmtHM, fmtHrs, fmtGBP, fmtD, fmtRelTime, payLabel, shiftSpan } from './lib/format.js';
-import { submitWindow, shortDay } from './lib/deadline.js';
+import { submitWindow, shortDay, longDay } from './lib/deadline.js';
 import {
-  calcAutoOTHours, syncShiftTimesIntoForm,
+  calcAutoOTHours, syncShiftTimesIntoForm, shiftDurationMinutes,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate } from './lib/sync.js';
@@ -328,6 +328,20 @@ async function decryptWithDataKey(dataKey, blobB64) {
 // oversight.
 const RECOVERY_MIN_LENGTH = 5;
 const RECOVERY_BLOCKLIST = ['password','overtime','shift','shift1','police','london','metro','12345','qwerty','letmein','admin','welcome','abcde','testy'];
+const SUPPORT_EMAIL = 'ajstephe@me.com';
+// Plain-English versions of the messages the sign-in service returns, so a
+// colleague sees what to do rather than a raw server string.
+const friendlyAuthError = (err) => {
+  const m = String((err && (err.message || err)) || '').toLowerCase();
+  if (!m) return 'Something went wrong. Try again.';
+  if (m.includes('failed to fetch') || m.includes('network') || m.includes('load failed') || m.includes('timeout')) return 'Couldn\u2019t reach the server. Check your signal and try again.';
+  if (m.includes('invalid login credentials')) return 'That email and password don\u2019t match. Check them and try again.';
+  if (m.includes('email not confirmed')) return 'Confirm your email first: open the link we sent you, then sign in.';
+  if (m.includes('already registered') || m.includes('already been registered')) return 'There\u2019s already an account with that email. Sign in instead.';
+  if (m.includes('rate limit') || m.includes('too many')) return 'Too many tries. Wait a minute, then try again.';
+  if (m.includes('password should be') || m.includes('weak password')) return 'Choose a longer password: at least 8 characters.';
+  return 'Something went wrong. Try again.';
+};
 const PASSWORD_KDF_ITERATIONS = 210000; // used every sign-in, cost stays invisible
 const RECOVERY_KDF_ITERATIONS = 600000; // used maybe once ever, so it can afford to be slower
 
@@ -349,6 +363,10 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
   const [noRecoveryWarning, setNoRecoveryWarning] = useState(false);
   const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
   const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
+  const [recoveryWord2, setRecoveryWord2] = useState('');
+  const [wroteItDown, setWroteItDown] = useState(false);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
+  const [resent, setResent] = useState(false);
 
   const AS = {
     // Dark blue page — deliberately different from the rest of the app's
@@ -361,10 +379,10 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     label:{display:'block',fontSize:'9px',color:'var(--muted)',margin:'0 0 6px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1.5px'},
     input:{width:'100%',background:'var(--surface-2)',border:'none',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'14px'},
     err:{fontSize:'12px',color:'#dc2626',margin:'-10px 0 14px',fontWeight:700},
-    btn:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'none',fontFamily:'inherit',fontSize:'11px',fontWeight:900,cursor:'pointer',background:'#2563eb',color:'#fff',textTransform:'uppercase',letterSpacing:'1px'},
-    btnGhost:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'1px solid var(--border-2)',fontFamily:'inherit',fontSize:'11px',fontWeight:900,cursor:'pointer',background:'var(--surface)',color:'var(--muted)',marginTop:'10px',textTransform:'uppercase',letterSpacing:'1px'},
+    btn:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'none',fontFamily:'inherit',fontSize:'14px',fontWeight:800,cursor:'pointer',background:'var(--accent)',color:'#fff'},
+    btnGhost:{width:'100%',padding:'12px 0',borderRadius:'13px',border:'1.5px solid var(--border)',fontFamily:'inherit',fontSize:'14px',fontWeight:800,cursor:'pointer',background:'var(--surface)',color:'var(--ink)',marginTop:'10px'},
     linkRow:{textAlign:'center',marginTop:'14px',fontSize:'13px',color:'var(--quiet)',fontWeight:700},
-    link:{color:'#2563eb',cursor:'pointer'},
+    link:{color:'var(--accent)',cursor:'pointer',background:'none',border:'none',padding:0,font:'inherit',fontWeight:800},
     note:{display:'flex',gap:'9px',background:'var(--tint-purple)',borderRadius:'13px',padding:'12px 13px',marginBottom:'16px',fontSize:'12.5px',lineHeight:1.5,color:'var(--tag-purple)',fontWeight:600},
     divider:{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',margin:'14px 0',fontSize:'11.5px',color:'var(--quiet)',fontWeight:700},
   };
@@ -375,13 +393,32 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     setError('');
     if (!validEmail) { setError('Enter a valid email address'); return; }
     setBusy(true);
-    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
-    if (err) { setBusy(false); setError(err.message); return; }
+    let data, err;
+    try { ({ data, error: err } = await supabase.auth.signInWithPassword({ email, password })); }
+    catch (e) { err = e; }
+    if (err) {
+      setBusy(false); setError(friendlyAuthError(err));
+      setNeedsConfirm(String(err.message||'').toLowerCase().includes('email not confirmed')); setResent(false);
+      return;
+    }
+    setNeedsConfirm(false);
     // Covers an account that signed up but never finished recovery-secret
     // setup (e.g. email confirmation delayed the first real session).
-    const { data: keyRow } = await supabase.from('user_keys')
+    // A failed lookup (no signal, server blip) must never be read as "this
+    // account has no key": that path creates a NEW key and would make every
+    // shift already in the cloud unreadable. Only a clean "no row" answer
+    // goes on to recovery-word setup.
+    let keyRow, keyErr;
+    try { ({ data: keyRow, error: keyErr } = await supabase.from('user_keys')
       .select('wrapped_dek, kek_salt, kek_iterations')
-      .eq('user_id', data.user.id).maybeSingle();
+      .eq('user_id', data.user.id).maybeSingle()); }
+    catch (e) { keyErr = e; }
+    if (keyErr) {
+      setBusy(false);
+      try { await supabase.auth.signOut(); } catch(_) {}
+      setError('Couldn\u2019t reach the server to unlock your data. Check your signal and try again.');
+      return;
+    }
     if (!keyRow) {
       setBusy(false);
       if (setAuthFlowBusy) setAuthFlowBusy(true);
@@ -399,7 +436,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
       // with, not from a normal wrong-password case (that fails at
       // signInWithPassword, above, before this point is ever reached).
       setBusy(false);
-      setError('Signed in, but couldn\u2019t unlock your data — contact support rather than retrying blindly.');
+      setError(`Signed in, but couldn\u2019t unlock your data. Please email ${SUPPORT_EMAIL} rather than trying again.`);
     }
   };
 
@@ -414,9 +451,10 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     // gets written — stashed here so it survives the gap when email
     // confirmation defers that write to handleRecoverySetup, below.
     stashPendingConsent();
-    const { data, error: err } = await supabase.auth.signUp({ email, password });
+    let data, err;
+    try { ({ data, error: err } = await supabase.auth.signUp({ email, password })); } catch (e) { err = e; }
     setBusy(false);
-    if (err) { setError(err.message); return; }
+    if (err) { setError(friendlyAuthError(err)); return; }
     if (!data.session) {
       // Email confirmation required — no session yet, nowhere safe to write
       // key material. Setup resumes on first sign-in instead, above.
@@ -429,12 +467,31 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     // password intentionally stays in state — it's needed to wrap the data key next
   };
 
+  const handleResend = async () => {
+    setBusy(true);
+    let err;
+    try { ({ error: err } = await supabase.auth.resend({ type: 'signup', email })); } catch (e) { err = e; }
+    setBusy(false);
+    if (err) { setError(friendlyAuthError(err)); return; }
+    setResent(true);
+  };
+  // Leaving recovery-word setup: sign the half-made session out so nothing
+  // is left in a state where a new key could be written by accident.
+  const cancelRecoverySetup = async () => {
+    try { await supabase.auth.signOut(); } catch(_) {}
+    if (setAuthFlowBusy) setAuthFlowBusy(false);
+    setRecoveryWord(''); setRecoveryWord2(''); setWroteItDown(false); setPassword(''); setPassword2(''); setError('');
+    setScreen('signin');
+  };
+
   const recoveryTooCommon = RECOVERY_BLOCKLIST.includes(recoveryWord.toLowerCase());
 
   const handleRecoverySetup = async () => {
     setError('');
-    if (recoveryWord.length < RECOVERY_MIN_LENGTH) { setError(`Must be at least ${RECOVERY_MIN_LENGTH} letters`); return; }
+    if (recoveryWord.length < RECOVERY_MIN_LENGTH) { setError(`Must be at least ${RECOVERY_MIN_LENGTH} characters`); return; }
     if (recoveryTooCommon) { setError('Too common — choose something less predictable'); return; }
+    if (recoveryWord !== recoveryWord2) { setError('The two recovery words don\u2019t match'); return; }
+    if (!wroteItDown) { setError('Tick the box to confirm you\u2019ve written it down'); return; }
     setBusy(true);
     try {
       const dek = await generateDataKey();
@@ -466,8 +523,8 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         privacy_accepted_at: consent.acceptedAt,
       });
       setBusy(false);
-      if (err) { setError(err.message); return; }
-      setPassword(''); setRecoveryWord('');
+      if (err) { setError(friendlyAuthError(err)); return; }
+      setPassword(''); setRecoveryWord(''); setRecoveryWord2(''); setWroteItDown(false);
       if (addToast) addToast('Recovery word saved — you\u2019re all set', 'success', null, 4000, 'Ready to go');
       if (setAuthFlowBusy) setAuthFlowBusy(false);
       if (onUnlocked) onUnlocked(dek);
@@ -482,9 +539,10 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     setError('');
     if (!validEmail) { setError('Enter a valid email address'); return; }
     setBusy(true);
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+    let err;
+    try { ({ error: err } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })); } catch (e) { err = e; }
     setBusy(false);
-    if (err) { setError(err.message); return; }
+    if (err) { setError(friendlyAuthError(err)); return; }
     setForgotSent(true);
   };
 
@@ -498,9 +556,10 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
     if (password !== password2) { setError('Passwords do not match'); return; }
     setBusy(true);
-    const { error: err } = await supabase.auth.updateUser({ password });
+    let err;
+    try { ({ error: err } = await supabase.auth.updateUser({ password })); } catch (e) { err = e; }
     setBusy(false);
-    if (err) { setError(err.message); return; }
+    if (err) { setError(friendlyAuthError(err)); return; }
     setPassword2('');
     setScreen('recovery-unlock');
     // `password` intentionally stays in state — it's the new password,
@@ -557,37 +616,40 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
 
         {screen === 'signin' && (
           <>
-            <label style={AS.label}>Email</label>
-            <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
-            <label style={AS.label}>Password</label>
-            <input style={AS.input} type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password"/>
-            {error && <div style={AS.err}>{error}</div>}
+            <div style={{fontSize:'13px',color:'var(--muted)',fontWeight:600,lineHeight:1.5,margin:'-8px 0 16px'}}>Track overtime, PA and TOIL, and see what you'll take home.</div>
+            <label htmlFor="as-email" style={AS.label}>Email</label>
+            <input id="as-email" style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
+            <label htmlFor="as-pass" style={AS.label}>Password</label>
+            <input id="as-pass" style={AS.input} type="password" placeholder="Your password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter') handleSignIn(); }} autoComplete="current-password"/>
+            {error && <div role="alert" style={AS.err}>{error}</div>}
+            {needsConfirm && <div style={{margin:'-6px 0 14px',fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>{resent ? 'Sent \u2014 check your inbox (and junk).' : <button type="button" style={AS.link} onClick={handleResend} disabled={busy}>Resend the confirmation email</button>}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignIn}>{busy?'Signing in…':'Sign in'}</button>
             <div style={AS.divider}>or</div>
-            <button style={AS.btnGhost} onClick={()=>{ setScreen('signup'); setError(''); }}>Create account</button>
-            <div style={AS.linkRow}><span style={AS.link} onClick={()=>{ setScreen('forgot'); setError(''); setForgotSent(false); }}>Forgot password?</span></div>
+            <button style={AS.btnGhost} onClick={()=>{ setScreen('signup'); setError(''); setNeedsConfirm(false); }}>Create an account</button>
+            <div style={AS.linkRow}><button type="button" style={AS.link} onClick={()=>{ setScreen('forgot'); setError(''); setForgotSent(false); setNeedsConfirm(false); }}>Forgot password?</button></div>
+            <div style={{...AS.linkRow,fontSize:'11.5px',fontWeight:600,marginTop:'10px'}}>Need help? {SUPPORT_EMAIL}</div>
           </>
         )}
 
         {screen === 'signup' && (
           <>
-            <label style={AS.label}>Email</label>
-            <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
-            <label style={AS.label}>Password</label>
-            <input style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
-            <label style={AS.label}>Confirm password</label>
-            <input style={AS.input} type="password" placeholder="••••••••" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
+            <label htmlFor="as-su-email" style={AS.label}>Email</label>
+            <input id="as-su-email" style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
+            <label htmlFor="as-su-pass" style={AS.label}>Password</label>
+            <input id="as-su-pass" style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
+            <label htmlFor="as-su-pass2" style={AS.label}>Confirm password</label>
+            <input id="as-su-pass2" style={AS.input} type="password" placeholder="Type it again" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
             <div style={AS.note}>
               <span>↻</span>
               <span><b>You'll choose a recovery word next.</b> It protects your data if you ever forget your password.</span>
             </div>
             <label style={{display:'flex',alignItems:'flex-start',gap:'9px',marginBottom:'14px',cursor:'pointer'}}>
-              <input type="checkbox" checked={agreedToPrivacy} onChange={e=>setAgreedToPrivacy(e.target.checked)} style={{marginTop:'2px',flexShrink:0,width:'16px',height:'16px',accentColor:'#2563eb',cursor:'pointer'}}/>
-              <span style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,fontWeight:600}}>I've read the <span style={AS.link} onClick={e=>{ e.preventDefault(); setShowPrivacyNotice(true); }}>Privacy Notice</span> and agree to my data being processed as described.</span>
+              <input type="checkbox" checked={agreedToPrivacy} onChange={e=>setAgreedToPrivacy(e.target.checked)} style={{marginTop:'2px',flexShrink:0,width:'16px',height:'16px',accentColor:'var(--accent)',cursor:'pointer'}}/>
+              <span style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,fontWeight:600}}>I've read the <button type="button" style={AS.link} onClick={e=>{ e.preventDefault(); setShowPrivacyNotice(true); }}>Privacy Notice</button> and agree to my data being processed as described.</span>
             </label>
-            {error && <div style={AS.err}>{error}</div>}
+            {error && <div role="alert" style={AS.err}>{error}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignUp}>{busy?'Creating…':'Create account'}</button>
-            <div style={AS.linkRow}>Already have an account? <span style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Sign in</span></div>
+            <div style={AS.linkRow}>Already have an account? <button type="button" style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Sign in</button></div>
           </>
         )}
 
@@ -596,13 +658,21 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Save your recovery word</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>If you ever forget your password, this word is the only other way back into your data. Nobody else has a copy of it — not even us.</div>
 
-            <label style={AS.label}>Your recovery word</label>
-            <input style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
-            <div style={{fontSize:'12px',color:recoveryWord.length>=RECOVERY_MIN_LENGTH?'#16a34a':'var(--quiet)',margin:'-10px 0 6px',fontWeight:700}}>{recoveryWord.length} / {RECOVERY_MIN_LENGTH} characters minimum</div>
+            <label htmlFor="as-rw" style={AS.label}>Your recovery word</label>
+            <input id="as-rw" style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" autoCapitalize="off" spellCheck={false} value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
+            <div style={{fontSize:'12px',color:recoveryWord.length>=RECOVERY_MIN_LENGTH?'#16a34a':'var(--quiet)',margin:'-10px 0 12px',fontWeight:700}}>{recoveryWord.length} / {RECOVERY_MIN_LENGTH} characters minimum</div>
             {recoveryTooCommon && recoveryWord.length>0 && <div style={AS.err}>Too common — choose something less predictable</div>}
-            {error && <div style={{...AS.err,marginTop:recoveryTooCommon?0:'-4px'}}>{error}</div>}
+            <label htmlFor="as-rw2" style={AS.label}>Type it again</label>
+            <input id="as-rw2" style={AS.input} type="text" placeholder="The same word" autoComplete="off" autoCapitalize="off" spellCheck={false} value={recoveryWord2} onChange={e=>setRecoveryWord2(e.target.value)}/>
+            {recoveryWord2.length>0 && recoveryWord2!==recoveryWord && <div style={AS.err}>Doesn't match yet</div>}
+            <label style={{display:'flex',alignItems:'flex-start',gap:'9px',marginBottom:'14px',cursor:'pointer'}}>
+              <input type="checkbox" checked={wroteItDown} onChange={e=>setWroteItDown(e.target.checked)} style={{marginTop:'2px',flexShrink:0,width:'16px',height:'16px',accentColor:'var(--accent)',cursor:'pointer'}}/>
+              <span style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,fontWeight:600}}><b style={{color:'var(--ink)'}}>I've written it down somewhere safe.</b> If I lose both it and my password, my data can't be recovered.</span>
+            </label>
+            {error && <div role="alert" style={AS.err}>{error}</div>}
 
-            <button style={{...AS.btn,opacity:busy?0.7:1,marginTop:'8px'}} disabled={busy} onClick={handleRecoverySetup}>{busy?'Saving…':'Save and continue'}</button>
+            <button style={{...AS.btn,opacity:busy?0.7:1,marginTop:'4px'}} disabled={busy} onClick={handleRecoverySetup}>{busy?'Saving…':'Save and continue'}</button>
+            <div style={AS.linkRow}><button type="button" style={AS.link} disabled={busy} onClick={cancelRecoverySetup}>Cancel and sign out</button></div>
           </>
         )}
 
@@ -610,11 +680,11 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
           <>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Reset your password</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>We'll email you a secure link to set a new password.</div>
-            <label style={AS.label}>Email</label>
-            <input style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
-            {error && <div style={AS.err}>{error}</div>}
+            <label htmlFor="as-fp-email" style={AS.label}>Email</label>
+            <input id="as-fp-email" style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
+            {error && <div role="alert" style={AS.err}>{error}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleForgotRequest}>{busy?'Sending…':'Send reset link'}</button>
-            <div style={AS.linkRow}><span style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Back to sign in</span></div>
+            <div style={AS.linkRow}><button type="button" style={AS.link} onClick={()=>{ setScreen('signin'); setError(''); }}>Back to sign in</button></div>
           </>
         )}
 
@@ -630,11 +700,11 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
           <>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Set a new password</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Choose a new password for your account.</div>
-            <label style={AS.label}>New password</label>
-            <input style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
-            <label style={AS.label}>Confirm new password</label>
-            <input style={AS.input} type="password" placeholder="••••••••" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
-            {error && <div style={AS.err}>{error}</div>}
+            <label htmlFor="as-np" style={AS.label}>New password</label>
+            <input id="as-np" style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
+            <label htmlFor="as-np2" style={AS.label}>Confirm new password</label>
+            <input id="as-np2" style={AS.input} type="password" placeholder="Type it again" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
+            {error && <div role="alert" style={AS.err}>{error}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSetNewPassword}>{busy?'Saving…':'Set new password'}</button>
           </>
         )}
@@ -643,15 +713,15 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
           <>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Unlock your existing data</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>Your password's been reset. Enter your recovery word to restore access to your previous shifts and TOIL.</div>
-            <label style={AS.label}>Recovery word</label>
-            <input style={AS.input} type="text" placeholder="Enter your recovery word" autoComplete="off" value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
-            {error && <div style={AS.err}>{error}</div>}
+            <label htmlFor="as-ru" style={AS.label}>Recovery word</label>
+            <input id="as-ru" style={AS.input} type="text" placeholder="Enter your recovery word" autoComplete="off" autoCapitalize="off" spellCheck={false} value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
+            {error && <div role="alert" style={AS.err}>{error}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleRecoveryUnlock}>{busy?'Unlocking…':'Unlock my data'}</button>
-            <div style={AS.linkRow}><span style={AS.link} onClick={()=>setNoRecoveryWarning(true)}>I don't have my recovery word</span></div>
+            <div style={AS.linkRow}><button type="button" style={AS.link} onClick={()=>setNoRecoveryWarning(true)}>I don't have my recovery word</button></div>
             {noRecoveryWarning && (
               <div style={{marginTop:'12px'}}>
                 <div style={{fontSize:'11.5px',color:'#dc2626',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>Without it, your existing shifts and TOIL can't be recovered by anyone. You can continue and set up a fresh recovery word, but everything logged before this reset will be gone for good.</div>
-                <button style={AS.btnGhost} onClick={()=>{ setError(''); setRecoveryWord(''); setNoRecoveryWarning(false); setScreen('recovery-setup'); }}>Continue without my old data</button>
+                <button style={AS.btnGhost} onClick={()=>{ setError(''); setRecoveryWord(''); setRecoveryWord2(''); setWroteItDown(false); setNoRecoveryWarning(false); setScreen('recovery-setup'); }}>Continue without my old data</button>
               </div>
             )}
           </>
@@ -665,7 +735,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
           version is ready" PWA-update prompt) would silently queue into
           state with nothing rendering it, and never be seen. */}
       <ToastStack toasts={toasts} onDismiss={dismissToast} isWide={isWide}/>
-      {showPrivacyNotice && <PrivacyNotice brass={BRASS} onClose={()=>setShowPrivacyNotice(false)}/>}
+      {showPrivacyNotice && <PrivacyNotice brass="var(--accent)" onClose={()=>setShowPrivacyNotice(false)}/>}
     </div>
   );
 }
@@ -881,6 +951,9 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize);
   },[]);
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
+  // Leaving an edit of a saved shift with changes asks first; holds where
+  // the person was heading so Discard can carry on there.
+  const [discardAsk, setDiscardAsk] = useState(null);
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
   const [showBackupReminder, setShowBackupReminder] = useState(false);
@@ -1079,6 +1152,7 @@ export default function App() {
   useEscapeToClose(confirmCreateDay, () => setConfirmCreateDay(null));
   useEscapeToClose(selectedCalDay && !datePickerFor, () => { setSelectedCalDay(null); setConfirmDel(null); });
   useEscapeToClose(datePickerFor, () => setDatePickerFor(null));
+  useEscapeToClose(!!discardAsk, () => setDiscardAsk(null));
   useEscapeToClose(
     configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded,
     () => { setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }
@@ -1090,7 +1164,7 @@ export default function App() {
   // track which specific one for this. See useBackButtonCloses for why this
   // needs pushState/popstate rather than something simpler.
   useBackButtonCloses(
-    !!(signOutConfirmOpen || restoreConfirmOpen || payslipModalOpen || confirmCreateDay || selectedCalDay || datePickerFor
+    !!(signOutConfirmOpen || restoreConfirmOpen || payslipModalOpen || confirmCreateDay || selectedCalDay || datePickerFor || discardAsk
       || configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded),
     () => {
       setSignOutConfirmOpen(false); setRestoreConfirmOpen(false); setPayslipModalOpen(false);
@@ -1098,6 +1172,7 @@ export default function App() {
       setConfirmCreateDay(null);
       setSelectedCalDay(null); setConfirmDel(null);
       setDatePickerFor(null);
+      setDiscardAsk(null);
       setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false);
     }
   );
@@ -1117,6 +1192,7 @@ export default function App() {
   const confirmCreateDayMounted = useMountTransition(!!confirmCreateDay, 220);
   const selectedCalDayMounted = useMountTransition(!!selectedCalDay, 220);
   const datePickerMounted = useMountTransition(!!datePickerFor, 220);
+  const discardMounted = useMountTransition(!!discardAsk, 220);
   // ── drag-to-dismiss for the mobile bottom sheets ─────────────────────────
   // Desktop's alert-pop dialogs are centred, not edge-anchored, and never
   // render a grabber — this only ever engages via the mobile sheet-pop
@@ -1140,6 +1216,8 @@ export default function App() {
   const confirmCreateDayTrapRef = useRef(null); useFocusTrap(!!confirmCreateDay, confirmCreateDayTrapRef);
   const selectedCalDayTrapRef = useRef(null); useFocusTrap(!!selectedCalDay, selectedCalDayTrapRef);
   const datePickerTrapRef = useRef(null); useFocusTrap(!!datePickerFor, datePickerTrapRef);
+  const discardTrapRef = useRef(null); useFocusTrap(!!discardAsk, discardTrapRef);
+  const discardAskV = useLastTruthy(discardAsk);
   // These four close to null/'' rather than false, and their JSX below reads
   // the value itself to decide what to render — holding the last real value
   // keeps that content stable during the mounted-but-closing tail above.
@@ -2456,8 +2534,15 @@ export default function App() {
   },[form, editing, todayStr, calcEntry, entryNet]);
 
   // ── handlers ───────────────────────────────────────────────────────────────
+  // A long shift (over 16 hours) is allowed, but asked about once first.
+  const longShiftOk = useRef(null);
   const handleSave=()=>{
     if(!form.date){ addToast('Pick the date of this shift first.','alert'); return; }
+    // Start and finish at the same time reads as a full 24 hours, which is
+    // almost always a slip rather than a real shift.
+    if (form.recordShiftTimes && ((form.actualStart && form.actualStart===form.actualEnd) || (form.dutyType!=='rdw' && form.rosteredStart && form.rosteredStart===form.rosteredEnd))) {
+      addToast('Start and finish are the same time. Check your times.','alert'); return;
+    }
 
     // Sense checks before anything is saved.
     const hrs = ['hours133','hours150','hours200'].map(k=>parseFloat(form[k])||0);
@@ -2474,6 +2559,13 @@ export default function App() {
     }
     const hasSomething = totalHrsForm>0 || (form.paRate && form.paRate!=='None') || (form.actualStart && form.actualEnd) || (form.comments||'').trim();
     if (!hasSomething) { addToast('Nothing to save yet — add hours, a Protection Allowance or a note.','alert'); return; }
+    const workedMins = form.recordShiftTimes ? shiftDurationMinutes(form.actualStart, form.actualEnd) : 0;
+    const longSig = JSON.stringify([form.date, totalHrsForm, form.actualStart, form.actualEnd]);
+    if ((totalHrsForm>16 || workedMins>16*60) && longShiftOk.current!==longSig) {
+      const h = Math.max(totalHrsForm, workedMins/60);
+      addToast(`That's ${fmtHrs(h)} ${totalHrsForm>16?'of overtime':'worked'}. Is that right?`,'warn',{label:'Save anyway',fn:()=>{ longShiftOk.current=longSig; handleSave(); }},8000,'Long shift');
+      return;
+    }
 
     // One entry per date — if the date is already taken, point the person at
     // the existing record rather than silently creating a second one.
@@ -2525,7 +2617,7 @@ export default function App() {
       // they've set as their default.
       showEntryInSummary(targetDate, savedId, updatedEntries);
 
-      setForm({...blankForm,date:todayStr}); setEditing(null);
+      if (editing) endEdit(); else { setForm({...blankForm,date:todayStr}); setEditing(null); }
       setJustSaved(false);
     }, 480);
   };
@@ -2568,7 +2660,32 @@ export default function App() {
   };
   const showEntryById = id => { const e = entries.find(x=>x.id===id); if (e) showEntryInSummary(e.date, e.id); };
 
-  const startEdit=e=>{ setForm(e); setEditing(e); setTab('add'); };
+  // A part-filled new shift is kept while you look elsewhere; opening a
+  // saved shift to edit tucks it away and puts it back when the edit ends.
+  const draftStash = useRef(null);
+  const formIsBlank = f => Object.keys(blankForm).every(k => k==='date' || sameField(k, f[k], blankForm[k]));
+  const startEdit=e=>{
+    if (!editing && !formIsBlank(form)) draftStash.current = form;
+    setForm(e); setEditing(e); setTab('add');
+  };
+  const endEdit = () => {
+    setEditing(null);
+    setForm(draftStash.current || {...blankForm,date:todayStr});
+    draftStash.current = null;
+  };
+  // Older records can lack a field the form fills with its default, so
+  // empty-ish values all count as the same.
+  const sameField = (k, a, b) => {
+    const n = v => (v===undefined||v===null||v===''||v===false||v==='0'||v===0||(k==='takeAs'&&v==='pay')||(k==='paRate'&&v==='None')||(k==='dutyType'&&v==='normal')) ? '' : String(v);
+    return n(a)===n(b);
+  };
+  const editDirty = !!editing && Object.keys(blankForm).some(k => !sameField(k, form[k], editing[k]));
+  // Runs go() straight away, or asks first when it would throw away edits.
+  const leaveEditThen = go => {
+    if (editDirty) { setDiscardAsk({ go, date: editing.date }); return; }
+    if (editing) endEdit();
+    go();
+  };
   const delEntry=id=>{
     const d=entries.find(e=>e.id===id);
     setEntries(prev=>prev.filter(x=>x.id!==id));
@@ -4372,6 +4489,20 @@ export default function App() {
         </div>
       )}
 
+      {/* ── leaving an edit with unsaved changes ── */}
+      {discardMounted&&discardAskV&&(
+        <div onClick={()=>setDiscardAsk(null)} className={discardAsk?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:60}}>
+          <div ref={discardTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Discard your changes?" onClick={e=>e.stopPropagation()} className={'alert-pop'+(discardAsk?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',width:'100%',maxWidth:isWide?'430px':'400px',padding:'20px',boxSizing:'border-box',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
+            <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>Discard your changes?</div>
+            <div style={{fontSize:'12.5px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>You've changed the shift on {discardAskV.date?longDay(discardAskV.date):'this day'}. Leaving now loses those changes.</div>
+            <div style={{display:'flex',gap:'8px'}}>
+              <button onClick={()=>setDiscardAsk(null)} style={{flex:1,padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Keep editing</button>
+              <button onClick={()=>{ const go=discardAsk?.go; setDiscardAsk(null); endEdit(); if(go) go(); }} style={{flex:1,padding:'12px',background:'var(--tint-red)',border:'none',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Discard changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {restoreMounted&&(
         <div onClick={()=>setRestoreConfirmOpen(false)} className={restoreConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
           <div ref={restoreTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Restore backup" onClick={e=>e.stopPropagation()} className={isWide?'alert-pop'+(restoreConfirmOpen?'':' pop-out'):'sheet-pop'+(!restoreConfirmOpen&&!restoreDrag.isDragClosing?' pop-out':'')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none',...(!isWide?restoreDrag.sheetDragStyle:null)}}>
@@ -4501,7 +4632,7 @@ export default function App() {
         {tab==='add'&&(
           <TabLogOvertime
             animClass={tabAnimClass}
-            editing={editing} setEditing={setEditing} setTab={setTab} goToConfigSetup={goToConfigSetup} settings={settings} isWide={isWide}
+            editing={editing} setEditing={setEditing} onCancelEdit={()=>leaveEditThen(()=>setTab('months'))} setTab={setTab} goToConfigSetup={goToConfigSetup} settings={settings} isWide={isWide}
             S={S} MONO={MONO} BRASS={BRASS} form={form} setForm={setForm} todayStr={todayStr} notesRef={notesRef}
             effectiveTier={effectiveTier} preview={preview} handleSave={handleSave} justSaved={justSaved}
             carmsToggleRef={carmsToggleRef} focusCarmsToggle={focusCarmsToggle}
@@ -5076,7 +5207,7 @@ export default function App() {
       <nav ref={setNavEl} className="no-print" style={{...S.nav, display:isWide?'none':'flex'}}>
         <div className="nav-pill" style={{left:navPillRect.left+'px', width:navPillRect.width+'px'}}/>
         {NAV_TABS.map(t=>(
-          <button key={t.id} ref={el=>navBtnRefs.current[t.id]=el} onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{...S.nBtn(tab===t.id,t.id==='add'),position:'relative'}}>
+          <button key={t.id} ref={el=>navBtnRefs.current[t.id]=el} onClick={()=>leaveEditThen(()=>{ setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add' && formIsBlank(form) && !editing) { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); })} style={{...S.nBtn(tab===t.id,t.id==='add'),position:'relative'}}>
             {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
               // zIndex: the active tab's icon is scaled (.nav-ico.active), and
               // that transform paints it over this earlier sibling otherwise.
@@ -5151,7 +5282,7 @@ export default function App() {
             const isAdd = t.id==='add';
             const isActive = tab===t.id;
             return (
-              <button key={t.id} data-seg-key={t.id} className="sidebar-nav-btn" onClick={()=>{ setEditing(null); setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add') { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); }} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'var(--sidebar-hover-bg, transparent)',color:isAdd?'#10b981':(isActive?THEME.sidebarTextActive:THEME.sidebarText),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
+              <button key={t.id} data-seg-key={t.id} className="sidebar-nav-btn" onClick={()=>leaveEditThen(()=>{ setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add' && formIsBlank(form) && !editing) { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); })} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'var(--sidebar-hover-bg, transparent)',color:isAdd?'#10b981':(isActive?THEME.sidebarTextActive:THEME.sidebarText),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
                 {isAdd ? (
                   <span className={(entries.length===0&&!isActive)?'nav-add-pulse':''} style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
                 ) : (

@@ -64,9 +64,8 @@ export class ErrorBoundary extends Component {
             Something went wrong
           </div>
           <div style={{fontSize:'13.5px', fontWeight:600, color:c.body, lineHeight:1.5, marginBottom:'22px'}}>
-            The app hit an unexpected error and couldn't continue. Your saved
-            overtime, PA, and TOIL records are untouched — they're stored on
-            this device, not in the part of the app that crashed.
+            The app hit an unexpected error. Your saved shifts, PA and TOIL
+            are safe. Tap Reload to carry on.
           </div>
           <button
             onClick={() => window.location.reload()}
@@ -79,7 +78,8 @@ export class ErrorBoundary extends Component {
             Reload the app
           </button>
           <div style={{fontSize:'11px', fontWeight:600, color:c.footer, marginTop:'16px'}}>
-            If this keeps happening, check the browser console for the error, or let Adam know what you were doing when it happened.
+            If it keeps happening, email ajstephe@me.com and say what you were doing just before.
+            {this.state && this.state.error && this.state.error.message ? <span style={{display:'block', marginTop:'6px', opacity:0.75}}>Error: {String(this.state.error.message).slice(0,140)}</span> : null}
           </div>
         </div>
       </div>

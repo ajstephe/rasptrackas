@@ -18,7 +18,7 @@ const hm = mins => { const h = Math.floor(mins/60), m = Math.round(mins%60); ret
 // been submitted, then notes. Gross/net and Save share one bar that stays on
 // screen. Same fields and behaviour as before — only the arrangement changed.
 export function TabLogOvertime({
-  editing, setEditing, setTab, goToConfigSetup, settings, isWide, S, MONO, BRASS,
+  editing, setEditing, onCancelEdit, setTab, goToConfigSetup, settings, isWide, S, MONO, BRASS,
   form, setForm, todayStr, notesRef, effectiveTier, preview, handleSave, justSaved,
   carmsToggleRef, focusCarmsToggle, setDatePickerMonth, setDatePickerFor,
   syncShiftTimesIntoForm, animClass='fi',
@@ -33,6 +33,9 @@ export function TabLogOvertime({
   // Notes stay folded away until wanted — but the shift-times summary the
   // app writes into them (syncShiftTimesIntoForm) counts as wanted, so they
   // open by themselves once times are set. Folds again after each save.
+  // What's being typed in a Mix split box, kept as text until the box is
+  // left, so a half-typed value like "1." isn't snapped back to a number.
+  const [mixDraft, setMixDraft] = useState(null); // {k:'pay'|'toil', v:'1.'}
   const [notesOpen, setNotesOpen] = useState(false);
   useEffect(() => { if (justSaved) setNotesOpen(false); }, [justSaved]);
 
@@ -228,10 +231,18 @@ export function TabLogOvertime({
     const total = parseFloat(form[takeTier])||0;
     const toilH = Math.min(total, parseFloat(form.toilHours)||0);
     const payH = Math.max(0, total-toilH);
-    const splitBox = (label, colour, bg, value, onChange) => (
+    // Each box shows the typed text while it's being edited; the other box
+    // follows along as soon as the text is a usable number. Leaving the box
+    // tidies it up (clamped to the shift's hours).
+    const commit = (k, text) => { let v=parseFloat(text); if(isNaN(v)) v=0; v=Math.max(0,Math.min(total,v)); setForm(f=>({...f, toilHours:String(k==='toil'?v:total-v)})); };
+    const splitBox = (k, label, colour, bg, shown) => (
       <label style={{display:'block',background:bg,borderRadius:'11px',padding:'8px 10px'}}>
         <span style={{display:'block',fontSize:'10px',fontWeight:900,color:colour,textTransform:'uppercase',letterSpacing:'0.06em'}}>{label}</span>
-        <input type="number" min="0" max="24" step="0.25" inputMode="decimal" value={value} onChange={onChange} style={{width:'100%',border:'none',background:'transparent',fontFamily:MONO,fontWeight:700,fontSize:'17px',color:'var(--ink)',outline:'none',padding:'3px 0'}}/>
+        <input type="text" inputMode="decimal" aria-label={label} value={mixDraft&&mixDraft.k===k?mixDraft.v:shown}
+          onFocus={e=>{ setMixDraft({k,v:shown}); e.target.select(); }}
+          onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,'').replace(/(\..*)\./g,'$1'); setMixDraft({k,v}); if(/^\d*\.?\d+$/.test(v)) commit(k,v); }}
+          onBlur={()=>{ if(mixDraft&&mixDraft.k===k) commit(k,mixDraft.v); setMixDraft(null); }}
+          style={{width:'100%',border:'none',background:'transparent',fontFamily:MONO,fontWeight:700,fontSize:'17px',color:'var(--ink)',outline:'none',padding:'3px 0'}}/>
       </label>
     );
     return (
@@ -243,8 +254,8 @@ export function TabLogOvertime({
         }))}
         {form.takeAs==='mix' && (
           <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(2,minmax(0,130px))':'1fr 1fr',gap:'10px',marginTop:'10px'}}>
-            {splitBox('Pay hours','var(--text-blue-deep)','var(--tint-blue)',payH.toFixed(2).replace(/\.00$/,''),e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(total-v)}); })}
-            {splitBox('TOIL hours','var(--tag-purple)','var(--tint-purple)',toilH.toFixed(2).replace(/\.00$/,''),e=>{ let v=parseFloat(e.target.value); if(isNaN(v))v=0; v=Math.max(0,Math.min(total,v)); setForm({...form, toilHours:String(v)}); })}
+            {splitBox('pay','Pay hours','var(--text-blue-deep)','var(--tint-blue)',String(+payH.toFixed(2)))}
+            {splitBox('toil','TOIL hours','var(--tag-purple)','var(--tint-purple)',String(+toilH.toFixed(2)))}
           </div>
         )}
         {toilH>0 && (
@@ -346,7 +357,7 @@ export function TabLogOvertime({
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:isWide?'40px':'calc(100px + env(safe-area-inset-bottom))'}}>
       <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'18px'}}>
-        {editing&&<button onClick={()=>{setEditing(null);setTab('months');}} aria-label="Cancel editing" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="back" s={16}/></button>}
+        {editing&&<button onClick={onCancelEdit} aria-label="Cancel editing" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',padding:'8px',cursor:'pointer',display:'flex'}}><Ico n="back" s={16}/></button>}
         <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>{editing?'Edit shift':'Log Overtime'}</h2>
       </div>
 

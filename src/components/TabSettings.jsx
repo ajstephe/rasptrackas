@@ -694,7 +694,7 @@ export function TabSettings({
                         Run-rate: {fmtGBP(annualisedFromYTD)}/yr<br/>
                         {fmtGBP(annualisedFromYTD-100000)} over £100k<br/>
                         → {fmtGBP(paLostProRatedA)} allowance used so far<br/>
-                        → at {((extraTaxA/paLostProRatedA)*100).toFixed(1)}% = {fmtGBP(extraTaxA)}
+                        {paLostProRatedA>0.005 ? <>→ at {((extraTaxA/paLostProRatedA)*100).toFixed(1)}% = {fmtGBP(extraTaxA)}</> : <>→ no extra tax yet</>}
                       </div>
                     ) : (
                       <div style={{fontSize:'9.5px',color:'var(--text-green-deep)',lineHeight:1.7}}>Under £100k so far this year (after pension) — no allowance used yet.</div>
@@ -708,7 +708,7 @@ export function TabSettings({
                         {fmtGBP(taxableGrossF)} taxable (after pension)<br/>
                         {fmtGBP(taxableGrossF-100000)} over £100k<br/>
                         → {fmtGBP(paLostF)} allowance lost<br/>
-                        → at {((extraTaxF/paLostF)*100).toFixed(1)}% = {fmtGBP(extraTaxF)}
+                        {paLostF>0.005 ? <>→ at {((extraTaxF/paLostF)*100).toFixed(1)}% = {fmtGBP(extraTaxF)}</> : <>→ no extra tax yet</>}
                       </div>
                     ) : (
                       <div style={{fontSize:'9.5px',color:'var(--text-green-deep)',lineHeight:1.7}}>Projected to stay under £100k (after pension) — {fmtGBP(100000-taxableGrossF)} of headroom at this pace.</div>
