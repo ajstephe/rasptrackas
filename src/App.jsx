@@ -959,6 +959,9 @@ export default function App() {
   // the person was heading so Discard can carry on there.
   const [discardAsk, setDiscardAsk] = useState(null);
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
+  // A backup file that's been read and checked, waiting for the person to
+  // confirm on the restore card (which shows its date and numbers).
+  const [pendingRestore, setPendingRestore] = useState(null);
   const [passwordRecoveryMode, setPasswordRecoveryMode] = useState(false);
   const [showBackupReminder, setShowBackupReminder] = useState(false);
   const [showFYRollover, setShowFYRollover] = useState(false);
@@ -1215,7 +1218,6 @@ export default function App() {
   // sheet-pop class purely for its pop-in/out timing but is a small
   // rounded-all-corners toolbar with no backdrop, not an edge-to-edge sheet,
   // so it's deliberately not wired up here.
-  const restoreDrag = useDraggableSheet(restoreConfirmOpen, () => setRestoreConfirmOpen(false));
   const payslipDrag = useDraggableSheet(payslipModalOpen, () => setPayslipModalOpen(false));
   // ── focus management for every overlay above ─────────────────────────────
   // Moves focus into each dialog the instant it opens, traps Tab/Shift+Tab
@@ -1233,6 +1235,7 @@ export default function App() {
   const datePickerTrapRef = useRef(null); useFocusTrap(!!datePickerFor, datePickerTrapRef);
   const discardTrapRef = useRef(null); useFocusTrap(!!discardAsk, discardTrapRef);
   const discardAskV = useLastTruthy(discardAsk);
+  const pendingRestoreV = useLastTruthy(pendingRestore);
   // These four close to null/'' rather than false, and their JSX below reads
   // the value itself to decide what to render — holding the last real value
   // keeps that content stable during the mounted-but-closing tail above.
@@ -3267,14 +3270,33 @@ export default function App() {
       try { result = parseBackupFile(e.target.result); }
       catch (_) { result = { ok:false, error:"That backup file couldn't be read." }; }
       if (!result.ok) { addToast(result.error, 'warn'); return; }
-      setEntries(result.entries);
-      if (result.settings) setSettings(result.settings);
-      setToilTaken(result.toilTaken);
-      setTab('dashboard');
-      addToast(result.skipped ? `Backup restored — ${result.skipped} damaged record${result.skipped!==1?'s were':' was'} skipped` : 'Backup restored');
+      let exportedAt = null;
+      try { exportedAt = JSON.parse(e.target.result).exportedAt || null; } catch (_) { /* parsed above */ }
+      setPendingRestore({ ...result, exportedAt });
+      setRestoreConfirmOpen(true);
     };
     fr.onerror=()=>{ input.value=''; addToast("That backup file couldn't be read.", 'warn'); };
     fr.readAsText(file);
+  };
+
+  // Replaces everything with the checked backup, keeping what was here so
+  // the success message can put it straight back.
+  const applyRestore = async (backupFirst) => {
+    const r = pendingRestore;
+    if (!r) return;
+    setRestoreConfirmOpen(false);
+    if (backupFirst) await handleExport();
+    const before = { entries, toilTaken, settings };
+    setEntries(r.entries);
+    if (r.settings) setSettings(r.settings);
+    setToilTaken(r.toilTaken);
+    setPendingRestore(null);
+    setTab('dashboard');
+    const msg = r.skipped ? `Backup restored. ${r.skipped} damaged record${r.skipped!==1?'s were':' was'} skipped.` : 'Backup restored';
+    addToast(msg, 'undo', { label:'Undo', fn:()=>{
+      setEntries(before.entries); setToilTaken(before.toilTaken); if (before.settings) setSettings(before.settings);
+      addToast('Your data is back as it was');
+    } }, 12000);
   };
 
   // Clears local data as before, and — new — the same user's rows in
@@ -4575,23 +4597,35 @@ export default function App() {
         </div>
       )}
 
-      {restoreMounted&&(
-        <div onClick={()=>setRestoreConfirmOpen(false)} className={restoreConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-          <div ref={restoreTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Restore backup" onClick={e=>e.stopPropagation()} className={isWide?'alert-pop'+(restoreConfirmOpen?'':' pop-out'):'sheet-pop'+(!restoreConfirmOpen&&!restoreDrag.isDragClosing?' pop-out':'')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none',...(!isWide?restoreDrag.sheetDragStyle:null)}}>
-            <button onClick={()=>setRestoreConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
+      {restoreMounted&&pendingRestoreV&&(()=>{
+        const r = pendingRestoreV;
+        const ids = new Set(r.entries.map(e=>e.id));
+        const dropped = entries.filter(e=>!ids.has(e.id)).length;
+        const toilN = r.toilTaken.length;
+        const when = r.exportedAt ? longDay(localDateStr(new Date(r.exportedAt))) : null;
+        const pp = r.settings?.service || (r.settings ? null : settings?.service);
+        const facts = [`${r.entries.length} shift${r.entries.length!==1?'s':''}`, `${toilN} TOIL taken`, pp].filter(Boolean).join(', ');
+        const close = ()=>{ setRestoreConfirmOpen(false); setTimeout(()=>setPendingRestore(null), 240); };
+        return (
+        <div onClick={close} className={restoreConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:60}}>
+          <div ref={restoreTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Replace your data with this backup?" onClick={e=>e.stopPropagation()} className={'alert-pop'+(restoreConfirmOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',width:'100%',maxWidth:isWide?'430px':'400px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
+            <button onClick={close} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
               <Ico n="x" s={14} c="#64748b"/>
             </button>
-            {!isWide && <div className="sheet-grabber" {...restoreDrag.grabberProps}><div className="sheet-grabber-pill"/></div>}
-            <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>Are you sure you want to overwrite the existing data?</div>
-            <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>Do you want to create a backup before proceeding?</div>
+            <div style={{fontSize:'15px',fontWeight:900,marginBottom:'10px',textAlign:'center',padding:'0 26px'}}>Replace your data with this backup?</div>
+            <div style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.55,display:'flex',flexDirection:'column',gap:'8px',marginBottom:'16px'}}>
+              <div>{when?<>Backup from <strong style={{color:'var(--ink)'}}>{when}</strong>: </>:<>This backup has </>}{facts}.</div>
+              {dropped>0&&<div style={{background:'var(--tint-red)',color:'var(--text-red-deep)',borderRadius:'10px',padding:'8px 10px',fontWeight:700}}>{dropped} of your current shift{dropped!==1?'s aren\u2019t':' isn\u2019t'} in this backup. {dropped!==1?'They\u2019ll':'It\u2019ll'} be removed from this device{session?' and from your account on every device':''}.</div>}
+              <div>We'll keep a copy of what's here now, so you can undo straight after.</div>
+            </div>
             <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
-              <button onClick={async ()=>{ setRestoreConfirmOpen(false); await handleExport(); fileRef.current.click(); }} style={{padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Back up, then restore</button>
-              <button onClick={()=>{ setRestoreConfirmOpen(false); fileRef.current.click(); }} style={{padding:'12px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Restore without backup</button>
-              <button onClick={()=>setRestoreConfirmOpen(false)} style={{padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--muted)',fontWeight:700,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
+              <button onClick={()=>applyRestore(true)} style={{padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Back up current, then restore</button>
+              <button onClick={()=>applyRestore(false)} style={{padding:'12px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Restore without backup</button>
+              <button onClick={close} style={{padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--muted)',fontWeight:700,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>
         </div>
-      )}
+        ); })()}
 
       {/* ── offline indicator — purely informational, never dismissible by
            hand (it reflects real connectivity, not a choice), and not the
@@ -4758,7 +4792,7 @@ export default function App() {
             dataManagementExpanded={dataManagementExpanded} setDataManagementExpanded={setDataManagementExpanded}
             settings={settings} saveSett={saveSett} totals={totals} taxView={taxView} entries={entries} currPeriodIdx={currPeriodIdx}
             setExportFormat={setExportFormat} setPayslipMode={setPayslipMode} setPayslipPeriodIdx={setPayslipPeriodIdx} setPayslipFYYear={setPayslipFYYear} setPayslipModalOpen={setPayslipModalOpen}
-            session={session} handleExport={handleExport} pulseBackupBtn={pulseBackupBtn} setRestoreConfirmOpen={setRestoreConfirmOpen} fileRef={fileRef} handleImport={handleImport}
+            session={session} handleExport={handleExport} pulseBackupBtn={pulseBackupBtn} setRestoreConfirmOpen={()=>fileRef.current&&fileRef.current.click()} fileRef={fileRef} handleImport={handleImport}
             wipeConf={wipeConf} setWipeConf={setWipeConf} handleWipe={handleWipe} wipingData={wipingData}
             deleteAcctConf={deleteAcctConf} setDeleteAcctConf={setDeleteAcctConf} deleteAcctTyped={deleteAcctTyped} setDeleteAcctTyped={setDeleteAcctTyped} handleDeleteAccount={handleDeleteAccount} deletingAcct={deletingAcct}
             changePwOpen={changePwOpen} setChangePwOpen={setChangePwOpen} newPw={newPw} setNewPw={setNewPw} newPw2={newPw2} setNewPw2={setNewPw2} handleChangePassword={handleChangePassword} changingPw={changingPw} changePwError={changePwError} setChangePwError={setChangePwError}
