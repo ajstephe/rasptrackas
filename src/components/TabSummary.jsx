@@ -254,6 +254,8 @@ export function TabSummary({
   const shiftCols = isWide && (sideBySide ? W-356 : W-32)>=720;  // shift list in columns
   const MONTH_COLS = roomy ? '190px minmax(0,1fr) 112px 104px 176px 18px' : '160px minmax(0,1fr) 100px 92px 160px 18px';
   const SHIFT_COLS = '96px minmax(0,1fr) 72px 96px 96px 104px 14px';
+  const GROSS_STRIPE = 'repeating-linear-gradient(135deg, color-mix(in srgb, var(--text-navy) 38%, transparent) 0 4px, color-mix(in srgb, var(--text-navy) 22%, transparent) 4px 8px)';
+  const PLAN_STRIPE = 'repeating-linear-gradient(135deg, color-mix(in srgb, var(--exp) 60%, transparent) 0 3px, color-mix(in srgb, var(--exp) 20%, transparent) 3px 6px)';
   const label = {fontSize:'10px',fontWeight:900,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--quiet)'};
 
   const chevron = open => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.25s',transform:open?'rotate(180deg)':'none',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>;
@@ -453,11 +455,16 @@ export function TabSummary({
     const fy = String(PAY_PERIODS[0].month).split(' ')[1];
     const cm = currPeriodIdx>=0 ? infos[currPeriodIdx] : null;
 
-    const bar = m => { const ex=exOf(m), g=m.totG, n=m.totN, eg=ex?ex.gross:0; const seg = (w,bg) => <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${Math.min(100,w/max*100)}%`,background:bg,borderRadius:'5px'}}/>;
-      return <div aria-hidden="true" style={{position:'relative',height:'10px',borderRadius:'5px',background:'var(--surface-2)',overflow:'hidden'}}>
-        {eg>0&&seg(g+eg,'repeating-linear-gradient(135deg, color-mix(in srgb, var(--exp) 50%, transparent) 0 4px, color-mix(in srgb, var(--exp) 22%, transparent) 4px 8px)')}
-        {seg(g,'repeating-linear-gradient(135deg, color-mix(in srgb, var(--text-navy) 38%, transparent) 0 4px, color-mix(in srgb, var(--text-navy) 22%, transparent) 4px 8px)')}
-        {seg(n,GRN)}
+    // Claimed on the top line (gross in grey stripes, its net in solid green
+    // inside it); planned on a second line underneath, only when the month has
+    // planned shifts (gross in blue stripes, its net in solid blue inside it).
+    const bar = m => { const ex=exOf(m), g=m.totG, n=m.totN, eg=ex?ex.gross:0, en=ex?ex.net:0;
+      const pc = v => Math.min(100, v/max*100);
+      const seg = (w,bg) => <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${pc(w)}%`,background:bg,borderRadius:'4px'}}/>;
+      const line = kids => <div style={{position:'relative',height:eg>0?'7px':'10px',borderRadius:'4px',background:'var(--surface-2)',overflow:'hidden'}}>{kids}</div>;
+      return <div aria-hidden="true" style={{display:'grid',gap:'3px'}}>
+        {line(<>{g>0&&seg(g,GROSS_STRIPE)}{n>0&&seg(n,GRN)}</>)}
+        {eg>0&&line(<>{seg(eg,PLAN_STRIPE)}{en>0&&seg(en,'var(--exp)')}</>)}
       </div>; };
 
     // Computer only: hovering a bar shows what's in it. It follows the mouse
@@ -477,7 +484,6 @@ export function TabSummary({
           <span style={{display:'flex',gap:'24px',...label}}><span>Gross</span><span>Net</span></span>
         </div>
         {(m.totG>0.005||!ex)&&tipRow(GRN,'Claimed',parts||null,fmtGBP(m.totG),fmtGBP(m.totN))}
-        {m.totG>0.005&&tipRow(null,'Tax, NI & pension',null,'',`−${fmtGBP(m.totG-m.totN)}`,'var(--muted)')}
         {ex&&tipRow('var(--exp)','Planned',`${ex.n} shift${ex.n!==1?'s':''} · ${fmtHrs(ex.hrs)}`,`+${fmtGBP(ex.gross)}`,`+${fmtGBP(ex.net)}`,'var(--exp-ink)')}
         {ts&&ts.n>0&&ts.gross>0.005&&tipRow('#dc2626','To submit','Not in the bar until claimed',fmtGBP(ts.gross),fmtGBP(ts.net),'var(--text-red-deep)')}
         {hrs>0&&<div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',borderTop:'1px solid var(--border-2)',marginTop:'4px',paddingTop:'6px'}}>{fmtHrs(hrs)} worked over {nSh} shift{nSh!==1?'s':''}</div>}
@@ -548,7 +554,7 @@ export function TabSummary({
       </div>
       <div ref={listRef} style={{...S.card,padding:isWide?'14px 16px':'12px 10px'}}>
         <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'6px 14px',padding:'2px 8px 10px',fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>
-          {swatch(GRN,'Net')}{swatch('color-mix(in srgb, var(--text-navy) 30%, transparent)','Gross')}{EY?.n>0&&swatch('color-mix(in srgb, var(--exp) 50%, transparent)','Planned')}
+          {swatch(GROSS_STRIPE,'Gross')}{swatch(GRN,'Net')}{EY?.n>0&&<>{swatch(PLAN_STRIPE,'Planned gross')}{swatch('var(--exp)','Planned net')}</>}
           <span style={{marginLeft:'auto',fontWeight:600,color:'var(--quiet)'}}>{isWide?'Click':'Tap'} a month to open it</span>
         </div>
         {rowCols&&<div style={{display:'grid',gridTemplateColumns:MONTH_COLS,gap:'14px',padding:'0 8px 7px',borderBottom:'1px solid var(--border)',...label,fontSize:'10px'}}><span>Pay month</span><span/><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span><span style={{textAlign:'right'}}>Status</span><span/></div>}
