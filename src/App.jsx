@@ -4472,6 +4472,7 @@ export default function App() {
         input:focus,select:focus,textarea:focus{outline:2px solid #2563eb;outline-offset:-2px}
         input,select,textarea{font-size:16px}
         button:not(:disabled):active{opacity:0.8;transform:scale(0.96)}
+        @media (max-width:359px){.month-pills{display:grid!important;grid-template-columns:repeat(6,1fr)}}
         /* Opt-out of the scale half of that press feedback for a real
            <button> that is both wide and has its actual tap target (a
            checkbox-style ring, usually) sitting near one edge rather than

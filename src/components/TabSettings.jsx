@@ -1108,7 +1108,7 @@ export function TabSettings({
            Portalled to contentWrapRef, same reasoning as the popup
            cards themselves (see modalBoxStyle above). ── */}
       {anyModalMounted && contentWrapRef.current && createPortal(
-        <div onClick={()=>{ setConfigExpanded(false); setSetupPopupRequested(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} className={anyModalOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',zIndex:55}}/>,
+        <div onClick={()=>{ setConfigExpanded(false); setSetupPopupRequested(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} className={anyModalOpen?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',zIndex:55}}/>,
         contentWrapRef.current
       )}
     </div>

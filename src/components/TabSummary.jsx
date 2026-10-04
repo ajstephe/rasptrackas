@@ -638,7 +638,7 @@ export function TabSummary({
             rather than floating loose in the open page. */}
         {breakdownView==='list'&&(
           <div style={isWide?{background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'14px',padding:'10px 14px',marginTop:'8px'}:{}}>
-          <div style={{display:'flex',gap:'3px',paddingTop:isWide?0:'8px',justifyContent:'center'}}>
+          <div className="month-pills" style={{display:'flex',gap:'3px',paddingTop:isWide?0:'8px',justifyContent:'center'}}>
             {PAY_PERIODS.map((p,idx)=>{
               const isCurr=idx===currPeriodIdx, isOpen=expanded===p.month;
               // Matches Calendar View's own guarantee that exactly one
@@ -652,8 +652,8 @@ export function TabSummary({
                 // flex:1 with minWidth:0 lets all twelve periods share the
                 // row evenly and fit without horizontal scrolling, rather
                 // than each sizing to its own text and overflowing.
-                <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isActive?`1.5px solid ${BRASS}`:hasOutstanding?'1px solid var(--border-2)':isCurr?`1.5px solid ${BRASS}`:'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isActive?BRASS:isCurr?'var(--tint-brass)':'var(--surface)',color:hasOutstanding?'var(--text-red-deep)':isActive?'#fff':isCurr?BRASS:'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
-                  {p.short}
+                <button key={p.short} onClick={()=>jumpTo(p.month)} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 0',borderRadius:'14px',border:isActive?`1.5px solid ${BRASS}`:hasOutstanding?'1px solid var(--border-2)':isCurr?`1.5px solid ${BRASS}`:'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isActive?BRASS:isCurr?'var(--tint-brass)':'var(--surface)',color:hasOutstanding?'var(--text-red-deep)':isActive?'#fff':isCurr?BRASS:'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
+                  {isWide ? p.short : p.short.slice(0,3)}
                 </button>
               );
             })}
@@ -669,14 +669,14 @@ export function TabSummary({
             twelve independently-expandable cards. */}
         {(breakdownView==='calendar'||breakdownView==='compact')&&(
           <div style={isWide?{background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'14px',padding:'10px 14px',marginTop:'8px'}:{}}>
-          <div style={{display:'flex',gap:'3px',paddingTop:isWide?0:'8px',justifyContent:'center'}}>
+          <div className="month-pills" style={{display:'flex',gap:'3px',paddingTop:isWide?0:'8px',justifyContent:'center'}}>
             {PAY_PERIODS.map((p,idx)=>{
               const isCurr=idx===currPeriodIdx;
               const isSel=(calPeriodIdx===null?currPeriodIdx:calPeriodIdx)===idx;
               const hasOutstanding = carmsOutstanding.groups.some(g=>g.periodIdx===idx);
               return(
-                <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 2px',borderRadius:'14px',border:isSel?`1.5px solid ${BRASS}`:hasOutstanding?'1px solid var(--border-2)':isCurr?`1.5px solid ${BRASS}`:'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isSel?BRASS:isCurr?'var(--tint-brass)':'var(--surface)',color:hasOutstanding?'var(--text-red-deep)':isSel?'#fff':isCurr?BRASS:'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
-                  {p.short}
+                <button key={p.short} onClick={()=>{ setCalPeriodIdx(idx); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'smooth'}); }} style={{flex:'1 1 0',minWidth:0,padding:isWide?'5px 4px':'5px 0',borderRadius:'14px',border:isSel?`1.5px solid ${BRASS}`:hasOutstanding?'1px solid var(--border-2)':isCurr?`1.5px solid ${BRASS}`:'1px solid var(--border-2)',background:hasOutstanding?'var(--tint-red)':isSel?BRASS:isCurr?'var(--tint-brass)':'var(--surface)',color:hasOutstanding?'var(--text-red-deep)':isSel?'#fff':isCurr?BRASS:'var(--muted)',fontSize:isWide?'12px':'10.5px',fontWeight:900,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all 0.14s',textAlign:'center',overflow:'hidden'}}>
+                  {isWide ? p.short : p.short.slice(0,3)}
                 </button>
               );
             })}
