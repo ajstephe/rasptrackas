@@ -49,7 +49,6 @@ import { useFocusTrap } from './lib/useFocusTrap.js';
 import { haptic } from './lib/haptics.js';
 import { useCountUp } from './lib/useCountUp.js';
 import { springValue } from './lib/spring.js';
-import { useDraggableSheet } from './lib/useDraggableSheet.js';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
 // Only one of these six is ever on screen at a time (via `tab` state below),
 // so there's no reason all six ship in the initial JS payload — each becomes
@@ -1218,7 +1217,6 @@ export default function App() {
   // sheet-pop class purely for its pop-in/out timing but is a small
   // rounded-all-corners toolbar with no backdrop, not an edge-to-edge sheet,
   // so it's deliberately not wired up here.
-  const payslipDrag = useDraggableSheet(payslipModalOpen, () => setPayslipModalOpen(false));
   // ── focus management for every overlay above ─────────────────────────────
   // Moves focus into each dialog the instant it opens, traps Tab/Shift+Tab
   // among its own controls while open, and restores focus to whatever
@@ -4813,9 +4811,8 @@ export default function App() {
         const canGenerate = payslipMode==='period' ? payslipPeriodIdx!=null : payslipMode==='financialYear' ? payslipFYYear!=null : rangeValid;
         const formatLabel = exportFormat==='csv' ? 'Spreadsheet' : 'PDF';
         return (
-          <div onClick={()=>setPayslipModalOpen(false)} className={payslipModalOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:isWide?'center':'flex-end',justifyContent:'center',zIndex:60}}>
-            <div ref={payslipTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Generate payslip" onClick={e=>e.stopPropagation()} className={isWide?'alert-pop'+(payslipModalOpen?'':' pop-out'):'sheet-pop'+(!payslipModalOpen&&!payslipDrag.isDragClosing?' pop-out':'')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:isWide?'20px':'20px 20px 0 0',width:'100%',maxWidth:'430px',padding:'20px',maxHeight:'85%',overflowY:'auto',boxShadow:isWide?'0 24px 64px rgba(0,0,0,0.28)':'none',...(!isWide?payslipDrag.sheetDragStyle:null)}}>
-              {!isWide && <div className="sheet-grabber" {...payslipDrag.grabberProps}><div className="sheet-grabber-pill"/></div>}
+          <div onClick={()=>setPayslipModalOpen(false)} className={payslipModalOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:60}}>
+            <div ref={payslipTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Generate payslip" onClick={e=>e.stopPropagation()} className={'alert-pop'+(payslipModalOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',width:'100%',maxWidth:isWide?'430px':'400px',padding:'20px',boxSizing:'border-box',maxHeight:'85%',overflowY:'auto',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
               {exportFormat===null ? (
                 <>
                   <div style={{fontSize:'15px',fontWeight:900,marginBottom:'4px'}}>Reports &amp; export</div>
