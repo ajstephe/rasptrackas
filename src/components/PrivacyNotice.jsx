@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Ico } from './Icons.jsx';
 import { useFocusTrap } from '../lib/useFocusTrap.js';
 import { useEscapeToClose } from '../lib/useEscapeToClose.js';
+import { useBackButtonCloses } from '../lib/useBackButtonCloses.js';
 import { PRIVACY_VERSION } from '../lib/legal.js';
 
 // ─── Privacy notice ──────────────────────────────────────────────────────────
@@ -23,7 +24,9 @@ import { PRIVACY_VERSION } from '../lib/legal.js';
 export function PrivacyNotice({ onClose, brass = '#b8823f' }) {
   const boxRef = useRef(null);
   useFocusTrap(true, boxRef);
-  useEscapeToClose(true, onClose);
+  // Opens over More.. or the sign-in screen: Escape and back close just this.
+  useEscapeToClose(true, onClose, { top:true });
+  useBackButtonCloses(true, onClose, { top:true });
 
   const sec = { marginBottom: '20px' };
   const h3 = { fontSize: '13px', fontWeight: 900, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 8px' };
@@ -32,12 +35,12 @@ export function PrivacyNotice({ onClose, brass = '#b8823f' }) {
   const strong = { color: 'var(--ink)', fontWeight: 700 };
 
   const body = (
-    <div onClick={e => e.stopPropagation()} ref={boxRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Privacy Notice"
+    <div onClick={e => e.stopPropagation()} ref={boxRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Privacy notice"
       style={{ background: 'var(--surface)', borderRadius: '18px', width: '100%', maxWidth: '560px', maxHeight: '86vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,0.35)', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid var(--border-2)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Ico n="shield" s={18} c="#2563eb" />
-          <span style={{ fontSize: '15.5px', fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.2px' }}>Privacy Notice</span>
+          <span style={{ fontSize: '15.5px', fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.2px' }}>Privacy notice</span>
         </div>
         <button onClick={onClose} aria-label="Close" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: '10px', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <Ico n="x" s={14} c="var(--muted)" />
@@ -65,7 +68,7 @@ export function PrivacyNotice({ onClose, brass = '#b8823f' }) {
 
         <div style={sec}>
           <h3 style={h3}>Why, and on what basis</h3>
-          <p style={p}>Solely to give you overtime, TOIL, and pay tracking against the pay calendar you've asked to use. The legal basis is your <span style={strong}>consent</span>, given when you tick the box at sign-up — you can withdraw it at any time by deleting your account in More.., which removes your cloud data immediately.</p>
+          <p style={p}>Solely to give you overtime, TOIL, and pay tracking against the pay calendar you've asked to use. The legal basis is your <span style={strong}>consent</span>, given when you tick the box at sign-up — you can withdraw it at any time by deleting your account in More.., which removes your cloud data within a few minutes.</p>
         </div>
 
         <div style={sec}>
@@ -76,7 +79,7 @@ export function PrivacyNotice({ onClose, brass = '#b8823f' }) {
         <div style={sec}>
           <h3 style={h3}>How long it's kept</h3>
           <ul style={{ margin: '0 0 8px', paddingLeft: '18px' }}>
-            <li style={li}>Cloud copy: entries from the last three complete tax years. Older entries stay on your own device but aren't kept in the cloud.</li>
+            <li style={li}>Cloud copy: this tax year and the previous three. Older entries stay on your own device but aren't kept in the cloud.</li>
             <li style={li}>Account data: kept until you delete your account, at which point it's removed within a few minutes, not just marked hidden.</li>
             <li style={li}>Local device copy: stays on your device until you clear it yourself, independent of what's in the cloud.</li>
           </ul>

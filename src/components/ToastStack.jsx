@@ -62,7 +62,7 @@ export function ToastStack({ toasts, onDismiss, isWide }) {
                   <Ico n="x" s={14} c="#94a3b8"/>
                 </button>
               </div>
-              {t.action&&<button onClick={t.action.fn} style={{background:'#ef4444',border:'none',borderRadius:'9px',padding:'10px',color:'#fff',fontWeight:900,fontSize:'11px',cursor:'pointer',fontFamily:'inherit',width:'100%'}}>{t.action.label}</button>}
+              {t.action&&<button onClick={()=>{ t.action.fn(); onDismiss&&onDismiss(t.id); }} style={{background:'#ef4444',border:'none',borderRadius:'9px',padding:'10px',color:'#fff',fontWeight:900,fontSize:'11px',cursor:'pointer',fontFamily:'inherit',width:'100%'}}>{t.action.label}</button>}
             </div>
           );
         }
@@ -80,9 +80,9 @@ export function ToastStack({ toasts, onDismiss, isWide }) {
               <div style={{width:'30px',height:'30px',borderRadius:'50%',background:tint,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                 <Ico n={t.type==='undo'?'undo':t.type==='warn'?'bell':'check'} s={14} c={deep}/>
               </div>
-              <span style={{fontSize:'13px',fontWeight:700,color:'var(--ink)',minWidth:0}}>{t.message}</span>
+              <span style={{fontSize:'13px',fontWeight:700,color:'var(--ink)',minWidth:0}}>{t.title&&<b style={{display:'block',fontWeight:900}}>{t.title}</b>}{t.message}</span>
             </div>
-            {t.action&&<button onClick={t.action.fn} style={{background:tint,border:'none',borderRadius:'8px',padding:'6px 11px',color:deep,fontWeight:800,fontSize:'11px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',flexShrink:0}}>{t.action.label}</button>}
+            {t.action&&<button onClick={()=>{ t.action.fn(); onDismiss&&onDismiss(t.id); }} style={{background:tint,border:'none',borderRadius:'8px',padding:'6px 11px',color:deep,fontWeight:800,fontSize:'11px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',flexShrink:0}}>{t.action.label}</button>}
             {/* countdown — only on actionable toasts (Undo, Reload…), where
                 knowing the window's closing actually matters; a plain
                 confirmation toast has nothing to act on before it goes, so

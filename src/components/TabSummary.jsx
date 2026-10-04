@@ -382,8 +382,8 @@ export function TabSummary({
             {c.payH3>0&&lineItem(`${fmtHrs(c.payH3)} at 2× · £${c.r.r200.toFixed(2)}/hr`,fmt(c.ot3))}
             {c.toilH>0&&lineItem(`${fmtHrs(c.toilH)} at ${RATE_TIER_LABEL[c.otRateTier]}× as TOIL`,`${fmtHrs(c.toilBanked)} banked`,'var(--text-purple-deep)')}
             {hasPA&&lineItem(`${e.paRate}`,fmt(c.pa),'var(--text-amber-deep)')}
-            {!hasClaim&&!toilOnly&&<div style={{fontSize:'12.5px',fontWeight:600,color:'var(--muted)'}}>A record of the shift — no overtime or allowance to claim.</div>}
-            {xp&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--text-indigo-deep)',marginTop:'4px'}}>{xp.both?'Overtime & PA':xp.ot?'Overtime':'PA'} counted in {xp.label}</div>}
+            {!hasClaim&&!toilOnly&&<div style={{fontSize:'12.5px',fontWeight:600,color:'var(--muted)'}}>A record of the shift, with nothing to submit.</div>}
+            {xp&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--text-indigo-deep)',marginTop:'4px'}}>{xp.both?'Overtime & PA':xp.ot?'Overtime':'PA'} paid in {xp.label}</div>}
             {e.comments&&<div style={{fontSize:'12.5px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid var(--border)',paddingLeft:'8px',margin:'8px 0 2px',whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{e.comments}</div>}
             <div style={{display:'flex',gap:'8px',marginTop:'10px',flexWrap:'wrap',alignItems:'center'}}>
               {confirmDel===e.id ? (<>
@@ -392,7 +392,7 @@ export function TabSummary({
                 <button type="button" onClick={()=>delEntry(e.id)} style={{...btn,background:'#dc2626',border:'none',color:'#fff'}}>Delete</button>
               </>) : (<>
                 <button type="button" onClick={()=>startEdit(e)} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--surface)',border:'1px solid var(--border)',color:'var(--ink)'}}><Ico n="edit" s={12} c="var(--muted)"/>Edit shift</button>
-                <button type="button" onClick={()=>setConfirmDel(e.id)} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'transparent',border:'none',color:'#dc2626'}}><Ico n="trash" s={12} c="#ef4444"/>Delete</button>
+                <button type="button" onClick={()=>setConfirmDel(e.id)} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'transparent',border:'none',color:'var(--text-red-deep)'}}><Ico n="trash" s={12} c="#ef4444"/>Delete</button>
               </>)}
             </div>
           </div>
@@ -521,7 +521,7 @@ export function TabSummary({
               </div>
             ) : (<>
               <div style={{display:'flex',alignItems:'flex-start',gap:'8px'}}>
-                <span style={{flex:1,minWidth:0}}>{name}{sub}{ex&&planned(`+${fmtGBP(ex.gross)} · +${fmtGBP(ex.net)} net expected`)}</span>
+                <span style={{flex:1,minWidth:0}}>{name}{sub}{ex&&planned(`+${fmtGBP(ex.gross)} · +${fmtGBP(ex.net)} net planned`)}</span>
                 <span style={{textAlign:'right',flexShrink:0}}>
                   {empty ? <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--quiet)'}}>—</span> : <span>{money(fmtGBP(totG),'var(--text-navy)')}<span style={W>=340?{marginLeft:'9px'}:{display:'block',textAlign:'right',marginTop:'2px'}}>{money(fmtGBP(totN),GRN,13)}</span></span>}
                 </span>
@@ -542,8 +542,8 @@ export function TabSummary({
       <div style={{...S.card,padding:isWide?'18px 20px':'16px',marginBottom:'10px'}}>
         <div style={{fontWeight:900,fontSize:'15px',color:'var(--ink)',marginBottom:'12px'}}>Overtime &amp; PA · tax year {fy}/{String(Number(fy)+1).slice(-2)} so far</div>
         <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(3,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',gap:'14px'}}>
-          {big('Gross',fmtGBP(T.g),'var(--text-navy)',EY?.n>0?`+${fmtGBP(EY.gross)} expected`:null)}
-          {big('Net',fmtGBP(T.net),GRN,EY?.n>0?`+${fmtGBP(EY.net)} expected`:null)}
+          {big('Gross',fmtGBP(T.g),'var(--text-navy)',EY?.n>0?`+${fmtGBP(EY.gross)} planned`:null)}
+          {big('Net',fmtGBP(T.net),GRN,EY?.n>0?`+${fmtGBP(EY.net)} planned`:null)}
           {isWide&&big('Hours',fmtHrs(T.hrs),'var(--ink)',`${T.n} shift${T.n!==1?'s':''}`,'var(--muted)')}
         </div>
         {!isWide&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginTop:'10px'}}>{fmtHrs(T.hrs)} over {T.n} shift{T.n!==1?'s':''}</div>}
@@ -786,8 +786,8 @@ export function TabSummary({
                 <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}>
                   <Ico n="cal" s={18} c="#1e40af" w={2}/>
                 </div>
-                <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No overtime yet</div>
-                <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Log your first shift and each pay month's gross, net and hours will show up here.</div>
+                <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>No shifts in this pay month</div>
+                <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:600}}>Shifts you log between {fmtD(cPeriod.start)} and {fmtD(cPeriod.end)} show up here.</div>
               </div>
             ) : <div style={isWide?{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'8px',alignItems:'stretch',marginBottom:'8px'}:undefined}>{[...[...cEntries].sort((a,b)=>new Date(a.date)-new Date(b.date)), ...lateInto(cPeriod)].map(e=>{
               const c = calcEntry(e);
@@ -1025,7 +1025,7 @@ export function TabSummary({
           <>
             {/* period navigator */}
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'14px'}}>
-              <button onClick={()=>setCalPeriodIdx(i=>Math.max(0,(i===null?currPeriodIdx:i)-1))} disabled={cIdx===0} aria-label="Previous period" style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===0?'default':'pointer',opacity:cIdx===0?0.3:1}}><Ico n="cL" s={18} c={BRASS}/></button>
+              <button onClick={()=>setCalPeriodIdx(i=>Math.max(0,(i===null?currPeriodIdx:i)-1))} disabled={cIdx===0} aria-label="Previous pay month" style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===0?'default':'pointer',opacity:cIdx===0?0.3:1}}><Ico n="cL" s={18} c={BRASS}/></button>
               <div style={{textAlign:'center'}}>
                 {cIdx===currPeriodIdx&&(
                   <div style={{display:'flex',justifyContent:'center',marginBottom:'4px'}}>{nowTag}</div>
@@ -1040,7 +1040,7 @@ export function TabSummary({
                   <div style={{fontSize:'12px',fontWeight:700,marginTop:'1px',display:'flex',flexWrap:'wrap',justifyContent:'center',columnGap:'6px'}}><span style={{color:GRN,whiteSpace:'nowrap'}}>{fmtHrs(hrsSplit(cEntries).sub)} submitted</span><span style={{color:hrsSplit(cEntries).pend>0?RED:'var(--quiet)',whiteSpace:'nowrap'}}>{fmtHrs(hrsSplit(cEntries).pend)} not submitted</span></div>
                 </>)}
               </div>
-              <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} aria-label="Next period" style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c={BRASS}/></button>
+              <button onClick={()=>setCalPeriodIdx(i=>Math.min(11,(i===null?currPeriodIdx:i)+1))} disabled={cIdx===11} aria-label="Next pay month" style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'10px',padding:'9px 14px',cursor:cIdx===11?'default':'pointer',opacity:cIdx===11?0.3:1}}><Ico n="cR" s={18} c={BRASS}/></button>
             </div>
 
 
@@ -1146,10 +1146,10 @@ export function TabSummary({
                     <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-red)',border:'1.5px solid color-mix(in srgb, #dc2626 45%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Not submitted</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-green)',border:'1.5px solid color-mix(in srgb, #059669 45%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Submitted</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--tint-blue)',border:'1.5px dashed color-mix(in srgb, #2563eb 55%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Planned</span></div>
-                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--border)',border:'1.5px solid color-mix(in srgb, #64748b 35%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>No OT · info only</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'6px'}}><div style={{width:'12px',height:'12px',borderRadius:'4px',background:'var(--border)',border:'1.5px solid color-mix(in srgb, #64748b 35%, transparent)'}}/><span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Record only</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
-                      <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Counted in another pay month</span>
+                      <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Paid in another pay month</span>
                     </div>
                   </div>
                   <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:'18px'}}>
@@ -1176,12 +1176,12 @@ export function TabSummary({
                     <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-red)',border:'1.5px solid color-mix(in srgb, #dc2626 45%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Not submitted</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-green)',border:'1.5px solid color-mix(in srgb, #059669 45%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Submitted</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--tint-blue)',border:'1.5px dashed color-mix(in srgb, #2563eb 55%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Planned</span></div>
-                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--border)',border:'1.5px solid color-mix(in srgb, #64748b 35%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>No OT · info only</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'11px',height:'11px',borderRadius:'3px',background:'var(--border)',border:'1.5px solid color-mix(in srgb, #64748b 35%, transparent)'}}/><span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Record only</span></div>
                     <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
                       <div style={{width:'11px',display:'flex',justifyContent:'center',flexShrink:0}}>
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><g stroke="#4338ca" strokeWidth="3.2" strokeLinecap="round"><line x1="12" y1="3" x2="12" y2="21"/><line x1="4.5" y1="7.5" x2="19.5" y2="16.5"/><line x1="19.5" y1="7.5" x2="4.5" y2="16.5"/></g></svg>
                       </div>
-                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Counted in another pay month</span>
+                      <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>Paid in another pay month</span>
                     </div>
                   </div>
                   <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:'8px'}}>

@@ -52,9 +52,9 @@ export function MonthlyChart({ totals, PAY_PERIODS, MONO, chartTap, setChartTap,
     tooltip = (
       <g>
         <rect x={tx} y={ty} width={tw} height={th} rx="7" fill={tooltipBg}/>
-        <text x={tx+tw/2} y={ty+padTop} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?10:8,fontWeight:900,fill:'#93c5fd'}}>{tapPt.lbl}</text>
-        <text x={tx+tw/2} y={ty+padTop+lineH} textAnchor="middle" dominantBaseline="middle" style={{fontFamily:MONO,fontSize:big?11:9,fontWeight:600,fill:'#6ee7b7'}}>Gross {fmtGBP(tapPt.g)}</text>
-        <text x={tx+tw/2} y={ty+padTop+lineH*2} textAnchor="middle" dominantBaseline="middle" style={{fontFamily:MONO,fontSize:big?11:9,fontWeight:600,fill:'#fca5a5'}}>Net {fmtGBP(tapPt.n)}</text>
+        <text x={tx+tw/2} y={ty+padTop} textAnchor="middle" dominantBaseline="middle" style={{fontSize:big?10:8,fontWeight:900,fill:'#e2e8f0'}}>{tapPt.lbl}</text>
+        <text x={tx+tw/2} y={ty+padTop+lineH} textAnchor="middle" dominantBaseline="middle" style={{fontFamily:MONO,fontSize:big?11:9,fontWeight:600,fill:'#93c5fd'}}>Gross {fmtGBP(tapPt.g)}</text>
+        <text x={tx+tw/2} y={ty+padTop+lineH*2} textAnchor="middle" dominantBaseline="middle" style={{fontFamily:MONO,fontSize:big?11:9,fontWeight:600,fill:'#6ee7b7'}}>Net {fmtGBP(tapPt.n)}</text>
       </g>
     );
   }

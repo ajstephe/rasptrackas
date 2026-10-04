@@ -8,11 +8,13 @@ import { useEffect } from 'react';
 // (a modal's own state, e.g. `confirmCreateDay` itself); `onClose` only
 // gets called while it's truthy, and the listener is only attached at all
 // while something's actually open.
-export function useEscapeToClose(open, onClose) {
+// `top: true` is for one that opens over
+// another: it hears the key first and stops it there, so only it closes.
+export function useEscapeToClose(open, onClose, { top = false } = {}) {
   useEffect(() => {
     if (!open) return;
-    const onKey = e => { if (e.key==='Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+    const onKey = e => { if (e.key==='Escape') { if (top) e.stopImmediatePropagation(); onClose(); } };
+    window.addEventListener('keydown', onKey, top);
+    return () => window.removeEventListener('keydown', onKey, top);
+  }, [open, onClose, top]);
 }

@@ -276,7 +276,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)'}}>{typeBadge(row)}</td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',fontFamily:MONO,textAlign:'right',whiteSpace:'nowrap',...(row.toilOnly?{color:'var(--tag-purple)',fontWeight:700}:{})}}>
                     {row.amountDisplay}
-                    {row.kind==='ot+toil'&&!row.toilOnly&&<div style={{fontSize:'10px',fontWeight:700,color:'#7c3aed',marginTop:'2px'}}>+{fmtHrs(row.toilHrs)} TOIL</div>}
+                    {row.kind==='ot+toil'&&!row.toilOnly&&<div style={{fontSize:'10px',fontWeight:700,color:'var(--tag-purple)',marginTop:'2px'}}>+{fmtHrs(row.toilHrs)} TOIL</div>}
                   </td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',textAlign:'right'}}>
                     <button className="awaits-quick" onClick={e=>{ e.stopPropagation(); selectCarmsClaim(row.entryId,row.claimKey); openCarmsBulkConfirm(); }}
@@ -330,7 +330,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                 </div>
                 <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'5px',flexShrink:0}}>
                   <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:row.toilOnly?700:600,color:row.toilOnly?'var(--tag-purple)':'var(--ink)'}}>{row.amountDisplay}</div>
-                  {row.kind==='ot+toil'&&!row.toilOnly&&<div style={{fontFamily:MONO,fontSize:'9px',fontWeight:700,color:'#7c3aed'}}>+{fmtHrs(row.toilHrs)} TOIL</div>}
+                  {row.kind==='ot+toil'&&!row.toilOnly&&<div style={{fontFamily:MONO,fontSize:'9px',fontWeight:700,color:'var(--tag-purple)'}}>+{fmtHrs(row.toilHrs)} TOIL</div>}
                   <button onClick={e=>{ e.stopPropagation(); selectCarmsClaim(row.entryId,row.claimKey); openCarmsBulkConfirm(); }}
                     style={{display:'flex',alignItems:'center',gap:'4px',fontSize:'11px',fontWeight:800,color:'var(--text-green-deep)',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'6px',padding:'3px 6px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
                     <Ico n="check" s={8} c="var(--text-green-deep)" w={3}/> Mark submitted
@@ -394,7 +394,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
            bottom nav (fixed left sidebar instead), so it just sits in
            normal flow there. ── */}
       {barMounted && (
-        <div className={'sheet-pop'+(barOpen?'':' pop-out')} style={{...(!isWide?{position:'sticky',bottom:'calc(88px + env(safe-area-inset-bottom))'}:{}),zIndex:24,marginTop:'11px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'15px',padding:'12px 14px',boxShadow:'0 10px 24px rgba(15,39,68,0.16)'}}>
+        <div className={'sheet-pop'+(barOpen?'':' pop-out')} style={{position:'sticky',bottom:isWide?'20px':'calc(84px + env(safe-area-inset-bottom))',zIndex:24,marginTop:'11px',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'15px',padding:'12px 14px',boxShadow:'0 10px 24px rgba(15,39,68,0.16)'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
             <div style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>{barCount} selected</div>
             <div style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:600,color:BRASS}}>{fmtGBP(barTotal)}</div>

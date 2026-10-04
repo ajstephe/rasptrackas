@@ -51,8 +51,8 @@ export const fmtDDMM = d=>{ const dt=new Date(d+'T12:00:00'); return `${String(d
 // a full relative-date library would.
 export const fmtRelTime = (epochMs, now=Date.now())=>{
   const s = Math.max(0, Math.round((now-epochMs)/1000));
-  if (s<10) return 'just now';
-  if (s<60) return `${s}s ago`;
+  // The label only refreshes once a minute, so seconds would sit stale.
+  if (s<60) return 'just now';
   const m = Math.round(s/60);
   if (m<60) return `${m} minute${m===1?'':'s'} ago`;
   const h = Math.round(m/60);

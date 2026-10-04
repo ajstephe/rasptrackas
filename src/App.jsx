@@ -163,7 +163,7 @@ const THEME_PALETTES = {
     sidebarBtnBg:'rgba(45,212,191,0.12)', sidebarBtnBorder:'rgba(45,212,191,0.35)', sidebarBtnSubtext:'rgba(45,212,191,0.6)',
   },
   midnight: {
-    brass:'#22d3ee', brassLight:'#67e8f9', pillShadow:'rgba(34,211,238,0.35)',
+    brass:'#0891b2', brassLight:'#67e8f9', pillShadow:'rgba(8,145,178,0.4)',
     sidebarText:'#5c7699', sidebarTextActive:'#e7ecf5', sidebarDivider:'rgba(255,255,255,0.08)',
     sidebarGlow:'rgba(34,211,238,0.16)', sidebarPill:'rgba(34,211,238,0.16)',
     sidebarBtnBg:'rgba(34,211,238,0.12)', sidebarBtnBorder:'rgba(34,211,238,0.32)', sidebarBtnSubtext:'rgba(103,232,249,0.6)',
@@ -339,6 +339,7 @@ const friendlyAuthError = (err) => {
   if (m.includes('already registered') || m.includes('already been registered')) return 'There\u2019s already an account with that email. Sign in instead.';
   if (m.includes('rate limit') || m.includes('too many')) return 'Too many tries. Wait a minute, then try again.';
   if (m.includes('password should be') || m.includes('weak password')) return 'Choose a longer password: at least 8 characters.';
+  if (m.includes('different from the old')) return 'Your new password must be different from your current one.';
   return 'Something went wrong. Try again.';
 };
 const PASSWORD_KDF_ITERATIONS = 210000; // used every sign-in, cost stays invisible
@@ -377,7 +378,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     card: {width:'100%',maxWidth:isWide?'460px':'none',background:'var(--surface)',borderRadius:'18px',padding:isWide?'34px 30px 28px':'26px 22px 22px',boxShadow:'0 12px 34px rgba(0,0,0,0.28)',boxSizing:'border-box'},
     label:{display:'block',fontSize:'9px',color:'var(--muted)',margin:'0 0 6px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1.5px'},
     input:{width:'100%',background:'var(--surface-2)',border:'none',padding:'12px 15px',borderRadius:'13px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'14px'},
-    err:{fontSize:'12px',color:'#dc2626',margin:'-10px 0 14px',fontWeight:700},
+    err:{fontSize:'12px',color:'var(--text-red-deep)',margin:'-10px 0 14px',fontWeight:700},
     btn:{width:'100%',padding:'13px 0',borderRadius:'13px',border:'none',fontFamily:'inherit',fontSize:'14px',fontWeight:800,cursor:'pointer',background:'var(--accent)',color:'#fff'},
     btnGhost:{width:'100%',padding:'12px 0',borderRadius:'13px',border:'1.5px solid var(--border)',fontFamily:'inherit',fontSize:'14px',fontWeight:800,cursor:'pointer',background:'var(--surface)',color:'var(--ink)',marginTop:'10px'},
     linkRow:{textAlign:'center',marginTop:'14px',fontSize:'13px',color:'var(--quiet)',fontWeight:700},
@@ -444,7 +445,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     if (!validEmail) { setError('Enter a valid email address'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
     if (password !== password2) { setError('Passwords do not match'); return; }
-    if (!agreedToPrivacy) { setError('Please agree to the Privacy Notice to create an account'); return; }
+    if (!agreedToPrivacy) { setError('Please agree to the privacy notice to create an account.'); return; }
     setBusy(true);
     // Consent is real at this tick, not at whatever moment user_keys finally
     // gets written — stashed here so it survives the gap when email
@@ -644,7 +645,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             </div>
             <label style={{display:'flex',alignItems:'flex-start',gap:'9px',marginBottom:'14px',cursor:'pointer'}}>
               <input type="checkbox" checked={agreedToPrivacy} onChange={e=>setAgreedToPrivacy(e.target.checked)} style={{marginTop:'2px',flexShrink:0,width:'16px',height:'16px',accentColor:'var(--accent)',cursor:'pointer'}}/>
-              <span style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,fontWeight:600}}>I've read the <button type="button" style={AS.link} onClick={e=>{ e.preventDefault(); setShowPrivacyNotice(true); }}>Privacy Notice</button> and agree to my data being processed as described.</span>
+              <span style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,fontWeight:600}}>I've read the <button type="button" style={AS.link} onClick={e=>{ e.preventDefault(); setShowPrivacyNotice(true); }}>privacy notice</button> and agree to my data being processed as described.</span>
             </label>
             {error && <div role="alert" style={AS.err}>{error}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignUp}>{busy?'Creating…':'Create account'}</button>
@@ -719,7 +720,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             <div style={AS.linkRow}><button type="button" style={AS.link} onClick={()=>setNoRecoveryWarning(true)}>I don't have my recovery word</button></div>
             {noRecoveryWarning && (
               <div style={{marginTop:'12px'}}>
-                <div style={{fontSize:'11.5px',color:'#dc2626',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>Without it, your existing shifts and TOIL can't be recovered by anyone. You can continue and set up a fresh recovery word, but everything logged before this reset will be gone for good.</div>
+                <div style={{fontSize:'11.5px',color:'var(--text-red-deep)',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>Without it, your existing shifts and TOIL can't be recovered by anyone. You can continue and set up a fresh recovery word, but everything logged before this reset will be gone for good.</div>
                 <button style={AS.btnGhost} onClick={()=>{ setError(''); setRecoveryWord(''); setRecoveryWord2(''); setWroteItDown(false); setNoRecoveryWarning(false); setScreen('recovery-setup'); }}>Continue without my old data</button>
               </div>
             )}
@@ -1170,9 +1171,20 @@ export default function App() {
   useEscapeToClose(selectedCalDay && !datePickerFor, () => { setSelectedCalDay(null); setConfirmDel(null); });
   useEscapeToClose(datePickerFor, () => setDatePickerFor(null));
   useEscapeToClose(!!discardAsk, () => setDiscardAsk(null));
+  // Full-screen views that open over everything else: Escape and back close
+  // just that view, not the More.. pop-up it was opened from.
+  const closeFySummary = useCallback(() => { setFySummaryYear(null); setFySummaryPrintMode(false); }, []);
+  const closePayslipPreview = useCallback(() => setPayslipPreview(null), []);
+  useEscapeToClose(fySummaryYear!=null, closeFySummary, { top:true });
+  useBackButtonCloses(fySummaryYear!=null, closeFySummary, { top:true });
+  useEscapeToClose(!!payslipPreview, closePayslipPreview, { top:true });
+  useBackButtonCloses(!!payslipPreview, closePayslipPreview, { top:true });
+  // The date picker opened from the calendar day card: back closes the picker only.
+  const closeDatePicker = useCallback(() => setDatePickerFor(null), []);
+  useBackButtonCloses(!!(datePickerFor && selectedCalDay), closeDatePicker, { top:true });
   useEscapeToClose(
-    configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded,
-    () => { setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }
+    configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded || setupPopupRequested,
+    () => { setSetupPopupRequested(false); setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }
   );
   // ── Android back closes whatever's open ─────────────────────────────────
   // Same overlay list as the Escape handling above, collapsed into one
@@ -1182,7 +1194,7 @@ export default function App() {
   // needs pushState/popstate rather than something simpler.
   useBackButtonCloses(
     !!(signOutConfirmOpen || restoreConfirmOpen || payslipModalOpen || confirmCreateDay || selectedCalDay || datePickerFor || discardAsk
-      || configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded),
+      || configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded || setupPopupRequested),
     () => {
       setSignOutConfirmOpen(false); setRestoreConfirmOpen(false); setPayslipModalOpen(false);
       setChartTap(null);
@@ -1190,6 +1202,7 @@ export default function App() {
       setSelectedCalDay(null); setConfirmDel(null);
       setDatePickerFor(null);
       setDiscardAsk(null);
+      setSetupPopupRequested(false);
       setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false);
     }
   );
@@ -2045,9 +2058,9 @@ export default function App() {
     return (
       <div ref={datePickerTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Choose a date" onClick={ev=>ev.stopPropagation()} className={'alert-pop'+(closing?' pop-out':'')} style={{background:'var(--surface)',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid var(--border)',padding:'22px',width:'360px',maxWidth:'calc(100vw - 32px)',boxSizing:'border-box'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'18px'}}>
-          <button onClick={()=>changeMonth(-1)} disabled={noPrev} aria-label="Previous month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:noPrev?'default':'pointer',opacity:noPrev?0.35:1,display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cL" s={18} c="#475569"/></button>
+          <button onClick={()=>changeMonth(-1)} disabled={noPrev} aria-label="Previous month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:noPrev?'default':'pointer',opacity:noPrev?0.35:1,display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cL" s={18} c={BRASS}/></button>
           <div style={{fontWeight:900,fontSize:'17px',color:'var(--ink)'}}>{monthLabel}</div>
-          <button onClick={()=>changeMonth(1)} disabled={noNext} aria-label="Next month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:noNext?'default':'pointer',opacity:noNext?0.35:1,display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c="#475569"/></button>
+          <button onClick={()=>changeMonth(1)} disabled={noNext} aria-label="Next month" style={{background:'var(--chip-bg)',border:'none',borderRadius:'10px',width:'38px',height:'38px',cursor:noNext?'default':'pointer',opacity:noNext?0.35:1,display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="cR" s={18} c={BRASS}/></button>
         </div>
         <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)',textAlign:'center',marginBottom:'14px'}}>
           {datePickerForV==='quick' && quickSubmitV ? (()=>{ const qe = entries.find(x=>x.id===quickSubmitV.id); return <>Select the date you submitted {quickSubmitV.ot&&quickSubmitV.pa?'this overtime and PA':quickSubmitV.ot?'this overtime to CARMS':'this PA to PSOP'}{qe&&<span style={{display:'block',fontWeight:600,color:'var(--quiet)',marginTop:'3px'}}>{new Date(qe.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · {qe.reason||'Shift'}</span>}</>; })() : datePickerForV==='ot' ? 'Select the date you submitted this to CARMS' : datePickerForV==='pa' ? 'Select the date you submitted this to PSOP' : datePickerForV==='carmsBulk' ? `Select the date you submitted ${carmsSelectedClaimCount} claim${carmsSelectedClaimCount!==1?'s':''}` : datePickerForV==='custom' ? (customPickerRef.current?.title||'Select a date') : (datePickerForV==='toil' ? 'Select the day you took the TOIL' : 'Select the date of this shift')}
@@ -2616,7 +2629,7 @@ export default function App() {
     // the existing record rather than silently creating a second one.
     const dupe = entries.find(e=>e.date===form.date && (!editing || e.id!==editing.id));
     if(dupe){
-      const dStr = new Date(form.date+'T12:00:00').toLocaleDateString('en-GB');
+      const dStr = longDay(form.date);
       addToast(
         `You've already logged overtime for ${dStr}. Edit that shift instead of logging a second one.`,
         'alert',
@@ -2651,11 +2664,11 @@ export default function App() {
         savedId = genRecordId();
         updatedEntries = [...entries,{...cleanForm,id:savedId}];
         setEntries(prev=>[...prev,{...cleanForm,id:savedId}]);
-        addToast('Overtime logged');
+        addToast('Shift saved');
         // nudge backup every 5 entries
         const count=(dualRead(KEYS.backupCount,0)||0)+1;
         dualWrite(KEYS.backupCount,count);
-        if(count%5===0) setTimeout(()=>addToast(`${count} shifts logged — download a backup?`,'warn',{label:'Backup now',fn:handleExport},8000),800);
+        if(count%5===0) setTimeout(()=>addToast(`${count} shifts logged — download a backup?`,'warn',{label:'Back up now',fn:handleExport},8000),800);
       }
 
       // Show the person the record they just saved, in whichever Breakdown view
@@ -2744,8 +2757,8 @@ export default function App() {
     const wholeHours = parseFloat(toilTakenForm.hours)||0;
     const mins = parseInt(toilTakenForm.minutes,10)||0;
     const hrs = wholeHours + mins/60;
-    if (!toilTakenForm.date || !(hrs>0)) { addToast('Enter a date and a positive number of hours','warn'); return; }
-    if (hrs>24) { addToast('That\'s more than a day — enter up to 24 hours at a time.','warn'); return; }
+    if (!toilTakenForm.date || !(hrs>0)) { addToast('Enter a date and a positive number of hours.','alert'); return; }
+    if (hrs>24) { addToast('That\'s more than a day. Enter up to 24 hours at a time.','alert'); return; }
     const resultingBalance = toilLedger.balance - hrs;
     setToilTaken(prev=>[...prev, { id:genRecordId(), date:toilTakenForm.date, hours:hrs, note:toilTakenForm.note||'' }]);
     setToilTakenForm({date:todayStr, hours:'', minutes:'00', note:''});
@@ -2760,7 +2773,7 @@ export default function App() {
     const d = toilTaken.find(t=>t.id===id);
     setToilTaken(prev=>prev.filter(t=>t.id!==id));
     haptic();
-    addToast('TOIL taken removed','undo',{label:'Undo',fn:()=>setToilTaken(prev=>[...prev,d])},7000);
+    addToast('TOIL taken deleted','undo',{label:'Undo',fn:()=>setToilTaken(prev=>[...prev,d])},7000);
   };
 
   // Standard backup filename convention: OTbackup + day + 3-letter month +
@@ -2844,7 +2857,7 @@ export default function App() {
     const headers = [
       'Pay Month','Date','Duty/Reason','1.33× Hours','1.5× Hours','2× Hours',
       'PA Rate','Submitted','Breakdown','Gross (£)',
-      'Cumulative Taxable Income Before This Entry (£)','Net (£)','Rate Applied','Notes'
+      'Cumulative Taxable Income Before This Shift (£)','Net (£)','Rate Applied','Notes'
     ];
     // DD/MM/YYYY as plain text — deliberately not a real date cell, since
     // date-serial conversion between JS and Excel can silently shift by a
@@ -2858,7 +2871,7 @@ export default function App() {
       const hasPA = e.paRate && e.paRate!=='None';
       const otOK = isOtSubmitted(e), paOK = !hasPA || isPaSubmitted(e);
       if (otOK && paOK) return 'Yes';
-      if (otOK && !paOK) return 'OT only (PA pending)';
+      if (otOK && !paOK) return 'Overtime only (PA pending)';
       if (!otOK && paOK) return hasPA ? 'PA only (OT pending)' : 'No';
       return 'No';
     };
@@ -3165,7 +3178,7 @@ export default function App() {
       titleCell.value = 'Overtime & Shift Tracker — Summary';
       titleCell.font = { bold:true, size:14, color:{argb:'FF0F172A'} };
       sws.mergeCells('A1:C1');
-      sws.getCell('A2').value = `Generated ${new Date().toLocaleDateString('en-GB')}`;
+      sws.getCell('A2').value = `Generated ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}).replace(/\bSep\b/,'Sept')}`;
       sws.getCell('A2').font = { size:10, color:{argb:'FF64748B'} };
 
       const sectionHeaderStyle = cell => {
@@ -3253,7 +3266,7 @@ export default function App() {
       URL.revokeObjectURL(url);
       addToast('Spreadsheet exported');
     } catch (err) {
-      addToast('Could not reach the spreadsheet library — check your connection and try again');
+      addToast('Could not reach the spreadsheet library. Check your connection and try again.','warn',null,6000);
     }
   }
 
@@ -3267,13 +3280,13 @@ export default function App() {
       let result;
       try { result = parseBackupFile(e.target.result); }
       catch (_) { result = { ok:false, error:"That backup file couldn't be read." }; }
-      if (!result.ok) { addToast(result.error, 'warn'); return; }
+      if (!result.ok) { addToast(result.error, 'warn', null, 6000); return; }
       let exportedAt = null;
       try { exportedAt = JSON.parse(e.target.result).exportedAt || null; } catch (_) { /* parsed above */ }
       setPendingRestore({ ...result, exportedAt });
       setRestoreConfirmOpen(true);
     };
-    fr.onerror=()=>{ input.value=''; addToast("That backup file couldn't be read.", 'warn'); };
+    fr.onerror=()=>{ input.value=''; addToast("That backup file couldn't be read.", 'warn', null, 6000); };
     fr.readAsText(file);
   };
 
@@ -3316,12 +3329,12 @@ export default function App() {
         ]);
         if (results.some(r => r.error)) {
           setWipingData(false);
-          addToast('Couldn\u2019t fully clear cloud data \u2014 check your connection and try again', 'warn', null, 6000);
+          addToast('Couldn\u2019t fully clear your cloud data. Check your connection and try again.', 'warn', null, 6000);
           return;
         }
       } catch (e) {
         setWipingData(false);
-        addToast('Couldn\u2019t clear cloud data \u2014 check your connection and try again', 'warn', null, 6000);
+        addToast('Couldn\u2019t clear your cloud data. Check your connection and try again.', 'warn', null, 6000);
         return;
       }
     }
@@ -3432,14 +3445,14 @@ export default function App() {
       // is only reachable via e.context, the raw fetch Response, which has
       // to be read separately. Without this, every failure here looks
       // identical and undiagnosable.
-      let message = e.message || 'try again';
+      let message = friendlyAuthError(e);
       if (e?.context?.json) {
         try {
           const body = await e.context.json();
           if (body?.error) message = body.error;
         } catch { /* body wasn't JSON, or already consumed \u2014 keep the generic message */ }
       }
-      addToast('Couldn\u2019t delete account \u2014 ' + message, 'warn', null, 6000);
+      addToast('Couldn\u2019t delete your account. ' + message, 'warn', null, 6000);
     } finally {
       setDeletingAcct(false);
     }
@@ -3463,7 +3476,7 @@ export default function App() {
     setChangingPw(true);
     try {
       const { error: updateErr } = await supabase.auth.updateUser({ password: newPw });
-      if (updateErr) { setChangingPw(false); setChangePwError(updateErr.message); return; }
+      if (updateErr) { setChangingPw(false); setChangePwError(friendlyAuthError(updateErr)); return; }
       const newWrap = await wrapDataKey(dataKey, newPw, PASSWORD_KDF_ITERATIONS);
       const { error: keyErr } = await supabase.from('user_keys').update({
         wrapped_dek: newWrap.wrapped,
@@ -3476,7 +3489,7 @@ export default function App() {
         // "failed" would leave someone re-trying against an already
         // -changed password, locking themselves out for a different reason.
         setChangingPw(false);
-        setChangePwError('Password changed, but saving the new encryption key failed - contact support before signing out');
+        setChangePwError('Your password changed, but the new encryption key didn\u2019t save. Email ' + SUPPORT_EMAIL + ' before signing out.');
         return;
       }
       setChangingPw(false);
@@ -3485,7 +3498,7 @@ export default function App() {
       addToast('Password changed', 'success', null, 4000);
     } catch (e) {
       setChangingPw(false);
-      setChangePwError('Something went wrong - try again');
+      setChangePwError(friendlyAuthError(e));
     }
   };
 
@@ -3541,7 +3554,7 @@ export default function App() {
   };
 
   const handleManualSync = async () => {
-    if (!supabase || !session || !dataKey) { addToast('Not signed in \u2014 nothing to sync', 'warn'); return; }
+    if (!supabase || !session || !dataKey) { addToast('You\u2019re not signed in, so there\u2019s nothing to sync.', 'warn'); return; }
     setManualSyncing(true);
     // A real sync can round-trip fast enough on a good connection that the
     // spinner is barely on screen before it's gone \u2014 easy to miss the
@@ -4458,7 +4471,7 @@ export default function App() {
         input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
         input:focus,select:focus,textarea:focus{outline:2px solid #2563eb;outline-offset:-2px}
         input,select,textarea{font-size:16px}
-        button:active{opacity:0.8;transform:scale(0.96)}
+        button:not(:disabled):active{opacity:0.8;transform:scale(0.96)}
         /* Opt-out of the scale half of that press feedback for a real
            <button> that is both wide and has its actual tap target (a
            checkbox-style ring, usually) sitting near one edge rather than
@@ -4548,10 +4561,10 @@ export default function App() {
       {/* ── sign-out confirmation — bottom sheet, same pattern as the export
            modal, with an explicit close (×) as well as Cancel ── */}
       {signOutMounted&&(
-        <div onClick={()=>setSignOutConfirmOpen(false)} className={signOutConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:60}}>
+        <div onClick={()=>setSignOutConfirmOpen(false)} className={signOutConfirmOpen?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:60}}>
           <div ref={signOutTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Sign out?" onClick={e=>e.stopPropagation()} className={'alert-pop'+(signOutConfirmOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',width:'100%',maxWidth:isWide?'430px':'400px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
             <button onClick={()=>setSignOutConfirmOpen(false)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
-              <Ico n="x" s={14} c="#64748b"/>
+              <Ico n="x" s={14} c="var(--muted)"/>
             </button>
             {unsynced.length>0 ? (<>
               <div style={{width:'42px',height:'42px',borderRadius:'50%',background:'var(--tint-amber)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}><Ico n="bell" s={20} c="var(--text-amber-deep)"/></div>
@@ -4565,7 +4578,7 @@ export default function App() {
                 <button onClick={handleManualSync} disabled={manualSyncing} style={{padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:manualSyncing?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><span style={{display:'flex',animation:manualSyncing?'spin 0.8s linear infinite':'none'}}><Ico n="refresh" s={14} c="#fff"/></span>{manualSyncing?'Syncing\u2026':'Sync now'}</button>
                 <button onClick={handleExport} style={{padding:'12px',background:'var(--chip-bg)',border:'none',borderRadius:'11px',color:'var(--ink)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Download a backup</button>
                 <div style={{display:'flex',gap:'8px'}}>
-                  <button onClick={()=>{ setSignOutConfirmOpen(false); handleSignOut(); }} style={{flex:1,padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Sign out anyway</button>
+                  <button onClick={()=>{ setSignOutConfirmOpen(false); handleSignOut(); }} style={{flex:1,padding:'12px',background:'var(--tint-red)',border:'none',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Sign out anyway</button>
                   <button onClick={()=>setSignOutConfirmOpen(false)} style={{flex:1,padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--muted)',fontWeight:700,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
                 </div>
               </div>
@@ -4583,9 +4596,12 @@ export default function App() {
 
       {/* ── leaving an edit with unsaved changes ── */}
       {discardMounted&&discardAskV&&(
-        <div onClick={()=>setDiscardAsk(null)} className={discardAsk?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:60}}>
-          <div ref={discardTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Discard your changes?" onClick={e=>e.stopPropagation()} className={'alert-pop'+(discardAsk?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',width:'100%',maxWidth:isWide?'430px':'400px',padding:'20px',boxSizing:'border-box',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
-            <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>Discard your changes?</div>
+        <div onClick={()=>setDiscardAsk(null)} className={discardAsk?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:60}}>
+          <div ref={discardTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Discard your changes?" onClick={e=>e.stopPropagation()} className={'alert-pop'+(discardAsk?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',width:'100%',maxWidth:isWide?'430px':'400px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
+            <button onClick={()=>setDiscardAsk(null)} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
+              <Ico n="x" s={14} c="var(--muted)"/>
+            </button>
+            <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center',padding:'0 26px'}}>Discard your changes?</div>
             <div style={{fontSize:'12.5px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>You've changed the shift on {discardAskV.date?longDay(discardAskV.date):'this day'}. Leaving now loses those changes.</div>
             <div style={{display:'flex',gap:'8px'}}>
               <button onClick={()=>setDiscardAsk(null)} style={{flex:1,padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Keep editing</button>
@@ -4605,10 +4621,10 @@ export default function App() {
         const facts = [`${r.entries.length} shift${r.entries.length!==1?'s':''}`, `${toilN} TOIL taken`, pp].filter(Boolean).join(', ');
         const close = ()=>{ setRestoreConfirmOpen(false); setTimeout(()=>setPendingRestore(null), 240); };
         return (
-        <div onClick={close} className={restoreConfirmOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:60}}>
+        <div onClick={close} className={restoreConfirmOpen?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:60}}>
           <div ref={restoreTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Replace your data with this backup?" onClick={e=>e.stopPropagation()} className={'alert-pop'+(restoreConfirmOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',width:'100%',maxWidth:isWide?'430px':'400px',padding:'20px',boxSizing:'border-box',position:'relative',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
             <button onClick={close} aria-label="Close" style={{position:'absolute',top:'14px',right:'14px',width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer'}}>
-              <Ico n="x" s={14} c="#64748b"/>
+              <Ico n="x" s={14} c="var(--muted)"/>
             </button>
             <div style={{fontSize:'15px',fontWeight:900,marginBottom:'10px',textAlign:'center',padding:'0 26px'}}>Replace your data with this backup?</div>
             <div style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.55,display:'flex',flexDirection:'column',gap:'8px',marginBottom:'16px'}}>
@@ -4618,7 +4634,7 @@ export default function App() {
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
               <button onClick={()=>applyRestore(true)} style={{padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Back up current, then restore</button>
-              <button onClick={()=>applyRestore(false)} style={{padding:'12px',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Restore without backup</button>
+              <button onClick={()=>applyRestore(false)} style={{padding:'12px',background:'var(--tint-red)',border:'none',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Restore without backup</button>
               <button onClick={close} style={{padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--muted)',fontWeight:700,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
             </div>
           </div>
@@ -4662,8 +4678,8 @@ export default function App() {
         <div className={"fi no-print"+(bannerClosing==='fy'?' banner-collapsing':'')} style={{background:'var(--tint-blue)',borderBottom:'1px solid var(--border-2)',padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:'10px',flexShrink:0,zIndex:15,overflow:'hidden'}}>
           <div style={{background:'var(--tint-blue-2)',borderRadius:'13px',padding:'7px',flexShrink:0}}><Ico n="star" s={15} c="#2563eb"/></div>
           <div style={{flex:1}}>
-            <div style={{fontWeight:900,fontSize:'12px',color:'var(--text-navy)',marginBottom:'2px'}}>Welcome to FY {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
-            <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>Your {CURRENT_FY_YEAR-1}/{CURRENT_FY_YEAR.toString().slice(-2)} year is complete — find it any time under More.. → Archived Financial Years.</div>
+            <div style={{fontWeight:900,fontSize:'12px',color:'var(--text-navy)',marginBottom:'2px'}}>Welcome to tax year {CURRENT_FY_YEAR}/{(CURRENT_FY_YEAR+1).toString().slice(-2)}</div>
+            <div style={{fontSize:'11px',color:'#3b82f6',lineHeight:1.4,marginBottom:'8px'}}>Your {CURRENT_FY_YEAR-1}/{CURRENT_FY_YEAR.toString().slice(-2)} year is complete — find it any time under More.. → Archived tax years.</div>
             <div style={{display:'flex',gap:'7px'}}>
               <button onClick={()=>{dismissFYRollover();setTab('settings');}} style={{background:BRASS,border:'none',borderRadius:'8px',padding:'6px 13px',fontWeight:800,fontSize:'11.5px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>View last year</button>
               <button onClick={dismissFYRollover} style={{background:'none',border:'none',padding:'6px 4px',fontWeight:700,fontSize:'10px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Got it</button>
@@ -4811,8 +4827,8 @@ export default function App() {
         const canGenerate = payslipMode==='period' ? payslipPeriodIdx!=null : payslipMode==='financialYear' ? payslipFYYear!=null : rangeValid;
         const formatLabel = exportFormat==='csv' ? 'Spreadsheet' : 'PDF';
         return (
-          <div onClick={()=>setPayslipModalOpen(false)} className={payslipModalOpen?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:60}}>
-            <div ref={payslipTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Generate payslip" onClick={e=>e.stopPropagation()} className={'alert-pop'+(payslipModalOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',width:'100%',maxWidth:isWide?'430px':'400px',padding:'20px',boxSizing:'border-box',maxHeight:'85%',overflowY:'auto',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
+          <div onClick={()=>setPayslipModalOpen(false)} className={payslipModalOpen?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:60}}>
+            <div ref={payslipTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Reports and export" onClick={e=>e.stopPropagation()} className={'alert-pop'+(payslipModalOpen?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',width:'100%',maxWidth:isWide?'430px':'400px',padding:'20px',boxSizing:'border-box',maxHeight:'85%',overflowY:'auto',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
               {exportFormat===null ? (
                 <>
                   <div style={{fontSize:'15px',fontWeight:900,marginBottom:'4px'}}>Reports &amp; export</div>
@@ -4833,7 +4849,7 @@ export default function App() {
                       </div>
                     </button>
                   </div>
-                  <button onClick={()=>setPayslipModalOpen(false)} style={{width:'100%',background:'none',border:'none',padding:'14px',fontWeight:800,fontSize:'12px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',marginTop:'8px'}}>Cancel</button>
+                  <button onClick={()=>setPayslipModalOpen(false)} style={{width:'100%',background:'none',border:'none',padding:'14px',fontWeight:700,fontSize:'13px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',marginTop:'8px'}}>Cancel</button>
                 </>
               ) : (
               <>
@@ -4886,7 +4902,7 @@ export default function App() {
                       <input type="date" value={payslipEnd} onChange={e=>setPayslipEnd(e.target.value)} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1.5px solid var(--border)',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
                     </div>
                   </div>
-                  {payslipStart&&payslipEnd&&!rangeValid&&<div style={{fontSize:'10.5px',color:'#dc2626',fontWeight:700,marginTop:'6px'}}>End date must be on or after the start date.</div>}
+                  {payslipStart&&payslipEnd&&!rangeValid&&<div style={{fontSize:'10.5px',color:'var(--text-red-deep)',fontWeight:700,marginTop:'6px'}}>End date must be on or after the start date.</div>}
                 </>
               ) : (
                 <>
@@ -4896,12 +4912,12 @@ export default function App() {
                       const yPeriods = generateFYPeriods(y);
                       const isCurrent = y===CURRENT_FY_YEAR;
                       return (
-                        <div key={y} onClick={()=>setPayslipFYYear(y)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:y===payslipFYYear?'1.5px solid #2563eb':'1.5px solid var(--border-2)',background:y===payslipFYYear?'var(--tint-blue)':'var(--surface)',cursor:'pointer'}}>
+                        <div key={y} onClick={()=>setPayslipFYYear(y)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',borderRadius:'12px',border:y===payslipFYYear?`1.5px solid ${BRASS}`:'1.5px solid var(--border-2)',background:y===payslipFYYear?'var(--tint-brass)':'var(--surface)',cursor:'pointer'}}>
                           <div>
-                            <div style={{fontWeight:800,fontSize:'12.5px',color:'var(--ink)'}}>{y}/{(y+1).toString().slice(-2)}{isCurrent&&<span style={{color:'#2563eb',fontSize:'9px',marginLeft:'6px'}}>· Current</span>}</div>
+                            <div style={{fontWeight:800,fontSize:'12.5px',color:'var(--ink)'}}>{y}/{(y+1).toString().slice(-2)}{isCurrent&&<span style={{fontSize:'9px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#fff',background:BRASS,borderRadius:'999px',padding:'1px 6px',marginLeft:'7px'}}>Now</span>}</div>
                             <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>{yPeriods[0].month} – {yPeriods[11].month}{!isCurrent&&exportFormat==='pdf'&&' · gross only, no tax/NI'}</div>
                           </div>
-                          <div style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${y===payslipFYYear?'#2563eb':'#cbd5e1'}`,flexShrink:0,position:'relative'}}>
+                          <div style={{width:'18px',height:'18px',borderRadius:'50%',border:`2px solid ${y===payslipFYYear?BRASS:'#cbd5e1'}`,flexShrink:0,position:'relative'}}>
                             {y===payslipFYYear&&<div style={{position:'absolute',inset:'3px',background:BRASS,borderRadius:'50%'}}/>}
                           </div>
                         </div>
@@ -4915,14 +4931,14 @@ export default function App() {
                 {payslipMode==='period'
                   ? (payslipPeriodIdx!=null ? `${fmtD(PAY_PERIODS[payslipPeriodIdx].start)} – ${fmtD(PAY_PERIODS[payslipPeriodIdx].end)}` : 'Pick a pay month')
                   : payslipMode==='financialYear'
-                    ? (payslipFYYear!=null ? `${generateFYPeriods(payslipFYYear)[0].month} – ${generateFYPeriods(payslipFYYear)[11].month}` : 'Pick a financial year')
+                    ? (payslipFYYear!=null ? `${generateFYPeriods(payslipFYYear)[0].month} – ${generateFYPeriods(payslipFYYear)[11].month}` : 'Pick a tax year')
                     : (rangeValid ? `${fmtD(payslipStart)} – ${fmtD(payslipEnd)}` : 'Pick a valid start and end date')}
               </div>
 
-              <button onClick={handleGenerateExport} disabled={!canGenerate} style={{width:'100%',background:canGenerate?BRASS:'var(--border)',color:'#fff',border:'none',borderRadius:'12px',padding:'14px',fontWeight:900,fontSize:'13px',cursor:canGenerate?'pointer':'default',fontFamily:'inherit'}}>{exportFormat==='csv' ? 'Export Spreadsheet' : payslipMode==='financialYear'&&payslipFYYear!=null&&payslipFYYear!==CURRENT_FY_YEAR ? 'View Year Summary' : 'Generate Payslip'}</button>
+              <button onClick={handleGenerateExport} disabled={!canGenerate} style={{width:'100%',background:BRASS,opacity:canGenerate?1:0.45,color:'#fff',border:'none',borderRadius:'12px',padding:'14px',fontWeight:900,fontSize:'13px',cursor:canGenerate?'pointer':'not-allowed',fontFamily:'inherit'}}>{exportFormat==='csv' ? 'Export spreadsheet' : payslipMode==='financialYear'&&payslipFYYear!=null&&payslipFYYear!==CURRENT_FY_YEAR ? 'View year summary' : 'Create PDF'}</button>
               <div style={{display:'flex',gap:'6px',marginTop:'4px'}}>
-                <button onClick={()=>setExportFormat(null)} style={{flex:1,background:'none',border:'none',padding:'12px',fontWeight:800,fontSize:'12px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>‹ Back</button>
-                <button onClick={()=>setPayslipModalOpen(false)} style={{flex:1,background:'none',border:'none',padding:'12px',fontWeight:800,fontSize:'12px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+                <button onClick={()=>setExportFormat(null)} style={{flex:1,background:'none',border:'none',padding:'12px',fontWeight:700,fontSize:'13px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>‹ Back</button>
+                <button onClick={()=>setPayslipModalOpen(false)} style={{flex:1,background:'none',border:'none',padding:'12px',fontWeight:700,fontSize:'13px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
               </div>
               </>
               )}
@@ -4947,7 +4963,7 @@ export default function App() {
         const thStyle = {textAlign:'left',fontSize:'9px',fontWeight:900,color:'#78849b',textTransform:'uppercase',letterSpacing:'0.8px',padding:'4px 0',borderBottom:'1px solid #f1f5f9'};
         const sectionTitle = {fontSize:'10.5px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.2px',margin:'20px 0 8px',paddingTop:'14px',borderTop:'1px solid #f1f5f9'};
         return (
-          <div className="payslip-print-area" style={{position:'absolute',inset:0,background:'#e2e8f0',zIndex:70,overflowY:'auto',overscrollBehavior:'contain',padding:'16px'}}>
+          <div className="payslip-print-area" style={{position:'absolute',inset:0,background:'#e2e8f0',zIndex:70,overflowY:'auto',overscrollBehavior:'contain',padding:'16px',paddingTop:'calc(16px + env(safe-area-inset-top))'}}>
             <div className="no-print" style={{display:'flex',gap:'8px',marginBottom:'14px',maxWidth:'560px',margin:'0 auto 14px'}}>
               <button onClick={()=>window.print()} style={{flex:1,background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="dl" s={14} c="#fff"/> Print or save as PDF</button>
               <button onClick={()=>setPayslipPreview(null)} style={{background:'#ffffff',color:'#64748b',border:'1px solid #e2e8f0',borderRadius:'11px',padding:'12px 18px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit'}}>Close</button>
@@ -4985,13 +5001,13 @@ export default function App() {
                   <>
                     {hasOT&&(
                       <>
-                        <div style={sectionTitle}>Overtime Claimed</div>
+                        <div style={sectionTitle}>Overtime submitted</div>
                         <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12.5px'}}>
                           <thead><tr><th style={thStyle}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Hours</th><th style={{...thStyle,textAlign:'right'}}>Rate/hr</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
                           <tbody>
-                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Standard (1.33×)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours133.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours133/d.rateHrs.hours133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours133)}</td></tr>}
-                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Elevated (1.5×)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours150.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours150/d.rateHrs.hours150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours150)}</td></tr>}
-                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>Rest day (2×)</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.rateHrs.hours200.toFixed(2)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours200/d.rateHrs.hours200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours200)}</td></tr>}
+                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>1.33×</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtHrs(d.rateHrs.hours133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours133/d.rateHrs.hours133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours133)}</td></tr>}
+                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>1.5×</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtHrs(d.rateHrs.hours150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours150/d.rateHrs.hours150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours150)}</td></tr>}
+                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>2×</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtHrs(d.rateHrs.hours200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours200/d.rateHrs.hours200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours200)}</td></tr>}
                           </tbody>
                         </table>
                       </>
@@ -5065,12 +5081,12 @@ export default function App() {
         // browsing keeps the app's own theme untouched.
         const c = (light, themed) => fySummaryPrintMode ? light : themed;
         return (
-          <div className={fySummaryPrintMode?'payslip-print-area':''} style={{position:'absolute',inset:0,background:c('#f8fafc','var(--surface-2)'),zIndex:65,overflowY:'auto',overscrollBehavior:'contain'}}>
+          <div className={fySummaryPrintMode?'payslip-print-area':''} style={{position:'absolute',inset:0,background:c('#f8fafc','var(--surface-2)'),zIndex:65,overflowY:'auto',overscrollBehavior:'contain',paddingTop:'env(safe-area-inset-top)'}}>
             <div className="no-print" style={{background:'var(--tint-amber-2)',padding:'8px',fontSize:'10px',fontWeight:800,color:'var(--text-amber-deep)',textAlign:'center'}}>Archived — {label} is read-only</div>
             {!fySummaryPrintMode&&(
               <div className="no-print" style={{display:'flex',gap:'8px',padding:'12px 12px 0'}}>
                 <button onClick={()=>setFySummaryPrintMode(true)} style={{flex:1,background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="doc" s={13} c="#fff"/> PDF</button>
-                <button onClick={()=>handleExportSpreadsheet(y.start, y.end, sanitiseNotes)} style={{flex:1,background:'var(--tint-green)',color:'#059669',border:'1.5px solid var(--border-2)',borderRadius:'13px',padding:'12px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="table" s={13} c="#059669"/> Spreadsheet</button>
+                <button onClick={()=>handleExportSpreadsheet(y.start, y.end, sanitiseNotes)} style={{flex:1,background:'var(--tint-green)',color:'var(--text-green-deep)',border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="table" s={13} c="#059669"/> Spreadsheet</button>
               </div>
             )}
             {fySummaryPrintMode&&(
@@ -5083,7 +5099,7 @@ export default function App() {
               <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Tax year</div>
               <div style={{fontSize:'19px',fontWeight:900}}>{label}</div>
               <div style={{fontFamily:MONO,fontSize:'9.5px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
-              <div style={{background:c('#1e3a5f','var(--text-navy)'),borderRadius:'14px',padding:'14px',display:'flex',marginTop:'12px'}}>
+              <div style={{background:c('#1e3a5f','rgba(255,255,255,0.08)'),borderRadius:'14px',padding:'14px',display:'flex',marginTop:'12px'}}>
                 <div style={{flex:1,textAlign:'center'}}>
                   <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Shifts Logged</div>
                   <div style={{fontSize:'20px',fontWeight:900}}>{y.totalShifts}</div>
@@ -5128,7 +5144,7 @@ export default function App() {
                         {p.entries.map(e=>(
                           <div key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderTop:`1px solid ${c('#f1f5f9','var(--border-2)')}`,marginTop:'9px'}}>
                             <div>
-                              <div style={{fontWeight:800,fontSize:'11.5px',color:c('#0f172a','var(--ink)')}}>{new Date(e.date+'T12:00:00').toLocaleDateString('en-GB')}</div>
+                              <div style={{fontWeight:800,fontSize:'11.5px',color:c('#0f172a','var(--ink)')}}>{longDay(e.date)}</div>
                               <div style={{fontSize:'10px',color:c('#78849b','var(--quiet)'),marginTop:'1px',textTransform:'uppercase'}}>{e.reason||'—'}</div>
                             </div>
                             <div style={{fontFamily:MONO,fontWeight:600,fontSize:'11px',color:c('#1e3a5f','var(--text-navy)'),textAlign:'right'}}>{fmtGBP(e.gross)}{e.gross>0&&<div style={{fontSize:'9.5px',color:'#059669'}}>{fmtGBP(e.net)} net</div>}</div>
@@ -5147,13 +5163,13 @@ export default function App() {
       {/* Calendar View — empty-day tap confirmation, so a stray tap doesn't
           silently drop you into Log Overtime */}
       {confirmCreateDayMounted&&(
-        <div onClick={()=>setConfirmCreateDay(null)} className={confirmCreateDay?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:41,padding:'20px'}}>
-          <div ref={confirmCreateDayTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Log overtime for this day" onClick={e=>e.stopPropagation()} className={'alert-pop'+(confirmCreateDay?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'18px',padding:'22px',width:'100%',maxWidth:'320px',textAlign:'center'}}>
+        <div onClick={()=>setConfirmCreateDay(null)} className={confirmCreateDay?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60,padding:isWide?0:'16px'}}>
+          <div ref={confirmCreateDayTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Log overtime for this day" onClick={e=>e.stopPropagation()} className={'alert-pop'+(confirmCreateDay?'':' pop-out')} style={{background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',padding:'20px',width:'100%',maxWidth:isWide?'430px':'400px',boxSizing:'border-box',textAlign:'center',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
             <div style={{fontWeight:900,fontSize:'16px',color:'var(--ink)',marginBottom:'6px'}}>Log overtime for {new Date(confirmCreateDayV+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}?</div>
             <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginBottom:'18px'}}>Opens Log Overtime with this date filled in.</div>
             <div style={{display:'flex',gap:'8px'}}>
-              <button onClick={()=>setConfirmCreateDay(null)} style={{flex:1,padding:'11px',background:'var(--surface)',border:'1.5px solid var(--border)',borderRadius:'11px',fontWeight:800,fontSize:'13px',color:'var(--ink)',cursor:'pointer',fontFamily:'inherit'}}>Not now</button>
-              <button onClick={()=>{ setForm({...blankForm,date:confirmCreateDayV}); setEditing(null); setTab('add'); setConfirmCreateDay(null); }} style={{flex:1.3,padding:'11px',background:BRASS,border:'none',borderRadius:'11px',fontWeight:800,fontSize:'13px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Log overtime</button>
+              <button onClick={()=>{ setForm({...blankForm,date:confirmCreateDayV}); setEditing(null); setTab('add'); setConfirmCreateDay(null); }} style={{flex:1,padding:'12px',background:BRASS,border:'none',borderRadius:'11px',fontWeight:800,fontSize:'13px',color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Log overtime</button>
+              <button onClick={()=>setConfirmCreateDay(null)} style={{flex:1,padding:'12px',background:'transparent',border:'none',borderRadius:'11px',fontWeight:700,fontSize:'13px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Not now</button>
             </div>
           </div>
         </div>
@@ -5161,11 +5177,11 @@ export default function App() {
 
       {/* Calendar View — day detail popover */}
       {selectedCalDayMounted&&(
-        <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} className={selectedCalDay?'ov-in':'ov-out'} style={{position:'absolute',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:40}}>
+        <div onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} className={selectedCalDay?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:isWide?0:'16px',zIndex:55}}>
           <div ref={selectedCalDayTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Day detail" onClick={e=>e.stopPropagation()} className={'alert-pop'+(selectedCalDay?'':' pop-out')} style={{overscrollBehavior:'contain',background:'var(--surface)',borderRadius:'20px',border:isWide?'none':'1px solid var(--border)',padding:isWide?'28px':'18px',width:'100%',maxWidth:isWide?'580px':'400px',maxHeight:isWide?'76%':'80%',overflowY:'auto',boxSizing:'border-box',boxShadow:'0 24px 64px rgba(0,0,0,0.28)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
-              <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{new Date(selectedCalDayV.ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}).replace(/^(\w+) /,'$1, ').replace(/\bSep\b/,'Sept')}</div>
-              <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} aria-label="Close" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:'8px',cursor:'pointer'}}><Ico n="x" s={isWide?20:16} c="#64748b"/></button>
+              <div style={{fontWeight:900,fontSize:isWide?'20px':'16px',color:'var(--ink)'}}>{longDay(selectedCalDayV.ds)}</div>
+              <button onClick={()=>{ setSelectedCalDay(null); setConfirmDel(null); }} aria-label="Close" style={{width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--chip-bg)',border:'none',borderRadius:'50%',cursor:'pointer',flexShrink:0}}><Ico n="x" s={14} c="var(--muted)"/></button>
             </div>
             {/* Read each shift fresh, so marking a claim submitted from here shows straight away. */}
             {selectedCalDayV.dEntries.map(x=>entries.find(y=>y.id===x.id)).filter(Boolean).map(e=>{
@@ -5183,7 +5199,7 @@ export default function App() {
                       {e.takeAs==='toil'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'var(--tag-purple)',flexShrink:0}}>TOIL</span>}
                       {e.takeAs==='mix'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'var(--tag-purple)',flexShrink:0}}>Mix</span>}
                       <span style={{flex:1}}/>
-                      <Tooltip label="Edit shift"><button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} aria-label="Edit this shift" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="#64748b"/></button></Tooltip>
+                      <Tooltip label="Edit shift"><button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} aria-label="Edit this shift" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="var(--muted)"/></button></Tooltip>
                       <Tooltip label="Delete shift"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this shift" style={{marginLeft:'6px',background:confirmDel===e.id?'var(--tint-red)':'transparent',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button></Tooltip>
                     </div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
@@ -5195,10 +5211,10 @@ export default function App() {
                           than being folded into the submission-tracking system
                           at all. */}
                       {c.h1+c.h2+c.h3===0 && (!e.paRate || e.paRate==='None') && (
-                        <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--border)',color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.5px'}}>ⓘ Shift Record — No OT Claim</div>
+                        <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--border)',color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.5px'}}>ⓘ Record only</div>
                       )}
                       {(()=>{ const xp = crossPeriodInfo(e); return xp && (
-                        <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-indigo)',color:'var(--text-indigo-deep)',textTransform:'uppercase',letterSpacing:'0.5px'}}>↷ {xp.both?'OT & PA':xp.ot?'OT':'PA'} Counted in {xp.label}</div>
+                        <div style={{display:'inline-block',fontSize:isWide?'14px':'11px',fontWeight:900,padding:'2px 7px',borderRadius:'7px',marginTop:'5px',background:'var(--tint-indigo)',color:'var(--text-indigo-deep)',textTransform:'uppercase',letterSpacing:'0.5px'}}>↷ {xp.both?'Overtime & PA':xp.ot?'Overtime':'PA'} paid in {xp.label}</div>
                       ); })()}
                     </div>
                   </div>
@@ -5435,7 +5451,7 @@ export default function App() {
           )}
           {session&&(
             <button onClick={()=>setSignOutConfirmOpen(true)} style={{minHeight:'50px',boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:THEME.sidebarBtnBg,border:`1px solid ${THEME.sidebarBtnBorder}`,borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:THEME.brassLight,cursor:'pointer',fontFamily:'inherit',marginTop:'10px'}}>
-              <FireExitIcon size={14} color={THEME.brassLight}/> Sign Out
+              <FireExitIcon size={14} color={THEME.brassLight}/> Sign out
             </button>
           )}
           </div>

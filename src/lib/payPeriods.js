@@ -14,7 +14,7 @@ export const FY_ANCHOR_YEAR    = 2026;              // the "April" label's calen
 export const FY_ANCHOR_START   = '2026-02-09';      // verified: start of "April 2026", from the user's own spreadsheet
 const FY_WEEK_PATTERN   = [4,5,4,4,5,4,4,5,4,4,5,4]; // weeks per period, in order
 const FY_MONTH_LABELS   = ['April','May','June','July','August','September','October','November','December','January','February','March'];
-const FY_SHORT_LABELS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+const FY_SHORT_LABELS   = ['Apr','May','Jun','Jul','Aug','Sept','Oct','Nov','Dec','Jan','Feb','Mar'];
 
 // Known corrections for years where the simple 364-day rule doesn't hold —
 // e.g. a 53-week year. Empty for now since no such year has been confirmed;

@@ -14,7 +14,20 @@ import { useEffect, useRef } from 'react';
 // accumulates one per modal opened. The pushedRef guard stops the two paths
 // (a real back-press vs. a normal close calling history.back() itself) from
 // double-triggering each other.
-export function useBackButtonCloses(open, onClose) {
+// A close by button calls history.back() itself, which fires a popstate of
+// its own. When pop-ups are stacked (the date picker over the calendar day
+// card), that popstate must not reach the layer underneath and close it too,
+// so it's swallowed here before any other listener sees it.
+let swallowPops = 0;
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', e => {
+    if (swallowPops > 0) { swallowPops--; e.stopImmediatePropagation(); }
+  }, true);
+}
+
+// `top: true` is for a pop-up that opens over another one: its back press is
+// handled first and stops there, so only the top layer closes.
+export function useBackButtonCloses(open, onClose, { top = false } = {}) {
   const pushedRef = useRef(false);
 
   useEffect(() => {
@@ -24,19 +37,30 @@ export function useBackButtonCloses(open, onClose) {
     } else if (!open && pushedRef.current) {
       pushedRef.current = false;
       if (window.history.state && window.history.state.modalOpen) {
+        swallowPops++;
         window.history.back();
       }
     }
   }, [open]);
 
+  // A pop-up that unmounts while open (e.g. it lives on a tab that's left)
+  // takes its history entry with it, so the next back press isn't wasted.
+  useEffect(() => () => {
+    if (pushedRef.current) {
+      pushedRef.current = false;
+      if (window.history.state && window.history.state.modalOpen) { swallowPops++; window.history.back(); }
+    }
+  }, []);
+
   useEffect(() => {
-    const onPopState = () => {
+    const onPopState = e => {
       if (pushedRef.current) {
         pushedRef.current = false;
+        if (top) e.stopImmediatePropagation();
         onClose();
       }
     };
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
-  }, [onClose]);
+    window.addEventListener('popstate', onPopState, top);
+    return () => window.removeEventListener('popstate', onPopState, top);
+  }, [onClose, top]);
 }

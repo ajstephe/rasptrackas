@@ -41,7 +41,7 @@ export function TabDashboard({
   const days = Math.abs(toilLedger.balance/8).toFixed(1);
   const toilSub = toilLedger.balance===0 ? 'None banked yet' : `About ${days} ${days==='1.0'?'day':'days'}${toilLedger.balance<0?' overdrawn':''} at 8h a day`;
   const taxYearLine = settings.rank&&settings.service
-    ? `${Math.round(totals.taxYearDaysElapsed)} days into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)}`
+    ? `${Math.round(totals.taxYearDaysElapsed)} day${Math.round(totals.taxYearDaysElapsed)===1?'':'s'} into ${totals.taxYearStart.split('-')[0]}/${(parseInt(totals.taxYearStart.split('-')[0])+1).toString().slice(-2)}`
     : 'Pick your rank and pay point above to see it';
   // The statement masthead: one plain label, the figure, how far into the
   // tax year, and — when there's anything unclaimed — a pill that says
@@ -91,7 +91,7 @@ export function TabDashboard({
                 as a different kind of label sitting in the same list. */}
             <span style={{fontSize:compact?'13px':'14px',fontWeight:800,color:'var(--ink)'}}>Net overtime this month</span>
           </div>
-          <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)',textAlign:'right'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}{exp&&exp.n>0&&<span style={{display:'block',fontWeight:700,color:'var(--exp-ink)'}}>+{fmtGBP(exp.gross)} expected</span>}</span>
+          <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)',textAlign:'right'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}{exp&&exp.n>0&&<span style={{display:'block',fontWeight:700,color:'var(--exp-ink)'}}>+{fmtGBP(exp.gross)} planned</span>}</span>
         </div>
         <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'12px',paddingLeft:compact?'42px':'46px'}}>
           {/* The figure and trend pill keep their width; when a phone is
@@ -120,7 +120,7 @@ export function TabDashboard({
                 claimed — its own colour, never part of the figure above. */}
             {exp&&exp.n>0&&(
               <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10.5px',fontWeight:800,color:'var(--exp-ink)',background:'var(--exp-tint)',border:'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)',padding:'2px 8px',borderRadius:'20px',marginTop:'4px',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
-                <span style={{fontFamily:MONO}}>+{fmtGBP(exp.net)}</span>{compact?` · ${exp.n} planned`:` expected · ${exp.n} planned shift${exp.n!==1?'s':''}`}
+                <span style={{fontFamily:MONO}}>+{fmtGBP(exp.net)}</span>{compact?` · ${exp.n} planned`:` planned · ${exp.n} shift${exp.n!==1?'s':''}`}
               </button>
             )}
             </div>
@@ -369,7 +369,7 @@ export function TabDashboard({
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
             <div>
               <div style={{fontSize:'14px',fontWeight:800,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL balance{toilLedger.balance<0?' · overdrawn':''}</div>
-              <div style={{fontSize:'11px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'var(--quiet)',marginTop:'1px'}}>{toilSub}</div>
+              <div style={{fontSize:'11px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--quiet)',marginTop:'1px'}}>{toilSub}</div>
             </div>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
@@ -421,7 +421,7 @@ export function TabDashboard({
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="clock" s={16} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
             <div>
               <div style={{fontSize:'13px',fontWeight:800,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--ink)'}}>TOIL balance{toilLedger.balance<0?' · overdrawn':''}</div>
-              <div style={{fontSize:'10.5px',fontWeight:600,color:toilLedger.balance<0?'#dc2626':'var(--quiet)',marginTop:'1px'}}>{toilSub}</div>
+              <div style={{fontSize:'10.5px',fontWeight:600,color:toilLedger.balance<0?'var(--text-red-deep)':'var(--quiet)',marginTop:'1px'}}>{toilSub}</div>
             </div>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:'8px'}}>

@@ -31,9 +31,9 @@ export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth,
 
   const balanceCard = (
     <div style={{background:overdrawn?'var(--tint-red)':'var(--tint-purple)',border:'1.5px solid var(--border-2)',borderRadius:'16px',padding:'16px',display:'flex',flexDirection:'column',justifyContent:'center',marginBottom:isWide?0:'12px'}}>
-      <div style={{fontSize:'10px',fontWeight:900,color:overdrawn?'#dc2626':'var(--tag-purple)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>TOIL balance{overdrawn?' · overdrawn':''}</div>
+      <div style={{fontSize:'10px',fontWeight:900,color:overdrawn?'var(--text-red-deep)':'var(--tag-purple)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>TOIL balance{overdrawn?' · overdrawn':''}</div>
       <div style={{fontFamily:MONO,fontSize:'27px',fontWeight:600,color:overdrawn?'var(--text-red-deep)':'var(--text-purple-deep)'}}>{fmtHrs(animatedBalance)}</div>
-      <div style={{fontSize:'11.5px',fontWeight:700,color:overdrawn?'#dc2626':'#7c3aed',marginTop:'2px'}}>{Math.abs(days)<0.005?'None banked yet':<>About {Math.abs(days).toFixed(1)} {Math.abs(days).toFixed(1)==='1.0'?'day':'days'}{overdrawn?' overdrawn':''} at 8h a day</>}</div>
+      <div style={{fontSize:'11.5px',fontWeight:700,color:overdrawn?'var(--text-red-deep)':'var(--tag-purple)',marginTop:'2px'}}>{Math.abs(days)<0.005?'None banked yet':<>About {Math.abs(days).toFixed(1)} {Math.abs(days).toFixed(1)==='1.0'?'day':'days'}{overdrawn?' overdrawn':''} at 8h a day</>}</div>
       {pendingHours>0&&(
         <div style={{marginTop:'10px',display:'flex',alignItems:'center',gap:'7px',background:'var(--surface)',borderRadius:'10px',padding:'8px 10px',fontSize:'11.5px',fontWeight:700,color:'var(--tag-purple)'}}>
           <Ico n="clock" s={13} c="var(--tag-purple)" w={2.2}/>
@@ -86,19 +86,19 @@ export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth,
 
   const removeCtl = l => l.type!=='taken' ? null : (confirmDelId===l.rawId ? (
     <span style={{display:'inline-flex',alignItems:'center',gap:'5px'}}>
-      <span style={{fontSize:'10.5px',fontWeight:700,color:'#dc2626'}}>Delete?</span>
-      <button onClick={()=>{ setConfirmDelId(null); deleteToilTaken(l.rawId); }} aria-label="Confirm remove" style={{background:'#dc2626',border:'none',borderRadius:'7px',padding:'3px 8px',color:'#fff',fontWeight:900,fontSize:'12px',fontFamily:'inherit',cursor:'pointer'}}>Yes</button>
-      <button onClick={()=>setConfirmDelId(null)} aria-label="Cancel remove" style={{background:'var(--surface)',border:'1.5px solid var(--border-2)',borderRadius:'7px',padding:'3px 8px',color:'var(--muted)',fontWeight:900,fontSize:'12px',fontFamily:'inherit',cursor:'pointer'}}>No</button>
+      <span style={{fontSize:'10.5px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete?</span>
+      <button onClick={()=>setConfirmDelId(null)} style={{background:'var(--surface)',border:'1.5px solid var(--border-2)',borderRadius:'7px',padding:'3px 8px',color:'var(--muted)',fontWeight:900,fontSize:'12px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
+      <button onClick={()=>{ setConfirmDelId(null); deleteToilTaken(l.rawId); }} aria-label="Delete this TOIL taken" style={{background:'#dc2626',border:'none',borderRadius:'7px',padding:'3px 8px',color:'#fff',fontWeight:900,fontSize:'12px',fontFamily:'inherit',cursor:'pointer'}}>Delete</button>
     </span>
   ) : (
-    <button onClick={()=>setConfirmDelId(l.rawId)} aria-label="Remove this TOIL taken entry" style={{display:'inline-flex',alignItems:'center',gap:'3px',background:'none',border:'none',padding:0,color:'#dc2626',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>
-      <Ico n="trash" s={10} c="#dc2626"/> Delete
+    <button onClick={()=>setConfirmDelId(l.rawId)} aria-label="Delete this TOIL taken" style={{display:'inline-flex',alignItems:'center',gap:'3px',background:'none',border:'none',padding:0,color:'var(--text-red-deep)',fontWeight:800,fontSize:'11px',fontFamily:'inherit',cursor:'pointer'}}>
+      <Ico n="trash" s={10} c="var(--text-red-deep)"/> Delete
     </button>
   ));
   // Adds the year for anything outside this calendar year, so rows from
   // different years can't be mistaken for each other.
   const shortDate = d => { const dt = new Date(d+'T12:00:00'); return dt.toLocaleDateString('en-GB', dt.getFullYear()===new Date().getFullYear() ? {day:'numeric',month:'short'} : {day:'numeric',month:'short',year:'numeric'}); };
-  const change = l => <span style={{color:l.type==='pending'?'var(--tag-purple)':l.type==='earned'?'#059669':'#dc2626'}}>{l.hours>=0?'+':''}{fmtHrs(l.hours)}</span>;
+  const change = l => <span style={{color:l.type==='pending'?'var(--tag-purple)':l.type==='earned'?'var(--text-green-deep)':'var(--text-red-deep)'}}>{l.hours>=0?'+':''}{fmtHrs(l.hours)}</span>;
   const sub = l => l.type==='pending' ? 'Waiting to submit · not in balance yet' : l.type==='earned' ? (l.detail||'Banked from a shift') : (l.note==='TOIL taken' ? '' : 'TOIL taken');
 
   // Rows from a shift open that shift in Summary.

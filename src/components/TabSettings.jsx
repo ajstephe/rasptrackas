@@ -8,6 +8,8 @@ import { PrivacyNotice } from './PrivacyNotice.jsx';
 import { SegSlider } from './SegSlider.jsx';
 import { useMountTransition } from '../lib/useMountTransition.js';
 import { useFocusTrap } from '../lib/useFocusTrap.js';
+import { useEscapeToClose } from '../lib/useEscapeToClose.js';
+import { useBackButtonCloses } from '../lib/useBackButtonCloses.js';
 
 // Matches the mobile theme row's track side padding, so arrow stops line
 // up the same way the row's two ends do.
@@ -105,6 +107,10 @@ export function TabSettings({
   // same reasoning already documented above for the five modal-mount
   // hooks). Declared here, unconditionally, for that reason.
   const [taxPrintOpen, setTaxPrintOpen] = useState(false);
+  // The print view opens over the tax pop-up: Escape and back close just the print view.
+  const closeTaxPrint = useRef(() => setTaxPrintOpen(false)).current;
+  useEscapeToClose(taxPrintOpen, closeTaxPrint, { top:true });
+  useBackButtonCloses(taxPrintOpen, closeTaxPrint, { top:true });
 
   // Same mirrored-exit treatment for the five desktop popover cards below
   // (Config/Rates, Tax Calculator, Financial Years, Export, Account & Data
@@ -378,7 +384,7 @@ export function TabSettings({
           <button disabled={configSetupIncomplete} onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} const wasOpen = configExpanded || justCompletedSetup || setupPopupRequested; setJustCompletedSetup(false); setSetupPopupRequested(false); setConfigExpanded(!wasOpen); }} className={configSetupIncomplete?'':'tap-row'} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete||justCompletedSetup))?'13px':0}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
-              <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Config, rates &amp; payscales</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Rank, pay point, rates</div></div>
+              <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Config, rates &amp; pay scales</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Rank, pay point, rates</div></div>
             </div>
             {!configSetupIncomplete && (
               <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
@@ -392,7 +398,7 @@ export function TabSettings({
         <div style={{marginBottom:'13px'}}>
           <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'7px'}}>
             <label style={{...S.lbl,marginBottom:0}}>Rank</label>
-            {!settings.rank&&<span style={{fontSize:'10px',fontWeight:900,color:'#dc2626',background:'var(--tint-red)',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Start here</span>}
+            {!settings.rank&&<span style={{fontSize:'10px',fontWeight:900,color:'var(--text-red-deep)',background:'var(--tint-red)',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Start here</span>}
           </div>
           {/* setup-pulse-urgent is back on this wrapper — pulled off it
               entirely during the "why does picking Rank jump back and
@@ -420,7 +426,7 @@ export function TabSettings({
               if(!r) return saveSett({...settings,rank:'',service:''});
               saveSett({...settings,rank:r,service:''});
             }}>
-              <option value="">Select Rank...</option>
+              <option value="">Choose your rank</option>
               {Object.keys(PAY_RATES).map(k=><option key={k} value={k}>{k}</option>)}
             </select>
             {/* appearance:'none' above strips the native dropdown arrow for
@@ -442,7 +448,7 @@ export function TabSettings({
           <div>
             <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'7px'}}>
               <label style={{...S.lbl,marginBottom:0}}>Pay Point</label>
-              {!settings.service&&<span style={{fontSize:'10px',fontWeight:900,color:'#dc2626',background:'var(--tint-red)',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Now this</span>}
+              {!settings.service&&<span style={{fontSize:'10px',fontWeight:900,color:'var(--text-red-deep)',background:'var(--tint-red)',padding:'2px 7px',borderRadius:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Now this</span>}
             </div>
             {/* Same restoration, same reasoning, as Rank's wrapper above. */}
             <div className={!settings.service?'setup-pulse-urgent':''} style={{borderRadius:'13px',position:'relative'}}>
@@ -455,7 +461,7 @@ export function TabSettings({
                 }
                 saveSett({...settings,service:v});
               }}>
-                <option value="">Select pay point...</option>
+                <option value="">Choose your pay point</option>
                 {Object.keys(PAY_RATES[pendingPay ? pendingPay.rank : settings.rank]).map(p=><option key={p} value={p}>{p}</option>)}
               </select>
               <div style={{position:'absolute',right:'13px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex'}}><Ico n="cD" s={13} c="var(--quiet)" w={2.5}/></div>
@@ -467,7 +473,7 @@ export function TabSettings({
             {pendingPay.service ? (<>
               <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)',marginBottom:'3px'}}>When did {pendingPay.service} start?</div>
               <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',lineHeight:1.5,marginBottom:'9px'}}>Shifts and paydays before this date keep {settings.service}'s rates.</div>
-              <button type="button" onClick={()=>openCustomDatePicker(pendingFrom, v=>setPendingFrom(v), `When did ${pendingPay?.service||"it"} start?`)} style={{...S.inp,marginBottom:'9px',display:'flex',alignItems:'center',gap:'8px',textAlign:'left',cursor:'pointer',fontFamily:'inherit',fontSize:'14px',fontWeight:700,color:'var(--ink)'}}><Ico n="cal" s={15} c="var(--muted)"/>{pendingFrom?new Date(pendingFrom+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}).replace(/^(\w+) /,'$1, ').replace(/\bSep\b/,'Sept'):'Pick a date'}</button>
+              <button type="button" onClick={()=>openCustomDatePicker(pendingFrom, v=>setPendingFrom(v), `When did ${pendingPay?.service||"it"} start?`)} style={{...S.inp,marginBottom:'9px',display:'flex',alignItems:'center',gap:'8px',textAlign:'left',cursor:'pointer',fontFamily:'inherit',fontSize:'14px',fontWeight:700,color:'var(--ink)'}}><Ico n="cal" s={15} c="var(--muted)"/>{pendingFrom?new Date(pendingFrom+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}).replace(/\bSep\b/,'Sept'):'Pick a date'}</button>
               <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
                 <button onClick={()=>confirmPayChange(false)} style={{flex:'1 1 140px',background:BRASS,color:'#fff',border:'none',borderRadius:'10px',padding:'10px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Save change</button>
                 <button onClick={()=>setPendingPay(null)} style={{flex:'0 0 auto',background:'var(--surface)',color:'var(--muted)',border:'1px solid var(--border)',borderRadius:'10px',padding:'10px 14px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
@@ -490,7 +496,7 @@ export function TabSettings({
         )}
         <div style={{display:'flex',alignItems:'center',gap:'8px',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}}>
           <div style={{background:'var(--tint-blue)',padding:'9px',borderRadius:'13px'}}><Ico n="clock" s={17} c="#2563eb"/></div>
-          <span style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Hourly rates &amp; payscales</span>
+          <span style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Hourly rates &amp; pay scales</span>
         </div>
 
         {/* Same defensive gate as the Pay Point block above — checks the
@@ -595,7 +601,7 @@ export function TabSettings({
               {showInline && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {configModalMounted && contentWrapRef.current && createPortal(
-              <div ref={configModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Config, Rates & Payscales" className={'modal-pop'+(showModal?'':' pop-out')} style={modalBoxStyle(S.card)}>{configModalContentRef.current}</div>,
+              <div ref={configModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Config, rates & pay scales" className={'modal-pop'+(showModal?'':' pop-out')} style={modalBoxStyle(S.card)}>{configModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
@@ -725,15 +731,15 @@ export function TabSettings({
                     </div>
                     <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(ytd)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionA.amount)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableYTD)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionA.amount)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableYTD)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Tax-free pay <span style={{color:'var(--quiet)',fontWeight:600}}>(1257L, {A.months} month{A.months!==1?'s':''})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownA.freePay)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownA.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.basicTax)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownA.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.higherTax)}</span></div>
-                      {breakdownA.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownA.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.additionalTax)}</span></div>}
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownA.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.basicTax)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownA.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.higherTax)}</span></div>
+                      {breakdownA.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownA.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.additionalTax)}</span></div>}
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',marginBottom:'8px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)'}}>Total Income Tax (YTD)</span>
+                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)'}}>Total income tax (YTD)</span>
                       <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(breakdownA.totalTax)}</span>
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',background:'var(--surface-2)',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
@@ -756,15 +762,15 @@ export function TabSettings({
                     </div>
                     <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (full year)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(proj)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionF.amount)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable Gross</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableGrossF)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionF.amount)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable gross</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableGrossF)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Tax-free pay <span style={{color:'var(--quiet)',fontWeight:600}}>(1257L, 12 months)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownF.freePay)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownF.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.basicTax)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:breakdownF.additionalAmt>0?'1px solid var(--border-2)':'none'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownF.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.higherTax)}</span></div>
-                      {breakdownF.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownF.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.additionalTax)}</span></div>}
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownF.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.basicTax)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:breakdownF.additionalAmt>0?'1px solid var(--border-2)':'none'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownF.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.higherTax)}</span></div>
+                      {breakdownF.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownF.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.additionalTax)}</span></div>}
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',marginBottom:'8px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)'}}>Total Income Tax</span>
+                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)'}}>Total income tax</span>
                       <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(breakdownF.totalTax)}</span>
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',background:'var(--surface-2)',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
@@ -800,19 +806,19 @@ export function TabSettings({
           <div style={{marginBottom:'28px',pageBreakInside:'avoid'}}>
             <div style={{fontSize:'15px',fontWeight:800,color:'#0f172a',marginBottom:'10px',borderBottom:'2px solid #0f172a',paddingBottom:'6px'}}>{title}</div>
             {printRow('Gross', fmtGBP(gross))}
-            {printRow(`Pension Contribution (${(pensionRate*100).toFixed(2)}% of ${fmtGBP(pensionablePay)} pensionable pay)`, '−'+fmtGBP(pension))}
-            {printRow('Taxable Gross', fmtGBP(taxable))}
+            {printRow(`Pension contribution (${(pensionRate*100).toFixed(2)}% of ${fmtGBP(pensionablePay)} pensionable pay)`, '−'+fmtGBP(pension))}
+            {printRow('Taxable gross', fmtGBP(taxable))}
             {printRow('Tax-free pay (1257L)', fmtGBP(pa))}
-            {printRow(`Basic Rate (20% on ${fmtGBP(breakdown.basicAmt)})`, fmtGBP(breakdown.basicTax))}
-            {printRow(`Higher Rate (40% on ${fmtGBP(breakdown.higherAmt)})`, fmtGBP(breakdown.higherTax))}
-            {breakdown.additionalAmt>0 && printRow(`Additional Rate (45% on ${fmtGBP(breakdown.additionalAmt)})`, fmtGBP(breakdown.additionalTax))}
-            {printRow('Total Income Tax', fmtGBP(breakdown.totalTax), {bold:true})}
+            {printRow(`Basic rate (20% on ${fmtGBP(breakdown.basicAmt)})`, fmtGBP(breakdown.basicTax))}
+            {printRow(`Higher rate (40% on ${fmtGBP(breakdown.higherAmt)})`, fmtGBP(breakdown.higherTax))}
+            {breakdown.additionalAmt>0 && printRow(`Additional rate (45% on ${fmtGBP(breakdown.additionalAmt)})`, fmtGBP(breakdown.additionalTax))}
+            {printRow('Total income tax', fmtGBP(breakdown.totalTax), {bold:true})}
             {printRow('National Insurance', fmtGBP(ni))}
             {printRow('Net pay', fmtGBP(net), {bold:true, noBorder:true})}
             <div style={{marginTop:'12px',fontSize:'12px',color: over?'#dc2626':'#059669',fontWeight:700}}>
               {over
-                ? `Over the £100k taper threshold — ${fmtGBP(extraTax)} extra tax from ${fmtGBP(paRemaining===12570?0:12570-paRemaining)} of Personal Allowance lost, ${fmtGBP(paRemaining)} remaining.`
-                : `Under the £100k taper threshold — full £${paRemaining.toLocaleString()} Personal Allowance retained.`}
+                ? `Over the £100k taper threshold — ${fmtGBP(extraTax)} extra tax from ${fmtGBP(paRemaining===12570?0:12570-paRemaining)} of Personal allowance lost, ${fmtGBP(paRemaining)} remaining.`
+                : `Under the £100k taper threshold — full £${paRemaining.toLocaleString()} Personal allowance retained.`}
             </div>
           </div>
         );
@@ -824,19 +830,19 @@ export function TabSettings({
               {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {taxModalMounted && contentWrapRef.current && createPortal(
-              <div ref={taxModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Tax & 100K+ Calculator" className={'modal-pop'+(taxModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{taxModalContentRef.current}</div>,
+              <div ref={taxModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Tax & £100k+ calculator" className={'modal-pop'+(taxModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{taxModalContentRef.current}</div>,
               contentWrapRef.current
             )}
             {taxPrintOpen && createPortal(
-              <div className="payslip-print-area" style={{position:'fixed',inset:0,background:'#fff',zIndex:80,overflowY:'auto',padding:'20px'}}>
+              <div className="payslip-print-area" style={{position:'fixed',inset:0,background:'#fff',zIndex:80,overflowY:'auto',padding:'20px',paddingTop:'calc(20px + env(safe-area-inset-top))'}}>
                 <div className="no-print" style={{display:'flex',gap:'8px',marginBottom:'18px',maxWidth:'640px',margin:'0 auto 18px'}}>
                   <button onClick={()=>setTaxPrintOpen(false)} aria-label="Back" style={{background:'#f1f5f9',border:'none',borderRadius:'11px',padding:'12px 16px',fontWeight:800,fontSize:'12px',cursor:'pointer',fontFamily:'inherit',color:'#0f172a'}}><Ico n="back" s={13} c="#0f172a"/></button>
                   <button onClick={()=>window.print()} style={{flex:1,background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="dl" s={14} c="#fff"/> Print or save as PDF</button>
                 </div>
                 <div className="payslip-print-doc" style={{maxWidth:'640px',margin:'0 auto',background:'#fff'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'6px'}}>
-                    <div style={{fontSize:'20px',fontWeight:900,color:'#0f172a'}}>Tax &amp; 100K+ Calculator</div>
-                    <div style={{fontSize:'11px',color:'#64748b',fontWeight:600}}>Generated {new Date().toLocaleDateString('en-GB')}</div>
+                    <div style={{fontSize:'20px',fontWeight:900,color:'#0f172a'}}>Tax &amp; £100k+ calculator</div>
+                    <div style={{fontSize:'11px',color:'#64748b',fontWeight:600}}>Generated {new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}).replace(/\bSep\b/,'Sept')}</div>
                   </div>
                   <div style={{fontSize:'11px',color:'#64748b',marginBottom:'22px',lineHeight:1.5}}>Tax and National Insurance worked out the way payroll does (tax code 1257L, month by month). Pension figures follow the 2015 Police Pension Scheme (England &amp; Wales) rates effective 1 April 2026. Estimates only — please consult an accountant, HMRC, or your pension provider for anything you intend to rely on.</div>
                   {printSection('Actual — Year to Date', overA, ytd, pensionA.amount, pensionA.rate, pensionablePayA, taxableYTD, breakdownA.freePay, breakdownA, niA, netA, extraTaxA, paRemainingA)}
@@ -896,7 +902,7 @@ export function TabSettings({
               {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {fyModalMounted && contentWrapRef.current && createPortal(
-              <div ref={fyModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Archived Financial Years" className={'modal-pop'+(fyModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{fyModalContentRef.current}</div>,
+              <div ref={fyModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Archived tax years" className={'modal-pop'+(fyModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{fyModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
@@ -931,7 +937,7 @@ export function TabSettings({
               {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {exportModalMounted && contentWrapRef.current && createPortal(
-              <div ref={exportModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Financial Reports & Export" className={'modal-pop'+(exportModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{exportModalContentRef.current}</div>,
+              <div ref={exportModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Reports & export" className={'modal-pop'+(exportModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{exportModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
@@ -971,17 +977,17 @@ export function TabSettings({
                     <input
                       type="password" placeholder="New password (at least 8 characters)" autoComplete="new-password"
                       value={newPw} onChange={e=>setNewPw(e.target.value)}
-                      style={{width:'100%',background:'var(--surface-2)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'8px'}}
+                      style={{width:'100%',background:'var(--surface-2)',border:'1px solid var(--border)',padding:'11px 12px',borderRadius:'12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'8px'}}
                     />
                     <input
                       type="password" placeholder="Confirm new password" autoComplete="new-password"
                       value={newPw2} onChange={e=>setNewPw2(e.target.value)}
-                      style={{width:'100%',background:'var(--surface-2)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'8px'}}
+                      style={{width:'100%',background:'var(--surface-2)',border:'1px solid var(--border)',padding:'11px 12px',borderRadius:'12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'8px'}}
                     />
-                    {changePwError && <div style={{fontSize:'11.5px',color:'#dc2626',fontWeight:700,marginBottom:'8px'}}>{changePwError}</div>}
+                    {changePwError && <div style={{fontSize:'11.5px',color:'var(--text-red-deep)',fontWeight:700,marginBottom:'8px'}}>{changePwError}</div>}
                     <div style={{display:'flex',gap:'6px'}}>
-                      <button onClick={handleChangePassword} disabled={changingPw} style={{flex:1,padding:'9px',background:BRASS,border:'none',borderRadius:'9px',color:'#fff',fontWeight:800,fontSize:'12.5px',fontFamily:'inherit',cursor:changingPw?'not-allowed':'pointer',opacity:changingPw?0.7:1}}>{changingPw?'Saving…':'Save new password'}</button>
-                      <button onClick={()=>{ setChangePwOpen(false); setNewPw(''); setNewPw2(''); setChangePwError(''); }} disabled={changingPw} style={{flex:1,padding:'9px',background:'transparent',border:'1px solid var(--border)',borderRadius:'8px',color:'var(--muted)',fontWeight:700,fontSize:'12px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
+                      <button onClick={handleChangePassword} disabled={changingPw} style={{flex:1,padding:'9px',background:BRASS,border:'none',borderRadius:'9px',color:'#fff',fontWeight:800,fontSize:'12.5px',fontFamily:'inherit',cursor:changingPw?'not-allowed':'pointer',opacity:changingPw?0.45:1}}>{changingPw?'Saving…':'Save new password'}</button>
+                      <button onClick={()=>{ setChangePwOpen(false); setNewPw(''); setNewPw2(''); setChangePwError(''); }} disabled={changingPw} style={{flex:1,padding:'9px',background:'transparent',border:'1px solid var(--border)',borderRadius:'9px',color:'var(--muted)',fontWeight:700,fontSize:'12.5px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
                     </div>
                   </div>
                 )}
@@ -1009,13 +1015,13 @@ export function TabSettings({
                 ?<>
                   <div style={{fontSize:'12.5px',fontWeight:800,color:'var(--ink)'}}>Start again</div>
                   <div style={{fontSize:'11.5px',color:'var(--muted)',lineHeight:1.45,margin:'2px 0 9px'}}>{session?'Removes every shift, all TOIL, and your rank and pay point, from this device and the cloud.':'Removes every shift, all TOIL, and your rank and pay point from this device.'} You'll be asked to confirm.</div>
-                  <button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'transparent',border:'1.5px solid var(--surface-red-mid)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="trash" s={13} c="#b91c1c"/> Wipe all data</button>
+                  <button onClick={()=>setWipeConf(true)} style={{width:'100%',padding:'10px',background:'transparent',border:'1.5px solid var(--surface-red-mid)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="trash" s={13} c="var(--text-red-deep)"/> Wipe all data</button>
                 </>
                 :<div className={'alert-pop'+(wipeConf?'':' pop-out')} style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px'}}>
-                    <div style={{textAlign:'center',color:'var(--text-red-deep)',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'10px',fontWeight:400,color:'#dc2626'}}>{session ? 'Deletes every logged shift and all TOIL data — on this device and in the cloud. ' : 'Deletes every logged shift and all TOIL data on this device. '}This cannot be undone unless you have downloaded a backup file to your device.</span></div>
+                    <div style={{textAlign:'center',color:'var(--text-red-deep)',fontWeight:700,fontSize:'12px',marginBottom:'9px',lineHeight:1.4}}>Are you absolutely sure?<br/><span style={{fontSize:'11px',fontWeight:600,color:'var(--text-red-deep)'}}>{session ? 'Deletes every shift, all TOIL, and your rank and pay point, on this device and in the cloud. ' : 'Deletes every shift, all TOIL, and your rank and pay point on this device. '}This cannot be undone unless you have downloaded a backup file to your device.</span></div>
                     <div style={{display:'flex',gap:'6px'}}>
-                      <button onClick={handleWipe} disabled={wipingData} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'9px',color:'#fff',fontWeight:800,fontSize:'12.5px',fontFamily:'inherit',cursor:wipingData?'not-allowed':'pointer',opacity:wipingData?0.7:1}}>{wipingData?'Wiping…':'Yes, wipe everything'}</button>
-                      <button onClick={()=>setWipeConf(false)} disabled={wipingData} style={{flex:1,padding:'9px',background:'transparent',border:'1px solid var(--border)',borderRadius:'8px',color:'var(--muted)',fontWeight:700,fontSize:'12px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
+                      <button onClick={()=>setWipeConf(false)} disabled={wipingData} style={{flex:1,padding:'9px',background:'transparent',border:'1px solid var(--border)',borderRadius:'9px',color:'var(--muted)',fontWeight:700,fontSize:'12.5px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
+                      <button onClick={handleWipe} disabled={wipingData} style={{flex:1,padding:'9px',background:'#dc2626',border:'none',borderRadius:'9px',color:'#fff',fontWeight:800,fontSize:'12.5px',fontFamily:'inherit',cursor:wipingData?'not-allowed':'pointer',opacity:wipingData?0.45:1}}>{wipingData?'Wiping…':'Yes, wipe everything'}</button>
                     </div>
                   </div>
               }
@@ -1024,24 +1030,24 @@ export function TabSettings({
             {session&&(
               <div style={{borderTop:'1px solid var(--border-2)',marginTop:'11px',paddingTop:'11px'}}>
                 {!deleteAcctMounted ? (
-                  <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'transparent',border:'1.5px solid var(--surface-red-mid)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="trash" s={13} c="#b91c1c"/> Delete account</button>
+                  <button onClick={()=>setDeleteAcctConf(true)} style={{width:'100%',padding:'10px',background:'transparent',border:'1.5px solid var(--surface-red-mid)',borderRadius:'11px',color:'var(--text-red-deep)',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><Ico n="trash" s={13} c="var(--text-red-deep)"/> Delete account</button>
                 ) : (
                   <div className={'alert-pop'+(deleteAcctConf?'':' pop-out')} style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px'}}>
                     <div style={{fontSize:'11.5px',color:'var(--text-red-deep)',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterwards. This can't be undone.</div>
-                    <div style={{fontSize:'10px',color:'#dc2626',fontWeight:900,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Type your email to confirm: {session.user?.email}</div>
+                    <div style={{fontSize:'11px',color:'var(--text-red-deep)',fontWeight:800,marginBottom:'6px'}}>Type your email to confirm: {session.user?.email}</div>
                     <input
                       value={deleteAcctTyped}
                       onChange={e=>setDeleteAcctTyped(e.target.value)}
                       placeholder={session.user?.email}
-                      style={{width:'100%',background:'var(--surface)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'10px',fontWeight:700,fontSize:'14px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'10px'}}
+                      style={{width:'100%',background:'var(--surface)',border:'1px solid var(--border)',padding:'11px 12px',borderRadius:'12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',boxSizing:'border-box',color:'var(--ink)',marginBottom:'10px'}}
                     />
                     <div style={{display:'flex',gap:'6px'}}>
+                      <button onClick={()=>{ setDeleteAcctConf(false); setDeleteAcctTyped(''); }} style={{flex:1,padding:'9px',background:'transparent',border:'1px solid var(--border)',borderRadius:'9px',color:'var(--muted)',fontWeight:700,fontSize:'12.5px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
                       <button
                         onClick={handleDeleteAccount}
                         disabled={deleteAcctTyped !== session.user?.email || deletingAcct}
-                        style={{flex:1,padding:'9px',background:(deleteAcctTyped===session.user?.email)?'#dc2626':'#fca5a5',border:'none',borderRadius:'8px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:(deleteAcctTyped===session.user?.email)?'pointer':'not-allowed',textTransform:'uppercase',letterSpacing:'0.06em'}}
-                      >{deletingAcct?'Deleting…':'Delete Permanently'}</button>
-                      <button onClick={()=>{ setDeleteAcctConf(false); setDeleteAcctTyped(''); }} style={{flex:1,padding:'9px',background:'transparent',border:'1px solid var(--border)',borderRadius:'8px',color:'var(--muted)',fontWeight:700,fontSize:'12px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
+                        style={{flex:1,padding:'9px',background:'#dc2626',opacity:(deleteAcctTyped===session.user?.email && !deletingAcct)?1:0.45,border:'none',borderRadius:'9px',color:'#fff',fontWeight:800,fontSize:'12.5px',fontFamily:'inherit',cursor:(deleteAcctTyped===session.user?.email)?'pointer':'not-allowed'}}
+                      >{deletingAcct?'Deleting…':'Delete permanently'}</button>
                     </div>
                   </div>
                 )}
@@ -1057,7 +1063,7 @@ export function TabSettings({
               {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {dataModalMounted && contentWrapRef.current && createPortal(
-              <div ref={dataModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Account & Data Management" className={'modal-pop'+(dataModalOpen?'':' pop-out')} style={modalBoxStyle(acctBase)}>{dataModalContentRef.current}</div>,
+              <div ref={dataModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Account & data" className={'modal-pop'+(dataModalOpen?'':' pop-out')} style={modalBoxStyle(acctBase)}>{dataModalContentRef.current}</div>,
               contentWrapRef.current
             )}
           </>
@@ -1068,7 +1074,7 @@ export function TabSettings({
 
       {/* ── Help & suggestions ── */}
       <div style={S.card}>
-        <a href="mailto:ajstephe@me.com?subject=Overtime%20Tracker%20—%20Feedback" style={{display:'flex',alignItems:'center',gap:'8px',textDecoration:'none',cursor:'pointer'}}>
+        <a href="mailto:ajstephe@me.com?subject=Overtime%20%26%20Shift%20Tracker%20—%20Feedback" style={{display:'flex',alignItems:'center',gap:'8px',textDecoration:'none',cursor:'pointer'}}>
           <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px',flexShrink:0}}><Ico n="mail" s={isWide?21:17} c="#2563eb"/></div>
           <div style={{flex:1}}>
             <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Help &amp; suggestions</div>

@@ -65,7 +65,7 @@ export class ErrorBoundary extends Component {
           </div>
           <div style={{fontSize:'13.5px', fontWeight:600, color:c.body, lineHeight:1.5, marginBottom:'22px'}}>
             The app hit an unexpected error. Your saved shifts, PA and TOIL
-            are safe. Tap Reload to carry on.
+            are safe. Tap Reload the app to carry on.
           </div>
           <button
             onClick={() => window.location.reload()}

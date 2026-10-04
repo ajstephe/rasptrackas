@@ -5,7 +5,7 @@
 // whichever version was current at the moment the consent checkbox was
 // ticked (user_keys.privacy_version), so a bump here only changes what NEW
 // sign-ups are recorded against; it never rewrites anyone's existing record.
-export const PRIVACY_VERSION = '2026-09-02';
+export const PRIVACY_VERSION = '2026-10-04';
 
 // Sign-up (AuthScreens.handleSignUp, in App.jsx) can't always write straight
 // to user_keys — if email confirmation is required there's no session yet
