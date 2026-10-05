@@ -652,7 +652,7 @@ export function TabSettings({
               <>
                 <div style={{display:'flex',alignItems:'flex-start',gap:'8px',marginBottom:'13px'}}>
                   <Ico n="shield" s={13} c="#94a3b8"/>
-                  <span style={{fontSize:'11px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>Worked out the way payroll does: tax code 1257L, month by month, with NI on each month's pay. Above £100k payroll keeps giving you the full tax-free allowance; Extra Tax is what's likely to be collected later.</span>
+                  <span style={{fontSize:'11px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>Worked out the way payroll does: tax code 1257L, month by month, with NI on each month's pay. Above £100k payroll keeps giving you the full tax-free allowance; extra tax is what's likely to be collected later.</span>
                 </div>
                 <button onClick={()=>setTaxPrintOpen(true)} style={{width:'100%',marginBottom:'13px',background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'11px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="dl" s={14} c="#fff"/> Print or save as PDF</button>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
@@ -683,11 +683,11 @@ export function TabSettings({
 
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
                   <div style={{background:overA?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overA?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
-                    <div style={{fontSize:'10px',fontWeight:900,color:overA?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Extra Tax</div>
+                    <div style={{fontSize:'10px',fontWeight:900,color:overA?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Extra tax</div>
                     <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:overA?'var(--text-red-deep)':'var(--text-green-deep)'}}>{fmtGBP(extraTaxA)}</div>
                   </div>
                   <div style={{background:overF?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overF?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
-                    <div style={{fontSize:'10px',fontWeight:900,color:overF?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Extra Tax</div>
+                    <div style={{fontSize:'10px',fontWeight:900,color:overF?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Extra tax</div>
                     <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:overF?'var(--text-red-deep)':'var(--text-green-deep)'}}>{fmtGBP(extraTaxF)}</div>
                   </div>
                 </div>
@@ -726,7 +726,7 @@ export function TabSettings({
                 {taxCalcActualDetailOpen&&(
                   <div style={{borderTop:'2px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
-                      <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full Calculation — Actual (YTD)</div>
+                      <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full calculation — Actual (YTD)</div>
                       <span onClick={()=>setTaxCalcActualDetailOpen(false)} style={{fontSize:'11px',fontWeight:800,color:BRASS,cursor:'pointer'}}>Show less</span>
                     </div>
                     <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
@@ -757,7 +757,7 @@ export function TabSettings({
                 {taxCalcForecastDetailOpen&&(
                   <div style={{borderTop:'2px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
-                      <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full Calculation — Forecast</div>
+                      <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full calculation — Forecast</div>
                       <span onClick={()=>setTaxCalcForecastDetailOpen(false)} style={{fontSize:'11px',fontWeight:800,color:BRASS,cursor:'pointer'}}>Show less</span>
                     </div>
                     <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
