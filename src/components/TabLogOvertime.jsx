@@ -300,7 +300,7 @@ export function TabLogOvertime({
     const done = !!form[flag];
     const choices = [[todayStr,'Today']].concat(form.date && form.date!==todayStr ? [[form.date,'Shift day']] : []);
     return (
-      <div style={{border:`1.5px solid ${done?'color-mix(in srgb, #059669 55%, transparent)':'var(--border)'}`,borderRadius:'14px',padding:'12px 13px',background:done?'var(--tint-green)':'var(--surface-2)',display:'flex',flexDirection:'column',gap:'6px',minWidth:0}}>
+      <div style={{border:`1.5px solid ${done?'color-mix(in srgb, #059669 55%, transparent)':'color-mix(in srgb, #dc2626 45%, transparent)'}`,borderRadius:'14px',padding:'12px 13px',background:done?'var(--tint-green)':'var(--tint-red)',display:'flex',flexDirection:'column',gap:'6px',minWidth:0}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px'}}>
           <span style={{fontSize:'9.5px',fontWeight:900,letterSpacing:'0.08em',padding:'2px 6px',borderRadius:'5px',background:'var(--chip-bg)',color:'var(--text-navy)'}}>{system}</span>
           <span style={{fontFamily:MONO,fontSize:'17px',fontWeight:700,color:'var(--ink)'}}>{slip.amt}</span>
@@ -309,9 +309,9 @@ export function TabLogOvertime({
         {done ? (
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
             <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-green-deep)'}}>✓ Submitted {form[dateField]?shortDate(form[dateField]):''}</span>
-            <span style={{display:'inline-flex',gap:'6px',alignItems:'center',color:'var(--quiet)',fontSize:'11px'}}>
-              <button type="button" onClick={()=>setAskFor(which)} style={linkBtn}>Change date</button>·
-              <button type="button" onClick={()=>{ setForm(f=>({...f,[flag]:false})); setAskFor(null); }} style={linkBtn}>Undo</button>
+            <span style={{display:'inline-flex',gap:'6px',alignItems:'center',flexWrap:'wrap'}}>
+              <button type="button" onClick={()=>setAskFor(which)} style={chipBtn}><Ico n="cal" s={12} c="var(--quiet)"/>Change date</button>
+              <button type="button" onClick={()=>{ setForm(f=>({...f,[flag]:false})); setAskFor(null); }} aria-label={`Undo: mark this ${which==='ot'?'overtime':'PA'} as not submitted`} style={{...chipBtn,background:'var(--tint-red)',borderColor:'color-mix(in srgb, #dc2626 40%, transparent)',color:'var(--text-red-deep)'}}><Ico n="undo" s={12} c="var(--text-red-deep)" w={2.5}/>Undo</button>
             </span>
           </div>
         ) : null}
