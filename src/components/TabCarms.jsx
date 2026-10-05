@@ -280,8 +280,8 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                   </td>
                   <td style={{...tdStyle,borderBottom:'1px solid var(--border-2)',textAlign:'right'}}>
                     <button className="awaits-quick" onClick={e=>{ e.stopPropagation(); selectCarmsClaim(row.entryId,row.claimKey); openCarmsBulkConfirm(); }}
-                      style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'11px',fontWeight:800,color:'var(--text-green-deep)',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'7px',padding:'4px 9px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
-                      <Ico n="check" s={10} c="var(--text-green-deep)" w={3}/> Mark submitted
+                      style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'11px',fontWeight:800,color:'var(--text-red-deep)',background:'var(--tint-red)',border:'1px solid color-mix(in srgb, #dc2626 40%, transparent)',borderRadius:'7px',padding:'4px 9px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
+                      <Ico n="cal" s={10} c="var(--text-red-deep)" w={2.4}/> {row.kind==='pa'?`Submit ${row.typeLabel}`:row.kind==='toil'?'Submit TOIL':'Submit overtime'}
                     </button>
                   </td>
                 </tr>
@@ -332,8 +332,8 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                   <div style={{fontFamily:MONO,fontSize:'12px',fontWeight:row.toilOnly?700:600,color:row.toilOnly?'var(--tag-purple)':'var(--ink)'}}>{row.amountDisplay}</div>
                   {row.kind==='ot+toil'&&!row.toilOnly&&<div style={{fontFamily:MONO,fontSize:'9px',fontWeight:700,color:'var(--tag-purple)'}}>+{fmtHrs(row.toilHrs)} TOIL</div>}
                   <button onClick={e=>{ e.stopPropagation(); selectCarmsClaim(row.entryId,row.claimKey); openCarmsBulkConfirm(); }}
-                    style={{display:'flex',alignItems:'center',gap:'4px',fontSize:'11px',fontWeight:800,color:'var(--text-green-deep)',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'6px',padding:'3px 6px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
-                    <Ico n="check" s={8} c="var(--text-green-deep)" w={3}/> Mark submitted
+                    style={{display:'flex',alignItems:'center',gap:'4px',fontSize:'11px',fontWeight:800,color:'var(--text-red-deep)',background:'var(--tint-red)',border:'1px solid color-mix(in srgb, #dc2626 40%, transparent)',borderRadius:'6px',padding:'3px 6px',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',touchAction:'manipulation'}}>
+                    <Ico n="cal" s={9} c="var(--text-red-deep)" w={2.4}/> {row.kind==='pa'?`Submit ${row.typeLabel}`:row.kind==='toil'?'Submit TOIL':'Submit overtime'}
                   </button>
                 </div>
               </div>

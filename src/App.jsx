@@ -2010,9 +2010,9 @@ export default function App() {
       // Phone cards: two fixed slots so Overtime always sits on the left and
       // PA on the right, lining up card to card. A claim already in shows
       // as a quiet green tick in its slot.
-      const cell = {...clickable, marginTop:0, marginLeft:0, width:'100%', boxSizing:'border-box', justifyContent:'center', padding:'5px 6px'};
+      const cell = {...clickable, marginTop:0, marginLeft:0, width:'100%', boxSizing:'border-box', justifyContent:'center', padding:'5px 6px', whiteSpace:'nowrap'};
       const done = lbl => <div aria-label={`${lbl} submitted`} style={{...style, marginTop:0, marginLeft:0, display:'flex', justifyContent:'center', padding:'5px 6px', background:'var(--tint-green)', color:'var(--text-green-deep)'}}>✓ {lbl}</div>;
-      const gbtn = (part, label) => <button key={part} type="button" title="Mark as submitted" onClick={ev=>{ ev.stopPropagation(); openQuickSubmit(e, {[part]:true}); }} aria-label={`${label} not submitted. Mark as submitted`} style={cell}>✗ {label}<Ico n="cal" s={fontSize+1} c="var(--text-red-deep)" w={2.2}/></button>;
+      const gbtn = (part, label) => <button key={part} type="button" title="Pick the date you submitted it" onClick={ev=>{ ev.stopPropagation(); openQuickSubmit(e, {[part]:true}); }} aria-label={`Submit ${label}: pick the date you submitted it`} style={cell}><Ico n="cal" s={fontSize+1} c="var(--text-red-deep)" w={2.2}/>Submit {label==='Overtime'?'overtime':label}</button>;
       return <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px',marginTop:'7px',width:'100%'}}>
         <div>{hasOTHours ? (otOK ? done('Overtime') : gbtn('ot','Overtime')) : null}</div>
         <div>{hasPA ? (paOK ? done(e.paRate) : gbtn('pa',e.paRate)) : null}</div>
@@ -2031,7 +2031,7 @@ export default function App() {
     // Tapping one opens the date picker to mark that claim submitted, with
     // Overtime and PA as separate buttons so each can have its own date.
     const clickable = {...style,display:'inline-flex',alignItems:'center',gap:'5px',border:'1px solid var(--border-2)',background:'var(--tint-red)',color:'var(--text-red-deep)',cursor:'pointer'};
-    const btn = (part, label) => <button key={part} type="button" title="Mark as submitted" onClick={ev=>{ ev.stopPropagation(); openQuickSubmit(e, {[part]:true}); }} style={clickable}>✗ {label} not submitted<Ico n="cal" s={fontSize+1.5} c="var(--text-red-deep)" w={2.2}/></button>;
+    const btn = (part, label) => <button key={part} type="button" title="Pick the date you submitted it" onClick={ev=>{ ev.stopPropagation(); openQuickSubmit(e, {[part]:true}); }} style={clickable}><Ico n="cal" s={fontSize+1.5} c="var(--text-red-deep)" w={2.2}/>Submit {label==='Overtime'?'overtime':label}</button>;
     return <>{!otOK&&btn('ot','Overtime')}{!paOK&&btn('pa',e.paRate)}</>;
   };
 

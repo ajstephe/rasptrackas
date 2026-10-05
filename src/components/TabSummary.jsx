@@ -361,18 +361,19 @@ export function TabSummary({
             {chevron(open)}
           </div>
         ) : (
-          <div {...base} style={{display:'flex',alignItems:'flex-start',gap:'10px',padding:'10px 2px',borderBottom:open?'none':'1px solid var(--border-2)',cursor:'pointer',background:rowBg,borderRadius:'8px',transition:'background 0.4s ease'}}>
+          <div {...base} style={{display:'flex',flexWrap:'wrap',alignItems:'flex-start',gap:'10px',padding:'10px 2px',borderBottom:open?'none':'1px solid var(--border-2)',cursor:'pointer',background:rowBg,borderRadius:'8px',transition:'background 0.4s ease'}}>
             <span style={{flex:1,minWidth:0}}>
               <span style={{display:'flex',alignItems:'center',gap:'8px'}}><span style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>{date}</span>{(fut||!hasClaim)&&status}</span>
               <span style={{display:'block',fontSize:'12.5px',fontWeight:600,color:'var(--muted)',marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{fmtHrs(hrs)} · {e.reason||'Shift'}</span>
               {tags.length>0&&<span style={{display:'flex',flexWrap:'wrap',gap:'4px',marginTop:'4px'}}>{tags}</span>}
-              {!fut&&hasClaim&&carmsBadge(e, 9, true)}
             </span>
             <span style={{textAlign:'right'}}>
               {toilOnly ? <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--text-purple-deep)'}}>{fmtHrs(c.toilBanked)} TOIL</span> : (<>
                 <span style={{display:'block'}}>{money(fmt(c.gross),gCol,13.5)}</span><span style={{display:'block',marginTop:'2px'}}>{money(fmt(net),nCol,13.5)}</span></>)}
             </span>
             <span style={{paddingTop:'3px'}}>{chevron(open)}</span>
+            {/* Full width under the line, so "Submit overtime" fits on one line. */}
+            {!fut&&hasClaim&&<span style={{flexBasis:'100%',marginTop:'-4px'}}>{carmsBadge(e, 9, true)}</span>}
           </div>
         )}
         {open&&(
@@ -740,8 +741,8 @@ export function TabSummary({
           // Overtime (CARMS) and PA (PSOP) are separate claims that can go in
           // on different days, so each outstanding one gets its own row and
           // button. Each net is what that claim adds on its own.
-          if (tOT) rows.push({k:'todo', key:'todo-ot', lab:'To submit', det:'Overtime', g:c.ot, n:entryNet({...e, paRate:'None'}), parts:{ot:true}});
-          if (tPA) rows.push({k:'todo', key:'todo-pa', lab:'To submit', det:e.paRate, g:c.pa, n:entryNet({...e, hours133:'', hours150:'', hours200:'', toilHours:''}), parts:{pa:true}});
+          if (tOT) rows.push({k:'todo', key:'todo-ot', lab:'Submit overtime', det:'Not submitted yet', g:c.ot, n:entryNet({...e, paRate:'None'}), parts:{ot:true}});
+          if (tPA) rows.push({k:'todo', key:'todo-pa', lab:`Submit ${e.paRate}`, det:'Not submitted yet', g:c.pa, n:entryNet({...e, hours133:'', hours150:'', hours200:'', toilHours:''}), parts:{pa:true}});
           return rows;
         };
         const ROW = {
@@ -765,13 +766,13 @@ export function TabSummary({
               {rows.map(r=>{ const st = ROW[r.k];
                 const box = {display:'grid',gridTemplateColumns:COLS,columnGap:'10px',alignItems:'center',borderRadius:'8px',padding:'5px 8px',background:st.bg,outline:st.dashed?'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)':'none',outlineOffset:'-1px',lineHeight:1.25};
                 const inner = (<>
-                  <span style={{minWidth:0,fontSize:'12px',fontWeight:800,color:st.lab}}>{r.lab}<span style={{display:'block',fontSize:'10.5px',fontWeight:700,opacity:0.85}}>{r.det}</span></span>
+                  <span style={{minWidth:0,fontSize:'12px',fontWeight:800,color:st.lab}}>{r.k==='todo'&&<span style={{display:'inline-flex',verticalAlign:'-1px',marginRight:'4px'}}><Ico n="cal" s={11} c={st.lab} w={2.4}/></span>}{r.lab}<span style={{display:'block',fontSize:'10.5px',fontWeight:700,opacity:0.85}}>{r.det}</span></span>
                   {fig(fmtGBP(r.g), st.g)}{fig(fmtGBP(r.n), st.n)}
                 </>);
                 // The "To submit" box opens the date picker to mark this
                 // shift's outstanding claim(s) as submitted.
                 return r.k==='todo'
-                  ? <button key={r.key||r.k} type="button" className="tap-row" title={`Mark ${r.det} as submitted`} onClick={ev=>{ ev.stopPropagation(); openQuickSubmit(e, r.parts); }} style={{...box,width:'100%',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>{inner}</button>
+                  ? <button key={r.key||r.k} type="button" className="tap-row" title="Pick the date you submitted it" onClick={ev=>{ ev.stopPropagation(); openQuickSubmit(e, r.parts); }} style={{...box,width:'100%',border:'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>{inner}</button>
                   : <div key={r.key||r.k} style={box}>{inner}</div>;
               })}
             </div>

@@ -329,7 +329,7 @@ export function TabLogOvertime({
         ) : !done ? (
           <div style={slipFoot}>
             <span style={{display:'inline-flex',alignItems:'center',gap:'6px',fontSize:'11.5px',fontWeight:800,color:'var(--ink)'}}><span style={{width:'8px',height:'8px',borderRadius:'50%',background:'#dc2626'}}/>Not submitted</span>
-            <button type="button" onClick={()=>setAskFor(which)} style={{display:'inline-flex',alignItems:'center',gap:'5px',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'10px',padding:'8px 12px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'var(--text-green-deep)',cursor:'pointer',whiteSpace:'nowrap'}}><Ico n="check" s={11} c="var(--text-green-deep)" w={3}/>Mark submitted</button>
+            <button type="button" onClick={()=>setAskFor(which)} style={{display:'inline-flex',alignItems:'center',gap:'5px',background:'var(--surface)',border:'1px solid color-mix(in srgb, #dc2626 40%, transparent)',borderRadius:'10px',padding:'8px 12px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'var(--text-red-deep)',cursor:'pointer',whiteSpace:'nowrap'}}><Ico n="cal" s={12} c="var(--text-red-deep)"/>Submit {which==='ot'?'overtime':(form.paRate||'PA')}</button>
           </div>
         ) : null}
       </div>
