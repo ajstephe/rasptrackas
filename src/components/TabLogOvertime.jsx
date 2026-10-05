@@ -385,7 +385,7 @@ export function TabLogOvertime({
         {step(2,'Your hours',(
           <>
             <div role="radiogroup" aria-label="How to record hours" style={{position:'relative',display:'flex',gap:'3px',background:'var(--chip-bg)',borderRadius:'11px',padding:'3px',margin:'8px 0 2px'}}>
-              {modeBtn(true,'Shift time input','Rostered vs worked, auto-calculated','clock')}
+              {modeBtn(true,'Shift time input','Rostered vs Worked, auto calculated','clock')}
               {modeBtn(false,'Enter hours','Manually enter hours','edit')}
               <span aria-hidden="true" style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',width:'26px',height:'26px',borderRadius:'50%',background:'var(--surface)',border:'1.5px solid var(--border)',boxShadow:'0 1px 4px rgba(15,23,42,0.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'9px',fontWeight:900,letterSpacing:'0.04em',color:'var(--muted)',pointerEvents:'none',zIndex:1}}>OR</span>
             </div>

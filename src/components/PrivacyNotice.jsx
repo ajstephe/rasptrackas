@@ -40,7 +40,7 @@ export function PrivacyNotice({ onClose, brass = '#b8823f' }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid var(--border-2)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Ico n="shield" s={18} c="#2563eb" />
-          <span style={{ fontSize: '15.5px', fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.2px' }}>Privacy notice</span>
+          <span style={{ fontSize: '15.5px', fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.2px' }}>Privacy Notice</span>
         </div>
         <button onClick={onClose} aria-label="Close" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: '10px', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <Ico n="x" s={14} c="var(--muted)" />

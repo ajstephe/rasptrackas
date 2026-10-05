@@ -445,7 +445,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     if (!validEmail) { setError('Enter a valid email address'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
     if (password !== password2) { setError('Passwords do not match'); return; }
-    if (!agreedToPrivacy) { setError('Please agree to the privacy notice to create an account.'); return; }
+    if (!agreedToPrivacy) { setError('Please agree to the Privacy Notice to create an account.'); return; }
     setBusy(true);
     // Consent is real at this tick, not at whatever moment user_keys finally
     // gets written — stashed here so it survives the gap when email
@@ -645,7 +645,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             </div>
             <label style={{display:'flex',alignItems:'flex-start',gap:'9px',marginBottom:'14px',cursor:'pointer'}}>
               <input type="checkbox" checked={agreedToPrivacy} onChange={e=>setAgreedToPrivacy(e.target.checked)} style={{marginTop:'2px',flexShrink:0,width:'16px',height:'16px',accentColor:'var(--accent)',cursor:'pointer'}}/>
-              <span style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,fontWeight:600}}>I've read the <button type="button" style={AS.link} onClick={e=>{ e.preventDefault(); setShowPrivacyNotice(true); }}>privacy notice</button> and agree to my data being processed as described.</span>
+              <span style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,fontWeight:600}}>I've read the <button type="button" style={AS.link} onClick={e=>{ e.preventDefault(); setShowPrivacyNotice(true); }}>Privacy Notice</button> and agree to my data being processed as described.</span>
             </label>
             {error && <div role="alert" style={AS.err}>{error}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignUp}>{busy?'Creating…':'Create account'}</button>
@@ -4936,7 +4936,7 @@ export default function App() {
                     : (rangeValid ? `${fmtD(payslipStart)} – ${fmtD(payslipEnd)}` : 'Pick a valid start and end date')}
               </div>
 
-              <button onClick={handleGenerateExport} disabled={!canGenerate} style={{width:'100%',background:BRASS,opacity:canGenerate?1:0.45,color:'#fff',border:'none',borderRadius:'12px',padding:'14px',fontWeight:900,fontSize:'13px',cursor:canGenerate?'pointer':'not-allowed',fontFamily:'inherit'}}>{exportFormat==='csv' ? 'Export spreadsheet' : payslipMode==='financialYear'&&payslipFYYear!=null&&payslipFYYear!==CURRENT_FY_YEAR ? 'View year summary' : 'Create PDF'}</button>
+              <button onClick={handleGenerateExport} disabled={!canGenerate} style={{width:'100%',background:BRASS,opacity:canGenerate?1:0.45,color:'#fff',border:'none',borderRadius:'12px',padding:'14px',fontWeight:900,fontSize:'13px',cursor:canGenerate?'pointer':'not-allowed',fontFamily:'inherit'}}>{exportFormat==='csv' ? 'Export Spreadsheet' : payslipMode==='financialYear'&&payslipFYYear!=null&&payslipFYYear!==CURRENT_FY_YEAR ? 'View Year Summary' : 'Create PDF'}</button>
               <div style={{display:'flex',gap:'6px',marginTop:'4px'}}>
                 <button onClick={()=>setExportFormat(null)} style={{flex:1,background:'none',border:'none',padding:'12px',fontWeight:700,fontSize:'13px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>‹ Back</button>
                 <button onClick={()=>setPayslipModalOpen(false)} style={{flex:1,background:'none',border:'none',padding:'12px',fontWeight:700,fontSize:'13px',color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
@@ -5452,7 +5452,7 @@ export default function App() {
           )}
           {session&&(
             <button onClick={()=>setSignOutConfirmOpen(true)} style={{minHeight:'50px',boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',background:THEME.sidebarBtnBg,border:`1px solid ${THEME.sidebarBtnBorder}`,borderRadius:'10px',padding:'11px',fontSize:'12.5px',fontWeight:800,color:THEME.brassLight,cursor:'pointer',fontFamily:'inherit',marginTop:'10px'}}>
-              <FireExitIcon size={14} color={THEME.brassLight}/> Sign out
+              <FireExitIcon size={14} color={THEME.brassLight}/> Sign Out
             </button>
           )}
           </div>

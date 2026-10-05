@@ -652,7 +652,7 @@ export function TabSettings({
               <>
                 <div style={{display:'flex',alignItems:'flex-start',gap:'8px',marginBottom:'13px'}}>
                   <Ico n="shield" s={13} c="#94a3b8"/>
-                  <span style={{fontSize:'11px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>Worked out the way payroll does: tax code 1257L, month by month, with NI on each month's pay. Above £100k payroll keeps giving you the full tax-free allowance; extra tax is what's likely to be collected later.</span>
+                  <span style={{fontSize:'11px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>Worked out the way payroll does: tax code 1257L, month by month, with NI on each month's pay. Above £100k payroll keeps giving you the full tax-free allowance; Extra Tax is what's likely to be collected later.</span>
                 </div>
                 <button onClick={()=>setTaxPrintOpen(true)} style={{width:'100%',marginBottom:'13px',background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'11px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="dl" s={14} c="#fff"/> Print or save as PDF</button>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
@@ -683,11 +683,11 @@ export function TabSettings({
 
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
                   <div style={{background:overA?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overA?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
-                    <div style={{fontSize:'10px',fontWeight:900,color:overA?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Extra tax</div>
+                    <div style={{fontSize:'10px',fontWeight:900,color:overA?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Extra Tax</div>
                     <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:overA?'var(--text-red-deep)':'var(--text-green-deep)'}}>{fmtGBP(extraTaxA)}</div>
                   </div>
                   <div style={{background:overF?'var(--tint-red)':'var(--tint-green)',border:`1px solid ${overF?'var(--border-2)':'var(--border-2)'}`,borderRadius:'11px',padding:'11px 10px',textAlign:'center'}}>
-                    <div style={{fontSize:'10px',fontWeight:900,color:overF?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Extra tax</div>
+                    <div style={{fontSize:'10px',fontWeight:900,color:overF?'var(--text-red-deep)':'var(--text-green-deep)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Extra Tax</div>
                     <div style={{fontFamily:MONO,fontSize:'16px',fontWeight:600,color:overF?'var(--text-red-deep)':'var(--text-green-deep)'}}>{fmtGBP(extraTaxF)}</div>
                   </div>
                 </div>
@@ -726,20 +726,20 @@ export function TabSettings({
                 {taxCalcActualDetailOpen&&(
                   <div style={{borderTop:'2px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
-                      <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full calculation — Actual (YTD)</div>
+                      <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full Calculation — Actual (YTD)</div>
                       <span onClick={()=>setTaxCalcActualDetailOpen(false)} style={{fontSize:'11px',fontWeight:800,color:BRASS,cursor:'pointer'}}>Show less</span>
                     </div>
                     <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(ytd)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionA.amount)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableYTD)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionA.amount)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableYTD)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Tax-free pay <span style={{color:'var(--quiet)',fontWeight:600}}>(1257L, {A.months} month{A.months!==1?'s':''})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownA.freePay)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownA.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.basicTax)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownA.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.higherTax)}</span></div>
-                      {breakdownA.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownA.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.additionalTax)}</span></div>}
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownA.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.basicTax)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownA.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.higherTax)}</span></div>
+                      {breakdownA.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownA.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.additionalTax)}</span></div>}
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',marginBottom:'8px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)'}}>Total income tax (YTD)</span>
+                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)'}}>Total Income Tax (YTD)</span>
                       <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(breakdownA.totalTax)}</span>
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',background:'var(--surface-2)',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
@@ -757,20 +757,20 @@ export function TabSettings({
                 {taxCalcForecastDetailOpen&&(
                   <div style={{borderTop:'2px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
-                      <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full calculation — Forecast</div>
+                      <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full Calculation — Forecast</div>
                       <span onClick={()=>setTaxCalcForecastDetailOpen(false)} style={{fontSize:'11px',fontWeight:800,color:BRASS,cursor:'pointer'}}>Show less</span>
                     </div>
                     <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (full year)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(proj)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionF.amount)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable gross</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableGrossF)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionF.amount)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable Gross</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableGrossF)}</span></div>
                       <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Tax-free pay <span style={{color:'var(--quiet)',fontWeight:600}}>(1257L, 12 months)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownF.freePay)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownF.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.basicTax)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:breakdownF.additionalAmt>0?'1px solid var(--border-2)':'none'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownF.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.higherTax)}</span></div>
-                      {breakdownF.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownF.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.additionalTax)}</span></div>}
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownF.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.basicTax)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:breakdownF.additionalAmt>0?'1px solid var(--border-2)':'none'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownF.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.higherTax)}</span></div>
+                      {breakdownF.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownF.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.additionalTax)}</span></div>}
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',marginBottom:'8px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)'}}>Total income tax</span>
+                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)'}}>Total Income Tax</span>
                       <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(breakdownF.totalTax)}</span>
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',background:'var(--surface-2)',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
@@ -806,19 +806,19 @@ export function TabSettings({
           <div style={{marginBottom:'28px',pageBreakInside:'avoid'}}>
             <div style={{fontSize:'15px',fontWeight:800,color:'#0f172a',marginBottom:'10px',borderBottom:'2px solid #0f172a',paddingBottom:'6px'}}>{title}</div>
             {printRow('Gross', fmtGBP(gross))}
-            {printRow(`Pension contribution (${(pensionRate*100).toFixed(2)}% of ${fmtGBP(pensionablePay)} pensionable pay)`, '−'+fmtGBP(pension))}
-            {printRow('Taxable gross', fmtGBP(taxable))}
+            {printRow(`Pension Contribution (${(pensionRate*100).toFixed(2)}% of ${fmtGBP(pensionablePay)} pensionable pay)`, '−'+fmtGBP(pension))}
+            {printRow('Taxable Gross', fmtGBP(taxable))}
             {printRow('Tax-free pay (1257L)', fmtGBP(pa))}
-            {printRow(`Basic rate (20% on ${fmtGBP(breakdown.basicAmt)})`, fmtGBP(breakdown.basicTax))}
-            {printRow(`Higher rate (40% on ${fmtGBP(breakdown.higherAmt)})`, fmtGBP(breakdown.higherTax))}
-            {breakdown.additionalAmt>0 && printRow(`Additional rate (45% on ${fmtGBP(breakdown.additionalAmt)})`, fmtGBP(breakdown.additionalTax))}
-            {printRow('Total income tax', fmtGBP(breakdown.totalTax), {bold:true})}
+            {printRow(`Basic Rate (20% on ${fmtGBP(breakdown.basicAmt)})`, fmtGBP(breakdown.basicTax))}
+            {printRow(`Higher Rate (40% on ${fmtGBP(breakdown.higherAmt)})`, fmtGBP(breakdown.higherTax))}
+            {breakdown.additionalAmt>0 && printRow(`Additional Rate (45% on ${fmtGBP(breakdown.additionalAmt)})`, fmtGBP(breakdown.additionalTax))}
+            {printRow('Total Income Tax', fmtGBP(breakdown.totalTax), {bold:true})}
             {printRow('National Insurance', fmtGBP(ni))}
             {printRow('Net pay', fmtGBP(net), {bold:true, noBorder:true})}
             <div style={{marginTop:'12px',fontSize:'12px',color: over?'#dc2626':'#059669',fontWeight:700}}>
               {over
-                ? `Over the £100k taper threshold — ${fmtGBP(extraTax)} extra tax from ${fmtGBP(paRemaining===12570?0:12570-paRemaining)} of Personal allowance lost, ${fmtGBP(paRemaining)} remaining.`
-                : `Under the £100k taper threshold — full £${paRemaining.toLocaleString()} Personal allowance retained.`}
+                ? `Over the £100k taper threshold — ${fmtGBP(extraTax)} extra tax from ${fmtGBP(paRemaining===12570?0:12570-paRemaining)} of Personal Allowance lost, ${fmtGBP(paRemaining)} remaining.`
+                : `Under the £100k taper threshold — full £${paRemaining.toLocaleString()} Personal Allowance retained.`}
             </div>
           </div>
         );
@@ -841,7 +841,7 @@ export function TabSettings({
                 </div>
                 <div className="payslip-print-doc" style={{maxWidth:'640px',margin:'0 auto',background:'#fff'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'6px'}}>
-                    <div style={{fontSize:'20px',fontWeight:900,color:'#0f172a'}}>Tax &amp; £100k+ calculator</div>
+                    <div style={{fontSize:'20px',fontWeight:900,color:'#0f172a'}}>Tax &amp; 100K+ Calculator</div>
                     <div style={{fontSize:'11px',color:'#64748b',fontWeight:600}}>Generated {new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}).replace(/\bSep\b/,'Sept')}</div>
                   </div>
                   <div style={{fontSize:'11px',color:'#64748b',marginBottom:'22px',lineHeight:1.5}}>Tax and National Insurance worked out the way payroll does (tax code 1257L, month by month). Pension figures follow the 2015 Police Pension Scheme (England &amp; Wales) rates effective 1 April 2026. Estimates only — please consult an accountant, HMRC, or your pension provider for anything you intend to rely on.</div>
@@ -1034,7 +1034,7 @@ export function TabSettings({
                 ) : (
                   <div className={'alert-pop'+(deleteAcctConf?'':' pop-out')} style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'12px'}}>
                     <div style={{fontSize:'11.5px',color:'var(--text-red-deep)',lineHeight:1.5,fontWeight:700,marginBottom:'10px'}}>This permanently deletes your account and email registration, and all data stored in the cloud under it. Data already on this device isn't touched. Your email becomes available for a brand new account afterwards. This can't be undone.</div>
-                    <div style={{fontSize:'11px',color:'var(--text-red-deep)',fontWeight:800,marginBottom:'6px'}}>Type your email to confirm: {session.user?.email}</div>
+                    <div style={{fontSize:'10px',color:'var(--text-red-deep)',fontWeight:900,marginBottom:'6px',textTransform:'uppercase',letterSpacing:'0.06em'}}>Type your email to confirm: {session.user?.email}</div>
                     <input
                       value={deleteAcctTyped}
                       onChange={e=>setDeleteAcctTyped(e.target.value)}
@@ -1046,8 +1046,8 @@ export function TabSettings({
                       <button
                         onClick={handleDeleteAccount}
                         disabled={deleteAcctTyped !== session.user?.email || deletingAcct}
-                        style={{flex:1,padding:'9px',background:'#dc2626',opacity:(deleteAcctTyped===session.user?.email && !deletingAcct)?1:0.45,border:'none',borderRadius:'9px',color:'#fff',fontWeight:800,fontSize:'12.5px',fontFamily:'inherit',cursor:(deleteAcctTyped===session.user?.email)?'pointer':'not-allowed'}}
-                      >{deletingAcct?'Deleting…':'Delete permanently'}</button>
+                        style={{flex:1,padding:'9px',background:'#dc2626',opacity:(deleteAcctTyped===session.user?.email && !deletingAcct)?1:0.45,border:'none',borderRadius:'9px',color:'#fff',fontWeight:900,fontSize:'10px',fontFamily:'inherit',cursor:(deleteAcctTyped===session.user?.email)?'pointer':'not-allowed',textTransform:'uppercase',letterSpacing:'0.06em'}}
+                      >{deletingAcct?'Deleting…':'Delete Permanently'}</button>
                     </div>
                   </div>
                 )}
