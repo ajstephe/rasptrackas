@@ -4474,7 +4474,7 @@ export default function App() {
         button:not(:disabled):active{opacity:0.8;transform:scale(0.96)}
         .coffee-sip .coffee-cup{transform-box:view-box;transform-origin:4px 21px;animation:coffee-sip 6s ease-in-out infinite}
         .coffee-sip .coffee-steam{animation:coffee-steam 6s ease-in-out infinite}
-        @keyframes coffee-sip{0%,58%{transform:none}68%,80%{transform:translateY(-2px) rotate(30deg)}90%,100%{transform:none}}
+        @keyframes coffee-sip{0%,58%{transform:none}68%,80%{transform:translateY(-2px) rotate(45deg)}90%,100%{transform:none}}
         @keyframes coffee-steam{0%,56%{opacity:1}64%,84%{opacity:0}94%,100%{opacity:1}}
         @media (prefers-reduced-motion: reduce){.coffee-sip .coffee-cup,.coffee-sip .coffee-steam{animation:none}}
         @media (max-width:359px){.month-pills{display:grid!important;grid-template-columns:repeat(6,1fr)}}
