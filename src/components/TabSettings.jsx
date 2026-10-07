@@ -292,7 +292,12 @@ export function TabSettings({
            card further down the grid on desktop). ── */}
       <div style={{...S.card,marginBottom:'12px'}}>
         <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
-          <Ico n="coffee" s={16} c="#d97706"/>
+          {/* The cup lifts and tips to the right every few seconds, as if
+              someone's taking a sip; the steam fades while it's tipped. */}
+          <svg className="coffee-sip" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,overflow:'visible'}} aria-hidden="true">
+            <g className="coffee-cup"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></g>
+            <g className="coffee-steam"><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></g>
+          </svg>
           <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Want to say thanks?</div>
         </div>
         <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,lineHeight:1.6}}>
