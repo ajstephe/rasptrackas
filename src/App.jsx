@@ -4472,10 +4472,10 @@ export default function App() {
         input:focus,select:focus,textarea:focus{outline:2px solid #2563eb;outline-offset:-2px}
         input,select,textarea{font-size:16px}
         button:not(:disabled):active{opacity:0.8;transform:scale(0.96)}
-        .coffee-sip .coffee-cup{transform-box:view-box;transform-origin:4px 21px;animation:coffee-sip 3s ease-in-out infinite}
+        .coffee-sip .coffee-cup{transform-box:view-box;transform-origin:10px 14px;animation:coffee-sip 3s ease-in-out infinite}
         .coffee-sip .coffee-steam{animation:coffee-steam 3s ease-in-out infinite}
-        @keyframes coffee-sip{0%,58%{transform:none}68%,80%{transform:translateY(-2px) rotate(45deg)}90%,100%{transform:none}}
-        @keyframes coffee-steam{0%,56%{opacity:1}64%,84%{opacity:0}94%,100%{opacity:1}}
+        @keyframes coffee-sip{0%,38%{transform:none;animation-timing-function:ease-out}46%{transform:translate(0,-2px) rotate(-4deg);animation-timing-function:ease-in-out}62%{transform:translate(3px,-7px) rotate(45deg)}76%{transform:translate(3.5px,-7.5px) rotate(48deg);animation-timing-function:ease-in-out}92%{transform:translate(0,0.5px) rotate(0deg);animation-timing-function:ease-out}96%{transform:translate(0,-0.6px)}100%{transform:none}}
+        @keyframes coffee-steam{0%,40%{opacity:1}52%,90%{opacity:0}100%{opacity:1}}
         @media (prefers-reduced-motion: reduce){.coffee-sip .coffee-cup,.coffee-sip .coffee-steam{animation:none}}
         @media (max-width:359px){.month-pills{display:grid!important;grid-template-columns:repeat(6,1fr)}}
         /* Opt-out of the scale half of that press feedback for a real
