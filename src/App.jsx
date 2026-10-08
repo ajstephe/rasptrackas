@@ -5161,7 +5161,7 @@ export default function App() {
 
               {y.periods.length===0 ? (
                 <div style={{textAlign:'center',padding:'30px 10px',color:c('#78849b','var(--quiet)'),fontSize:'13px',fontWeight:600}}>No shifts logged in this year.</div>
-              ) : y.periods.map(p=>{
+              ) : [...y.periods].reverse().map(p=>{
                 const expanded = fySummaryPrintMode || archiveExpandedPeriod===p.short+fySummaryYear;
                 return (
                   <div key={p.short} style={{background:c('#ffffff','var(--surface)'),borderRadius:'14px',padding:'13px',border:`1px solid ${c('#f1f5f9','var(--border-2)')}`,marginBottom:'9px'}}>

@@ -567,8 +567,9 @@ export function TabSummary({
           <span style={{marginLeft:'auto',fontWeight:600,color:'var(--quiet)'}}>{isWide?'Click':'Tap'} a month to open it</span>
         </div>
         {rowCols&&<div style={{display:'grid',gridTemplateColumns:MONTH_COLS,gap:'14px',padding:'0 8px 7px',borderBottom:'1px solid var(--border)',...label,fontSize:'10px'}}><span>Pay month</span><span/><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span><span style={{textAlign:'right'}}>Status</span><span/></div>}
+        {/* Months still to come with nothing in them sit above the newest month. */}
+        {later.length>0&&<div style={{display:'flex',justifyContent:'space-between',gap:'8px',padding:'10px 8px',borderBottom:'1px solid var(--border-2)',fontSize:'13px',fontWeight:600,color:'var(--quiet)'}}><span>{later.length>1?`${String(later[0].p.month).split(' ')[0]} – ${payLabel(later[later.length-1].p.month)}`:payLabel(later[0].p.month)}</span><span>Nothing yet</span></div>}
         {rows.map(monthLine)}
-        {later.length>0&&<div style={{display:'flex',justifyContent:'space-between',gap:'8px',padding:'12px 8px 4px',fontSize:'13px',fontWeight:600,color:'var(--quiet)'}}><span>{later.length>1?`${String(later[0].p.month).split(' ')[0]} – ${payLabel(later[later.length-1].p.month)}`:payLabel(later[0].p.month)}</span><span>Nothing yet</span></div>}
       </div>
     </>);
   };

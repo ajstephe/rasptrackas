@@ -346,7 +346,7 @@ export function TabLogOvertime({
       <div style={{fontSize:'13px',fontWeight:800,color:'var(--quiet)'}}>{what}</div>
       <div style={slipFoot}>
         <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--quiet)'}}>{note}</span>
-        <button type="button" disabled style={{background:'transparent',border:'1px dashed var(--border)',borderRadius:'10px',padding:'8px 12px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'var(--quiet)',cursor:'default',whiteSpace:'nowrap',opacity:0.7}}>Mark submitted</button>
+        <button type="button" disabled style={{background:'transparent',border:'1px dashed var(--border)',borderRadius:'10px',padding:'8px 12px',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:'var(--quiet)',cursor:'default',whiteSpace:'nowrap',opacity:0.7}}>{system==='CARMS'?'Submit overtime':'Submit PA'}</button>
       </div>
     </div>
   );
