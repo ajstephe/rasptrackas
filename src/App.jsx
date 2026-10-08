@@ -330,6 +330,20 @@ const RECOVERY_BLOCKLIST = ['password','overtime','shift','shift1','police','lon
 const SUPPORT_EMAIL = 'ajstephe@me.com';
 // Plain-English versions of the messages the sign-in service returns, so a
 // colleague sees what to do rather than a raw server string.
+// Where an email confirmation link lands. Read once at start-up, before the
+// Supabase client reads (and clears) the link details from the address bar.
+const CONFIRM_REDIRECT = typeof window!=='undefined' ? window.location.origin + '/?confirmed=1' : undefined;
+const LANDING = (() => {
+  try {
+    const h = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const q = new URLSearchParams(window.location.search);
+    const linkError = h.get('error_code') || q.get('error_code') || h.get('error') || q.get('error');
+    const confirmed = !linkError && (h.get('type')==='signup' || q.get('confirmed')==='1');
+    if (linkError) window.history.replaceState(null, '', window.location.pathname);
+    return { confirmed, linkError };
+  } catch (_) { return { confirmed:false, linkError:null }; }
+})();
+
 const friendlyAuthError = (err) => {
   const m = String((err && (err.message || err)) || '').toLowerCase();
   if (!m) return 'Something went wrong. Try again.';
@@ -367,6 +381,13 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
   const [wroteItDown, setWroteItDown] = useState(false);
   const [needsConfirm, setNeedsConfirm] = useState(false);
   const [resent, setResent] = useState(false);
+  // Arriving from the confirmation email: say so, and fill in the email address.
+  const [landing, setLanding] = useState(LANDING.confirmed ? 'confirmed' : LANDING.linkError ? 'link-error' : null);
+  useEffect(() => {
+    if (landing!=='confirmed' || !supabase) return;
+    supabase.auth.getSession().then(({ data }) => { const em = data?.session?.user?.email; if (em) setEmail(e => e || em); }).catch(()=>{});
+    if (window.location.search.includes('confirmed=1')) window.history.replaceState(null, '', window.location.pathname);
+  }, [landing, supabase]);
 
   const AS = {
     // Dark blue page — deliberately different from the rest of the app's
@@ -452,7 +473,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     // confirmation defers that write to handleRecoverySetup, below.
     stashPendingConsent();
     let data, err;
-    try { ({ data, error: err } = await supabase.auth.signUp({ email, password })); } catch (e) { err = e; }
+    try { ({ data, error: err } = await supabase.auth.signUp({ email, password, options:{ emailRedirectTo: CONFIRM_REDIRECT } })); } catch (e) { err = e; }
     setBusy(false);
     if (err) { setError(friendlyAuthError(err)); return; }
     if (!data.session) {
@@ -470,7 +491,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
   const handleResend = async () => {
     setBusy(true);
     let err;
-    try { ({ error: err } = await supabase.auth.resend({ type: 'signup', email })); } catch (e) { err = e; }
+    try { ({ error: err } = await supabase.auth.resend({ type: 'signup', email, options:{ emailRedirectTo: CONFIRM_REDIRECT } })); } catch (e) { err = e; }
     setBusy(false);
     if (err) { setError(friendlyAuthError(err)); return; }
     setResent(true);
@@ -616,7 +637,19 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
 
         {screen === 'signin' && (
           <>
-            <div style={{fontSize:'13px',color:'var(--muted)',fontWeight:600,lineHeight:1.5,margin:'-8px 0 16px'}}>Track overtime, PA and TOIL, and see what you'll take home.</div>
+            {landing==='confirmed' ? (
+              <div role="status" style={{display:'flex',gap:'11px',alignItems:'flex-start',background:'var(--tint-green)',borderRadius:'13px',padding:'13px 14px',margin:'-4px 0 18px'}}>
+                <div style={{width:'30px',height:'30px',borderRadius:'50%',background:'var(--text-green-deep)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="check" s={16} c="#fff" w={3}/></div>
+                <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-green-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>Email confirmed</b>Your account is ready. Sign in with your password to finish setting up — you'll choose a recovery word next.</div>
+              </div>
+            ) : landing==='link-error' ? (
+              <div role="alert" style={{display:'flex',gap:'11px',alignItems:'flex-start',background:'var(--tint-amber)',borderRadius:'13px',padding:'13px 14px',margin:'-4px 0 18px'}}>
+                <div style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="warn" s={18} c="var(--text-amber-deep)" w={2.4}/></div>
+                <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-amber-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>That link has expired</b>Confirmation links only work once, for a limited time. Sign in below: if your email still needs confirming, you can send a new link from here.</div>
+              </div>
+            ) : (
+              <div style={{fontSize:'13px',color:'var(--muted)',fontWeight:600,lineHeight:1.5,margin:'-8px 0 16px'}}>Track overtime, PA and TOIL, and see what you'll take home.</div>
+            )}
             <label htmlFor="as-email" style={AS.label}>Email</label>
             <input id="as-email" style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
             <label htmlFor="as-pass" style={AS.label}>Password</label>
