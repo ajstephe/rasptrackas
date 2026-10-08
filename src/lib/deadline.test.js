@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { submitWindow, daysUntil } from './deadline.js';
-import { PAY_PERIODS } from './payPeriods.js';
+import { PAY_PERIODS, generateFYPeriods, CURRENT_FY_YEAR } from './payPeriods.js';
 
 describe('submitWindow', () => {
   it('gives the pay month whose shift window holds the date, its deadline and the month after', () => {
@@ -24,5 +24,11 @@ describe('submitWindow', () => {
   it('counts days to the deadline', () => {
     expect(daysUntil('2026-10-03', '2026-10-11')).toBe(8);
     expect(daysUntil('2026-10-11', '2026-10-11')).toBe(0);
+  });
+  it('still knows the deadline for a claim from an earlier or later pay year', () => {
+    const last = generateFYPeriods(CURRENT_FY_YEAR - 1)[7], next = generateFYPeriods(CURRENT_FY_YEAR + 1)[11];
+    expect(submitWindow(last.start)?.by).toBe(last.end);
+    expect(submitWindow(next.start)?.by).toBe(next.end);
+    expect(submitWindow(next.start)?.next).toBe('April pay');
   });
 });

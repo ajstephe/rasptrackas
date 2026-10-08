@@ -445,6 +445,16 @@ export function TabSummary({
   const monthsView = infos => {
     // Nothing logged in this tax year yet: one friendly message instead of a
     // headline of £0.00s and a line per empty month.
+    // A new pay year with claims from last year still to submit says so,
+    // instead of "No overtime yet", and points to where they are.
+    if (fyEntries.length===0 && carmsOutstanding.totalClaims>0) { const n=carmsOutstanding.totalClaims; return (
+      <div style={{...S.card,padding:'34px 20px',textAlign:'center'}}>
+        <div style={{width:'46px',height:'46px',borderRadius:'50%',background:'var(--tint-red)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px'}}><Ico n="send" s={20} c="var(--text-red-deep)" w={2.2}/></div>
+        <div style={{fontSize:'16px',fontWeight:900,color:'var(--ink)'}}>Nothing logged in this pay year yet</div>
+        <div style={{fontSize:'13px',fontWeight:600,color:'var(--muted)',margin:'4px auto 16px',maxWidth:'38ch'}}>You still have {n} claim{n!==1?'s':''} from earlier shifts to submit ({fmtGBP(carmsOutstanding.totalAmount)}). Once submitted, {n!==1?'they show':'it shows'} here in the pay month {n!==1?'they are':'it is'} paid in.</div>
+        <button type="button" onClick={()=>setTab('carms')} style={{display:'inline-flex',alignItems:'center',gap:'6px',background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'10px 18px',fontSize:'13.5px',fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>Go to Awaits Submission</button>
+      </div>
+    ); }
     if (fyEntries.length===0) return (
       <div style={{...S.card,padding:'34px 20px',textAlign:'center'}}>
         <div style={{width:'46px',height:'46px',borderRadius:'50%',background:'var(--tint-brass)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px'}}><Ico n="list" s={20} c={BRASS} w={2.2}/></div>
