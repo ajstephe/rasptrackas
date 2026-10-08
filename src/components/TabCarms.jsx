@@ -6,7 +6,7 @@ import { SegSlider } from './SegSlider.jsx';
 import { useMountTransition } from '../lib/useMountTransition.js';
 import { countSelectedClaims } from '../lib/carms.js';
 import { localDateStr } from '../lib/payPeriods.js';
-import { submitWindow, daysUntil, shortDay } from '../lib/deadline.js';
+import { submitWindow, daysUntil } from '../lib/deadline.js';
 
 // ─── CARMS & PSOP Awaiting Submission tab — "Table View" ───────────────────────────────
 // Desktop gets a real sortable table (click Date/Amount to reorder, a

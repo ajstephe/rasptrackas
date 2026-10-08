@@ -8,7 +8,7 @@ import { partNets } from '../lib/payroll.js';
 import { Ico } from './Icons.jsx';
 import { SegSlider } from './SegSlider.jsx';
 import { Tooltip } from './Tooltip.jsx';
-import { submitWindow, daysUntil, shortDay } from '../lib/deadline.js';
+import { submitWindow } from '../lib/deadline.js';
 
 // ─── Summary tab (List View + Calendar View) ────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='months' block — no behaviour
@@ -108,13 +108,13 @@ export function TabSummary({
     const tier = (key,lbl) => tierHours[key]>0 && (
       <div key={key} style={{padding:'7px 0'}}>
         <div style={{...lineRow,color:'var(--ink)'}}><span>{fmtHrs(tierHours[key])} at {lbl}</span><span style={{fontFamily:MONO}}>{fmt(tierGross[key])}</span></div>
-        <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'2px'}}>{renderDatePills(tierDates[key],'var(--muted)')}</div>
+        <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'2px'}}>{renderDatePills(tierDates[key])}</div>
       </div>
     );
     const paLine = k => paCount[k]>0 && (
       <div key={k} style={{padding:'7px 0'}}>
         <div style={{...lineRow,color:'var(--text-amber-deep)'}}><span>{k} × {paCount[k]}</span><span style={{fontFamily:MONO}}>{fmt(paGross[k])}</span></div>
-        <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'2px'}}>{renderDatePills(paDates[k],'#b45309')}</div>
+        <div style={{fontSize:'10px',fontWeight:700,color:'#b45309',marginTop:'2px'}}>{renderDatePills(paDates[k])}</div>
       </div>
     );
     const section = {borderTop:'1px solid var(--border-2)',padding:'8px 0 2px'};

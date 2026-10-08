@@ -2,27 +2,9 @@
 // Money with a thousands comma (£4,948.90), the same as fmtGBP, so every
 // figure in the app reads the same way.
 export const fmt    = n=>`£${n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-// Decimal hours → "HH.MM" where MM is minutes (0-59), not a decimal fraction —
-// e.g. 21.5 (21h 30m) → "21.30", not "21.50".
-export const fmtHM  = n=>{
-  // A value that's mathematically zero can arrive here as something like
-  // -1e-13 — ordinary floating-point drift from repeated addition/
-  // subtraction (toilLedger's running balance, mainly), not a real
-  // negative amount. Left alone this displays as "-0.00" instead of
-  // "0.00". 1e-6 is nowhere near a real hours value (the smallest unit
-  // anyone logs is minutes) but comfortably clears realistic float drift.
-  if (Math.abs(n) < 1e-6) n = 0;
-  const sign = n<0 ? '-' : '';
-  const abs = Math.abs(n);
-  let h = Math.floor(abs);
-  let m = Math.round((abs-h)*60);
-  if (m===60) { h+=1; m=0; }
-  return `${sign}${h}.${String(m).padStart(2,'0')}`;
-};
 // Decimal hours → words people read without thinking: 1.25 → "1h 15m",
-// 2 → "2h", 0.667 → "40m", -1.683 → "−1h 41m". fmtHM's "1.15" looked like a
-// decimal (1.15 hours) when it meant 1h 15m, so every on-screen hours figure
-// now goes through this instead.
+// 2 → "2h", 0.667 → "40m", -1.683 → "−1h 41m". Every on-screen hours figure
+// goes through this.
 export const fmtHrs = n=>{
   if (Math.abs(n) < 1e-6) n = 0;
   const sign = n<0 ? '\u2212' : '';
@@ -43,7 +25,6 @@ export const shiftSpan = (start, end) => `Shifts ${fmtDShort(start)} – ${fmtDS
 const fmtDShort = d=>new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
 export const fmtGBP = n=>`£${n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 export const fmtD   = d=>new Date(d+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-export const fmtDDMM = d=>{ const dt=new Date(d+'T12:00:00'); return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`; };
 // "Synced 4 minutes ago" — for the Sync button's timestamp, not a general-
 // purpose calendar helper, so it only needs to read naturally for the
 // short spans a sync actually happens across (seconds through a couple of

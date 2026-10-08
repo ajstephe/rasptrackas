@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fmt, fmtHrs, fmtGBP } from '../lib/format.js';
-import { submitWindow, daysUntil, shortDay } from '../lib/deadline.js';
+import { submitWindow, shortDay } from '../lib/deadline.js';
 import { toMinutesOfDay, shiftDurationMinutes, generateShiftTimesLine } from '../lib/shiftTimes.js';
 import { getRates, PA_LABELS, PA_RATES, RATE_TIER_MULT, RATE_TIER_LABEL } from '../lib/payRates.js';
 import { useCountUp } from '../lib/useCountUp.js';
@@ -19,7 +19,7 @@ const hm = mins => { const h = Math.floor(mins/60), m = Math.round(mins%60); ret
 // screen. Same fields and behaviour as before — only the arrangement changed.
 import { SetupCard, isSetUp } from './SetupCard.jsx';
 export function TabLogOvertime({
-  editing, setEditing, onCancelEdit, saveSett, setTab, goToConfigSetup, settings, isWide, S, MONO, BRASS,
+  editing, onCancelEdit, saveSett, settings, isWide, S, MONO, BRASS,
   form, setForm, todayStr, notesRef, effectiveTier, preview, handleSave, justSaved,
   carmsToggleRef, focusCarmsToggle, setDatePickerMonth, setDatePickerFor,
   syncShiftTimesIntoForm, animClass='fi',
@@ -40,7 +40,7 @@ export function TabLogOvertime({
   const [notesOpen, setNotesOpen] = useState(false);
   useEffect(() => { if (justSaved) setNotesOpen(false); }, [justSaved]);
 
-  const planRange = d => { const w=submitWindow(d); if(!w) return ''; if(d===w.by) return `on ${w.byShort}`; const a=shortDay(d), b=w.byShort; const [ad,am]=a.split(' '), [bd,bm]=b.split(' '); return am===bm?`${ad}–${b}`:`${a}–${b}`; };
+  const planRange = d => { const w=submitWindow(d); if(!w) return ''; if(d===w.by) return `on ${w.byShort}`; const a=shortDay(d), b=w.byShort; const [ad,am]=a.split(' '), [,bm]=b.split(' '); return am===bm?`${ad}–${b}`:`${a}–${b}`; };
   const dateLabel = d => new Date((d||todayStr)+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
   // Glow in the theme's own accent (BRASS is each theme's accent hex).
   const pillShadow = `0 3px 9px color-mix(in srgb, ${BRASS} 35%, transparent)`;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  calcEntry, isOtSubmitted, isPaSubmitted, submittedGross,
+  calcEntry, isOtSubmitted, isPaSubmitted,
   effectiveOtDate, effectivePaDate, periodIdxForDate, crossPeriodInfo,
 } from './calc.js';
 import { PAY_PERIODS, RATE_CHANGE_DATE } from './payPeriods.js';
@@ -142,27 +142,6 @@ describe('periodIdxForDate', () => {
   });
   it('returns -1 for a date outside all known periods', () => {
     expect(periodIdxForDate('1900-01-01')).toBe(-1);
-  });
-});
-
-describe('submittedGross', () => {
-  it('counts overtime pay only when the OT toggle is on', () => {
-    const rates = getRates(SETTINGS.rank, SETTINGS.service, '2026-08-15');
-    const submitted = baseEntry({ hours133:'2', otSubmitted:true });
-    const notSubmitted = baseEntry({ hours133:'2', otSubmitted:false });
-    expect(submittedGross(submitted, SETTINGS)).toBeCloseTo(2*rates.r133, 6);
-    expect(submittedGross(notSubmitted, SETTINGS)).toBe(0);
-  });
-
-  it('counts PA pay only when the PA toggle is on, independent of the OT toggle', () => {
-    const e = baseEntry({ hours133:'2', paRate:'PA1', otSubmitted:false, paSubmitted:true });
-    // OT not submitted (contributes 0) but PA is (contributes flat £48).
-    expect(submittedGross(e, SETTINGS)).toBe(48);
-  });
-
-  it('counts nothing for an entry with no overtime hours and no PA', () => {
-    const e = baseEntry({ paRate:'None' });
-    expect(submittedGross(e, SETTINGS)).toBe(0);
   });
 });
 

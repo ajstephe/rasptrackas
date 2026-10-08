@@ -14,7 +14,7 @@ import { svcDataOn } from './payRates.js';
 // lib/tax.js): salary arrives as a twelfth of the annual figure, rounded to
 // the penny, at the rate in force on the pay date; tax is cumulative on tax
 // code 1257L; NI is on the month's pay alone.
-export const PAY_DAY = 20;
+const PAY_DAY = 20;
 const MONTH_NUM = { January:1, February:2, March:3, April:4, May:5, June:6, July:7, August:8, September:9, October:10, November:11, December:12 };
 
 export const payDateOf = period => {
@@ -47,7 +47,7 @@ const zeroResult = { tax:0, ni:0, net:0, rate:0, bandName:null };
 
 // Tax and NI on a slice of pay added to a payslip: `payBefore` is taxable
 // pay to date before it, `monthPayBefore` this month's gross before it.
-export const paySlice = (payBefore, amount, taxMonth, monthPayBefore) => {
+const paySlice = (payBefore, amount, taxMonth, monthPayBefore) => {
   if (amount <= 0) return zeroResult;
   const tax = payeTaxToDate(payBefore+amount, taxMonth) - payeTaxToDate(payBefore, taxMonth);
   const ni  = payeNI(monthPayBefore+amount) - payeNI(monthPayBefore);

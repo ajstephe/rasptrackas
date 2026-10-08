@@ -62,7 +62,7 @@ export const FY_END   = PAY_PERIODS[11].end;
 // Cloud retention: current financial year plus the 3 most recent (4 FYs
 // total). This is a CLOUD-ONLY policy — local storage on the device is
 // never pruned and can hold data indefinitely, however far back it goes.
-export const CLOUD_RETENTION_CUTOFF = generateFYPeriods(CURRENT_FY_YEAR - 3)[0].start;
+const CLOUD_RETENTION_CUTOFF = generateFYPeriods(CURRENT_FY_YEAR - 3)[0].start;
 export const isWithinCloudRetention = (dateISO) => dateISO >= CLOUD_RETENTION_CUTOFF;
 
 export const RATE_CHANGE_DATE = '2026-09-01'; // the 2026 pay award takes effect — a real date, not a pattern to generate

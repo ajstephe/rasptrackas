@@ -19,7 +19,7 @@ import {
 import {
   payeTaxBreakdown, taperExtra,
 } from './lib/tax.js';
-import { fmt, fmtHM, fmtHrs, fmtGBP, fmtD, fmtRelTime, payLabel, shiftSpan } from './lib/format.js';
+import { fmt, fmtHrs, fmtGBP, fmtD, fmtRelTime, payLabel } from './lib/format.js';
 import { submitWindow, shortDay, longDay } from './lib/deadline.js';
 import {
   calcAutoOTHours, syncShiftTimesIntoForm, shiftDurationMinutes,
@@ -31,7 +31,7 @@ import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from
 import { countSelectedClaims } from './lib/carms.js';
 import { stashPendingConsent, takePendingConsent } from './lib/legal.js';
 import {
-  calcEntry as calcEntryPure, submittedGross as submittedGrossPure,
+  calcEntry as calcEntryPure,
   crossPeriodInfo as crossPeriodInfoPure,
   isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate,
 } from './lib/calc.js';
@@ -47,7 +47,6 @@ import { useBackButtonCloses } from './lib/useBackButtonCloses.js';
 import { useMountTransition, useLastTruthy } from './lib/useMountTransition.js';
 import { useFocusTrap } from './lib/useFocusTrap.js';
 import { haptic } from './lib/haptics.js';
-import { useCountUp } from './lib/useCountUp.js';
 import { springValue } from './lib/spring.js';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
 // Only one of these six is ever on screen at a time (via `tab` state below),
@@ -382,7 +381,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
   const [needsConfirm, setNeedsConfirm] = useState(false);
   const [resent, setResent] = useState(false);
   // Arriving from the confirmation email: say so, and fill in the email address.
-  const [landing, setLanding] = useState(LANDING.confirmed ? 'confirmed' : LANDING.linkError ? 'link-error' : null);
+  const [landing] = useState(LANDING.confirmed ? 'confirmed' : LANDING.linkError ? 'link-error' : null);
   useEffect(() => {
     if (landing!=='confirmed' || !supabase) return;
     supabase.auth.getSession().then(({ data }) => { const em = data?.session?.user?.email; if (em) setEmail(e => e || em); }).catch(()=>{});
@@ -950,7 +949,7 @@ export default function App() {
   // the label stuck reading "1 minute ago" for far longer than a minute on
   // a quiet screen. Only runs while actually signed in; nothing reads it
   // otherwise.
-  const [syncClockTick, setSyncClockTick] = useState(0);
+  const [, setSyncClockTick] = useState(0);
   useEffect(() => {
     if (!session) return;
     const id = setInterval(()=>setSyncClockTick(t=>t+1), 60000);
@@ -1087,10 +1086,7 @@ export default function App() {
   // touching configExpanded at all — the desktop modal stays something
   // only an explicit ask ever triggers: a click on the header once setup's
   // done (see its onClick in TabSettings.jsx, which clears this flag once
-  // the person makes that choice themselves), or — the one deliberate
-  // exception — following a "Setup Required" prompt (setupPopupRequested,
-  // below), which is its own explicit ask for exactly this popup, just
-  // made before setup is complete rather than after.
+  // the person makes that choice themselves).
   const [prevConfigSetupIncomplete, setPrevConfigSetupIncomplete] = useState(configSetupIncomplete);
   const [justCompletedSetup, setJustCompletedSetup] = useState(false);
   if (configSetupIncomplete !== prevConfigSetupIncomplete) {
@@ -1098,40 +1094,22 @@ export default function App() {
     if (prevConfigSetupIncomplete && !configSetupIncomplete) setJustCompletedSetup(true);
   }
   const configShown = configExpanded || configSetupIncomplete || justCompletedSetup;
-  // Desktop only — set when the person explicitly follows a "Setup
-  // Required" prompt (Home/Log Overtime's own card, not organic navigation
-  // to More..) via goToConfigSetup below, so Config pops out as a modal
-  // right away instead of the inline nudge configSetupIncomplete alone
-  // produces. Cleared the same two ways justCompletedSetup is (TabSettings'
-  // header onClick and the shared overlay's onClick), plus — below — the
-  // moment tab itself leaves 'settings', since the sidebar/bottom nav sit
-  // outside that overlay and can navigate away without ever triggering
-  // either. That reset used to live in a TabSettings useEffect cleanup,
-  // keyed off the component unmounting — StrictMode's dev-only double-
-  // invoke (mount → cleanup → mount, to surface exactly this kind of
-  // assumption) ran that cleanup once immediately, clearing the flag
-  // before the popup it was meant to open ever rendered. Tracking tab
-  // during render instead, the same adjust-while-rendering pattern
-  // prevConfigSetupIncomplete already uses above, sidesteps that: it only
-  // ever fires on a genuine change between two actually-different renders,
-  // never on StrictMode re-invoking the same one.
-  const [setupPopupRequested, setSetupPopupRequested] = useState(false);
-  const [prevTabForSetupPopup, setPrevTabForSetupPopup] = useState(tab);
-  if (tab !== prevTabForSetupPopup) {
-    setPrevTabForSetupPopup(tab);
-    if (prevTabForSetupPopup === 'settings' && setupPopupRequested) setSetupPopupRequested(false);
-    // Leaving More.. right after finishing setup ends the keep-it-open
-    // grace too, so the card is back to its normal collapsed state next visit.
-    if (prevTabForSetupPopup === 'settings' && justCompletedSetup) setJustCompletedSetup(false);
+  // Leaving More.. right after finishing setup ends the keep-it-open
+  // grace too, so the card is back to its normal collapsed state next visit.
+  // Tracked during render (like prevConfigSetupIncomplete above) rather than
+  // in an effect cleanup, which StrictMode's double-invoke would fire early.
+  const [prevTabForSetup, setPrevTabForSetup] = useState(tab);
+  if (tab !== prevTabForSetup) {
+    setPrevTabForSetup(tab);
+    if (prevTabForSetup === 'settings' && justCompletedSetup) setJustCompletedSetup(false);
   }
-  const goToConfigSetup = () => { setSetupPopupRequested(true); setTab('settings'); };
   // Picking the first pay point finishes setup: leave the card up for a
   // moment so the choice visibly lands (the Saved tick, the rates), then
   // close the popup and collapse the card underneath it, rather than
   // leaving it open until it's clicked shut.
   useEffect(() => {
     if (!justCompletedSetup) return;
-    const t = setTimeout(() => { setJustCompletedSetup(false); setSetupPopupRequested(false); setConfigExpanded(false); }, 1000);
+    const t = setTimeout(() => { setJustCompletedSetup(false); setConfigExpanded(false); }, 1000);
     return () => clearTimeout(t);
   }, [justCompletedSetup]);
   const [financialYearsExpanded, setFinancialYearsExpanded] = useState(false);
@@ -1216,8 +1194,8 @@ export default function App() {
   const closeDatePicker = useCallback(() => setDatePickerFor(null), []);
   useBackButtonCloses(!!(datePickerFor && selectedCalDay), closeDatePicker, { top:true });
   useEscapeToClose(
-    configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded || setupPopupRequested,
-    () => { setSetupPopupRequested(false); setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }
+    configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded,
+    () => { setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }
   );
   // ── Android back closes whatever's open ─────────────────────────────────
   // Same overlay list as the Escape handling above, collapsed into one
@@ -1227,7 +1205,7 @@ export default function App() {
   // needs pushState/popstate rather than something simpler.
   useBackButtonCloses(
     !!(signOutConfirmOpen || restoreConfirmOpen || payslipModalOpen || confirmCreateDay || selectedCalDay || datePickerFor || discardAsk
-      || configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded || setupPopupRequested),
+      || configExpanded || taxImpactExpanded || financialYearsExpanded || exportDataExpanded || dataManagementExpanded),
     () => {
       setSignOutConfirmOpen(false); setRestoreConfirmOpen(false); setPayslipModalOpen(false);
       setChartTap(null);
@@ -1235,7 +1213,6 @@ export default function App() {
       setSelectedCalDay(null); setConfirmDel(null);
       setDatePickerFor(null);
       setDiscardAsk(null);
-      setSetupPopupRequested(false);
       setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false);
     }
   );
@@ -1977,14 +1954,13 @@ export default function App() {
   const saveSett = s=>{ setSettings(s); setSavedBadge(true); setTimeout(()=>setSavedBadge(false),2200); };
 
   // ── entry calculator ───────────────────────────────────────────────────────
-  // The actual math (calcEntry, submittedGross, crossPeriodInfo, and the
+  // The actual math (calcEntry, crossPeriodInfo, and the
   // submitted/effective-date helpers) lives in src/lib/calc.js as plain,
   // unit-tested functions that take `settings` explicitly instead of closing
   // over component state. These are thin wrappers supplying that state, so
-  // every existing call site below (`calcEntry(e)`, `submittedGross(e)`, …)
+  // every existing call site below (`calcEntry(e)`, …)
   // is unaffected.
   const calcEntry = useCallback((e)=>calcEntryPure(e, settings), [settings]);
-  const submittedGross = useCallback((e)=>submittedGrossPure(e, settings), [settings]);
   const crossPeriodInfo = useCallback((e)=>crossPeriodInfoPure(e, settings), [settings]);
 
   // Renders a tier's date list. Green means the shift was worked AND its
@@ -1996,9 +1972,8 @@ export default function App() {
   // at all (shouldn't normally occur, since only counted entries are ever
   // pushed, but kept as a safety fallback) shows in a lighter shade
   // instead. Used by both the List View and Calendar View period-
-  // breakdown boxes. `normalColor` is unused now that the scheme is a
-  // fixed green/amber, kept only so call sites don't need updating.
-  const renderDatePills = (dates, normalColor) => dates.map((x,i)=>(
+  // breakdown boxes.
+  const renderDatePills = dates => dates.map((x,i)=>(
     <span key={i} style={{color: !x.counted?'#cbd5e1':x.cross?'#d97706':'#059669'}}>{x.d}{i<dates.length-1?', ':''}</span>
   ));
 
@@ -4400,15 +4375,6 @@ export default function App() {
         .alert-pop.pop-out{animation:alertPopOut 0.2s cubic-bezier(.4,0,1,1) forwards}
         @keyframes sheetPopOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(28px)}}
         .sheet-pop.pop-out{animation:sheetPopOut 0.22s cubic-bezier(.4,0,1,1) forwards}
-        /* Drag-to-dismiss handle for the mobile sheets above (see
-           useDraggableSheet.js) — negative margin extends the grab target
-           well past the pill's own 36x4px so it's actually easy to catch a
-           finger on, without pushing the sheet's real content down to make
-           room for it. touch-action:none stops the browser's own scroll/
-           overscroll gesture from fighting the drag. */
-        .sheet-grabber{display:flex;justify-content:center;padding:2px 0 14px;margin:-6px -20px 2px;cursor:grab;touch-action:none;}
-        .sheet-grabber:active{cursor:grabbing;}
-        .sheet-grabber-pill{width:36px;height:4px;border-radius:4px;background:var(--border);}
         @keyframes modalPopOut{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-50%) scale(0.92)}}
         .modal-pop.pop-out{animation:modalPopOut 0.2s cubic-bezier(.4,0,1,1) forwards}
         @keyframes ovFadeIn{from{opacity:0}to{opacity:1}}
@@ -4489,8 +4455,6 @@ export default function App() {
         }
         nav .nav-lbl{ font-size:clamp(6.4px, 2.05vw, 8px) !important; letter-spacing:clamp(0.1px, 0.13vw, 0.5px) !important; }
         nav button{ padding-left:clamp(1px, 1vw, 4px) !important; padding-right:clamp(1px, 1vw, 4px) !important; }
-        .star-tap{transition:transform 0.12s}
-        .star-tap:active{transform:scale(1.35)}
         .hint-pulse{animation:subtlePulse 1.8s ease-in-out infinite}
         .backup-pulse{animation:backupPulse 1.4s ease-in-out infinite}
         .save-pulse-idle{animation:savePulseIdle 1.8s ease-in-out infinite}
@@ -4777,7 +4741,7 @@ export default function App() {
         {tab==='dashboard'&&(
           <TabDashboard
             animClass={tabAnimClass}
-            isWide={isWide} settings={settings} setTab={setTab} goToConfigSetup={goToConfigSetup} totals={totals}
+            isWide={isWide} settings={settings} setTab={setTab} totals={totals}
             currPeriodIdx={currPeriodIdx} toilLedger={toilLedger} carmsOutstanding={carmsOutstanding}
             salaryBreakdownExpanded={salaryBreakdownExpanded} setSalaryBreakdownExpanded={setSalaryBreakdownExpanded}
             scrollToTaxImpact={scrollToTaxImpact} setTaxImpactExpanded={setTaxImpactExpanded}
@@ -4791,7 +4755,7 @@ export default function App() {
         {tab==='add'&&(
           <TabLogOvertime
             animClass={tabAnimClass}
-            editing={editing} setEditing={setEditing} onCancelEdit={()=>leaveEditThen(()=>setTab('months'))} saveSett={saveSett} setTab={setTab} goToConfigSetup={goToConfigSetup} settings={settings} isWide={isWide}
+            editing={editing} onCancelEdit={()=>leaveEditThen(()=>setTab('months'))} saveSett={saveSett} settings={settings} isWide={isWide}
             S={S} MONO={MONO} BRASS={BRASS} form={form} setForm={setForm} todayStr={todayStr} notesRef={notesRef}
             effectiveTier={effectiveTier} preview={preview} handleSave={handleSave} justSaved={justSaved}
             carmsToggleRef={carmsToggleRef} focusCarmsToggle={focusCarmsToggle}
@@ -4836,14 +4800,13 @@ export default function App() {
             savedBadge={savedBadge} themeMode={themeMode} setTheme={setTheme} pillShadow={THEME.pillShadow}
             configExpanded={configExpanded} setConfigExpanded={setConfigExpanded} configShown={configShown} configSetupIncomplete={configSetupIncomplete}
             justCompletedSetup={justCompletedSetup} setJustCompletedSetup={setJustCompletedSetup}
-            setupPopupRequested={setupPopupRequested} setSetupPopupRequested={setSetupPopupRequested}
             taxImpactExpanded={taxImpactExpanded} setTaxImpactExpanded={setTaxImpactExpanded} taxImpactCardRef={taxImpactCardRef}
             taxCalcActualDetailOpen={taxCalcActualDetailOpen} setTaxCalcActualDetailOpen={setTaxCalcActualDetailOpen}
             taxCalcForecastDetailOpen={taxCalcForecastDetailOpen} setTaxCalcForecastDetailOpen={setTaxCalcForecastDetailOpen}
             financialYearsExpanded={financialYearsExpanded} setFinancialYearsExpanded={setFinancialYearsExpanded}
             exportDataExpanded={exportDataExpanded} setExportDataExpanded={setExportDataExpanded}
             dataManagementExpanded={dataManagementExpanded} setDataManagementExpanded={setDataManagementExpanded}
-            settings={settings} saveSett={saveSett} totals={totals} taxView={taxView} entries={entries} currPeriodIdx={currPeriodIdx}
+            settings={settings} saveSett={saveSett} taxView={taxView} entries={entries} currPeriodIdx={currPeriodIdx}
             setExportFormat={setExportFormat} setPayslipMode={setPayslipMode} setPayslipPeriodIdx={setPayslipPeriodIdx} setPayslipFYYear={setPayslipFYYear} setPayslipModalOpen={setPayslipModalOpen}
             session={session} handleExport={handleExport} pulseBackupBtn={pulseBackupBtn} setRestoreConfirmOpen={()=>fileRef.current&&fileRef.current.click()} fileRef={fileRef} handleImport={handleImport}
             wipeConf={wipeConf} setWipeConf={setWipeConf} handleWipe={handleWipe} wipingData={wipingData}
@@ -5419,7 +5382,6 @@ export default function App() {
             const now = new Date();
             const dayName = now.toLocaleDateString('en-GB',{weekday:'long'});
             const dd = now.getDate();
-            const suffix = (dd%10===1&&dd!==11)?'st':(dd%10===2&&dd!==12)?'nd':(dd%10===3&&dd!==13)?'rd':'th';
             const monthName = now.toLocaleDateString('en-GB',{month:'long'});
             return (
               <div style={{textAlign:'center',padding:'0 8px 16px',borderBottom:`1px solid ${THEME.sidebarDivider}`,marginBottom:'16px'}}>

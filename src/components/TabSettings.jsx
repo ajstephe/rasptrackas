@@ -32,14 +32,13 @@ export function TabSettings({
   openCustomDatePicker,
   configExpanded, setConfigExpanded, configShown, configSetupIncomplete,
   justCompletedSetup, setJustCompletedSetup,
-  setupPopupRequested, setSetupPopupRequested,
   taxImpactExpanded, setTaxImpactExpanded, taxImpactCardRef,
   taxCalcActualDetailOpen, setTaxCalcActualDetailOpen,
   taxCalcForecastDetailOpen, setTaxCalcForecastDetailOpen,
   financialYearsExpanded, setFinancialYearsExpanded,
   exportDataExpanded, setExportDataExpanded,
   dataManagementExpanded, setDataManagementExpanded,
-  settings, saveSett, totals, taxView, entries, currPeriodIdx,
+  settings, saveSett, taxView, entries, currPeriodIdx,
   setExportFormat, setPayslipMode, setPayslipPeriodIdx, setPayslipFYYear, setPayslipModalOpen,
   session, handleExport, pulseBackupBtn, setRestoreConfirmOpen, fileRef, handleImport,
   wipeConf, setWipeConf, handleWipe, wipingData,
@@ -119,13 +118,9 @@ export function TabSettings({
   // accordion-in's own definition is about that accordion's entrance-only
   // asymmetry specifically; it was never a considered call for modal-pop
   // itself, so there's no reason left to leave this one unfixed.
-  // setupPopupRequested (see goToConfigSetup in App.jsx) is the one
-  // deliberate exception to configSetupIncomplete always keeping this
-  // inline (see the showInline/showModal split further down): someone who
-  // explicitly followed a "Setup Required" prompt asked to be taken
-  // straight to this, so it pops out immediately rather than making them
-  // spot and tap the inline card themselves.
-  const configModalOpen = isWide && ((configExpanded && !configSetupIncomplete) || setupPopupRequested);
+  // While setup is incomplete the card always stays inline (see the
+  // showInline/showModal split further down).
+  const configModalOpen = isWide && configExpanded && !configSetupIncomplete;
   const taxModalOpen = isWide && taxImpactExpanded;
   const fyModalOpen = isWide && financialYearsExpanded;
   const exportModalOpen = isWide && exportDataExpanded;
@@ -386,7 +381,7 @@ export function TabSettings({
            — that part was never meant to be hideable. ── */}
       {(()=>{
         const cardHeader = (
-          <button disabled={configSetupIncomplete} onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} const wasOpen = configExpanded || justCompletedSetup || setupPopupRequested; setJustCompletedSetup(false); setSetupPopupRequested(false); setConfigExpanded(!wasOpen); }} className={configSetupIncomplete?'':'tap-row'} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete||justCompletedSetup))?'13px':0}}>
+          <button disabled={configSetupIncomplete} onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} const wasOpen = configExpanded || justCompletedSetup; setJustCompletedSetup(false); setConfigExpanded(!wasOpen); }} className={configSetupIncomplete?'':'tap-row'} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete||justCompletedSetup))?'13px':0}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
               <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Config, rates &amp; pay scales</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Rank, pay point, rates</div></div>
@@ -581,23 +576,9 @@ export function TabSettings({
         // finishes, from App.jsx) both stay inline even on desktop: landing
         // here organically (the More.. nav item, say) with setup still
         // incomplete is a first-run nudge, not something tapped open, so
-        // it shouldn't hijack into a popup on its own. setupPopupRequested
-        // is the deliberate exception — that flag only ever gets set by an
-        // explicit "Setup Required" prompt (see goToConfigSetup in
-        // App.jsx), so a popup is exactly what was asked for, and it stays
-        // a popup through justCompletedSetup too rather than snapping back
-        // to inline the instant Pay Point gets picked — the same "don't
-        // yank it away right as they finish" reasoning justCompletedSetup
-        // itself exists for, just applied to the popup instead of the
-        // inline card since that's the surface it was actually shown on.
-        // setupPopupRequested only ever suppresses the inline card on
-        // desktop, where showModal picks it up instead — on mobile the
-        // popup never exists at all (showModal is isWide-gated below), so
-        // this card has to keep showing inline there regardless of the
-        // flag, or "Go to More.." from a Setup Required prompt would leave
-        // a mobile visitor looking at neither.
-        const showInline = configShown && (!isWide || configSetupIncomplete || justCompletedSetup) && !(setupPopupRequested && isWide);
-        const showModal = isWide && (configExpanded && !configSetupIncomplete && !justCompletedSetup || setupPopupRequested);
+        // it shouldn't hijack into a popup on its own.
+        const showInline = configShown && (!isWide || configSetupIncomplete || justCompletedSetup);
+        const showModal = isWide && configExpanded && !configSetupIncomplete && !justCompletedSetup;
         if (showModal) configModalContentRef.current = <>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></>;
         return (
           <>
@@ -1113,7 +1094,7 @@ export function TabSettings({
            Portalled to contentWrapRef, same reasoning as the popup
            cards themselves (see modalBoxStyle above). ── */}
       {anyModalMounted && contentWrapRef.current && createPortal(
-        <div onClick={()=>{ setConfigExpanded(false); setSetupPopupRequested(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} className={anyModalOpen?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',zIndex:55}}/>,
+        <div onClick={()=>{ setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); }} className={anyModalOpen?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',zIndex:55}}/>,
         contentWrapRef.current
       )}
     </div>

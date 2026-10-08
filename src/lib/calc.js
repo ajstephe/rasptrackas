@@ -45,18 +45,6 @@ export const calcEntry = (e, settings) => {
 export const isOtSubmitted = e => e.otSubmitted !== false;
 export const isPaSubmitted = e => e.paSubmitted !== false;
 
-// Shared by every place that needs an entry's actually-counted gross —
-// the export, the PDF payslip preview, and the archived-year view all
-// used to compute this same formula independently, which is exactly the
-// kind of duplication that lets one copy drift out of sync with the
-// others after a future change. One definition here, reused everywhere.
-export const submittedGross = (e, settings) => {
-  const c = calcEntry(e, settings);
-  const hasPA = e.paRate && e.paRate!=='None';
-  const otPart = c.h1+c.h2+c.h3 > 0 && isOtSubmitted(e) ? c.ot : 0;
-  return otPart + ((hasPA && isPaSubmitted(e)) ? c.pa : 0);
-};
-
 // The date that decides which pay period a component's earnings actually
 // land in — the date it was submitted, not the date the shift was worked,
 // since a late submission gets processed in whichever period it goes in

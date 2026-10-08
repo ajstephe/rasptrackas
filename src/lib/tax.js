@@ -73,8 +73,8 @@ export const pensionTierRate = annualPensionablePay => {
 //     Assessment (the Tax & 100K+ Calculator shows it as extra tax)
 // NI is worked out on each month's pay alone: 8% from £1,048 to £4,189 a
 // month and 2% above, rounded to the nearest penny (a half penny rounds down).
-export const PAYE_FREE_PAY_MONTH = Math.ceil(((1257*10+9)/12)*100 - 1e-9)/100; // £1,048.25
-export const NI_PT_MONTH = 1048, NI_UEL_MONTH = 4189;
+const PAYE_FREE_PAY_MONTH = Math.ceil(((1257*10+9)/12)*100 - 1e-9)/100; // £1,048.25
+const NI_PT_MONTH = 1048, NI_UEL_MONTH = 4189;
 const payeLimits = month => ({ basic: Math.ceil(37700*month/12 - 1e-9), upper: Math.ceil(125140*month/12 - 1e-9) });
 const payeTaxable = (payToDate, month) => Math.max(0, Math.floor(payToDate - PAYE_FREE_PAY_MONTH*month + 1e-9));
 export const payeTaxToDate = (payToDate, month) => {

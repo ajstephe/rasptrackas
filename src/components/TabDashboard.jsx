@@ -2,7 +2,7 @@ import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
 import { localDateStr } from '../lib/payPeriods.js';
-import { submitWindow, daysUntil, shortDay } from '../lib/deadline.js';
+import { submitWindow } from '../lib/deadline.js';
 
 // ─── Home (dashboard) tab ────────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='dashboard' IIFE — no behaviour
@@ -10,7 +10,7 @@ import { submitWindow, daysUntil, shortDay } from '../lib/deadline.js';
 // props rather than being closed over directly.
 import { SetupCard } from './SetupCard.jsx';
 export function TabDashboard({
-  isWide, settings, setTab, goToConfigSetup, totals, currPeriodIdx, toilLedger, carmsOutstanding,
+  isWide, settings, setTab, totals, currPeriodIdx, toilLedger, carmsOutstanding,
   salaryBreakdownExpanded, setSalaryBreakdownExpanded,
   scrollToTaxImpact, setTaxImpactExpanded,
   skipBreakdownReset, setBreakdownView, setCalPeriodIdx,
