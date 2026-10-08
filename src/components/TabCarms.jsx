@@ -326,7 +326,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
                 <span onClick={e=>e.stopPropagation()}><Checkbox checked={selected} onClick={()=>toggleCarmsClaim(row.entryId,row.claimKey)} size={18}/></span>
                 {catChip(row.kind==='ot+toil'?'ot':row.kind, 26)}
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{row.reason}</div>
+                  <div style={{fontSize:'12px',fontWeight:700,color:'var(--ink)',lineHeight:1.3,display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:3,overflow:'hidden',overflowWrap:'anywhere'}}>{row.reason}</div>
                   <div style={{fontSize:'9.5px',color:'var(--quiet)',marginTop:'1px'}}>{row.typeLabel} · {new Date(row.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</div>
                 </div>
                 <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'5px',flexShrink:0}}>
