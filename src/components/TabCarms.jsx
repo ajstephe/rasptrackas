@@ -96,7 +96,8 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
   // desktop table's clickable column headers and the mobile list's single
   // "Sort: Date/Amount" pill ──────────────────────────────────────────────
   const [sortKey, setSortKey] = useState('date');
-  const [sortDir, setSortDir] = useState('desc');
+  // Oldest first by default, so the most overdue claims sit at the top.
+  const [sortDir, setSortDir] = useState('asc');
   // Jumping here from a period's "Awaiting submission" panel in Summary
   // only makes sense in date order, where that period's rows sit together
   // as one contiguous block — force back to it so the scroll target (the
@@ -104,7 +105,7 @@ export function TabCarms({ MONO, BRASS, isWide, carmsOutstanding, carmsFilter, s
   useEffect(()=>{ if(pulsePeriodIdx!=null){ setSortKey('date'); setSortDir('desc'); } },[pulsePeriodIdx]);
   const toggleSort = (key) => {
     if (sortKey===key) setSortDir(d=>d==='desc'?'asc':'desc');
-    else { setSortKey(key); setSortDir('desc'); }
+    else { setSortKey(key); setSortDir(key==='date'?'asc':'desc'); }
   };
   const sortRows = (rows) => rows.slice().sort((a,b)=>{
     const cmp = sortKey==='amount' ? (a.amount-b.amount) : (a.date<b.date?-1:a.date>b.date?1:0);
