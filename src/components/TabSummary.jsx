@@ -455,8 +455,8 @@ export function TabSummary({
     );
     const shown = infos.filter(m => !(m.p.start>todayStr && isEmpty(m) && m.pE.length===0 && !m.carms && expanded!==m.p.month && m.idx!==currPeriodIdx));
     const later = infos.filter(m => !shown.includes(m));
-    // A computer reads the year in date order; a phone puts the newest first.
-    const rows = isWide ? shown : [...shown].reverse();
+    // Newest first on phone and computer, so the current pay month sits at the top.
+    const rows = [...shown].reverse();
     const T = shown.reduce((a,m)=>({hrs:a.hrs+m.sp.sub+m.sp.pend, n:a.n+m.sp.nSub+m.sp.nPend, g:a.g+m.totG, net:a.net+m.totN}), {hrs:0,n:0,g:0,net:0});
     const EY = totals.expectedYear;
     const exOf = m => { const ex = totals.expected?.[m.idx]; return ex&&ex.n>0 ? ex : null; };
