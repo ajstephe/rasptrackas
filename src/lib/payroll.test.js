@@ -57,6 +57,14 @@ describe('salary take-home', () => {
     const busy = buildPayYear({ periods: PERIODS, entries: PERIODS.slice(0,6).map(p=>shift(p.start, { hours150:'40', otRateTier:'hours150' })), settings: pc7 });
     busy.forEach((pb,i)=>expect(pb.salaryNet).toBeCloseTo(plain[i].salaryNet, 2));
   });
+
+  it('splits a no-overtime payslip exactly into salary, London Weighting and London Allowance', () => {
+    const pc7 = { rank:'Constable', service:'PC 7 (top)' };
+    const y = buildPayYear({ periods: PERIODS, entries: [], settings: pc7 });
+    expect(y[0].lwNet).toBeCloseTo(175.54, 2);
+    expect(y[0].laNet).toBeCloseTo(390.02, 2);
+    y.forEach(pb=>expect(pb.salaryNet + pb.lwNet + pb.laNet).toBeCloseTo(pb.monthNet, 2));
+  });
 });
 
 describe('pay point changes', () => {

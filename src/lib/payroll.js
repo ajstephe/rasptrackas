@@ -64,7 +64,9 @@ export const periodNet = (pb, ot, pa) =>
 // month's overtime and PA. `svcData` pins one pay point (tests); otherwise
 // each month uses the pay point in force on its pay date.
 export const runPayYear = ({ periods, settings, svcData, money }) => {
-  let cum = 0, taxToDate = 0, salaryCum = 0, salaryTax = 0;
+  let cum = 0, taxToDate = 0;
+  const baseCum = [0,0,0];   // salary, London Weighting, London Allowance, each after its pension
+  let baseTax = [0,0,0];     // tax to date on the salary, then salary + LW, then all three
   return periods.map((p,i)=>{
     const payDate = payDateOf(p);
     const taxMonth = i+1;
@@ -73,14 +75,25 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const pensionRate = svc ? pensionTierRate(m.annualPensionable) : 0;
     const periodPension = Math.round((m.pensionable * pensionRate + Number.EPSILON)*100)/100;
     const cumBase = cum + m.base - periodPension;   // salary is taxed first, net of pension
-    // The salary's own take-home, as if it were the only pay this tax year:
-    // its share of the pension, tax on the salary alone month by month, and
-    // NI on the month's salary. Home shows it net like the overtime below it.
+    // Take-home from the salary, London Weighting and London Allowance, as
+    // if they were the only pay this tax year: the salary first, then London
+    // Weighting on top of it, then London Allowance. Each takes its own share
+    // of the pension (London Allowance isn't pensionable), the tax its slice
+    // adds month by month, and the NI it adds to the month. Overtime doesn't
+    // change them, so Home can show each one net like the overtime below.
     const salaryPension = Math.round((m.salary * pensionRate + Number.EPSILON)*100)/100;
-    const salaryCumAfter = salaryCum + m.salary - salaryPension;
-    const salaryTaxToDate = payeTaxToDate(salaryCumAfter, taxMonth);
-    const salaryNet = m.salary - salaryPension - (salaryTaxToDate - salaryTax) - payeNI(m.salary);
-    salaryCum = salaryCumAfter; salaryTax = salaryTaxToDate;
+    const lwPension = periodPension - salaryPension;
+    let running = 0;
+    const baseTD = [m.salary - salaryPension, m.lw - lwPension, m.la].map((x,k)=>{
+      baseCum[k] += x; running += baseCum[k];
+      return payeTaxToDate(running, taxMonth);
+    });
+    // The tax each layer adds this month: its layer's month tax less the one below.
+    const sliceTax = baseTD.map((td,k)=>(td - baseTax[k]) - (k ? baseTD[k-1] - baseTax[k-1] : 0));
+    baseTax = baseTD;
+    const salaryNet = m.salary - salaryPension - sliceTax[0] - payeNI(m.salary);
+    const lwNet = m.lw - lwPension - sliceTax[1] - (payeNI(m.salary + m.lw) - payeNI(m.salary));
+    const laNet = m.la - sliceTax[2] - (payeNI(m.base) - payeNI(m.salary + m.lw));
     const { ot=0, pa=0, parts=[] } = money[i] || {};
     const otResult = paySlice(cumBase, ot, taxMonth, m.base);
     const paResult = paySlice(cumBase+ot, pa, taxMonth, m.base+ot);
@@ -93,7 +106,7 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const monthNI = payeNI(monthGross);
     return {
       month:p.month, start:p.start, end:p.end, payDate, taxMonth,
-      baseAmt:m.base, salary:m.salary, salaryNet, lw:m.lw, la:m.la,
+      baseAmt:m.base, salary:m.salary, salaryNet, lw:m.lw, lwNet, la:m.la, laNet,
       pensionablePayThisPeriod:m.pensionable, pensionRate, periodPension,
       ot, pa, otResult, paResult,
       combinedGross: ot+pa, combinedNet: otResult.net+paResult.net,

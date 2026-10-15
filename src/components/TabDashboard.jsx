@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
@@ -163,39 +164,31 @@ export function TabDashboard({
           {/* Desktop: figures and tax bars on the left, the monthly chart on
               the right, so the whole card fits on screen. Phones stack them. */}
           <div>
-          {/* breakdown rows — London Weighting/Allowance shown as YTD out of full year */}
-          <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',display:'flex',flexDirection:'column',gap:'6px'}}>
+          {/* breakdown rows: paid so far this tax year, gross in one column
+              and net in the next, so the figures line up down the card */}
+          <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',display:'grid',gridTemplateColumns:'minmax(0,1fr) auto auto',columnGap:'14px',rowGap:'6px',alignItems:'baseline'}}>
+            <span style={{fontSize:'9.5px',fontWeight:800,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Year to date</span>
+            <span style={{fontSize:'9.5px',fontWeight:800,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'right'}}>Gross</span>
+            <span style={{fontSize:'9.5px',fontWeight:800,color:'#059669',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'right'}}>Net</span>
+            {/* Claims waiting for a later payday show on their own line. */}
             {[
-              ['Base salary (YTD)', totals.salaryYTD, null, settings.rank&&settings.service ? totals.salaryNetYTD : null],
-              ['London Weighting', settings.rank&&settings.service ? totals.lwYTD : null, totals.lwAnnualTotal],
-              ['London Allowance', settings.rank&&settings.service ? totals.laYTD : null, totals.laAnnualTotal],
-            ].map(([label,val,fullYear,net])=>(
-              <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{label}</span>
-                <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:val==null?'var(--quiet)':'var(--ink)'}}>
-                  {val==null
-                    ? 'Set rank & pay point'
-                    : fullYear!=null
-                      ? <>{fmtGBP(val)}<span style={{color:'var(--quiet)'}}> / {fmtGBP(fullYear)}</span></>
-                      : net!=null
-                        ? <>{fmtGBP(val)}<span style={{color:'#059669'}}> ({fmtGBP(net)})</span></>
-                        : fmtGBP(val)}
-                </span>
-              </div>
-            ))}
-            {/* Paid so far this tax year, so these rows add up to the headline.
-                Claims waiting for a later payday show on their own line. */}
-            {[
+              ['Base salary', totals.salaryYTD, totals.salaryNetYTD, true],
+              ['London Weighting', totals.lwYTD, totals.lwNetYTD, true],
+              ['London Allowance', totals.laYTD, totals.laNetYTD, true],
               ['Overtime', totals.otPaidGross, totals.otPaidNet],
               ['Protection Allowance', totals.paPaidGross, totals.paPaidNet],
               ...(totals.onItsWayGross>0.005 ? [['Submitted, not paid yet', totals.onItsWayGross, totals.onItsWayNet]] : []),
-            ].map(([label,gross,net])=>(
-              <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            ].map(([label,gross,net,needsPay])=>(
+              <Fragment key={label}>
                 <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{label}</span>
-                <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(gross)}<span style={{color:'#059669'}}> ({fmtGBP(net)})</span></span>
-              </div>
+                {needsPay && !(settings.rank&&settings.service)
+                  ? <span style={{gridColumn:'span 2',textAlign:'right',fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--quiet)'}}>Set rank &amp; pay point</span>
+                  : <>
+                      <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--ink)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(gross)}</span>
+                      <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#059669',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(net)}</span>
+                    </>}
+              </Fragment>
             ))}
-            <div style={{fontSize:'9.5px',fontWeight:600,color:'var(--quiet)',textAlign:'right',marginTop:'2px'}}>Figures in brackets, e.g. <span style={{color:'#059669'}}>(£xx.xx)</span>, are net</div>
           </div>
 
           {/* ── Gross Salary (Actual) ──

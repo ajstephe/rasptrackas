@@ -2152,6 +2152,8 @@ export default function App() {
     const salaryNetYTD = sum(paidMonths, pb=>pb.salaryNet);
     const lwYTD     = sum(paidMonths, pb=>pb.lw);
     const laYTD     = sum(paidMonths, pb=>pb.la);
+    const lwNetYTD  = sum(paidMonths, pb=>pb.lwNet);
+    const laNetYTD  = sum(paidMonths, pb=>pb.laNet);
     const otPaidGross = sum(paidMonths, pb=>pb.ot),  otPaidNet = sum(paidMonths, pb=>pb.otResult.net);
     const paPaidGross = sum(paidMonths, pb=>pb.pa),  paPaidNet = sum(paidMonths, pb=>pb.paResult.net);
     const onItsWayGross = sum(upcoming, pb=>pb.combinedGross), onItsWayNet = sum(upcoming, pb=>pb.combinedNet);
@@ -2165,8 +2167,6 @@ export default function App() {
 
     // Full tax year: all twelve monthly payments.
     const salaryAnnualTotal = hasPay ? sum(taxYearMonths, pb=>pb.salary) : 0;
-    const lwAnnualTotal = sum(taxYearMonths, pb=>pb.lw);
-    const laAnnualTotal = sum(taxYearMonths, pb=>pb.la);
 
     // ── full-year forecast ─────────────────────────────────────────────────
     // Salary is known for all twelve paydays. Overtime and PA: what's been
@@ -2223,7 +2223,7 @@ export default function App() {
     return{
       totalGross, totalNet, totalHrs, periodBreakdown,
       prev:getP(currPeriodIdx-1), curr:getP(currPeriodIdx),
-      salaryYTD, salaryNetYTD, lwYTD, laYTD, lwAnnualTotal, laAnnualTotal, salaryAnnualTotal,
+      salaryYTD, salaryNetYTD, lwYTD, laYTD, lwNetYTD, laNetYTD, salaryAnnualTotal,
       otPaidGross, otPaidNet, paPaidGross, paPaidNet, onItsWayGross, onItsWayNet,
       combinedGrossYTD, combinedNetYTD, pensionYTD, ytdTax, ytdNI,
       taxYearDaysElapsed, taxYearStart, taxYearFraction, taxFY,
