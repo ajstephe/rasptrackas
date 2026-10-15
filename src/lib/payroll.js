@@ -64,7 +64,7 @@ export const periodNet = (pb, ot, pa) =>
 // month's overtime and PA. `svcData` pins one pay point (tests); otherwise
 // each month uses the pay point in force on its pay date.
 export const runPayYear = ({ periods, settings, svcData, money }) => {
-  let cum = 0, taxToDate = 0;
+  let cum = 0, taxToDate = 0, salaryCum = 0, salaryTax = 0;
   return periods.map((p,i)=>{
     const payDate = payDateOf(p);
     const taxMonth = i+1;
@@ -73,6 +73,14 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const pensionRate = svc ? pensionTierRate(m.annualPensionable) : 0;
     const periodPension = Math.round((m.pensionable * pensionRate + Number.EPSILON)*100)/100;
     const cumBase = cum + m.base - periodPension;   // salary is taxed first, net of pension
+    // The salary's own take-home, as if it were the only pay this tax year:
+    // its share of the pension, tax on the salary alone month by month, and
+    // NI on the month's salary. Home shows it net like the overtime below it.
+    const salaryPension = Math.round((m.salary * pensionRate + Number.EPSILON)*100)/100;
+    const salaryCumAfter = salaryCum + m.salary - salaryPension;
+    const salaryTaxToDate = payeTaxToDate(salaryCumAfter, taxMonth);
+    const salaryNet = m.salary - salaryPension - (salaryTaxToDate - salaryTax) - payeNI(m.salary);
+    salaryCum = salaryCumAfter; salaryTax = salaryTaxToDate;
     const { ot=0, pa=0, parts=[] } = money[i] || {};
     const otResult = paySlice(cumBase, ot, taxMonth, m.base);
     const paResult = paySlice(cumBase+ot, pa, taxMonth, m.base+ot);
@@ -85,7 +93,7 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const monthNI = payeNI(monthGross);
     return {
       month:p.month, start:p.start, end:p.end, payDate, taxMonth,
-      baseAmt:m.base, salary:m.salary, lw:m.lw, la:m.la,
+      baseAmt:m.base, salary:m.salary, salaryNet, lw:m.lw, la:m.la,
       pensionablePayThisPeriod:m.pensionable, pensionRate, periodPension,
       ot, pa, otResult, paResult,
       combinedGross: ot+pa, combinedNet: otResult.net+paResult.net,

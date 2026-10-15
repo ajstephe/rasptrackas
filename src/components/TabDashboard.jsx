@@ -166,10 +166,10 @@ export function TabDashboard({
           {/* breakdown rows — London Weighting/Allowance shown as YTD out of full year */}
           <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',display:'flex',flexDirection:'column',gap:'6px'}}>
             {[
-              ['Base salary (YTD)', totals.salaryYTD, null],
+              ['Base salary (YTD)', totals.salaryYTD, null, settings.rank&&settings.service ? totals.salaryNetYTD : null],
               ['London Weighting', settings.rank&&settings.service ? totals.lwYTD : null, totals.lwAnnualTotal],
               ['London Allowance', settings.rank&&settings.service ? totals.laYTD : null, totals.laAnnualTotal],
-            ].map(([label,val,fullYear])=>(
+            ].map(([label,val,fullYear,net])=>(
               <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{label}</span>
                 <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:val==null?'var(--quiet)':'var(--ink)'}}>
@@ -177,7 +177,9 @@ export function TabDashboard({
                     ? 'Set rank & pay point'
                     : fullYear!=null
                       ? <>{fmtGBP(val)}<span style={{color:'var(--quiet)'}}> / {fmtGBP(fullYear)}</span></>
-                      : fmtGBP(val)}
+                      : net!=null
+                        ? <>{fmtGBP(val)}<span style={{color:'#059669'}}> ({fmtGBP(net)})</span></>
+                        : fmtGBP(val)}
                 </span>
               </div>
             ))}

@@ -46,6 +46,19 @@ describe('pay months as PAYE months', () => {
   });
 });
 
+describe('salary take-home', () => {
+  it('works out the salary net on its own, the same whatever overtime is claimed', () => {
+    const pc7 = { rank:'Constable', service:'PC 7 (top)' };
+    const plain = buildPayYear({ periods: PERIODS, entries: [], settings: pc7 });
+    // April pay: £4,187.92 salary, £581.28 pension (13.88%), £511.60 tax on
+    // £2,558 taxable, £251.19 NI.
+    expect(plain[0].salaryNet).toBeCloseTo(2843.85, 2);
+    expect(plain[6].salaryNet).toBeCloseTo(2941.75, 2);   // after the pay award
+    const busy = buildPayYear({ periods: PERIODS, entries: PERIODS.slice(0,6).map(p=>shift(p.start, { hours150:'40', otRateTier:'hours150' })), settings: pc7 });
+    busy.forEach((pb,i)=>expect(pb.salaryNet).toBeCloseTo(plain[i].salaryNet, 2));
+  });
+});
+
 describe('pay point changes', () => {
   it('prices shifts and salary by the pay point in force on the date', () => {
     const settings = { rank:'Constable', service:'PC 5', payHistory:[ { from:'', rank:'Constable', service:'PC 4' }, { from:'2026-10-01', rank:'Constable', service:'PC 5' } ] };

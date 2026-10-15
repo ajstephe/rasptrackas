@@ -2149,6 +2149,7 @@ export default function App() {
     const upcoming   = taxYearMonths.filter(pb=>pb.payDate>todayStr);
     const sum = (list, f) => list.reduce((s,pb)=>s+f(pb),0);
     const salaryYTD = sum(paidMonths, pb=>pb.salary);
+    const salaryNetYTD = sum(paidMonths, pb=>pb.salaryNet);
     const lwYTD     = sum(paidMonths, pb=>pb.lw);
     const laYTD     = sum(paidMonths, pb=>pb.la);
     const otPaidGross = sum(paidMonths, pb=>pb.ot),  otPaidNet = sum(paidMonths, pb=>pb.otResult.net);
@@ -2222,7 +2223,7 @@ export default function App() {
     return{
       totalGross, totalNet, totalHrs, periodBreakdown,
       prev:getP(currPeriodIdx-1), curr:getP(currPeriodIdx),
-      salaryYTD, lwYTD, laYTD, lwAnnualTotal, laAnnualTotal, salaryAnnualTotal,
+      salaryYTD, salaryNetYTD, lwYTD, laYTD, lwAnnualTotal, laAnnualTotal, salaryAnnualTotal,
       otPaidGross, otPaidNet, paPaidGross, paPaidNet, onItsWayGross, onItsWayNet,
       combinedGrossYTD, combinedNetYTD, pensionYTD, ytdTax, ytdNI,
       taxYearDaysElapsed, taxYearStart, taxYearFraction, taxFY,
