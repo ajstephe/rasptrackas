@@ -75,12 +75,12 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const pensionRate = svc ? pensionTierRate(m.annualPensionable) : 0;
     const periodPension = Math.round((m.pensionable * pensionRate + Number.EPSILON)*100)/100;
     const cumBase = cum + m.base - periodPension;   // salary is taxed first, net of pension
-    // Take-home from the salary, London Weighting and London Allowance, as
-    // if they were the only pay this tax year: the salary first, then London
-    // Weighting on top of it, then London Allowance. Each takes its own share
-    // of the pension (London Allowance isn't pensionable), the tax its slice
-    // adds month by month, and the NI it adds to the month. Overtime doesn't
-    // change them, so Home can show each one net like the overtime below.
+    // How the salary, London Weighting and London Allowance would each take
+    // home if they were the only pay this tax year: the salary first, then
+    // London Weighting on top of it, then London Allowance. Each takes its own
+    // share of the pension (London Allowance isn't pensionable), the tax its
+    // slice adds month by month, and the NI it adds to the month. These set
+    // how the month's real non-overtime take-home is shared out below.
     const salaryPension = Math.round((m.salary * pensionRate + Number.EPSILON)*100)/100;
     const lwPension = periodPension - salaryPension;
     let running = 0;
@@ -91,9 +91,9 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     // The tax each layer adds this month: its layer's month tax less the one below.
     const sliceTax = baseTD.map((td,k)=>(td - baseTax[k]) - (k ? baseTD[k-1] - baseTax[k-1] : 0));
     baseTax = baseTD;
-    const salaryNet = m.salary - salaryPension - sliceTax[0] - payeNI(m.salary);
-    const lwNet = m.lw - lwPension - sliceTax[1] - (payeNI(m.salary + m.lw) - payeNI(m.salary));
-    const laNet = m.la - sliceTax[2] - (payeNI(m.base) - payeNI(m.salary + m.lw));
+    const salaryAlone = m.salary - salaryPension - sliceTax[0] - payeNI(m.salary);
+    const lwAlone = m.lw - lwPension - sliceTax[1] - (payeNI(m.salary + m.lw) - payeNI(m.salary));
+    const laAlone = m.la - sliceTax[2] - (payeNI(m.base) - payeNI(m.salary + m.lw));
     const { ot=0, pa=0, parts=[] } = money[i] || {};
     const otResult = paySlice(cumBase, ot, taxMonth, m.base);
     const paResult = paySlice(cumBase+ot, pa, taxMonth, m.base+ot);
@@ -104,6 +104,17 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     taxToDate = newTaxToDate;
     const monthGross = m.base + ot + pa;
     const monthNI = payeNI(monthGross);
+    const monthNet = monthGross - periodPension - monthTax - monthNI;
+    // The month's take-home that isn't overtime or PA, shared between the
+    // salary, London Weighting and London Allowance in proportion to the
+    // above. With no overtime that's exactly their own figures; with heavy
+    // overtime it also carries tax payroll hands back from earlier months,
+    // so the three plus overtime and PA always add up to the payslip.
+    const baseReal = monthNet - otResult.net - paResult.net;
+    const aloneSum = salaryAlone + lwAlone + laAlone;
+    const share = x => aloneSum > 0 ? Math.round(baseReal * x / aloneSum * 100)/100 : x;
+    const salaryNet = share(salaryAlone), lwNet = share(lwAlone);
+    const laNet = aloneSum > 0 ? baseReal - salaryNet - lwNet : laAlone;
     return {
       month:p.month, start:p.start, end:p.end, payDate, taxMonth,
       baseAmt:m.base, salary:m.salary, salaryNet, lw:m.lw, lwNet, la:m.la, laNet,
@@ -111,7 +122,7 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
       ot, pa, otResult, paResult,
       combinedGross: ot+pa, combinedNet: otResult.net+paResult.net,
       cumBase, cumAfter: cum, parts,
-      monthGross, monthTax, monthNI, monthNet: monthGross - periodPension - monthTax - monthNI, taxToDate,
+      monthGross, monthTax, monthNI, monthNet, taxToDate,
     };
   });
 };

@@ -170,25 +170,43 @@ export function TabDashboard({
             <span style={{fontSize:'9.5px',fontWeight:800,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Year to date</span>
             <span style={{fontSize:'9.5px',fontWeight:800,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'right'}}>Gross</span>
             <span style={{fontSize:'9.5px',fontWeight:800,color:'#059669',textTransform:'uppercase',letterSpacing:'0.06em',textAlign:'right'}}>Net</span>
-            {/* Claims waiting for a later payday show on their own line. */}
-            {[
-              ['Base salary', totals.salaryYTD, totals.salaryNetYTD, true],
-              ['London Weighting', totals.lwYTD, totals.lwNetYTD, true],
-              ['London Allowance', totals.laYTD, totals.laNetYTD, true],
-              ['Overtime', totals.otPaidGross, totals.otPaidNet],
-              ['Protection Allowance', totals.paPaidGross, totals.paPaidNet],
-              ...(totals.onItsWayGross>0.005 ? [['Submitted, not paid yet', totals.onItsWayGross, totals.onItsWayNet]] : []),
-            ].map(([label,gross,net,needsPay])=>(
-              <Fragment key={label}>
-                <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{label}</span>
-                {needsPay && !(settings.rank&&settings.service)
-                  ? <span style={{gridColumn:'span 2',textAlign:'right',fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--quiet)'}}>Set rank &amp; pay point</span>
-                  : <>
-                      <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--ink)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(gross)}</span>
-                      <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'#059669',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(net)}</span>
-                    </>}
-              </Fragment>
-            ))}
+            {(()=>{
+              const hasPay = !!(settings.rank&&settings.service);
+              const num = (v,col) => <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:col,textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(v)}</span>;
+              const row = ([label,gross,net,needsPay]) => (
+                <Fragment key={label}>
+                  <span style={{fontSize:'13px',fontWeight:700,color:'var(--muted)'}}>{label}</span>
+                  {needsPay && !hasPay
+                    ? <span style={{gridColumn:'span 2',textAlign:'right',fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--quiet)'}}>Set rank &amp; pay point</span>
+                    : <>{num(gross,'var(--ink)')}{num(net,'#059669')}</>}
+                </Fragment>
+              );
+              const rule = {gridColumn:'1 / -1',borderTop:'1px solid var(--border-2)',margin:'2px 0'};
+              return (<>
+                {[
+                  ['Base salary', totals.salaryYTD, totals.salaryNetYTD, true],
+                  ['London Weighting', totals.lwYTD, totals.lwNetYTD, true],
+                  ['London Allowance', totals.laYTD, totals.laNetYTD, true],
+                  ['Overtime', totals.otPaidGross, totals.otPaidNet],
+                  ['Protection Allowance', totals.paPaidGross, totals.paPaidNet],
+                ].map(row)}
+                {/* Everything paid so far: the rows above add up to it, and it
+                    matches the payslips (gross, and take-home after pension,
+                    tax and NI). */}
+                {hasPay && <>
+                  <div style={rule}/>
+                  <span style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>Total</span>
+                  <span style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:800,color:'var(--ink)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(totals.combinedGrossYTD)}</span>
+                  <span style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:800,color:'#059669',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(totals.combinedNetYTD)}</span>
+                </>}
+                {/* Claims waiting for a later payday aren't in the total; they
+                    show on their own line underneath. */}
+                {totals.onItsWayGross>0.005 && <>
+                  {hasPay && <div style={rule}/>}
+                  {row(['Submitted, not paid yet', totals.onItsWayGross, totals.onItsWayNet])}
+                </>}
+              </>);
+            })()}
           </div>
 
           {/* ── Gross Salary (Actual) ──

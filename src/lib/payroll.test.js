@@ -47,15 +47,19 @@ describe('pay months as PAYE months', () => {
 });
 
 describe('salary take-home', () => {
-  it('works out the salary net on its own, the same whatever overtime is claimed', () => {
+  it('works out the salary net for a payslip with no overtime', () => {
     const pc7 = { rank:'Constable', service:'PC 7 (top)' };
     const plain = buildPayYear({ periods: PERIODS, entries: [], settings: pc7 });
     // April pay: £4,187.92 salary, £581.28 pension (13.88%), £511.60 tax on
     // £2,558 taxable, £251.19 NI.
     expect(plain[0].salaryNet).toBeCloseTo(2843.85, 2);
     expect(plain[6].salaryNet).toBeCloseTo(2941.75, 2);   // after the pay award
-    const busy = buildPayYear({ periods: PERIODS, entries: PERIODS.slice(0,6).map(p=>shift(p.start, { hours150:'40', otRateTier:'hours150' })), settings: pc7 });
-    busy.forEach((pb,i)=>expect(pb.salaryNet).toBeCloseTo(plain[i].salaryNet, 2));
+  });
+
+  it('adds up to the payslip take-home even with heavy overtime', () => {
+    const pc7 = { rank:'Constable', service:'PC 7 (top)' };
+    const busy = buildPayYear({ periods: PERIODS, entries: PERIODS.slice(0,6).map(p=>shift(p.start, { hours150:'60', otRateTier:'hours150', paRate:'PA3' })), settings: pc7 });
+    busy.forEach(pb=>expect(pb.salaryNet + pb.lwNet + pb.laNet + pb.otResult.net + pb.paResult.net).toBeCloseTo(pb.monthNet, 2));
   });
 
   it('splits a no-overtime payslip exactly into salary, London Weighting and London Allowance', () => {
