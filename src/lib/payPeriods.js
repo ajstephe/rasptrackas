@@ -86,7 +86,8 @@ export const buildCalendarWeeks = (period) => {
 };
 
 // ─── UK tax year (6 April – 5 April) ───────────────────────────────────────────
-// Pay lands on the 20th of each pay month's named month, so a pay year's
+// Pay lands on the 20th of each pay month's named month (the Friday before
+// at a weekend), so a pay year's
 // twelve paydays fall in one tax year: April pay (20 Apr) is tax month 1 and
 // March pay tax month 12. This works out which tax year a date sits in.
 export const getUKTaxYearStart = dateStr => {

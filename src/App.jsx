@@ -2114,7 +2114,8 @@ export default function App() {
   const totals = useMemo(()=>{
     const hasPay = !!(settings.rank && settings.service);
 
-    // One pay month = one PAYE tax month (pay lands on the 20th, so April
+    // One pay month = one PAYE tax month (pay lands on the 20th, or the Friday
+    // before at a weekend, so April
     // pay is month 1 and March pay month 12) — see lib/payroll.js. Shifts
     // stay in the pay month their own dates put them in; money lands in the
     // pay month of its claim date.

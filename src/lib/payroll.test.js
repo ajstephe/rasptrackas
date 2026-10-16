@@ -20,7 +20,26 @@ const lookupIn = y => d => y.find(pb=>d>=pb.start&&d<=pb.end) || null;
 describe('pay months as PAYE months', () => {
   it('pays on the 20th of the month each pay month is named after', () => {
     expect(payDateOf(PERIODS[0])).toBe('2026-04-20');   // April pay
-    expect(payDateOf(PERIODS[11])).toBe('2027-03-20');  // March pay
+    expect(payDateOf(PERIODS[11])).toBe('2027-03-19');  // March pay: the 20th is a Saturday
+  });
+
+  it('pays on the Friday before when the 20th falls at a weekend, as the confirmed pay run dates do', () => {
+    // From the pay run table: paydays and their overtime periods for 2026.
+    const confirmed = [
+      ['2026-04-20','2026-02-09','2026-03-08'], ['2026-05-20','2026-03-09','2026-04-12'],
+      ['2026-06-19','2026-04-13','2026-05-10'], ['2026-07-20','2026-05-11','2026-06-07'],
+      ['2026-08-20','2026-06-08','2026-07-12'], ['2026-09-18','2026-07-13','2026-08-09'],
+      ['2026-10-20','2026-08-10','2026-09-06'], ['2026-11-20','2026-09-07','2026-10-11'],
+      ['2026-12-18','2026-10-12','2026-11-08'], ['2027-01-20','2026-11-09','2026-12-06'],
+    ];
+    confirmed.forEach(([pay,start,end],i)=>{
+      expect(payDateOf(PERIODS[i])).toBe(pay);
+      expect([PERIODS[i].start, PERIODS[i].end]).toEqual([start, end]);
+    });
+    // The two before April 2026 pay, from the end of pay year 2025.
+    const prev = generateFYPeriods(2025);
+    expect([payDateOf(prev[10]), prev[10].start, prev[10].end]).toEqual(['2026-02-20','2025-12-08','2026-01-11']);
+    expect([payDateOf(prev[11]), prev[11].start, prev[11].end]).toEqual(['2026-03-20','2026-01-12','2026-02-08']);
   });
 
   it('makes April pay tax month 1 and March pay tax month 12', () => {

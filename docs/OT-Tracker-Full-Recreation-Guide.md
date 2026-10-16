@@ -135,7 +135,7 @@ npm run build      # production build into dist/
 
 ## 5. Domain rules (the parts that are deliberate)
 
-**Pay calendar.** The year has 12 pay months of **4, 5, 4, 4, 5, 4, 4, 5, 4, 4, 5, 4 weeks** (52 weeks). Each pay month covers a block of shifts and is paid on the **20th**. The anchor is `FY_ANCHOR_START = '2026-02-09'`, the start of April pay 2026; other years are generated from it. A pay month's name rarely matches the calendar month of its shifts (November pay = shifts 7 Sept – 11 Oct 2026), so always look the dates up and never assume them from the label.
+**Pay calendar.** The year has 12 pay months of **4, 5, 4, 4, 5, 4, 4, 5, 4, 4, 5, 4 weeks** (52 weeks). Each pay month covers a block of shifts and is paid on the **20th**, or the **Friday before** when the 20th is a Saturday or Sunday (`payDateOf` in `payroll.js`; e.g. 19 June, 18 September and 18 December 2026). These dates and the shift blocks match the confirmed 2026 pay run table; a test checks every row. The anchor is `FY_ANCHOR_START = '2026-02-09'`, the start of April pay 2026; other years are generated from it. A pay month's name rarely matches the calendar month of its shifts (November pay = shifts 7 Sept – 11 Oct 2026), so always look the dates up and never assume them from the label.
 
 **Deadline.** The end of a pay month's shift block is its submission deadline. Submitted by then, the claim is paid that month. After it, the claim moves to whichever pay month's deadline the submission date does meet. `deadline.js → submitWindow(date)` is the one place this is worked out. It handles dates in any pay year.
 

@@ -12,13 +12,14 @@
 //   · employee NI on each month's pay alone: 8% from £1,048 to £4,189, 2% above,
 //     rounded to the nearest penny with a half penny rounded down
 //   · police pension under a net pay arrangement: off before tax, not before NI
-//   · pay lands on the 20th; April pay is month 1; new rates from 1 Sept 2026
+//   · pay lands on the 20th (the Friday before at a weekend); April pay is month 1;
+//     new rates from 1 Sept 2026
 
 const r2 = x => Math.round((x + Number.EPSILON) * 100) / 100;
 const TIERS = [[37035, 0.1288], [79588, 0.1388], [Infinity, 0.1422]]; // 2015 scheme, from 1 April 2026
 const tierRate = annual => annual <= TIERS[0][0] ? TIERS[0][1] : annual < TIERS[1][0] ? TIERS[1][1] : TIERS[2][1];
 const LW = { pre: 3150, post: 3260 }, LA = 6588;
-const PAY_DATES = ['2026-04-20','2026-05-20','2026-06-20','2026-07-20','2026-08-20','2026-09-20','2026-10-20','2026-11-20','2026-12-20','2027-01-20','2027-02-20','2027-03-20'];
+const PAY_DATES = ['2026-04-20','2026-05-20','2026-06-19','2026-07-20','2026-08-20','2026-09-18','2026-10-20','2026-11-20','2026-12-18','2027-01-20','2027-02-19','2027-03-19'];
 
 const niFor = gross => {
   const raw = 0.08 * Math.max(0, Math.min(gross, 4189) - 1048) + 0.02 * Math.max(0, gross - 4189);

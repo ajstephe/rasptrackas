@@ -4,8 +4,10 @@ import { RATE_CHANGE_DATE } from './payPeriods.js';
 import { svcDataOn } from './payRates.js';
 
 // ─── payroll: one pay month = one PAYE tax month ─────────────────────────────
-// Pay lands on the 20th of the month each pay period is named after, so
-// "April pay" (shifts 9 Feb – 8 Mar) is paid on 20 April — after 6 April,
+// Pay lands on the 20th of the month each pay period is named after, or the
+// Friday before when the 20th is a weekend (confirmed pay run dates: 19 June,
+// 18 September and 18 December 2026). "April pay" (shifts 9 Feb – 8 Mar) is
+// paid on 20 April — after 6 April,
 // which makes it month 1 of the tax year, and "March pay" month 12. The pay
 // year and the tax year therefore line up exactly, and shifts stay in the
 // pay month their dates put them in.
@@ -19,7 +21,11 @@ const MONTH_NUM = { January:1, February:2, March:3, April:4, May:5, June:6, July
 
 export const payDateOf = period => {
   const [name, year] = period.month.split(' ');
-  return `${year}-${String(MONTH_NUM[name]).padStart(2,'0')}-${PAY_DAY}`;
+  const d = new Date(Date.UTC(Number(year), MONTH_NUM[name]-1, PAY_DAY));
+  const dow = d.getUTCDay();                        // 0 Sunday … 6 Saturday
+  if (dow === 6) d.setUTCDate(PAY_DAY-1);           // Saturday → Friday 19th
+  if (dow === 0) d.setUTCDate(PAY_DAY-2);           // Sunday → Friday 18th
+  return d.toISOString().slice(0,10);
 };
 
 // A month's salary, London Weighting and London Allowance, at the rates
