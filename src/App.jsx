@@ -339,8 +339,14 @@ const LANDING = (() => {
     const linkError = h.get('error_code') || q.get('error_code') || h.get('error') || q.get('error');
     const confirmed = !linkError && (h.get('type')==='signup' || q.get('confirmed')==='1');
     if (linkError) window.history.replaceState(null, '', window.location.pathname);
-    return { confirmed, linkError };
-  } catch (_) { return { confirmed:false, linkError:null }; }
+    // Links from the email templates carry a one-time token_hash that's only
+    // spent when the person taps the button on the landing card. Mail
+    // scanners (Microsoft Safe Links and the like) open every link they see,
+    // and used to spend the token before the person ever got there.
+    const tokenType = q.get('type');
+    const tokenHash = !linkError && ['email','signup','recovery'].includes(tokenType) ? q.get('token_hash') : null;
+    return { confirmed, linkError, tokenHash, tokenType };
+  } catch (_) { return { confirmed:false, linkError:null, tokenHash:null, tokenType:null }; }
 })();
 
 const friendlyAuthError = (err) => {
@@ -384,7 +390,9 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
   const [needsConfirm, setNeedsConfirm] = useState(false);
   const [resent, setResent] = useState(false);
   // Arriving from the confirmation email: say so, and fill in the email address.
-  const [landing, setLanding] = useState(LANDING.confirmed ? 'confirmed' : LANDING.linkError ? 'link-error' : null);
+  const [landing, setLanding] = useState(
+    LANDING.tokenHash ? (LANDING.tokenType==='recovery' ? 'reset-pending' : 'confirm-pending')
+    : LANDING.confirmed ? 'confirmed' : LANDING.linkError ? 'link-error' : null);
   useEffect(() => {
     if (landing!=='confirmed' || !supabase) return;
     supabase.auth.getSession().then(({ data }) => { const em = data?.session?.user?.email; if (em) setEmail(e => e || em); }).catch(()=>{});
@@ -560,6 +568,27 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     }
   };
 
+  // The tap that actually spends the emailed token (see LANDING).
+  const handleLinkConfirm = async () => {
+    const type = LANDING.tokenType;
+    setBusy(true);
+    let data, err;
+    try { ({ data, error: err } = await supabase.auth.verifyOtp({ token_hash: LANDING.tokenHash, type })); } catch (e) { err = e; }
+    setBusy(false);
+    // Spent either way; also stops a remount (after a reset) offering it again.
+    LANDING.tokenHash = null;
+    window.history.replaceState(null, '', window.location.pathname);
+    if (type === 'recovery') {
+      // On success PASSWORD_RECOVERY fires and the set-new-password screen takes over.
+      if (err) setLanding('reset-error');
+      return;
+    }
+    if (err) { setLanding('link-error'); return; }
+    const em = data?.user?.email;
+    if (em) setEmail(e => e || em);
+    setLanding('confirmed');
+  };
+
   const handleForgotRequest = async () => {
     setError('');
     if (!validEmail) { setError('Enter a valid email address'); return; }
@@ -650,6 +679,19 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
               <div role="alert" style={{display:'flex',gap:'11px',alignItems:'flex-start',background:'var(--tint-amber)',borderRadius:'13px',padding:'13px 14px',margin:'-4px 0 18px'}}>
                 <div style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="warn" s={18} c="var(--text-amber-deep)" w={2.4}/></div>
                 <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-amber-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>That link's already been used</b>Some email apps open links to check them before you do, which uses the link up, so your email is probably confirmed already. Try signing in below. If it asks you to confirm, you can send a new link from here.</div>
+              </div>
+            ) : landing==='confirm-pending' || landing==='reset-pending' ? (
+              <div role="status" style={{background:'var(--tint-blue)',borderRadius:'13px',padding:'14px',margin:'-4px 0 18px'}}>
+                <div style={{display:'flex',gap:'11px',alignItems:'flex-start',marginBottom:'12px'}}>
+                  <div style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="mail" s={18} c="var(--text-blue-deep)" w={2.2}/></div>
+                  <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-blue-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>{landing==='confirm-pending' ? 'One more tap' : 'Reset your password'}</b>{landing==='confirm-pending' ? 'Confirm your email address to finish creating your account.' : 'Tap below to choose a new password.'}</div>
+                </div>
+                <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleLinkConfirm}>{busy ? 'Checking\u2026' : landing==='confirm-pending' ? 'Confirm my email' : 'Choose a new password'}</button>
+              </div>
+            ) : landing==='reset-error' ? (
+              <div role="alert" style={{display:'flex',gap:'11px',alignItems:'flex-start',background:'var(--tint-amber)',borderRadius:'13px',padding:'13px 14px',margin:'-4px 0 18px'}}>
+                <div style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="warn" s={18} c="var(--text-amber-deep)" w={2.4}/></div>
+                <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-amber-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>That reset link's no longer valid</b>Reset links only work once, for a limited time. Tap Forgot password below to get a new one.</div>
               </div>
             ) : landing==='sent' ? (
               <div role="status" style={{display:'flex',gap:'11px',alignItems:'flex-start',background:'var(--tint-blue)',borderRadius:'13px',padding:'13px 14px',margin:'-4px 0 18px'}}>
