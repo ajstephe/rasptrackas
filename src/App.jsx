@@ -350,6 +350,9 @@ const friendlyAuthError = (err) => {
   if (m.includes('invalid login credentials')) return 'That email and password don\u2019t match. Check them and try again.';
   if (m.includes('email not confirmed')) return 'Confirm your email first: open the link we sent you, then sign in.';
   if (m.includes('already registered') || m.includes('already been registered')) return 'There\u2019s already an account with that email. Sign in instead.';
+  // The email limit is project-wide and resets hourly, so "wait a minute"
+  // just sends people round in circles hammering the button.
+  if (err?.code === 'over_email_send_rate_limit' || m.includes('email rate limit')) return 'Lots of people are signing up right now and we can’t send any more emails for the moment. Try again in an hour.';
   if (m.includes('rate limit') || m.includes('too many')) return 'Too many tries. Wait a minute, then try again.';
   if (m.includes('password should be') || m.includes('weak password')) return 'Choose a longer password: at least 8 characters.';
   if (m.includes('different from the old')) return 'Your new password must be different from your current one.';
