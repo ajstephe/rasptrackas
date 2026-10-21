@@ -649,7 +649,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             ) : landing==='link-error' ? (
               <div role="alert" style={{display:'flex',gap:'11px',alignItems:'flex-start',background:'var(--tint-amber)',borderRadius:'13px',padding:'13px 14px',margin:'-4px 0 18px'}}>
                 <div style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="warn" s={18} c="var(--text-amber-deep)" w={2.4}/></div>
-                <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-amber-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>That link has expired</b>Confirmation links only work once, for a limited time. Sign in below: if your email still needs confirming, you can send a new link from here.</div>
+                <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-amber-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>That link's already been used</b>Some email apps open links to check them before you do, which uses the link up, so your email is probably confirmed already. Try signing in below. If it asks you to confirm, you can send a new link from here.</div>
               </div>
             ) : landing==='sent' ? (
               <div role="status" style={{display:'flex',gap:'11px',alignItems:'flex-start',background:'var(--tint-blue)',borderRadius:'13px',padding:'13px 14px',margin:'-4px 0 18px'}}>
