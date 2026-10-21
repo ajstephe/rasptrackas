@@ -348,7 +348,7 @@ const friendlyAuthError = (err) => {
   if (!m) return 'Something went wrong. Try again.';
   if (m.includes('failed to fetch') || m.includes('network') || m.includes('load failed') || m.includes('timeout')) return 'Couldn\u2019t reach the server. Check your signal and try again.';
   if (m.includes('invalid login credentials')) return 'That email and password don\u2019t match. Check them and try again.';
-  if (m.includes('email not confirmed')) return 'Confirm your email first: open the link we sent you, then sign in.';
+  if (m.includes('email not confirmed')) return 'Confirm your email first: open the link we sent you, then sign in. Not there? Check your junk folder for an email from OT Tracker.';
   if (m.includes('already registered') || m.includes('already been registered')) return 'There\u2019s already an account with that email. Sign in instead.';
   // The email limit is project-wide and resets hourly, so "wait a minute"
   // just sends people round in circles hammering the button.
@@ -384,7 +384,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
   const [needsConfirm, setNeedsConfirm] = useState(false);
   const [resent, setResent] = useState(false);
   // Arriving from the confirmation email: say so, and fill in the email address.
-  const [landing] = useState(LANDING.confirmed ? 'confirmed' : LANDING.linkError ? 'link-error' : null);
+  const [landing, setLanding] = useState(LANDING.confirmed ? 'confirmed' : LANDING.linkError ? 'link-error' : null);
   useEffect(() => {
     if (landing!=='confirmed' || !supabase) return;
     supabase.auth.getSession().then(({ data }) => { const em = data?.session?.user?.email; if (em) setEmail(e => e || em); }).catch(()=>{});
@@ -481,7 +481,9 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     if (!data.session) {
       // Email confirmation required — no session yet, nowhere safe to write
       // key material. Setup resumes on first sign-in instead, above.
-      if (addToast) addToast('Check your email to confirm your account, then sign in.', 'success', null, 6000, 'Almost there');
+      // A card on the sign-in screen rather than a toast: it has to stay put
+      // while they go and dig the email out of junk.
+      setLanding('sent');
       setScreen('signin');
       return;
     }
@@ -649,6 +651,11 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
                 <div style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="warn" s={18} c="var(--text-amber-deep)" w={2.4}/></div>
                 <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-amber-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>That link has expired</b>Confirmation links only work once, for a limited time. Sign in below: if your email still needs confirming, you can send a new link from here.</div>
               </div>
+            ) : landing==='sent' ? (
+              <div role="status" style={{display:'flex',gap:'11px',alignItems:'flex-start',background:'var(--tint-blue)',borderRadius:'13px',padding:'13px 14px',margin:'-4px 0 18px'}}>
+                <div style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="mail" s={18} c="var(--text-blue-deep)" w={2.2}/></div>
+                <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-blue-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>Check your email</b>We've sent a confirmation link to {email}. Open it, then sign in below. Not there? Check your junk folder for an email from OT Tracker.</div>
+              </div>
             ) : (
               <div style={{fontSize:'13px',color:'var(--muted)',fontWeight:600,lineHeight:1.5,margin:'-8px 0 16px'}}>Track overtime, PA and TOIL, and see what you'll take home.</div>
             )}
@@ -657,7 +664,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             <label htmlFor="as-pass" style={AS.label}>Password</label>
             <input id="as-pass" style={AS.input} type="password" placeholder="Your password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter') handleSignIn(); }} autoComplete="current-password"/>
             {error && <div role="alert" style={AS.err}>{error}</div>}
-            {needsConfirm && <div style={{margin:'-6px 0 14px',fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>{resent ? 'Sent \u2014 check your inbox (and junk).' : <button type="button" style={AS.link} onClick={handleResend} disabled={busy}>Resend the confirmation email</button>}</div>}
+            {needsConfirm && <div style={{margin:'-6px 0 14px',fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>{resent ? 'Sent. Check your inbox, and your junk folder for an email from OT Tracker.' : <button type="button" style={AS.link} onClick={handleResend} disabled={busy}>Resend the confirmation email</button>}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignIn}>{busy?'Signing in…':'Sign in'}</button>
             <div style={AS.divider}>or</div>
             <button style={AS.btnGhost} onClick={()=>{ setScreen('signup'); setError(''); setNeedsConfirm(false); }}>Create an account</button>
@@ -726,7 +733,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         {screen === 'forgot' && forgotSent && (
           <>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Check your email</div>
-            <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>A reset link's on its way to {email}. Follow it to set a new password.</div>
+            <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>A reset link's on its way to {email}. Follow it to set a new password. Not there? Check your junk folder for an email from OT Tracker.</div>
             <button style={AS.btnGhost} onClick={()=>{ setScreen('signin'); setError(''); setForgotSent(false); }}>Back to sign in</button>
           </>
         )}
