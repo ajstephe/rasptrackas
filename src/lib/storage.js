@@ -12,6 +12,10 @@ export const KEYS = {
   lastSyncedSettings:'ajs_ot_lastSyncedSettings',
   lastSettingsUpdatedAt:'ajs_ot_lastSettingsUpdatedAt',
   lastCloudPruneCheck:'ajs_ot_lastCloudPruneCheck',
+  // Incremental pull bookkeeping per table: { cursor, fullAt } (see
+  // applyRemoteDelta / needsFullPull in sync.js).
+  pullStateEntries:'ajs_ot_pullStateEntries',
+  pullStateToilTaken:'ajs_ot_pullStateToilTaken',
   // Distinct from the three lastSynced* keys above, which store per-row
   // sync bookkeeping (snapshots used to detect pending local edits) — this
   // is just a plain timestamp of the last successful sync of any kind, for

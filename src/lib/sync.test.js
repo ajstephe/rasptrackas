@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate } from './sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS } from './sync.js';
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -324,5 +324,100 @@ describe('isStaleSettingsUpdate — catching a delayed echo that arrives after a
     const realEditTime = '2026-01-01T00:00:02.000Z';
     expect(isStaleSettingsUpdate(wipeWriteTime, realEditTime)).toBe(true);
     expect(isStaleSettingsUpdate(realEditTime, wipeWriteTime)).toBe(false);
+  });
+});
+
+describe('applyRemoteDelta — incremental pulls', () => {
+  const j = (x) => JSON.stringify(x);
+  const synced = (...items) => new Map(items.map(it => [it.id, j(it)]));
+
+  it('leaves local items the delta does not mention alone, even ones synced before (unchanged, not deleted)', () => {
+    const a = { id: 'a', hours: 1 }, b = { id: 'b', hours: 2 };
+    const last = synced(a, b);
+    expect(applyRemoteDelta([a, b], [], last)).toEqual([a, b]);
+    expect(last.size).toBe(2);
+  });
+
+  it('takes a changed row from another device when there is no pending local edit', () => {
+    const a = { id: 'a', hours: 1 }, a2 = { id: 'a', hours: 9 };
+    const last = synced(a);
+    expect(applyRemoteDelta([a], [{ id: 'a', deleted: false, item: a2 }], last)).toEqual([a2]);
+    expect(last.get('a')).toBe(j(a2));
+  });
+
+  it('keeps a pending local edit over the incoming row', () => {
+    const a = { id: 'a', hours: 1 }, mine = { id: 'a', hours: 5 }, theirs = { id: 'a', hours: 9 };
+    const last = synced(a);
+    expect(applyRemoteDelta([mine], [{ id: 'a', deleted: false, item: theirs }], last)).toEqual([mine]);
+    expect(last.get('a')).toBe(j(a));
+  });
+
+  it('adds a row that is new from another device', () => {
+    const a = { id: 'a', hours: 1 }, n = { id: 'n', hours: 3 };
+    const last = synced(a);
+    expect(applyRemoteDelta([a], [{ id: 'n', deleted: false, item: n }], last)).toEqual([a, n]);
+    expect(last.get('n')).toBe(j(n));
+  });
+
+  it('does not resurrect a row this device deleted whose soft-delete has not landed yet', () => {
+    const gone = { id: 'g', hours: 1 };
+    const last = synced(gone);
+    expect(applyRemoteDelta([], [{ id: 'g', deleted: false, item: gone }], last)).toEqual([]);
+  });
+
+  it('drops a synced item that another device deleted', () => {
+    const a = { id: 'a', hours: 1 }, b = { id: 'b', hours: 2 };
+    const last = synced(a, b);
+    expect(applyRemoteDelta([a, b], [{ id: 'a', deleted: true }], last)).toEqual([b]);
+    expect(last.has('a')).toBe(false);
+  });
+
+  it('keeps an item marked deleted on the server that this device has not synced (an Undo still pushing)', () => {
+    const a = { id: 'a', hours: 1 };
+    const last = new Map();
+    expect(applyRemoteDelta([a], [{ id: 'a', deleted: true }], last)).toEqual([a]);
+  });
+
+  it('is a no-op when the overlap window re-reads rows already applied', () => {
+    const a = { id: 'a', hours: 1 };
+    const last = synced(a);
+    const once = applyRemoteDelta([a], [{ id: 'a', deleted: false, item: { ...a } }], last);
+    expect(once).toEqual([a]);
+    expect(applyRemoteDelta(once, [{ id: 'a', deleted: false, item: { ...a } }], last)).toEqual([a]);
+  });
+});
+
+describe('pull cursor helpers', () => {
+  it('asks for a few minutes before the cursor', () => {
+    const c = '2026-10-22T10:00:00.000Z';
+    expect(Date.parse(c) - Date.parse(pullSince(c))).toBe(PULL_OVERLAP_MS);
+  });
+
+  it('moves the cursor to the newest row seen, never backwards', () => {
+    const c = '2026-10-22T10:00:00.000Z';
+    expect(advanceCursor(c, [{ updated_at: '2026-10-22T09:00:00+00:00' }])).toBe(c);
+    expect(advanceCursor(c, [{ updated_at: '2026-10-22T11:30:00.123456+00:00' }, { updated_at: '2026-10-22T11:00:00+00:00' }])).toBe('2026-10-22T11:30:00.123Z');
+    expect(advanceCursor(null, [])).toBe(null);
+  });
+
+  it('wants a full pull with no cursor, and once a week after that', () => {
+    expect(needsFullPull(null, '2026-10-22')).toBe(true);
+    expect(needsFullPull({ cursor: null, fullAt: '2026-10-22' }, '2026-10-22')).toBe(true);
+    expect(needsFullPull({ cursor: 'x', fullAt: '2026-10-20' }, '2026-10-22')).toBe(false);
+    expect(needsFullPull({ cursor: 'x', fullAt: '2026-10-15' }, '2026-10-22')).toBe(true);
+  });
+});
+
+describe('findRemovedIds — rows hard-deleted from the server', () => {
+  const j = (x) => JSON.stringify(x);
+  it('flags synced, in-window items missing from the live ids', () => {
+    const a = { id: 'a', date: '2026-09-01' }, b = { id: 'b', date: '2026-09-02' };
+    const last = new Map([['a', j(a)], ['b', j(b)]]);
+    expect(findRemovedIds([a, b], new Set(['b']), last, alwaysWithin)).toEqual(['a']);
+  });
+  it('leaves never-synced items and items past the retention window', () => {
+    const fresh = { id: 'f', date: '2026-09-01' }, old = { id: 'o', date: '2020-01-01' };
+    const last = new Map([['o', j(old)]]);
+    expect(findRemovedIds([fresh, old], new Set(), last, neverWithin)).toEqual([]);
   });
 });

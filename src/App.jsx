@@ -25,7 +25,7 @@ import {
   calcAutoOTHours, syncShiftTimesIntoForm, shiftDurationMinutes,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate } from './lib/sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -1508,12 +1508,62 @@ export default function App() {
   // pending local edit — keep it, and the next push cycle will send it up.
   // An item that WAS synced before but is missing from the server now
   // means another device deleted it — dropped locally too, not resurrected.
+  //
+  // Most pulls only ask for rows changed since this device's cursor (the
+  // newest server updated_at it has seen), so opening the app downloads
+  // what's new rather than every entry in the account. A full pull still
+  // runs the first time, and weekly after that — see needsFullPull.
   async function pullAndMergeRows(table, itemsRef, setLocalItems, lastSyncedRef, persistFn) {
     if (!supabase || !session || !dataKey) return;
     const uid = session.user.id;
-    const { data: rows, error } = await supabase.from(table).select('id, ciphertext, deleted_at').eq('user_id', uid);
-    if (error) { console.error(`[sync] pull failed for ${table}:`, error.message || error); throw new Error(error.message || 'pull failed'); }
+    const stateKey = table === 'entries' ? KEYS.pullStateEntries : KEYS.pullStateToilTaken;
+    const state = dualRead(stateKey, null);
+    const today = localDateStr();
+    const full = needsFullPull(state, today);
+    // Paged, because the API returns at most 1,000 rows per request. A list
+    // cut short there would read as everything past row 1,000 having been
+    // deleted elsewhere.
+    const fetchAll = async (makeQuery) => {
+      const out = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await makeQuery().order('id').range(from, from + 999);
+        if (error) return { data: null, error };
+        out.push(...data);
+        if (data.length < 1000) return { data: out, error: null };
+      }
+    };
+    const [{ data: rows, error }, live] = await Promise.all([
+      fetchAll(() => {
+        const q = supabase.from(table).select('id, ciphertext, deleted_at, updated_at').eq('user_id', uid);
+        return full ? q : q.gt('updated_at', pullSince(state.cursor));
+      }),
+      full ? null : fetchAll(() => supabase.from(table).select('id').eq('user_id', uid).is('deleted_at', null)),
+    ]);
+    const err = error || live?.error;
+    if (err) { console.error(`[sync] pull failed for ${table}:`, err.message || err); throw new Error(err.message || 'pull failed'); }
     if (!rows) return;
+    if (!full) {
+      const delta = [];
+      const liveIds = new Set((live.data || []).map(r => r.id));
+      const inDelta = new Set(rows.map(r => r.id));
+      for (const id of findRemovedIds(itemsRef.current, liveIds, lastSyncedRef.current, isWithinCloudRetention)) {
+        if (!inDelta.has(id)) delta.push({ id, deleted: true });
+      }
+      for (const row of rows) {
+        if (row.deleted_at) { delta.push({ id: row.id, deleted: true }); continue; }
+        try { delta.push({ id: row.id, deleted: false, item: await decryptWithDataKey(dataKey, row.ciphertext) }); }
+        catch (e) { /* unreadable: keep this device's copy, as the full pull does */ }
+      }
+      if (delta.length) {
+        const merged = applyRemoteDelta(itemsRef.current, delta, lastSyncedRef.current);
+        persistFn();
+        // entries only — see the matching comment in the full path below.
+        setLocalItems(table === 'entries' ? migrateEntries(merged) : cleanToilTaken(merged));
+      }
+      dualWrite(stateKey, { ...state, cursor: advanceCursor(state.cursor, rows) });
+      markSynced();
+      return;
+    }
     const remoteMap = new Map();
     const failedIds = [];
     for (const row of rows) {
@@ -1544,6 +1594,9 @@ export default function App() {
     // deliberate choice as the settings fix, so a real migration change
     // here gets pushed back up to the server too, not just fixed locally.
     setLocalItems(table === 'entries' ? migrateEntries(merged) : cleanToilTaken(merged));
+    // No rows means no server time to anchor on yet, so the cursor stays
+    // empty and the next pull is full again (and just as cheap).
+    dualWrite(stateKey, { cursor: advanceCursor(null, rows), fullAt: today });
     markSynced();
   }
 
@@ -3447,6 +3500,8 @@ export default function App() {
     dualWrite(KEYS.settings, null);
     dualWrite(KEYS.lastSyncedAt, null);
     dualWrite(KEYS.lastCloudPruneCheck, null);
+    dualWrite(KEYS.pullStateEntries, null);
+    dualWrite(KEYS.pullStateToilTaken, null);
     setLastSyncedAt(null);
   };
 
@@ -3586,11 +3641,13 @@ export default function App() {
   // on its own — dates live inside the encrypted ciphertext, not in a
   // plaintext column — so this decrypts each row client-side first,
   // decides locally, then deletes only those specific rows by id.
-  // Throttled to at most once a day; local data is never touched here.
+  // Throttled to once a month: it downloads every row to read the dates,
+  // and the retention window only moves once a year. Local data is never
+  // touched here.
   const pruneOldCloudData = async () => {
     if (!supabase || !session || !dataKey) return;
     const today = localDateStr();
-    if (dualRead(KEYS.lastCloudPruneCheck, null) === today) return;
+    if ((dualRead(KEYS.lastCloudPruneCheck, null) || '').slice(0, 7) === today.slice(0, 7)) return;
     const uid = session.user.id;
     try {
       for (const table of ['entries', 'toil_taken']) {

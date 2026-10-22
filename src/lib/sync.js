@@ -146,3 +146,86 @@ export function mergeRemoteRows(localItems, remoteMap, lastSyncedMap, isWithinCl
   }
   return merged;
 }
+
+// Incremental counterpart to mergeRemoteRows, for a pull that asked only
+// for rows changed since this device's cursor. The difference that matters:
+// a row missing from a delta just means "unchanged", not "deleted
+// elsewhere", so local items the delta doesn't mention are left exactly as
+// they are. Deletions arrive as rows carrying deleted_at instead.
+//
+// deltaRows: [{ id, deleted, item }] — item is the decrypted row (unused
+// when deleted). Rows that couldn't be decrypted are left out by the
+// caller, the same "keep this device's copy" call the full pull makes.
+// Mutates lastSyncedMap in place, like mergeRemoteRows.
+export function applyRemoteDelta(localItems, deltaRows, lastSyncedMap) {
+  const merged = [...localItems];
+  const indexOf = new Map(merged.map((it, i) => [it.id, i]));
+  const dropped = new Set();
+  for (const { id, deleted, item } of deltaRows) {
+    const i = indexOf.get(id);
+    if (deleted) {
+      // Same rule as a full pull: only an item this device knows it synced
+      // is gone for real. One it hasn't synced (a restore, or an Undo whose
+      // re-upsert hasn't landed yet) stays and pushes back up.
+      if (lastSyncedMap.has(id)) {
+        if (i !== undefined) dropped.add(id);
+        lastSyncedMap.delete(id);
+      }
+      continue;
+    }
+    if (i !== undefined) {
+      if (hasNoPendingLocalEdit(merged[i], lastSyncedMap.get(id))) {
+        merged[i] = item;
+        lastSyncedMap.set(id, JSON.stringify(item));
+        dropped.delete(id);
+      }
+    } else if (!lastSyncedMap.has(id)) {
+      // New from another device. (Known-synced but missing locally means
+      // this device deleted it and the soft-delete push is still on its
+      // way, the same case mergeRemoteRows skips.)
+      indexOf.set(id, merged.length);
+      merged.push(item);
+      lastSyncedMap.set(id, JSON.stringify(item));
+    }
+  }
+  return dropped.size ? merged.filter(it => !dropped.has(it.id)) : merged;
+}
+
+// A delta only carries soft-deletes. Rows removed outright (Wipe All Data
+// on another device) just vanish, so each incremental pull also fetches the
+// list of live ids, which is tiny next to the rows themselves, and applies
+// the full pull's rule: synced before, inside the retention window, and no
+// longer on the server means deleted elsewhere. Older items are expected
+// to be missing (pruned) and stay.
+export function findRemovedIds(localItems, liveIds, lastSyncedMap, isWithinCloudRetention) {
+  return localItems
+    .filter(it => lastSyncedMap.has(it.id) && !liveIds.has(it.id) && isWithinCloudRetention(it.date))
+    .map(it => it.id);
+}
+
+// The cursor is the newest server updated_at this device has pulled. The
+// next pull asks for a little before it: Postgres stamps now() when a
+// transaction starts, so a slow write can commit after a later one and
+// land just behind a cursor that's already moved past it. Re-reading a few
+// minutes of rows is harmless, since applying an unchanged row is a no-op.
+export const PULL_OVERLAP_MS = 5 * 60 * 1000;
+export function pullSince(cursor) {
+  return new Date(Date.parse(cursor) - PULL_OVERLAP_MS).toISOString();
+}
+export function advanceCursor(cursor, rows) {
+  let best = cursor ? Date.parse(cursor) : -Infinity;
+  for (const r of rows) {
+    const t = Date.parse(r.updated_at);
+    if (t > best) best = t;
+  }
+  return best === -Infinity ? cursor : new Date(best).toISOString();
+}
+
+// A full pull every so often anyway: it's the only thing that notices a
+// row hard-deleted from the server, and it repairs any drift the deltas
+// can't see. Weekly keeps that to a handful of full downloads a month.
+export const FULL_PULL_EVERY_DAYS = 7;
+export function needsFullPull(state, todayISO) {
+  if (!state || !state.cursor || !state.fullAt) return true;
+  return (Date.parse(todayISO) - Date.parse(state.fullAt)) / 86400000 >= FULL_PULL_EVERY_DAYS;
+}
