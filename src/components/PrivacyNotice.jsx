@@ -79,7 +79,7 @@ export function PrivacyNotice({ onClose, brass = '#b8823f' }) {
         <div style={sec}>
           <h3 style={h3}>How long it's kept</h3>
           <ul style={{ margin: '0 0 8px', paddingLeft: '18px' }}>
-            <li style={li}>Cloud copy: this tax year and the previous three. Older entries stay on your own device but aren't kept in the cloud.</li>
+            <li style={li}>Cloud copy: this pay year and the previous two. Older entries stay on your own device but aren't kept in the cloud.</li>
             <li style={li}>Account data: kept until you delete your account, at which point it's removed within a few minutes, not just marked hidden.</li>
             <li style={li}>Local device copy: stays on your device until you clear it yourself, independent of what's in the cloud.</li>
           </ul>

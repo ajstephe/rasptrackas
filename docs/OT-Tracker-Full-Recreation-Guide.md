@@ -161,7 +161,7 @@ npm run build      # production build into dist/
 - **£100k taper:** above £100k, payroll keeps giving the full tax-free allowance; the Tax calculator shows the extra tax likely to be collected later.
 - **Accuracy:** `payroll.hmrc.test.js` checks the engine against an independent reference to the penny.
 
-**Cloud retention.** The cloud keeps this year and the last 3; the device keeps everything. Older rows are pruned from the cloud only. Their absence there is never treated as a deletion.
+**Cloud retention.** The cloud keeps this pay year and the last 2; the device keeps everything. Older rows are pruned from the cloud only. Their absence there is never treated as a deletion.
 
 ---
 

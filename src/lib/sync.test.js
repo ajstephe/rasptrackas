@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS } from './sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS } from './sync.js';
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -419,5 +419,26 @@ describe('findRemovedIds — rows hard-deleted from the server', () => {
     const fresh = { id: 'f', date: '2026-09-01' }, old = { id: 'o', date: '2020-01-01' };
     const last = new Map([['o', j(old)]]);
     expect(findRemovedIds([fresh, old], new Set(), last, neverWithin)).toEqual([]);
+  });
+});
+
+describe('needsIdList — skipping the live-id download when nothing was removed', () => {
+  const j = (x) => JSON.stringify(x);
+  const a = { id: 'a', date: '2026-09-01' }, b = { id: 'b', date: '2026-09-02' }, old = { id: 'o', date: '2020-01-01' };
+  const within = (d) => d >= '2025-01-01';
+  it('skips when the server count matches what this device has synced', () => {
+    expect(needsIdList(2, [a, b], new Map([['a', j(a)], ['b', j(b)]]), within)).toBe(false);
+  });
+  it('fetches when the server has fewer rows (something removed outright)', () => {
+    expect(needsIdList(1, [a, b], new Map([['a', j(a)], ['b', j(b)]]), within)).toBe(true);
+  });
+  it('skips when the only gap is rows already pruned for age', () => {
+    expect(needsIdList(2, [a, b, old], new Map([['a', j(a)], ['b', j(b)], ['o', j(old)]]), within)).toBe(false);
+  });
+  it('skips when an old row is still on the server waiting for the prune', () => {
+    expect(needsIdList(3, [a, b, old], new Map([['a', j(a)], ['b', j(b)], ['o', j(old)]]), within)).toBe(false);
+  });
+  it('counts a synced id this device is still deleting as live (its soft-delete has not landed)', () => {
+    expect(needsIdList(2, [a], new Map([['a', j(a)], ['b', j(b)]]), within)).toBe(false);
   });
 });

@@ -19,7 +19,7 @@ Review and update this file whenever the Privacy Notice changes, a new sub-proce
 | **Lawful basis (Art. 6)** | Consent, given via the checkbox at sign-up, tied to a specific Privacy Notice version (`user_keys.privacy_version`, `user_keys.privacy_accepted_at`). |
 | **Recipients** | Supabase (database, authentication — processor, EU-hosted, `eu-north-1`); Vercel (application hosting — processor). Neither is an independent controller. |
 | **International transfers** | None outside the UK's recognised-adequate zone — primary hosting is in the EEA (Sweden). Confirm Supabase's own DPA/SCC coverage for any of its sub-processors outside that zone (see Manual-Actions-Checklist.md). |
-| **Retention** | Cloud copy: entries from the last three complete financial years (`CLOUD_RETENTION_CUTOFF` in the app). Account/profile data: until account deletion. Local on-device copy: until the user clears it themselves, independent of the cloud. |
+| **Retention** | Cloud copy: entries from the current pay year and the two before it (`CLOUD_RETENTION_CUTOFF` in the app). Account/profile data: until account deletion. Local on-device copy: until the user clears it themselves, independent of the cloud. |
 | **Security measures** | Client-side AES-256-GCM encryption of every entry/TOIL/settings payload before upload (Supabase never holds plaintext); password- and recovery-word-derived key wrapping via PBKDF2; Row-Level Security enabled on every table, confirmed live. |
 | **Rights available** | Access & portability (in-app Backup export), rectification (in-app editing), erasure (in-app Delete Account, cascades via Edge Function), objection/complaint (email controller, or ico.org.uk). |
 

@@ -203,6 +203,25 @@ export function findRemovedIds(localItems, liveIds, lastSyncedMap, isWithinCloud
     .map(it => it.id);
 }
 
+// The live-id list only matters when something was removed outright, which
+// is rare, so each pull first asks the server for just a count of live rows
+// (headers only, no body). After the delta is applied, this device's synced
+// set should match the server's live rows one for one, give or take rows
+// pruned for age: those stay in lastSyncedMap here but are gone from the
+// server, or are still on the server until the monthly prune gets to them.
+// Either count matching means nothing was hard-deleted; anything else
+// fetches the id list.
+export function needsIdList(serverCount, localItems, lastSyncedMap, isWithinCloudRetention) {
+  if (serverCount === lastSyncedMap.size) return false;
+  const byId = new Map(localItems.map(it => [it.id, it]));
+  let inWindow = 0;
+  for (const id of lastSyncedMap.keys()) {
+    const it = byId.get(id);
+    if (!it || isWithinCloudRetention(it.date)) inWindow++;
+  }
+  return serverCount !== inWindow;
+}
+
 // The cursor is the newest server updated_at this device has pulled. The
 // next pull asks for a little before it: Postgres stamps now() when a
 // transaction starts, so a slow write can commit after a later one and

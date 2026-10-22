@@ -25,7 +25,7 @@ import {
   calcAutoOTHours, syncShiftTimesIntoForm, shiftDurationMinutes,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -1532,30 +1532,36 @@ export default function App() {
         if (data.length < 1000) return { data: out, error: null };
       }
     };
+    const fail = (err) => { console.error(`[sync] pull failed for ${table}:`, err.message || err); throw new Error(err.message || 'pull failed'); };
     const [{ data: rows, error }, live] = await Promise.all([
       fetchAll(() => {
         const q = supabase.from(table).select('id, ciphertext, deleted_at, updated_at').eq('user_id', uid);
         return full ? q : q.gt('updated_at', pullSince(state.cursor));
       }),
-      full ? null : fetchAll(() => supabase.from(table).select('id').eq('user_id', uid).is('deleted_at', null)),
+      full ? null : supabase.from(table).select('id', { count: 'exact', head: true }).eq('user_id', uid).is('deleted_at', null),
     ]);
-    const err = error || live?.error;
-    if (err) { console.error(`[sync] pull failed for ${table}:`, err.message || err); throw new Error(err.message || 'pull failed'); }
+    if (error || live?.error) fail(error || live.error);
     if (!rows) return;
     if (!full) {
       const delta = [];
-      const liveIds = new Set((live.data || []).map(r => r.id));
-      const inDelta = new Set(rows.map(r => r.id));
-      for (const id of findRemovedIds(itemsRef.current, liveIds, lastSyncedRef.current, isWithinCloudRetention)) {
-        if (!inDelta.has(id)) delta.push({ id, deleted: true });
-      }
       for (const row of rows) {
         if (row.deleted_at) { delta.push({ id: row.id, deleted: true }); continue; }
         try { delta.push({ id: row.id, deleted: false, item: await decryptWithDataKey(dataKey, row.ciphertext) }); }
         catch (e) { /* unreadable: keep this device's copy, as the full pull does */ }
       }
-      if (delta.length) {
-        const merged = applyRemoteDelta(itemsRef.current, delta, lastSyncedRef.current);
+      let merged = applyRemoteDelta(itemsRef.current, delta, lastSyncedRef.current);
+      let changed = delta.length > 0;
+      if (needsIdList(live.count, merged, lastSyncedRef.current, isWithinCloudRetention)) {
+        const ids = await fetchAll(() => supabase.from(table).select('id').eq('user_id', uid).is('deleted_at', null));
+        if (ids.error) fail(ids.error);
+        const liveIds = new Set(ids.data.map(r => r.id));
+        const removed = findRemovedIds(merged, liveIds, lastSyncedRef.current, isWithinCloudRetention);
+        if (removed.length) {
+          merged = applyRemoteDelta(merged, removed.map(id => ({ id, deleted: true })), lastSyncedRef.current);
+          changed = true;
+        }
+      }
+      if (changed) {
         persistFn();
         // entries only — see the matching comment in the full path below.
         setLocalItems(table === 'entries' ? migrateEntries(merged) : cleanToilTaken(merged));
@@ -3634,7 +3640,7 @@ export default function App() {
     setTab('dashboard');
   };
 
-  // Hard-deletes entries/toil_taken rows older than the 5-financial-year
+  // Hard-deletes entries/toil_taken rows older than the 3-pay-year
   // cloud retention window (see isWithinCloudRetention above) — a real
   // DELETE, not a soft-delete, since the goal is to actually reduce what's
   // stored in Supabase. The server has no way to know which rows qualify

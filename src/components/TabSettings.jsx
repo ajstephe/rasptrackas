@@ -876,7 +876,7 @@ export function TabSettings({
               })}
               {yearsWithData.length===0&&<div style={{fontSize:'10.5px',color:'var(--quiet)',textAlign:'center',padding:'6px 0'}}>Past years will appear here once you have entries from before this tax year.</div>}
             </div>
-            <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'10px',lineHeight:1.5}}>Dates follow your pay pattern (4-5-4 weeks, 52 weeks a year). The cloud keeps this year and the last 3; your device keeps everything.</div>
+            <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'10px',lineHeight:1.5}}>Dates follow your pay pattern (4-5-4 weeks, 52 weeks a year). The cloud keeps this year and the last 2; your device keeps everything.</div>
           </>
         );
         if (fyModalOpen) fyModalContentRef.current = <>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></>;
@@ -911,7 +911,7 @@ export function TabSettings({
           <>
             <button onClick={()=>{setExportFormat(null);setPayslipMode('period');setPayslipPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0);setPayslipFYYear(CURRENT_FY_YEAR);setPayslipModalOpen(true);}} disabled={entries.length===0} style={{width:'100%',padding:'12px',background: entries.length===0 ? 'var(--chip-bg)' : BRASS,border:'none',borderRadius:'11px',color: entries.length===0 ? 'var(--quiet)' : '#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor: entries.length===0 ? 'default' : 'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="share" s={14} c={entries.length===0?'var(--quiet)':'#fff'}/> Export to PDF or spreadsheet</button>
             {entries.length===0&&<div style={{fontSize:'10px',color:'var(--quiet)',textAlign:'center',marginTop:'8px',fontWeight:600}}>Log a shift first to enable export</div>}
-            <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'8px',lineHeight:1.5}}>The cloud keeps this year and the last 3; your device keeps everything.</div>
+            <div style={{fontSize:'9.5px',color:'var(--quiet)',textAlign:'center',marginTop:'8px',lineHeight:1.5}}>The cloud keeps this year and the last 2; your device keeps everything.</div>
           </>
         );
         if (exportModalOpen) exportModalContentRef.current = <>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></>;
