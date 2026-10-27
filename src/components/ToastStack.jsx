@@ -89,7 +89,7 @@ export function ToastStack({ toasts, onDismiss, isWide }) {
                 it stays without one. Halts (rather than restarts) once the
                 toast starts leaving, so it never plays through the leave
                 transition. */}
-            {t.action&&!t.leaving&&<div className="toast-bar" style={{position:'absolute',left:0,right:0,bottom:0,height:'2.5px',background:deep,opacity:0.5,transformOrigin:'left','--toast-dur':(t.dur||3500)/1000+'s'}}/>}
+            {t.action&&t.dur!=null&&!t.leaving&&<div className="toast-bar" style={{position:'absolute',left:0,right:0,bottom:0,height:'2.5px',background:deep,opacity:0.5,transformOrigin:'left','--toast-dur':(t.dur||3500)/1000+'s'}}/>}
           </div>
         );
       })}

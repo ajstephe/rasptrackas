@@ -2030,8 +2030,9 @@ export default function App() {
     // below) so ToastStack can render a countdown bar timed to match —
     // an actionable toast (Undo, Reload…) otherwise gives no sense of how
     // long that action stays live before it's gone.
+    // dur null means it stays until its action is tapped.
     setToasts(t=>[...t,{id,message:msg,type,action,title,dur}]);
-    setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),dur);
+    if (dur != null) setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),dur);
   },[]);
 
   const dismissToast = useCallback(id=>setToasts(t=>t.filter(x=>x.id!==id)),[]);
@@ -2054,7 +2055,9 @@ export default function App() {
       const updateSW = registerSW({
         immediate: true,
         onNeedRefresh() {
-          addToast('A new version is ready', 'warn', { label: 'Reload', fn: () => updateSW(true) }, 30000);
+          // Stays put until Reload is tapped: a 30-second window was easy to
+          // miss, leaving people on the old version until the next prompt.
+          addToast('A new version is ready', 'warn', { label: 'Reload', fn: () => updateSW(true) }, null);
         },
       });
     }).catch(() => { /* dev server / unsupported browser — app works exactly as before, just without offline caching */ });
