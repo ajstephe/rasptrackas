@@ -378,7 +378,7 @@ export function TabLogOvertime({
             ) : (
               <input type="date" style={{...S.inp,display:'block',height:'46px'}} value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
             ))}
-            {row('Duty / reason','',<input type="text" placeholder="e.g. Earlies, Lates" style={{...S.inp,fontSize:inputFont}} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/>,{last:true})}
+            {row('Reason (optional)','',<input type="text" placeholder="e.g. Earlies, Lates" style={{...S.inp,fontSize:inputFont}} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/>,{last:true})}
           </>
         ))}
 
