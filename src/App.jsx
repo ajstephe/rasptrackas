@@ -2976,7 +2976,7 @@ export default function App() {
   // correctly if someone builds on top of the export in Excel.
   async function handleExportSpreadsheet(start, end, sanitise){
     const headers = [
-      'Pay Month','Date','Duty/Reason','1.33× Hours','1.5× Hours','2× Hours',
+      'Pay Month','Date','Reason','1.33× Hours','1.5× Hours','2× Hours',
       'PA Rate','Submitted','Breakdown','Gross (£)',
       'Cumulative Taxable Income Before This Shift (£)','Net (£)','Rate Applied','Notes'
     ];
@@ -3199,7 +3199,7 @@ export default function App() {
             if (isStripe) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEFF5E9'} };
             cell.border = { top:isNewPeriod?periodBoundary:thinGrey, bottom:thinGrey, left:thinGrey, right:thinGrey };
           }
-          // Duty/Reason (col 3), Breakdown (col 9) and Notes (col 14) are
+          // Reason (col 3), Breakdown (col 9) and Notes (col 14) are
           // the three fields most likely to occasionally run longer than
           // the column width comfortably allows — wrap those specifically
           // rather than truncating, so nothing needs manually expanding to read.
@@ -5349,7 +5349,7 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* notes — sits directly under Duty/Reason, separated from the pay breakdown below.
+                  {/* notes — sits directly under Reason, separated from the pay breakdown below.
                       Skipped entirely when there are no notes, so no empty labelled block appears. */}
                   {e.comments&&(
                     <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'10px',marginBottom:'10px'}}>
