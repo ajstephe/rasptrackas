@@ -19,7 +19,7 @@ const hm = mins => { const h = Math.floor(mins/60), m = Math.round(mins%60); ret
 // screen. Same fields and behaviour as before — only the arrangement changed.
 import { SetupCard, isSetUp } from './SetupCard.jsx';
 export function TabLogOvertime({
-  editing, onCancelEdit, saveSett, settings, isWide, S, MONO, BRASS,
+  editing, onCancelEdit, onDeleteEditing, saveSett, settings, isWide, S, MONO, BRASS,
   form, setForm, todayStr, notesRef, effectiveTier, preview, handleSave, justSaved,
   carmsToggleRef, focusCarmsToggle, setDatePickerMonth, setDatePickerFor,
   syncShiftTimesIntoForm, animClass='fi',
@@ -38,6 +38,8 @@ export function TabLogOvertime({
   // left, so a half-typed value like "1." isn't snapped back to a number.
   const [mixDraft, setMixDraft] = useState(null); // {k:'pay'|'toil', v:'1.'}
   const [notesOpen, setNotesOpen] = useState(false);
+  const [askDelete, setAskDelete] = useState(false);
+  useEffect(() => { setAskDelete(false); }, [editing?.id]);
   useEffect(() => { if (justSaved) setNotesOpen(false); }, [justSaved]);
 
   const planRange = d => { const w=submitWindow(d); if(!w) return ''; if(d===w.by) return `on ${w.byShort}`; const a=shortDay(d), b=w.byShort; const [ad,am]=a.split(' '), [,bm]=b.split(' '); return am===bm?`${ad}–${b}`:`${a}–${b}`; };
@@ -444,6 +446,23 @@ export function TabLogOvertime({
           <button type="button" onClick={()=>{ setNotesOpen(true); setTimeout(()=>notesRef.current?.focus(),0); }} style={{background:'none',border:'none',padding:'4px 0 0',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer'}}>+ Add a note</button>
         ),{optional:true})}
         </div></div>
+
+        {/* Delete sits at the very end, away from Update, and asks once. */}
+        {editing&&onDeleteEditing&&(
+          askDelete ? (
+            <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginBottom:'12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
+              <span style={{fontSize:isWide?'14px':'12.5px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this shift?</span>
+              <div style={{display:'flex',gap:'7px',flexShrink:0}}>
+                <button type="button" onClick={()=>setAskDelete(false)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:isWide?'7px 15px':'6px 12px',fontSize:isWide?'13px':'12px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+                <button type="button" onClick={onDeleteEditing} style={{background:'#dc2626',border:'none',borderRadius:'8px',padding:isWide?'7px 15px':'6px 12px',fontSize:isWide?'13px':'12px',fontWeight:900,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={()=>setAskDelete(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',width:'100%',background:'none',border:'1px solid color-mix(in srgb, #dc2626 35%, transparent)',borderRadius:'12px',padding:'11px',marginBottom:'12px',fontFamily:'inherit',fontSize:'13px',fontWeight:800,color:'var(--text-red-deep)',cursor:'pointer'}}>
+              <Ico n="trash" s={15} c="var(--text-red-deep)"/>Delete this shift
+            </button>
+          )
+        )}
 
         {/* One bar for the running total and Save, on both desktop and
             mobile — sticky, so it stays in view the whole way down the form.

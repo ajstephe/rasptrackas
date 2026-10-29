@@ -4875,7 +4875,8 @@ export default function App() {
         {tab==='add'&&(
           <TabLogOvertime
             animClass={tabAnimClass}
-            editing={editing} onCancelEdit={()=>leaveEditThen(()=>setTab('months'))} saveSett={saveSett} settings={settings} isWide={isWide}
+            editing={editing} onCancelEdit={()=>leaveEditThen(()=>setTab('months'))}
+            onDeleteEditing={()=>{ const id = editing.id; endEdit(); delEntry(id); setTab('months'); }} saveSett={saveSett} settings={settings} isWide={isWide}
             S={S} MONO={MONO} BRASS={BRASS} form={form} setForm={setForm} todayStr={todayStr} notesRef={notesRef}
             effectiveTier={effectiveTier} preview={preview} handleSave={handleSave} justSaved={justSaved}
             carmsToggleRef={carmsToggleRef} focusCarmsToggle={focusCarmsToggle}
