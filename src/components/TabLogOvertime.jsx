@@ -447,10 +447,11 @@ export function TabLogOvertime({
         ),{optional:true})}
         </div></div>
 
-        {/* Delete sits at the very end, away from Update, and asks once. */}
+        {/* Delete sits at the very end, away from Update, and asks once.
+            Full width on a phone; a compact button on desktop. */}
         {editing&&onDeleteEditing&&(
           askDelete ? (
-            <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginBottom:'12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px'}}>
+            <div style={{background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 12px',marginBottom:'12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:isWide?'18px':'8px',width:isWide?'fit-content':undefined}}>
               <span style={{fontSize:isWide?'14px':'12.5px',fontWeight:700,color:'var(--text-red-deep)'}}>Delete this shift?</span>
               <div style={{display:'flex',gap:'7px',flexShrink:0}}>
                 <button type="button" onClick={()=>setAskDelete(false)} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:isWide?'7px 15px':'6px 12px',fontSize:isWide?'13px':'12px',fontWeight:900,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
@@ -458,7 +459,7 @@ export function TabLogOvertime({
               </div>
             </div>
           ) : (
-            <button type="button" onClick={()=>setAskDelete(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',width:'100%',background:'none',border:'1px solid color-mix(in srgb, #dc2626 35%, transparent)',borderRadius:'12px',padding:'11px',marginBottom:'12px',fontFamily:'inherit',fontSize:'13px',fontWeight:800,color:'var(--text-red-deep)',cursor:'pointer'}}>
+            <button type="button" onClick={()=>setAskDelete(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'7px',width:isWide?'auto':'100%',background:'none',border:'1px solid color-mix(in srgb, #dc2626 35%, transparent)',borderRadius:'12px',padding:isWide?'9px 16px':'11px',marginBottom:'12px',fontFamily:'inherit',fontSize:'13px',fontWeight:800,color:'var(--text-red-deep)',cursor:'pointer'}}>
               <Ico n="trash" s={15} c="var(--text-red-deep)"/>Delete this shift
             </button>
           )
