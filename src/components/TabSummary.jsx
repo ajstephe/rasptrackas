@@ -217,7 +217,7 @@ export function TabSummary({
   const [openShift, setOpenShift] = useState(null);
   // Past months with nothing in them fold into one line until asked for.
   const [showEmpty, setShowEmpty] = useState(false);
-  const [hoverM, setHoverM] = useState(null);   // Months bar under the mouse: {idx, x, below}
+  const [hoverM, setHoverM] = useState(null);   // year chart column under the mouse: its month's idx
   const [listW, setListW] = useState(null);
   useEffect(() => {
     const el = listRef.current;
@@ -231,7 +231,7 @@ export function TabSummary({
   const roomy = W>=1150;                         // wider name and figure columns
   const sideBySide = isWide && W>=1080;          // opened month: breakdown beside shifts
   const shiftCols = isWide && (sideBySide ? W-356 : W-32)>=720;  // shift list in columns
-  const MONTH_COLS = roomy ? '190px minmax(0,1fr) 112px 104px 176px 28px' : '160px minmax(0,1fr) 100px 92px 160px 28px';
+  const MONTH_COLS = roomy ? 'minmax(0,1fr) 112px 104px 176px 28px' : 'minmax(0,1fr) 100px 92px 160px 28px';
   const SHIFT_COLS = '96px minmax(0,1fr) 56px 92px 92px 150px 40px 28px';
   const label = {fontSize:'10px',fontWeight:900,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--quiet)'};
 
@@ -252,7 +252,7 @@ export function TabSummary({
   );
   // Opening or closing a month also clears the bar's hover box, so it
   // doesn't sit over the month that's just opened.
-  const toggleMonth = m => { setHoverM(null); setExpanded(expanded===m.p.month?null:m.p.month); };
+  const toggleMonth = m => { setExpanded(expanded===m.p.month?null:m.p.month); };
   // A month line contains the to-submit button, so it's a role="button"
   // div rather than a <button> (which may not hold another button).
   const pressable = fn => ({role:'button', tabIndex:0, onClick:fn, onKeyDown:e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fn(); } }});
@@ -446,40 +446,65 @@ export function TabSummary({
     const T = shown.reduce((a,m)=>({hrs:a.hrs+m.sp.sub+m.sp.pend, n:a.n+m.sp.nSub+m.sp.nPend, g:a.g+m.totG, net:a.net+m.totN}), {hrs:0,n:0,g:0,net:0});
     const EY = totals.expectedYear;
     const exOf = m => { const ex = totals.expected?.[m.idx]; return ex&&ex.n>0 ? ex : null; };
-    const max = Math.max(1, ...shown.map(m=>m.totG));
     const fy = String(PAY_PERIODS[0].month).split(' ')[1];
 
-    // One bar per month: gross as a pale band with its net in solid green
-    // inside it. Planned money is named in words on the line instead.
-    const bar = m => { const pc = v => Math.min(100, v/max*100);
-      const seg = (w,bg) => <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${pc(w)}%`,background:bg,borderRadius:'4px'}}/>;
-      return <div aria-hidden="true" style={{position:'relative',height:'7px',borderRadius:'4px',background:'var(--surface-2)',overflow:'hidden'}}>
-        {m.totG>0&&seg(m.totG,'color-mix(in srgb, var(--text-navy) 18%, transparent)')}{m.totN>0&&seg(m.totN,GRN)}
-      </div>; };
-
-    // Computer only: hovering a bar shows what's in it. It follows the mouse
-    // along the bar, opening below for months in the top half of the screen
-    // and above for the rest, so the sticky header never covers it.
+    // One chart for the year, above the month list: a column per pay month,
+    // stacked submitted (green), still to submit (red) and planned (striped
+    // blue), so the year's shape and any waiting money show in one place and
+    // the month lines below stay plain. A column opens its month. On a
+    // computer, hovering one shows what's in it.
+    const tsOf = m => { const t = totals.toSubmit?.[m.idx]; return t&&t.gross>0.005 ? t : null; };
+    const colTot = m => m.totG + (tsOf(m)?.gross||0) + (exOf(m)?.gross||0);
+    const chartMax = Math.max(1, ...infos.map(colTot));
+    const PLAN_STRIPE = 'repeating-linear-gradient(135deg, var(--exp) 0 4px, color-mix(in srgb, var(--exp) 50%, white) 4px 8px)';
     const tipRow = (sw,lbl,sub,gv,nv,col) => <div style={{display:'grid',gridTemplateColumns:'14px minmax(0,1fr) 78px 78px',columnGap:'8px',alignItems:'center',padding:'4px 0'}}>
       <span style={{width:'10px',height:'10px',borderRadius:'3px',background:sw||'transparent'}}/>
       <span style={{minWidth:0,fontSize:'12px',fontWeight:800,color:col||'var(--ink)'}}>{lbl}{sub&&<span style={{display:'block',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)'}}>{sub}</span>}</span>
       <span style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:700,color:col==='var(--muted)'?'var(--muted)':'var(--text-navy)',textAlign:'right',whiteSpace:'nowrap'}}>{gv}</span>
       <span style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:700,color:col==='var(--muted)'?'var(--muted)':GRN,textAlign:'right',whiteSpace:'nowrap'}}>{nv}</span>
     </div>;
-    const barTip = m => { const ex=exOf(m), ts=totals.toSubmit?.[m.idx], hrs=m.sp.sub+m.sp.pend, nSh=m.sp.nSub+m.sp.nPend, ot=m.pb.ot, pa=m.pb.pa;
+    // Opens below its column (above, the sticky header covers it), kept
+    // inside the card at either end of the year.
+    const colTip = (m, i) => { const ex=exOf(m), ts=tsOf(m), hrs=m.sp.sub+m.sp.pend, nSh=m.sp.nSub+m.sp.nPend, ot=m.pb.ot, pa=m.pb.pa;
       const parts = [ot>0.005&&`Overtime ${fmtGBP(ot)}`, pa>0.005&&`PA ${fmtGBP(pa)}`].filter(Boolean).join(' · ');
-      return <div role="tooltip" style={{position:'absolute',left:`${hoverM.x}px`,...(hoverM.below?{top:'calc(100% + 2px)'}:{bottom:'calc(100% + 2px)'}),transform:'translateX(-50%)',zIndex:20,width:'380px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'12px',boxShadow:'0 10px 30px rgba(15,23,42,0.18)',padding:'10px 12px 8px',pointerEvents:'none',textAlign:'left'}}>
+      const side = i<2 ? {left:0} : i>9 ? {right:0} : {left:'50%',transform:'translateX(-50%)'};
+      return <div role="tooltip" style={{position:'absolute',top:'calc(100% + 6px)',...side,zIndex:20,width:'340px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'12px',boxShadow:'0 10px 30px rgba(15,23,42,0.18)',padding:'10px 12px 8px',pointerEvents:'none',textAlign:'left'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',paddingBottom:'6px',borderBottom:'1px solid var(--border-2)',marginBottom:'2px'}}>
           <span style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>{payLabel(m.p.month)}</span>
           <span style={{display:'flex',gap:'24px',...label}}><span>Gross</span><span>Net</span></span>
         </div>
-        {(m.totG>0.005||!ex)&&tipRow(GRN,'Submitted',parts||null,fmtGBP(m.totG),fmtGBP(m.totN))}
-        {ex&&tipRow('var(--exp)','Planned',`${ex.n} shift${ex.n!==1?'s':''} · ${fmtHrs(ex.hrs)}`,`+${fmtGBP(ex.gross)}`,`+${fmtGBP(ex.net)}`,'var(--exp-ink)')}
-        {ts&&ts.n>0&&ts.gross>0.005&&tipRow('#dc2626','To submit',null,fmtGBP(ts.gross),fmtGBP(ts.net),'var(--text-red-deep)')}
+        {tipRow(GRN,'Submitted',parts||null,fmtGBP(m.totG),fmtGBP(m.totN))}
+        {ts&&tipRow('#dc2626','To submit',`${ts.n} claim${ts.n!==1?'s':''}`,fmtGBP(ts.gross),fmtGBP(ts.net),'var(--text-red-deep)')}
+        {ex&&tipRow('var(--exp)','Planned',`${ex.n} shift${ex.n!==1?'s':''} · ${fmtHrs(ex.hrs)}`,fmtGBP(ex.gross),fmtGBP(ex.net),'var(--exp-ink)')}
         {hrs>0&&<div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',borderTop:'1px solid var(--border-2)',marginTop:'4px',paddingTop:'6px'}}>{fmtHrs(hrs)} worked over {nSh} shift{nSh!==1?'s':''}</div>}
       </div>; };
-    const onBarMove = (ev, m) => { const r=ev.currentTarget.getBoundingClientRect(); const x=Math.max(190,Math.min(r.width-190,ev.clientX-r.left)); const below=r.top<window.innerHeight/2;
-      setHoverM(h=>h&&h.idx===m.idx&&Math.abs(h.x-x)<2&&h.below===below?h:{idx:m.idx,x,below}); };
+    const H = isWide ? 120 : 84;
+    const yearChart = (
+      <div style={{...S.card,padding:isWide?'14px 18px 12px':'12px 12px 10px',marginBottom:'10px'}}>
+        <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'baseline',gap:'4px 12px',marginBottom:'10px'}}>
+          <span style={{fontSize:'12.5px',fontWeight:900,color:'var(--ink)'}}>By pay month</span>
+          <span style={{display:'flex',flexWrap:'wrap',gap:'4px 10px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
+            {[[GRN,'Submitted'],[RED,'To submit'],['var(--exp)','Planned']].map(([c,t])=><span key={t} style={{display:'inline-flex',alignItems:'center',gap:'4px'}}><i style={{width:'9px',height:'9px',borderRadius:'3px',background:c}}/>{t}</span>)}
+          </span>
+        </div>
+        <div style={{display:'flex',alignItems:'flex-end',gap:isWide?'6px':'3px'}}>
+          {infos.map((m,i)=>{ const ts=tsOf(m), ex=exOf(m), tot=colTot(m), isCurr=m.idx===currPeriodIdx;
+            const seg = (v,bg) => v>0.005 && <i style={{display:'block',height:`${v/chartMax*H}px`,background:bg}}/>;
+            return (
+              <button key={m.p.month} type="button" aria-label={`${payLabel(m.p.month)}: ${fmtGBP(tot)}`} onClick={()=>{ setHoverM(null); jumpTo(m.p.month); }}
+                onMouseEnter={isWide?()=>setHoverM(m.idx):undefined} onMouseLeave={isWide?()=>setHoverM(h=>h===m.idx?null:h):undefined}
+                style={{position:'relative',flex:'1 1 0',minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',gap:'4px',background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit'}}>
+                {isWide&&<span style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:700,color:'var(--muted)',visibility:tot>0.005?'visible':'hidden'}}>{fmtGBP(Math.round(tot)).replace('.00','')}</span>}
+                <span style={{height:`${H}px`,width:isWide?'46%':'70%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',outline:hoverM===m.idx?`2px solid color-mix(in srgb, ${BRASS} 60%, transparent)`:'none'}}>
+                  {seg(m.totG,GRN)}{ts&&seg(ts.gross,RED)}{ex&&seg(ex.gross,PLAN_STRIPE)}
+                </span>
+                <span style={{fontSize:isWide?'11px':'9.5px',fontWeight:isCurr?900:800,color:isCurr?BRASS:'var(--quiet)'}}>{String(m.p.short||m.p.month).slice(0,3)}</span>
+                {isWide&&hoverM===m.idx&&tot>0.005&&colTip(m,i)}
+              </button>);
+          })}
+        </div>
+      </div>
+    );
 
     const big = (lbl,v,col,sub,subCol='var(--exp-ink)') => <div style={{minWidth:0}}>
       <div style={label}>{lbl}</div>
@@ -493,14 +518,13 @@ export function TabSummary({
       const name = <span style={{display:'flex',alignItems:'center',gap:'7px',minWidth:0,fontWeight:800,fontSize:'14.5px',color:'var(--ink)'}}><span>{payLabel(p.month)}</span>{isCurr&&nowTag}</span>;
       // Planned money gets its own line rather than being cut off at the end of this one.
       const sub = <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>{empty?shiftsTxt(m):(sp.nSub+sp.nPend===0&&!sp.nPlan)?'Claims from earlier shifts':`${fmtHrs(sp.sub+sp.pend)} · ${shiftsTxt(m)}`}{ex&&!(empty&&sp.nPlan>0)&&<span style={{display:'block',color:'var(--exp-ink)',fontWeight:700,marginTop:'1px'}}>+{fmtGBP(ex.gross)} planned</span>}</div>;
-      const lineStyle = {cursor:'pointer',padding:'11px 8px',borderBottom:open?'none':'1px solid var(--border-2)',background:open?'var(--surface-2)':isCurr?'var(--tint-brass)':'transparent',borderRadius:open?'12px 12px 0 0':isCurr?'10px':0,boxShadow:isCurr&&!open?`inset 3px 0 0 ${BRASS}`:'none',...(hoverM?.idx===idx?{position:'relative',zIndex:30}:{})};
+      const lineStyle = {cursor:'pointer',padding:'11px 8px',borderBottom:open?'none':'1px solid var(--border-2)',background:open?'var(--surface-2)':isCurr?'var(--tint-brass)':'transparent',borderRadius:open?'12px 12px 0 0':isCurr?'10px':0,boxShadow:isCurr&&!open?`inset 3px 0 0 ${BRASS}`:'none'};
       return (
         <div key={p.month} ref={el=>monthRefs.current[p.month]=el}>
           <div {...pressable(()=>toggleMonth(m))} aria-expanded={open} className="tap-row" style={lineStyle}>
             {rowCols ? (
               <div style={{display:'grid',gridTemplateColumns:MONTH_COLS,gap:'14px',alignItems:'center'}}>
                 <span style={{minWidth:0}}>{name}{sub}</span>
-                <div data-bar onMouseMove={ev=>onBarMove(ev,m)} onMouseLeave={()=>setHoverM(h=>h&&h.idx===m.idx?null:h)} style={{position:'relative',padding:'10px 0'}}>{bar(m)}{hoverM?.idx===m.idx&&barTip(m)}</div>
                 <span style={{textAlign:'right'}}>{empty?dash:money(fmtGBP(totG),'var(--text-navy)',14.5,700)}</span>
                 <span style={{textAlign:'right'}}>{empty?dash:money(fmtGBP(totN),GRN,13.5)}</span>
                 <span style={{display:'flex',justifyContent:'flex-end'}}>{monthStatus(m)}</span>
@@ -514,9 +538,7 @@ export function TabSummary({
                 </span>
                 <span style={{paddingTop:'3px'}}>{chevron(open)}</span>
               </div>
-              <div style={{display:'flex',alignItems:'center',gap:'10px',marginTop:'8px',marginRight:'21px'}}>
-                <span style={{flex:1}}>{bar(m)}</span>{monthStatus(m)}
-              </div>
+              {monthStatus(m)&&<div style={{display:'flex',justifyContent:'flex-end',marginTop:'6px',marginRight:'36px'}}>{monthStatus(m)}</div>}
             </>)}
           </div>
           {open&&<div style={{borderRadius:'0 0 12px 12px',marginBottom:'8px',border:'1px solid var(--border-2)',borderTop:'none',background:'var(--surface)'}}>{monthOpened(m)}</div>}
@@ -549,8 +571,9 @@ export function TabSummary({
         </div>
         {!isWide&&yearSub}
       </div>
+      {yearChart}
       <div ref={listRef} style={{...S.card,padding:isWide?'8px 16px 10px':'4px 10px 6px'}}>
-        {rowCols&&<div style={{display:'grid',gridTemplateColumns:MONTH_COLS,gap:'14px',padding:'6px 8px 7px',borderBottom:'1px solid var(--border)',...label,fontSize:'10px'}}><span>Pay month</span><span/><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span><span style={{textAlign:'right'}}>Status</span><span/></div>}
+        {rowCols&&<div style={{display:'grid',gridTemplateColumns:MONTH_COLS,gap:'14px',padding:'6px 8px 7px',borderBottom:'1px solid var(--border)',...label,fontSize:'10px'}}><span>Pay month</span><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span><span style={{textAlign:'right'}}>Status</span><span/></div>}
         {/* Months still to come with nothing in them sit above the newest month. */}
         {later.length>0&&<div style={{display:'flex',justifyContent:'space-between',gap:'8px',padding:'11px 8px',borderBottom:'1px solid var(--border-2)',fontSize:'13px',fontWeight:600,color:'var(--quiet)'}}><span>{later.length>1?`${String(later[0].p.month).split(' ')[0]} – ${payLabel(later[later.length-1].p.month)}`:payLabel(later[0].p.month)}</span><span>Nothing yet</span></div>}
         {blocks.map(b=>b.fold?foldLine(b.ms):monthLine(b.m))}
