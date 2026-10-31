@@ -232,7 +232,7 @@ export function TabSummary({
   const sideBySide = isWide && W>=1080;          // opened month: breakdown beside shifts
   const shiftCols = isWide && (sideBySide ? W-356 : W-32)>=720;  // shift list in columns
   const MONTH_COLS = roomy ? 'minmax(0,1fr) 112px 104px 176px 28px' : 'minmax(0,1fr) 100px 92px 160px 28px';
-  const SHIFT_COLS = '96px minmax(0,1fr) 56px 92px 92px 150px 40px 28px';
+  const SHIFT_COLS = '64px minmax(0,1fr) 56px 92px 92px 150px 40px 28px';
   const label = {fontSize:'10px',fontWeight:900,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--quiet)'};
 
   // The arrow sits in its own 28px box: the outline icon alone let a click
@@ -337,7 +337,7 @@ export function TabSummary({
       <div key={e.id} ref={el=>entryRefs.current[e.id]=el}>
         {shiftCols ? (
           <div {...base} style={{display:'grid',gridTemplateColumns:SHIFT_COLS,gap:'10px',alignItems:'center',padding:'9px 4px',borderBottom:open||deleting?'none':'1px solid var(--border-2)',cursor:'pointer',background:rowBg,borderRadius:'8px',transition:'background 0.4s ease'}}>
-            <span style={{fontWeight:800,fontSize:'13px',color:fut?'var(--exp-ink)':'var(--ink)',whiteSpace:'nowrap'}}>{dt.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</span>
+            <span style={{fontWeight:800,fontSize:'13px',color:fut?'var(--exp-ink)':'var(--ink)',whiteSpace:'nowrap'}}>{dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
             <span style={{minWidth:0,display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px 6px'}}><span style={{fontSize:'13px',fontWeight:600,color:'var(--ink)',overflowWrap:'anywhere'}}>{e.reason||'Shift'}</span>{tags}</span>
             <span style={{textAlign:'right'}}>{money(fmtHrs(hrs),'var(--ink)',13.5,500)}</span>
             {moneyCells ? <span style={{gridColumn:'span 2',textAlign:'right'}}>{moneyCells}</span> : (<>
@@ -351,7 +351,7 @@ export function TabSummary({
           <div {...base} style={{display:'grid',gridTemplateColumns:'36px minmax(0,1fr) auto 40px',gap:'8px',alignItems:'center',padding:'10px 0',borderBottom:open||deleting?'none':'1px solid var(--border-2)',cursor:'pointer',background:rowBg,borderRadius:'8px',transition:'background 0.4s ease'}}>
             <span style={{textAlign:'center',lineHeight:1}}>
               <span style={{display:'block',fontSize:'18px',fontWeight:900,color:fut?'var(--exp-ink)':'var(--ink)'}}>{dt.getDate()}</span>
-              <span style={{fontSize:'9.5px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'}}>{late||e.date.slice(0,7)!==m.p.start.slice(0,7) ? dt.toLocaleDateString('en-GB',{month:'short'}) : dt.toLocaleDateString('en-GB',{weekday:'short'})}</span>
+              <span style={{fontSize:'9.5px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'}}>{dt.toLocaleDateString('en-GB',{month:'short'})}</span>
             </span>
             <span style={{minWidth:0}}>
               <span style={{display:'block',fontSize:'14px',fontWeight:800,color:'var(--ink)',overflowWrap:'anywhere'}}>{e.reason||'Shift'}</span>
