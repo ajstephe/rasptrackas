@@ -232,7 +232,7 @@ export function TabSummary({
   const sideBySide = isWide && W>=1080;          // opened month: breakdown beside shifts
   const shiftCols = isWide && (sideBySide ? W-356 : W-32)>=720;  // shift list in columns
   const MONTH_COLS = roomy ? '190px minmax(0,1fr) 112px 104px 176px 18px' : '160px minmax(0,1fr) 100px 92px 160px 18px';
-  const SHIFT_COLS = '96px minmax(0,1fr) 56px 92px 92px 150px 28px 12px';
+  const SHIFT_COLS = '96px minmax(0,1fr) 56px 92px 92px 150px 40px 12px';
   const label = {fontSize:'10px',fontWeight:900,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--quiet)'};
 
   const chevron = open => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.25s',transform:open?'rotate(180deg)':'none',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>;
@@ -323,7 +323,9 @@ export function TabSummary({
     const base = {...pressable(toggle), 'aria-expanded':open, className:`tap-row${focus?' entry-flash':''}`};
     const rowBg = focus ? 'var(--tint-blue)' : 'transparent';
     const btn = {borderRadius:'8px',padding:'6px 12px',fontSize:'12.5px',fontWeight:800,cursor:'pointer',fontFamily:'inherit'};
-    const trash = <button type="button" aria-label="Delete this shift" title="Delete shift" onClick={ev=>{ ev.stopPropagation(); setConfirmDel(deleting?null:e.id); }} style={{display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',borderRadius:'8px',background:deleting?'var(--tint-red)':'transparent',border:'none',cursor:'pointer',padding:0}}><Ico n="trash" s={13} c="#ef4444"/></button>;
+    // Its own roomy target, set apart from the figures and the chevron, so a
+    // tap meant for it doesn't land on the line (or the other way round).
+    const trash = <button type="button" aria-label="Delete this shift" title="Delete shift" onClick={ev=>{ ev.stopPropagation(); setConfirmDel(deleting?null:e.id); }} onKeyDown={ev=>ev.stopPropagation()} style={{display:'flex',alignItems:'center',justifyContent:'center',width:'40px',height:'40px',margin:'-6px 0',borderRadius:'10px',background:deleting?'var(--tint-red)':'transparent',border:'none',cursor:'pointer',padding:0,touchAction:'manipulation'}}><Ico n="trash" s={15} c="#ef4444"/></button>;
     const moneyCells = toilOnly
       ? <span style={{fontSize:'12.5px',fontWeight:700,color:'var(--text-purple-deep)',whiteSpace:'nowrap'}}>{fmtHrs(c.toilBanked)} TOIL</span>
       : null;
@@ -334,7 +336,7 @@ export function TabSummary({
         {shiftCols ? (
           <div {...base} style={{display:'grid',gridTemplateColumns:SHIFT_COLS,gap:'10px',alignItems:'center',padding:'9px 4px',borderBottom:open||deleting?'none':'1px solid var(--border-2)',cursor:'pointer',background:rowBg,borderRadius:'8px',transition:'background 0.4s ease'}}>
             <span style={{fontWeight:800,fontSize:'13px',color:fut?'var(--exp-ink)':'var(--ink)',whiteSpace:'nowrap'}}>{dt.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</span>
-            <span style={{minWidth:0,display:'flex',alignItems:'center',gap:'6px'}}><span style={{fontSize:'13px',fontWeight:600,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{e.reason||'Shift'}</span>{tags}</span>
+            <span style={{minWidth:0,display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px 6px'}}><span style={{fontSize:'13px',fontWeight:600,color:'var(--ink)',overflowWrap:'anywhere'}}>{e.reason||'Shift'}</span>{tags}</span>
             <span style={{textAlign:'right'}}>{money(fmtHrs(hrs),'var(--ink)',13.5,500)}</span>
             {moneyCells ? <span style={{gridColumn:'span 2',textAlign:'right'}}>{moneyCells}</span> : (<>
               <span style={{textAlign:'right'}}>{money(fmt(c.gross),gCol,13.5,700)}</span>
@@ -344,20 +346,19 @@ export function TabSummary({
             {chevron(open)}
           </div>
         ) : (
-          <div {...base} style={{display:'grid',gridTemplateColumns:'36px minmax(0,1fr) auto 28px 12px',gap:'8px',alignItems:'center',padding:'10px 0',borderBottom:open||deleting?'none':'1px solid var(--border-2)',cursor:'pointer',background:rowBg,borderRadius:'8px',transition:'background 0.4s ease'}}>
+          <div {...base} style={{display:'grid',gridTemplateColumns:'36px minmax(0,1fr) auto 40px',gap:'8px',alignItems:'center',padding:'10px 0',borderBottom:open||deleting?'none':'1px solid var(--border-2)',cursor:'pointer',background:rowBg,borderRadius:'8px',transition:'background 0.4s ease'}}>
             <span style={{textAlign:'center',lineHeight:1}}>
               <span style={{display:'block',fontSize:'18px',fontWeight:900,color:fut?'var(--exp-ink)':'var(--ink)'}}>{dt.getDate()}</span>
               <span style={{fontSize:'9.5px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--quiet)'}}>{late||e.date.slice(0,7)!==m.p.start.slice(0,7) ? dt.toLocaleDateString('en-GB',{month:'short'}) : dt.toLocaleDateString('en-GB',{weekday:'short'})}</span>
             </span>
             <span style={{minWidth:0}}>
-              <span style={{display:'block',fontSize:'14px',fontWeight:800,color:'var(--ink)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{e.reason||'Shift'}</span>
+              <span style={{display:'block',fontSize:'14px',fontWeight:800,color:'var(--ink)',overflowWrap:'anywhere'}}>{e.reason||'Shift'}</span>
               <span style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px 6px',marginTop:'3px',fontSize:'12px',fontWeight:600,color:'var(--muted)'}}>{hrs>0&&<span>{fmtHrs(hrs)}</span>}{tags}{status}</span>
             </span>
             <span style={{textAlign:'right'}}>
               {moneyCells || (<><span style={{display:'block'}}>{money(fmt(c.gross),gCol,14,700)}</span><span style={{display:'block',marginTop:'2px'}}>{money(fmt(net),nCol,12.5)}</span></>)}
             </span>
             {trash}
-            {chevron(open)}
           </div>
         )}
         {deleting&&(
@@ -393,7 +394,7 @@ export function TabSummary({
   // just "Gross / net" over the figures on a phone.
   const shiftHeader = () => shiftCols
     ? <div style={{display:'grid',gridTemplateColumns:SHIFT_COLS,gap:'10px',padding:'10px 4px 6px',borderBottom:'1px solid var(--border)',...label,fontSize:'10px'}}><span>Date</span><span>Reason</span><span style={{textAlign:'right'}}>Hours</span><span style={{textAlign:'right'}}>Gross</span><span style={{textAlign:'right'}}>Net</span><span style={{textAlign:'right'}}>Status</span><span/><span/></div>
-    : <div style={{...label,fontSize:'10px',textAlign:'right',padding:'9px 48px 3px 0',borderBottom:'1px solid var(--border-2)'}}>Gross / net</div>;
+    : <div style={{...label,fontSize:'10px',textAlign:'right',padding:'9px 52px 3px 0',borderBottom:'1px solid var(--border-2)'}}>Gross / net</div>;
 
   const shiftList = m => {
     const list=[...[...m.pE].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0), ...lateInto(m.p)];
@@ -472,7 +473,7 @@ export function TabSummary({
         </div>
         {(m.totG>0.005||!ex)&&tipRow(GRN,'Submitted',parts||null,fmtGBP(m.totG),fmtGBP(m.totN))}
         {ex&&tipRow('var(--exp)','Planned',`${ex.n} shift${ex.n!==1?'s':''} · ${fmtHrs(ex.hrs)}`,`+${fmtGBP(ex.gross)}`,`+${fmtGBP(ex.net)}`,'var(--exp-ink)')}
-        {ts&&ts.n>0&&ts.gross>0.005&&tipRow('#dc2626','To submit','Not in the bar until submitted',fmtGBP(ts.gross),fmtGBP(ts.net),'var(--text-red-deep)')}
+        {ts&&ts.n>0&&ts.gross>0.005&&tipRow('#dc2626','To submit',null,fmtGBP(ts.gross),fmtGBP(ts.net),'var(--text-red-deep)')}
         {hrs>0&&<div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',borderTop:'1px solid var(--border-2)',marginTop:'4px',paddingTop:'6px'}}>{fmtHrs(hrs)} worked over {nSh} shift{nSh!==1?'s':''}</div>}
       </div>; };
     const onBarMove = (ev, m) => { const r=ev.currentTarget.getBoundingClientRect(); const x=Math.max(190,Math.min(r.width-190,ev.clientX-r.left)); const below=r.top<window.innerHeight/2;
@@ -487,8 +488,9 @@ export function TabSummary({
     const monthLine = m => {
       const {p, idx, sp, totG, totN} = m;
       const isCurr=idx===currPeriodIdx, open=expanded===p.month, ex=exOf(m), empty=isEmpty(m);
-      const name = <span style={{display:'flex',alignItems:'center',gap:'7px',minWidth:0,fontWeight:800,fontSize:'14.5px',color:'var(--ink)'}}><span style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{payLabel(p.month)}</span>{isCurr&&nowTag}</span>;
-      const sub = <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{empty?shiftsTxt(m):(sp.nSub+sp.nPend===0&&!sp.nPlan)?'Claims from earlier shifts':`${fmtHrs(sp.sub+sp.pend)} · ${shiftsTxt(m)}`}{ex&&!(empty&&sp.nPlan>0)&&<span style={{color:'var(--exp-ink)',fontWeight:700}}> · +{fmtGBP(ex.gross)} planned</span>}</div>;
+      const name = <span style={{display:'flex',alignItems:'center',gap:'7px',minWidth:0,fontWeight:800,fontSize:'14.5px',color:'var(--ink)'}}><span>{payLabel(p.month)}</span>{isCurr&&nowTag}</span>;
+      // Planned money gets its own line rather than being cut off at the end of this one.
+      const sub = <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>{empty?shiftsTxt(m):(sp.nSub+sp.nPend===0&&!sp.nPlan)?'Claims from earlier shifts':`${fmtHrs(sp.sub+sp.pend)} · ${shiftsTxt(m)}`}{ex&&!(empty&&sp.nPlan>0)&&<span style={{display:'block',color:'var(--exp-ink)',fontWeight:700,marginTop:'1px'}}>+{fmtGBP(ex.gross)} planned</span>}</div>;
       const lineStyle = {cursor:'pointer',padding:'11px 8px',borderBottom:open?'none':'1px solid var(--border-2)',background:open?'var(--surface-2)':isCurr?'var(--tint-brass)':'transparent',borderRadius:open?'12px 12px 0 0':isCurr?'10px':0,boxShadow:isCurr&&!open?`inset 3px 0 0 ${BRASS}`:'none',...(hoverM?.idx===idx?{position:'relative',zIndex:30}:{})};
       return (
         <div key={p.month} ref={el=>monthRefs.current[p.month]=el}>
@@ -724,7 +726,7 @@ export function TabSummary({
         const when = ts.gross>0.005 ? (cPeriod.end<todayStr ? ` · submit now, paid in ${submitWindow(todayStr)?.month||'a later month'}` : ` · submit by ${sw?.byShort} for ${payLabel(cPeriod.month)}`) : '';
         const tile = t => {
           const inner = (<>
-            <span style={{display:'block',fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:t.kc,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{t.k}{t.go?' ›':''}</span>
+            <span style={{display:'block',fontSize:'10px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:t.kc}}>{t.k}{t.go?' ›':''}</span>
             <span style={{display:'block',fontFamily:MONO,fontSize:isWide?'18px':'15px',fontWeight:700,color:t.gc,marginTop:'1px',whiteSpace:'nowrap'}}>{fmtGBP(t.g)}</span>
             <span style={{display:'block',fontFamily:MONO,fontSize:'11px',fontWeight:700,color:t.nc,marginTop:'1px',whiteSpace:'nowrap'}}>{fmtGBP(t.n)} net{isWide?` · ${t.more}`:''}</span>
           </>);

@@ -5323,7 +5323,7 @@ export default function App() {
                       {e.takeAs==='mix'&&<span style={{fontSize:'10px',fontWeight:800,padding:'2px 7px',borderRadius:'6px',background:'var(--tint-purple)',color:'var(--tag-purple)',flexShrink:0}}>Mix</span>}
                       <span style={{flex:1}}/>
                       <Tooltip label="Edit shift"><button onClick={()=>{ setConfirmDel(null); setSelectedCalDay(null); startEdit(e); }} aria-label="Edit this shift" style={{background:'var(--chip-bg)',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex'}}><Ico n="edit" s={isWide?18:14} c="var(--muted)"/></button></Tooltip>
-                      <Tooltip label="Delete shift"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this shift" style={{marginLeft:'6px',background:confirmDel===e.id?'var(--tint-red)':'transparent',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button></Tooltip>
+                      <Tooltip label="Delete shift"><button onClick={()=>setConfirmDel(confirmDel===e.id?null:e.id)} aria-label="Delete this shift" style={{marginLeft:'18px',background:confirmDel===e.id?'var(--tint-red)':'transparent',border:'none',borderRadius:'8px',padding:isWide?'10px':'8px',cursor:'pointer',display:'flex',transition:'all 0.15s'}}><Ico n="trash" s={isWide?18:14} c="#ef4444"/></button></Tooltip>
                     </div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
                       {carmsBadge(e, isWide?11.5:10.5, true)}
