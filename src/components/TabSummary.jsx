@@ -231,11 +231,13 @@ export function TabSummary({
   const roomy = W>=1150;                         // wider name and figure columns
   const sideBySide = isWide && W>=1080;          // opened month: breakdown beside shifts
   const shiftCols = isWide && (sideBySide ? W-356 : W-32)>=720;  // shift list in columns
-  const MONTH_COLS = roomy ? '190px minmax(0,1fr) 112px 104px 176px 18px' : '160px minmax(0,1fr) 100px 92px 160px 18px';
-  const SHIFT_COLS = '96px minmax(0,1fr) 56px 92px 92px 150px 40px 12px';
+  const MONTH_COLS = roomy ? '190px minmax(0,1fr) 112px 104px 176px 28px' : '160px minmax(0,1fr) 100px 92px 160px 28px';
+  const SHIFT_COLS = '96px minmax(0,1fr) 56px 92px 92px 150px 40px 28px';
   const label = {fontSize:'10px',fontWeight:900,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--quiet)'};
 
-  const chevron = open => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.25s',transform:open?'rotate(180deg)':'none',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>;
+  // The arrow sits in its own 28px box: the outline icon alone let a click
+  // between its strokes fall through without opening anything.
+  const chevron = open => <span aria-hidden="true" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',flexShrink:0}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--quiet)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{pointerEvents:'none',transition:'transform 0.25s',transform:open?'rotate(180deg)':'none',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg></span>;
   const tick = <span title="All submitted" aria-label="All submitted" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:'20px',height:'20px',borderRadius:'50%',background:'var(--tint-green)',flexShrink:0}}><Ico n="check" s={11} c="var(--text-green-deep)" w={3.2}/></span>;
   const nowTag = <span style={{fontSize:'9px',fontWeight:900,letterSpacing:'0.06em',textTransform:'uppercase',color:'#fff',background:BRASS,borderRadius:'999px',padding:'1px 6px',flexShrink:0}}>Now</span>;
   const tag = (txt,bg,col) => <span key={txt} style={{fontSize:'10.5px',fontWeight:800,padding:'1px 7px',borderRadius:'6px',background:bg,color:col,whiteSpace:'nowrap'}}>{txt}</span>;
