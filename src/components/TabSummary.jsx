@@ -297,7 +297,7 @@ export function TabSummary({
   // and net, a delete icon and a chevron. A red status is the button that
   // marks that claim submitted. Opening the line shows its rates, PA,
   // note, and Submit / Edit / Delete.
-  const shiftLine = (e, m) => {
+  const shiftLine = (e, m, card=false) => {
     const c=calcEntry(e), open=openShift===e.id, fut=e.date>todayStr;
     const hrs=c.h1+c.h2+c.h3, hasPA=e.paRate&&e.paRate!=='None', hasClaim=hrs>0||hasPA;
     const otTodo=!fut&&hrs>0&&!isOtSubmitted(e), paTodo=!fut&&hasPA&&!isPaSubmitted(e);
@@ -333,6 +333,66 @@ export function TabSummary({
       : null;
     const tierLbl = (h,x,r) => `${fmtHrs(h)} at ${x} · £${r.toFixed(2)}/hr`;
     const otState = fut ? '' : isOtSubmitted(e) ? ' · ✓ submitted' : ' · not submitted';
+    const confirmStrip = deleting&&(
+      <div className="accordion-in" style={{display:'flex',alignItems:'center',gap:'8px',background:'var(--tint-red)',borderRadius:'10px',padding:'8px 10px',margin:card?'8px 0 4px':'0 0 8px'}}>
+        <span style={{flex:1,fontSize:'13px',fontWeight:800,color:'var(--text-red-deep)'}}>Delete this shift?</span>
+        <button type="button" onClick={()=>setConfirmDel(null)} style={{...btn,background:'var(--surface)',border:'1px solid var(--border)',color:'var(--muted)'}}>Cancel</button>
+        <button type="button" onClick={()=>{ setOpenShift(null); delEntry(e.id); }} style={{...btn,background:'#dc2626',border:'none',color:'#fff'}}>Delete</button>
+      </div>
+    );
+    const details = open&&(
+      <div className="accordion-in" style={{background:'var(--surface-2)',borderRadius:'10px',padding:'10px 12px',margin:card?'8px 0 4px':shiftCols?'0 0 8px 106px':'0 0 8px'}}>
+        {c.payH1>0&&lineItem(tierLbl(c.payH1,'1.33×',c.r.r133)+otState,fmt(c.ot1))}
+        {c.payH2>0&&lineItem(tierLbl(c.payH2,'1.5×',c.r.r150)+otState,fmt(c.ot2))}
+        {c.payH3>0&&lineItem(tierLbl(c.payH3,'2×',c.r.r200)+otState,fmt(c.ot3))}
+        {c.toilH>0&&lineItem(`${fmtHrs(c.toilH)} at ${RATE_TIER_LABEL[c.otRateTier]}× as TOIL${otState}`,`${fmtHrs(c.toilBanked)} banked`,'var(--text-purple-deep)')}
+        {hasPA&&lineItem(`${e.paRate}${fut?'':isPaSubmitted(e)?' · ✓ submitted':' · not submitted'}`,fmt(c.pa),'var(--text-amber-deep)')}
+        {!hasClaim&&!toilOnly&&<div style={{fontSize:'12.5px',fontWeight:600,color:'var(--muted)'}}>A record of the shift, with nothing to submit.</div>}
+        {xp&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--text-indigo-deep)',marginTop:'4px'}}>{xp.both?'Overtime & PA':xp.ot?'Overtime':'PA'} paid in {xp.label}</div>}
+        {e.comments&&<div style={{fontSize:'12.5px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid var(--border)',paddingLeft:'8px',margin:'8px 0 2px',whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{e.comments}</div>}
+        <div style={{display:'flex',gap:'8px',marginTop:'10px',flexWrap:'wrap',alignItems:'center'}}>
+          {otTodo&&<button type="button" onClick={ev=>quick(ev,{ot:true})} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--tint-red)',border:'1px solid color-mix(in srgb, #dc2626 40%, transparent)',color:'var(--text-red-deep)'}}><Ico n="cal" s={12} c="var(--text-red-deep)"/>Submit overtime</button>}
+          {paTodo&&<button type="button" onClick={ev=>quick(ev,{pa:true})} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--tint-red)',border:'1px solid color-mix(in srgb, #dc2626 40%, transparent)',color:'var(--text-red-deep)'}}><Ico n="cal" s={12} c="var(--text-red-deep)"/>Submit {e.paRate}</button>}
+          <button type="button" onClick={()=>startEdit(e)} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--surface)',border:'1px solid var(--border)',color:'var(--ink)'}}><Ico n="edit" s={12} c="var(--muted)"/>Edit</button>
+          <button type="button" onClick={()=>setConfirmDel(e.id)} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'transparent',border:'none',color:'var(--text-red-deep)'}}><Ico n="trash" s={12} c="#ef4444"/>Delete</button>
+        </div>
+      </div>
+    );
+    // A shift as its own boxed card (the Shifts view): date box, reason and
+    // tags, gross / net on the right; status chips, delete and the arrow
+    // along the bottom. Opening it shows the same details inside the card.
+    if (card) {
+      const pill = (txt,bg,col,ok) => <span key={txt} style={{display:'inline-flex',alignItems:'center',gap:'3px',background:bg,color:col,borderRadius:'999px',padding:'2px 9px',fontSize:'11.5px',fontWeight:800,whiteSpace:'nowrap'}}>{ok&&<Ico n="check" s={11} c={col} w={3.2}/>}{txt}</span>;
+      const otDone=hrs>0&&isOtSubmitted(e), paDone=hasPA&&isPaSubmitted(e);
+      const chips = fut ? pill('Planned','var(--exp-tint)','var(--exp-ink)')
+        : !hasClaim ? pill('Record only','var(--chip-bg)','var(--quiet)')
+        : (otTodo||paTodo) ? <>{otDone&&pill('Overtime','var(--tint-green)','var(--text-green-deep)',true)}{paDone&&pill(e.paRate,'var(--tint-green)','var(--text-green-deep)',true)}{otTodo&&todo('Submit overtime',{ot:true})}{paTodo&&todo(`Submit ${e.paRate}`,{pa:true})}</>
+        : pill('Submitted','var(--tint-green)','var(--text-green-deep)',true);
+      return (
+        <div key={e.id} ref={el=>entryRefs.current[e.id]=el} className={focus?'entry-flash':undefined} style={{background:focus?'var(--tint-blue)':'var(--surface)',border:fut?'1.5px dashed color-mix(in srgb, var(--exp) 45%, transparent)':'1px solid var(--border-2)',borderRadius:'14px',boxShadow:'0 1px 6px rgba(15,23,42,0.06)',padding:'12px 12px 6px 14px',minWidth:0,transition:'background 0.4s ease'}}>
+          <div {...base} style={{display:'flex',gap:'12px',alignItems:'flex-start',cursor:'pointer'}}>
+            <span style={{width:'46px',flexShrink:0,textAlign:'center',lineHeight:1,borderRadius:'10px',background:fut?'var(--exp-tint)':'var(--surface-2)',border:'1px solid var(--border-2)',padding:'7px 0 6px'}}>
+              <span style={{display:'block',fontSize:'19px',fontWeight:900,color:fut?'var(--exp-ink)':'var(--ink)'}}>{dt.getDate()}</span>
+              <span style={{fontSize:'9.5px',fontWeight:900,letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--quiet)'}}>{dt.toLocaleDateString('en-GB',{month:'short'})}</span>
+            </span>
+            <span style={{flex:1,minWidth:0}}>
+              <span style={{display:'block',fontSize:'14.5px',fontWeight:800,color:'var(--ink)',overflowWrap:'anywhere'}}>{e.reason||'Shift'}</span>
+              <span style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px 6px',marginTop:'4px',fontSize:'12px',fontWeight:600,color:'var(--muted)'}}>{hrs>0&&<span>{fmtHrs(hrs)}</span>}{tags}</span>
+            </span>
+            <span style={{textAlign:'right',flexShrink:0}}>
+              {moneyCells || (<><span style={{display:'block'}}>{money(fmt(c.gross),gCol,15,700)}</span><span style={{display:'block',marginTop:'2px'}}>{money(`${fmt(net)} net`,nCol,12.5)}</span></>)}
+            </span>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:'6px',marginTop:'10px',paddingTop:'6px',borderTop:'1px solid var(--border-2)',minHeight:'40px'}}>
+            <span style={{flex:1,minWidth:0,display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px 6px'}}>{chips}</span>
+            {trash}
+            <button type="button" aria-label={open?'Hide details':'Show details'} aria-expanded={open} onClick={ev=>{ ev.stopPropagation(); toggle(); }} style={{display:'flex',alignItems:'center',justifyContent:'center',width:'36px',height:'34px',borderRadius:'9px',background:'var(--surface-2)',border:'none',cursor:'pointer',padding:0}}>{chevron(open)}</button>
+          </div>
+          {confirmStrip}
+          {details}
+        </div>
+      );
+    }
     return (
       <div key={e.id} ref={el=>entryRefs.current[e.id]=el}>
         {shiftCols ? (
@@ -363,31 +423,8 @@ export function TabSummary({
             {trash}
           </div>
         )}
-        {deleting&&(
-          <div className="accordion-in" style={{display:'flex',alignItems:'center',gap:'8px',background:'var(--tint-red)',borderRadius:'10px',padding:'8px 10px',margin:'0 0 8px'}}>
-            <span style={{flex:1,fontSize:'13px',fontWeight:800,color:'var(--text-red-deep)'}}>Delete this shift?</span>
-            <button type="button" onClick={()=>setConfirmDel(null)} style={{...btn,background:'var(--surface)',border:'1px solid var(--border)',color:'var(--muted)'}}>Cancel</button>
-            <button type="button" onClick={()=>{ setOpenShift(null); delEntry(e.id); }} style={{...btn,background:'#dc2626',border:'none',color:'#fff'}}>Delete</button>
-          </div>
-        )}
-        {open&&(
-          <div className="accordion-in" style={{background:'var(--surface-2)',borderRadius:'10px',padding:'10px 12px',margin:shiftCols?'0 0 8px 106px':'0 0 8px'}}>
-            {c.payH1>0&&lineItem(tierLbl(c.payH1,'1.33×',c.r.r133)+otState,fmt(c.ot1))}
-            {c.payH2>0&&lineItem(tierLbl(c.payH2,'1.5×',c.r.r150)+otState,fmt(c.ot2))}
-            {c.payH3>0&&lineItem(tierLbl(c.payH3,'2×',c.r.r200)+otState,fmt(c.ot3))}
-            {c.toilH>0&&lineItem(`${fmtHrs(c.toilH)} at ${RATE_TIER_LABEL[c.otRateTier]}× as TOIL${otState}`,`${fmtHrs(c.toilBanked)} banked`,'var(--text-purple-deep)')}
-            {hasPA&&lineItem(`${e.paRate}${fut?'':isPaSubmitted(e)?' · ✓ submitted':' · not submitted'}`,fmt(c.pa),'var(--text-amber-deep)')}
-            {!hasClaim&&!toilOnly&&<div style={{fontSize:'12.5px',fontWeight:600,color:'var(--muted)'}}>A record of the shift, with nothing to submit.</div>}
-            {xp&&<div style={{fontSize:'12px',fontWeight:600,color:'var(--text-indigo-deep)',marginTop:'4px'}}>{xp.both?'Overtime & PA':xp.ot?'Overtime':'PA'} paid in {xp.label}</div>}
-            {e.comments&&<div style={{fontSize:'12.5px',fontStyle:'italic',color:'var(--ink)',borderLeft:'2px solid var(--border)',paddingLeft:'8px',margin:'8px 0 2px',whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{e.comments}</div>}
-            <div style={{display:'flex',gap:'8px',marginTop:'10px',flexWrap:'wrap',alignItems:'center'}}>
-              {otTodo&&<button type="button" onClick={ev=>quick(ev,{ot:true})} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--tint-red)',border:'1px solid color-mix(in srgb, #dc2626 40%, transparent)',color:'var(--text-red-deep)'}}><Ico n="cal" s={12} c="var(--text-red-deep)"/>Submit overtime</button>}
-              {paTodo&&<button type="button" onClick={ev=>quick(ev,{pa:true})} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--tint-red)',border:'1px solid color-mix(in srgb, #dc2626 40%, transparent)',color:'var(--text-red-deep)'}}><Ico n="cal" s={12} c="var(--text-red-deep)"/>Submit {e.paRate}</button>}
-              <button type="button" onClick={()=>startEdit(e)} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--surface)',border:'1px solid var(--border)',color:'var(--ink)'}}><Ico n="edit" s={12} c="var(--muted)"/>Edit</button>
-              <button type="button" onClick={()=>setConfirmDel(e.id)} style={{...btn,display:'inline-flex',alignItems:'center',gap:'6px',background:'transparent',border:'none',color:'var(--text-red-deep)'}}><Ico n="trash" s={12} c="#ef4444"/>Delete</button>
-            </div>
-          </div>
-        )}
+        {confirmStrip}
+        {details}
       </div>
     );
   };
@@ -774,9 +811,8 @@ export function TabSummary({
             </div>
             {notes.map(t=><div key={t} style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'3px'}}>{t}</div>)}
           </div>
-          <div ref={listRef} style={{...S.card,padding:isWide?'2px 16px 8px':'2px 12px 4px',marginTop:'10px'}}>
-            {shiftHeader()}
-            {list.map(e=>shiftLine(e,{p:cPeriod}))}
+          <div ref={listRef} style={{display:'grid',gridTemplateColumns:isWide?'repeat(auto-fill,minmax(300px,1fr))':'minmax(0,1fr)',gap:isWide?'12px':'10px',alignItems:'start',marginTop:'10px'}}>
+            {list.map(e=>shiftLine(e,{p:cPeriod},true))}
           </div>
         </>);
       })()}
