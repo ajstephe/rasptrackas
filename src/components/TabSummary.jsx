@@ -560,15 +560,45 @@ export function TabSummary({
         </div>
       </div>
     );
-    return (
+    // Phone: one box that scrolls both ways, with the headings stuck to its
+    // top and the dates to its left. Everything moves natively in a single
+    // scroller, so a sideways swipe is smooth (keeping a separate heading
+    // in step from JavaScript lagged a frame behind and looked jittery).
+    // It's sized to fill the screen under the view switcher; the totals
+    // follow below it.
+    const BAND = 22;
+    const phSticky = top => ({position:'sticky',top:`${top}px`,zIndex:2});
+    const phonePin = {position:'sticky',left:0,zIndex:1,boxShadow:'inset -2px 0 0 #111'};
+    if (!isWide) {
+      const sheetPhone = (
+        <div>
+          <div style={{overflow:'auto',maxHeight:`calc(100dvh - ${stickyH}px - 230px)`,minHeight:'320px',border:XL.thick,WebkitOverflowScrolling:'touch',overscrollBehaviorX:'contain',background:'#fff'}}>
+            <table style={tableStyle}>{cols}
+              <thead>
+                <tr style={{height:`${BAND}px`}}><th style={{...phSticky(0),left:0,zIndex:4,background:'#fff',border:'none',padding:0}}/><th style={{...phSticky(0),background:'#fff',border:'none',padding:0}}/><th colSpan={3} style={{...grp,...phSticky(0),padding:'2px 4px'}}>Hourly Rate</th><th style={{...phSticky(0),background:'#fff',border:'none',padding:0}}/><th style={{...phSticky(0),background:'#fff',border:'none',padding:0}}/></tr>
+                <tr><th style={{...th,...phSticky(BAND),...phonePin,zIndex:4,boxShadow:'inset -2px 0 0 #111, inset 0 -2px 0 #111'}}>Date</th>{['Reason','1.33','1.5','2','P/A Rate','Comments'].map(h=><th key={h} style={{...th,...phSticky(BAND),boxShadow:'inset 0 -2px 0 #111'}}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {rows}
+                {[0,1,2].map(k=><tr key={`f${k}`}>{[0,1,2,3,4,5,6].map(j=><td key={j} style={{...td,background:'#808080',...(j===0?phonePin:{})}}/>)}</tr>)}
+              </tbody>
+            </table>
+          </div>
+          <div style={{textAlign:'center',fontSize:'11.5px',fontWeight:700,color:'var(--muted)',marginTop:'8px'}}>Swipe the sheet ← for P/A Rate and Comments</div>
+        </div>
+      );
+      return renderOS(sheetPhone);
+    }
+    return renderOS(sheet);
+    function renderOS(sheetEl) { return (
       <div style={{...S.card,padding:isWide?'14px':'10px',marginTop:'2px'}}>
-        <div style={isWide?{display:'flex',gap:'26px',alignItems:'flex-start'}:{}}>{sheet}{totals}</div>
+        <div style={isWide?{display:'flex',gap:'26px',alignItems:'flex-start'}:{}}>{sheetEl}{totals}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:'6px 14px',marginTop:'12px',fontSize:'11.5px',fontWeight:600,color:'var(--muted)'}}>
           {[['#c6efce','Submitted'],['#ffc7ce',`Still to submit (${isWide?'click':'tap'} it)`],['#fff7d6','Today']].map(([bg,l])=><span key={l} style={{display:'inline-flex',alignItems:'center',gap:'5px'}}><i style={{display:'inline-block',width:'12px',height:'12px',background:bg,border:'1px solid #111'}}/>{l}</span>)}
           <span style={{color:'var(--exp-ink)',fontStyle:'italic'}}>Planned</span>
         </div>
       </div>
-    );
+    ); }
   };
 
   const monthOpened = m => {
