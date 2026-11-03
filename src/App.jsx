@@ -928,7 +928,7 @@ export default function App() {
   }, [themeMode]);
 
   const [defaultBreakdownView, setDefaultBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'calendar'));
-  const [breakdownView, setBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'calendar')); // 'list' | 'calendar' | 'compact'
+  const [breakdownView, setBreakdownView] = useState(()=>dualRead(KEYS.defaultBreakdownView,'calendar')); // 'list' | 'calendar' | 'compact' | 'sheet' (Old School)
   const [calPeriodIdx, setCalPeriodIdx] = useState(null); // set to currPeriodIdx on first render
   const [selectedCalDay, setSelectedCalDay] = useState(null);
   const [confirmCreateDay, setConfirmCreateDay] = useState(null);

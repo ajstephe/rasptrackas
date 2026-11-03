@@ -441,6 +441,91 @@ export function TabSummary({
     return <div style={{background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'12px',padding:'0 10px'}}>{shiftHeader()}{list.map(e=>shiftLine(e,m))}</div>;
   };
 
+  // ── Old School: the pay month as the original spreadsheet ──
+  // One row for every day of the pay month (more if a day has two shifts),
+  // the yellow header, hours under their rate, then P/A and comments, with
+  // totals underneath. Fully submitted shifts go green across the row; a
+  // claim still to submit is a red cell, and tapping it marks it submitted
+  // (same date picker as the Shifts chips). Any other row opens the shift,
+  // an empty day offers to log one. On a phone the sheet scrolls sideways
+  // with the Date column pinned. Kept on a white "paper" in both themes so
+  // it reads like the sheet.
+  const oldSchool = (cPeriod, cEntries) => {
+    const byDay = {};
+    cEntries.forEach(e=>{ (byDay[e.date]=byDay[e.date]||[]).push(e); });
+    const days = [];
+    for (let d=new Date(cPeriod.start+'T12:00:00'); localDateStr(d)<=cPeriod.end; d.setDate(d.getDate()+1)) days.push(localDateStr(d));
+    const XL = {font:'12.5px/1.2 Arial, Helvetica, sans-serif', ink:'#111', line:'1.5px solid #111', thick:'2.5px solid #111'};
+    const OK = {background:'#c6efce',color:'#006100'}, TODO = {background:'#ffc7ce',color:'#9c0006',fontWeight:700,cursor:'pointer'}, PLAN = {color:'#0369a1',fontStyle:'italic'};
+    const td = {border:XL.line,padding:'4px 5px',height:'25px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',background:'#fff',color:XL.ink};
+    const pin = {position:'sticky',left:0,zIndex:1,boxShadow:'4px 0 5px -3px rgba(0,0,0,0.35)'};
+    const th = {background:'#ffff4d',fontWeight:700,textAlign:'left',padding:'5px',border:XL.line,borderBottom:XL.thick,whiteSpace:'nowrap',color:XL.ink};
+    const grp = {background:'#d4d4d8',fontWeight:400,textAlign:'center',border:XL.line,fontSize:'12px',color:'#1f2937'};
+    const fmtDay = ds => { const [y,m,d]=ds.split('-'); return `${d}/${m}/${isWide?y:y.slice(2)}`; };
+    const num = v => v>0 ? +v.toFixed(2) : '';
+    let H=[0,0,0], G=[0,0,0], paN=0, paG=0;
+    const rows = [];
+    days.forEach(ds=>{
+      const list = byDay[ds] || [null];
+      list.forEach((e,i)=>{
+        const today = ds===todayStr;
+        const rowBase = today ? {background:'#fff7d6'} : {};
+        if (!e) { rows.push(
+          <tr key={ds} onClick={()=>setConfirmCreateDay(ds)} style={{cursor:'pointer'}}>
+            <td style={{...td,...rowBase,...pin,textAlign:'right',fontWeight:today?700:400}}>{fmtDay(ds)}</td>
+            {[0,1,2,3,4,5].map(k=><td key={k} style={{...td,...rowBase}}/>)}
+          </tr>); return; }
+        const c = calcEntry(e), fut = e.date>todayStr;
+        const hrs = [c.h1||0,c.h2||0,c.h3||0], anyH = hrs.some(h=>h>0);
+        const hasPA = e.paRate && e.paRate!=='None';
+        const otDone = !anyH || isOtSubmitted(e), paDone = !hasPA || isPaSubmitted(e);
+        hrs.forEach((h,k)=>{ H[k]+=h; }); G[0]+=c.ot1||0; G[1]+=c.ot2||0; G[2]+=c.ot3||0;
+        if (hasPA) { paN++; paG+=c.pa||0; }
+        const all = fut ? PLAN : (otDone&&paDone&&(anyH||hasPA)) ? OK : {};
+        const cell = {...td,...rowBase,...all};
+        const quick = (ev,parts) => { ev.stopPropagation(); openQuickSubmit(e,parts); };
+        const otCell = !fut&&anyH&&!otDone ? TODO : {};
+        const paCell = !fut&&hasPA&&!paDone ? TODO : {};
+        rows.push(
+          <tr key={e.id} ref={el=>{ if(el) entryRefs.current[e.id]=el; }} onClick={()=>startEdit(e)} style={{cursor:'pointer'}} title="Open this shift">
+            <td style={{...cell,...pin,textAlign:'right',fontWeight:today?700:(cell.fontWeight||400)}}>{fmtDay(ds)}</td>
+            <td style={cell}>{e.reason||'Shift'}</td>
+            {hrs.map((h,k)=>h>0
+              ? <td key={k} style={{...cell,...otCell}} onClick={otCell.cursor?ev=>quick(ev,{ot:true}):undefined} title={otCell.cursor?'Tap to mark overtime submitted':undefined}>{num(h)}</td>
+              : <td key={k} style={cell}/>)}
+            <td style={{...cell,...paCell}} onClick={paCell.cursor?ev=>quick(ev,{pa:true}):undefined} title={paCell.cursor?`Tap to mark ${e.paRate} submitted`:undefined}>{hasPA?e.paRate.replace(/^PA/,'Rate '):''}</td>
+            <td style={cell}>{e.comments||''}</td>
+          </tr>);
+      });
+    });
+    const tot = {...td,fontWeight:700,background:'#f1f5f9',color:'#1e3a5f'};
+    const totH = H[0]+H[1]+H[2], totG = G[0]+G[1]+G[2]+paG;
+    return (
+      <div style={{...S.card,padding:isWide?'14px':'10px',marginTop:'2px'}}>
+        <div style={{overflowX:'auto',border:XL.thick,WebkitOverflowScrolling:'touch'}}>
+          <table style={{borderCollapse:'collapse',tableLayout:'fixed',width:isWide?'100%':'706px',minWidth:'706px',font:XL.font,color:XL.ink}}>
+            <colgroup><col style={{width:isWide?'110px':'76px'}}/><col style={{width:isWide?'22%':'150px'}}/><col style={{width:'60px'}}/><col style={{width:'60px'}}/><col style={{width:'60px'}}/><col style={{width:isWide?'90px':'70px'}}/><col style={{width:isWide?undefined:'230px'}}/></colgroup>
+            <thead>
+              <tr><th style={{...pin,background:'#fff',border:'none'}}/><th style={{...grp,fontStyle:'italic'}}>Dropdown Menu ↓</th><th colSpan={3} style={grp}>Hourly Rate</th><th style={{...grp,fontStyle:'italic'}}>Dropdown ↓</th><th style={{background:'#fff',border:'none'}}/></tr>
+              <tr><th style={{...th,...pin}}>Date</th><th style={th}>Reason</th><th style={th}>1.33</th><th style={th}>1.5</th><th style={th}>2</th><th style={th}>P/A Rate</th><th style={th}>Comments</th></tr>
+            </thead>
+            <tbody>
+              {rows}
+              <tr><td style={{...tot,...pin,borderTop:XL.thick,textAlign:'right'}}>Hrs</td><td style={{...tot,borderTop:XL.thick}}/>{H.map((h,k)=><td key={k} style={{...tot,borderTop:XL.thick}}>{num(h)}</td>)}<td style={{...tot,borderTop:XL.thick}}>{paN?`${paN} claim${paN!==1?'s':''}`:''}</td><td style={{...tot,borderTop:XL.thick}}>{totH>0?`${fmtHrs(totH)} overtime`:''}</td></tr>
+              <tr><td style={{...tot,...pin,textAlign:'right'}}>£</td><td style={tot}>{totG>0.005?`Gross ${fmtGBP(totG)}`:''}</td>{G.map((g,k)=><td key={k} style={tot}>{g>0.005?fmt(g):''}</td>)}<td style={tot}>{paG>0.005?fmt(paG):''}</td><td style={tot}/></tr>
+              {[0,1,2].map(k=><tr key={`f${k}`}>{[0,1,2,3,4,5,6].map(j=><td key={j} style={{...td,background:'#808080',...(j===0?pin:{})}}/>)}</tr>)}
+            </tbody>
+          </table>
+        </div>
+        {!isWide&&<div style={{textAlign:'center',fontSize:'11.5px',fontWeight:700,color:'var(--muted)',marginTop:'8px'}}>Swipe the sheet ← for P/A Rate and Comments</div>}
+        <div style={{display:'flex',flexWrap:'wrap',gap:'6px 14px',marginTop:'9px',fontSize:'11.5px',fontWeight:600,color:'var(--muted)'}}>
+          {[['#c6efce','Submitted'],['#ffc7ce',`Still to submit (${isWide?'click':'tap'} it)`],['#fff7d6','Today']].map(([bg,l])=><span key={l} style={{display:'inline-flex',alignItems:'center',gap:'5px'}}><i style={{display:'inline-block',width:'12px',height:'12px',background:bg,border:'1px solid #111'}}/>{l}</span>)}
+          <span style={{color:'var(--exp-ink)',fontStyle:'italic'}}>Planned</span>
+        </div>
+      </div>
+    );
+  };
+
   const monthOpened = m => {
     const close = <button type="button" onClick={()=>setExpanded(null)} style={{display:'flex',alignItems:'center',gap:'4px',margin:'10px auto 0',background:'none',border:'none',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>Close {payLabel(m.p.month)} <Ico n="cU" s={12} c={BRASS}/></button>;
     return sideBySide ? (
@@ -649,6 +734,7 @@ export function TabSummary({
             {id:'calendar', lbl:'Calendar', icon:'cal',   go:()=>{ setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }},
             {id:'compact',  lbl:'Shifts',   icon:'table', go:()=>{ setBreakdownView('compact'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }},
             {id:'list',     lbl:'Months',   icon:'list',  go:()=>{ setBreakdownView('list'); snapToActiveMonth(); }},
+            {id:'sheet',    lbl:'Old School', icon:'doc', go:()=>{ setBreakdownView('sheet'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }},
           ];
           const current = views.find(v=>v.id===breakdownView) || views[0];
           const isDefault = defaultBreakdownView===breakdownView;
@@ -658,8 +744,9 @@ export function TabSummary({
                 const on = breakdownView===v.id, isDef = defaultBreakdownView===v.id;
                 return (
                 <button key={v.id} type="button" data-seg-key={v.id} aria-pressed={on} aria-label={`${v.lbl}${isDef?' (default view)':''}`} onClick={v.go} style={{position:'relative',zIndex:1,flex:1,padding:'7px 3px 6px',borderRadius:'11px',border:'none',fontWeight:900,fontSize:'12px',fontFamily:'inherit',cursor:'pointer',background:'transparent',color:on?'#fff':'var(--muted)',transition:'color 0.15s',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'3px'}}>
-                  {/* A small star marks the default view, whichever view is open. */}
-                  <span style={{display:'flex',alignItems:'center',gap:'5px'}}><Ico n={v.icon} s={12} c={on?'#fff':'var(--muted)'} w={2.5}/>{v.lbl}{isDef&&<span aria-hidden="true" style={{fontSize:'11px',opacity:0.85}}>★</span>}</span>
+                  {/* A small star marks the default view, whichever view is open. Icons
+                      only on a computer: four labels need the room on a phone. */}
+                  <span style={{display:'flex',alignItems:'center',gap:'5px',whiteSpace:'nowrap'}}>{isWide&&<Ico n={v.icon} s={12} c={on?'#fff':'var(--muted)'} w={2.5}/>}{v.lbl}{isDef&&<span aria-hidden="true" style={{fontSize:'11px',opacity:0.85}}>★</span>}</span>
                 </button>
                 );
               })}
@@ -707,7 +794,7 @@ export function TabSummary({
             exact block (and calPeriodIdx) rather than getting its own —
             both are "one period at a time" views, unlike List's stack of
             twelve independently-expandable cards. */}
-        {(breakdownView==='calendar'||breakdownView==='compact')&&(
+        {(breakdownView==='calendar'||breakdownView==='compact'||breakdownView==='sheet')&&(
           <div style={isWide?{background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:'14px',padding:'10px 14px',marginTop:'8px'}:{}}>
           <div className="month-pills" style={{display:'flex',gap:'3px',paddingTop:isWide?0:'8px',justifyContent:'center'}}>
             {PAY_PERIODS.map((p,idx)=>{
@@ -735,6 +822,17 @@ export function TabSummary({
       {breakdownView==='list' ? (()=>{
       const infos = PAY_PERIODS.map((p,idx)=>periodCalc(p,idx));
       return monthsView(infos);
+      })() : breakdownView==='sheet' ? (()=>{
+        const cIdx = calPeriodIdx===null ? currPeriodIdx : calPeriodIdx;
+        const cPeriod = PAY_PERIODS[cIdx>=0?cIdx:0];
+        const cEntries = fyEntries.filter(e=>e.date>=cPeriod.start&&e.date<=cPeriod.end).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+        return (<>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'2px 3px 10px'}}>
+            <div style={{fontWeight:900,fontSize:'16px',color:'var(--ink)',letterSpacing:'-0.3px'}}>{payLabel(cPeriod.month)}</div>
+            <div style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:600,color:'var(--quiet)'}}>Shifts {fmtD(cPeriod.start)} – {fmtD(cPeriod.end)}</div>
+          </div>
+          {oldSchool(cPeriod, cEntries)}
+        </>);
       })() : breakdownView==='compact' ? (
       <>
       {/* ══════════════════ COMPACT VIEW — one period, dense rows ══════════════════
