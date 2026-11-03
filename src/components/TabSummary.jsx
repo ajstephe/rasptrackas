@@ -226,6 +226,16 @@ export function TabSummary({
     ro.observe(el);
     return () => ro.disconnect();
   }, [breakdownView]);
+  // Old School: its heading row sticks just under the view switcher, so
+  // track how tall that sticky switcher is.
+  const osHeadRef = useRef(null);
+  const [stickyH, setStickyH] = useState(58);
+  useEffect(() => {
+    const el = stickyRef.current; if (!el || typeof ResizeObserver==='undefined') return;
+    const ro = new ResizeObserver(() => setStickyH(el.offsetHeight));
+    ro.observe(el); setStickyH(el.offsetHeight);
+    return () => ro.disconnect();
+  }, [stickyRef]);
   const W = listW ?? (isWide ? 1000 : 360);
   const rowCols = isWide && W>=760;              // month lines in columns
   const roomy = W>=1150;                         // wider name and figure columns
@@ -443,11 +453,11 @@ export function TabSummary({
 
   // ── Old School: the pay month as the original spreadsheet ──
   // One row for every day of the pay month (more if a day has two shifts),
-  // the yellow header, hours under their rate, then P/A and comments, with
-  // totals underneath. Fully submitted shifts go green across the row; a
-  // claim still to submit is a red cell (and its date goes red too), and
-  // tapping that claim cell marks it submitted
-  // (same date picker as the Shifts chips). Any other row opens the shift,
+  // the yellow header (which stays put as you scroll), hours under their
+  // rate, then P/A and comments, with the old sheet's totals beside or
+  // below. Fully submitted shifts go green across the row; a claim still to
+  // submit is a red cell (and its date goes red too), and tapping that claim
+  // cell marks it submitted (same date picker as the Shifts chips). Any other row opens the shift,
   // an empty day offers to log one. On a phone the sheet scrolls sideways
   // with the Date column pinned. Kept on a white "paper" in both themes so
   // it reads like the sheet.
@@ -464,7 +474,8 @@ export function TabSummary({
     const grp = {background:'#d4d4d8',fontWeight:400,textAlign:'center',border:XL.line,fontSize:'12px',color:'#1f2937'};
     const fmtDay = ds => { const [y,m,d]=ds.split('-'); return `${d}/${m}/${isWide?y:y.slice(2)}`; };
     const num = v => v>0 ? +v.toFixed(2) : '';
-    let H=[0,0,0], G=[0,0,0], paN=0, paG=0;
+    let H=[0,0,0], G=[0,0,0], paG=0, totN=0;
+    const PA={1:{n:0,g:0},2:{n:0,g:0},3:{n:0,g:0}};
     const rows = [];
     days.forEach(ds=>{
       const list = byDay[ds] || [null];
@@ -481,7 +492,8 @@ export function TabSummary({
         const hasPA = e.paRate && e.paRate!=='None';
         const otDone = !anyH || isOtSubmitted(e), paDone = !hasPA || isPaSubmitted(e);
         hrs.forEach((h,k)=>{ H[k]+=h; }); G[0]+=c.ot1||0; G[1]+=c.ot2||0; G[2]+=c.ot3||0;
-        if (hasPA) { paN++; paG+=c.pa||0; }
+        if (hasPA) { const k=e.paRate.replace(/^PA/,''); if (PA[k]) { PA[k].n++; PA[k].g+=c.pa||0; } paG+=c.pa||0; }
+        totN += c.gross>0.005 ? entryNet(e) : 0;
         const all = fut ? PLAN : (otDone&&paDone&&(anyH||hasPA)) ? OK : {};
         const cell = {...td,...rowBase,...all};
         const quick = (ev,parts) => { ev.stopPropagation(); openQuickSubmit(e,parts); };
@@ -499,27 +511,59 @@ export function TabSummary({
           </tr>);
       });
     });
-    const tot = {...td,fontWeight:700,background:'#f1f5f9',color:'#1e3a5f'};
     const totH = H[0]+H[1]+H[2], totG = G[0]+G[1]+G[2]+paG;
-    return (
-      <div style={{...S.card,padding:isWide?'14px':'10px',marginTop:'2px'}}>
-        <div style={{overflowX:'auto',border:XL.thick,WebkitOverflowScrolling:'touch'}}>
-          <table style={{borderCollapse:'collapse',tableLayout:'fixed',width:isWide?'100%':'706px',minWidth:'706px',font:XL.font,color:XL.ink}}>
-            <colgroup><col style={{width:isWide?'110px':'76px'}}/><col style={{width:isWide?'22%':'150px'}}/><col style={{width:'60px'}}/><col style={{width:'60px'}}/><col style={{width:'60px'}}/><col style={{width:isWide?'90px':'70px'}}/><col style={{width:isWide?undefined:'230px'}}/></colgroup>
+    const cols = <colgroup><col style={{width:isWide?'110px':'76px'}}/><col style={{width:isWide?'22%':'150px'}}/><col style={{width:'60px'}}/><col style={{width:'60px'}}/><col style={{width:'60px'}}/><col style={{width:isWide?'90px':'70px'}}/><col style={{width:isWide?undefined:'230px'}}/></colgroup>;
+    const tableStyle = {borderCollapse:'collapse',tableLayout:'fixed',width:isWide?'100%':'706px',minWidth:'706px',font:XL.font,color:XL.ink};
+    // The headings are their own table, stuck under the view switcher while
+    // the page scrolls; it follows the sheet's sideways scroll on a phone.
+    const sheet = (
+      <div style={{minWidth:0,flex:1}}>
+        <div ref={osHeadRef} style={{position:'sticky',top:`${stickyH}px`,zIndex:5,overflow:'hidden',borderTop:XL.thick,borderLeft:XL.thick,borderRight:XL.thick,background:'#fff',boxShadow:'0 6px 8px -5px rgba(0,0,0,0.35)'}}>
+          <table style={tableStyle}>{cols}
             <thead>
               <tr><th style={{...pin,background:'#fff',border:'none'}}/><th style={{background:'#fff',border:'none'}}/><th colSpan={3} style={grp}>Hourly Rate</th><th style={{background:'#fff',border:'none'}}/><th style={{background:'#fff',border:'none'}}/></tr>
               <tr><th style={{...th,...pin}}>Date</th><th style={th}>Reason</th><th style={th}>1.33</th><th style={th}>1.5</th><th style={th}>2</th><th style={th}>P/A Rate</th><th style={th}>Comments</th></tr>
             </thead>
+          </table>
+        </div>
+        <div onScroll={ev=>{ if(osHeadRef.current) osHeadRef.current.scrollLeft=ev.currentTarget.scrollLeft; }} style={{overflowX:'auto',borderLeft:XL.thick,borderRight:XL.thick,borderBottom:XL.thick,WebkitOverflowScrolling:'touch'}}>
+          <table style={tableStyle}>{cols}
             <tbody>
               {rows}
-              <tr><td style={{...tot,...pin,borderTop:XL.thick,textAlign:'right'}}>Hrs</td><td style={{...tot,borderTop:XL.thick}}/>{H.map((h,k)=><td key={k} style={{...tot,borderTop:XL.thick}}>{num(h)}</td>)}<td style={{...tot,borderTop:XL.thick}}>{paN?`${paN} claim${paN!==1?'s':''}`:''}</td><td style={{...tot,borderTop:XL.thick}}>{totH>0?`${fmtHrs(totH)} overtime`:''}</td></tr>
-              <tr><td style={{...tot,...pin,textAlign:'right'}}>£</td><td style={tot}>{totG>0.005?`Gross ${fmtGBP(totG)}`:''}</td>{G.map((g,k)=><td key={k} style={tot}>{g>0.005?fmt(g):''}</td>)}<td style={tot}>{paG>0.005?fmt(paG):''}</td><td style={tot}/></tr>
               {[0,1,2].map(k=><tr key={`f${k}`}>{[0,1,2,3,4,5,6].map(j=><td key={j} style={{...td,background:'#808080',...(j===0?pin:{})}}/>)}</tr>)}
             </tbody>
           </table>
         </div>
         {!isWide&&<div style={{textAlign:'center',fontSize:'11.5px',fontWeight:700,color:'var(--muted)',marginTop:'8px'}}>Swipe the sheet ← for P/A Rate and Comments</div>}
-        <div style={{display:'flex',flexWrap:'wrap',gap:'6px 14px',marginTop:'9px',fontSize:'11.5px',fontWeight:600,color:'var(--muted)'}}>
+      </div>
+    );
+    // The totals, laid out as on the old sheet: Total Worked by rate, P/A by
+    // rate, then gross and net (the app's real net, not a flat 40%).
+    const sc = {border:XL.line,padding:'5px 7px',fontVariantNumeric:'tabular-nums',background:'#fff',color:XL.ink};
+    const box = {borderCollapse:'collapse',width:'100%',border:XL.thick,font:'13px/1.2 Arial, Helvetica, sans-serif'};
+    const yl = {display:'inline-block',background:'#ffff4d',color:XL.ink,fontWeight:700,padding:'3px 8px',minWidth:'140px'};
+    const money2 = v => fmtGBP(v);
+    const totals = (
+      <div style={{font:'13px/1.2 Arial, Helvetica, sans-serif',color:XL.ink,background:'#fff',padding:isWide?0:'14px 2px 2px',width:isWide?'300px':undefined,flexShrink:0,...(isWide?{position:'sticky',top:`${stickyH+8}px`}:{})}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'0 0 4px'}}><span style={yl}>Total Worked</span><b style={{paddingRight:'8px'}}>{num(totH)||0}</b></div>
+        <table style={box}><tbody>
+          {['1.33','1.5','2'].map((r,k)=><tr key={r}><td style={{...sc,textAlign:'right'}}>{r}</td><td style={{...sc,textAlign:'right',fontWeight:700}}>{num(H[k])||0}</td><td style={{...sc,textAlign:'right'}}>{G[k]>0.005?money2(G[k]):'£ -'}</td></tr>)}
+        </tbody></table>
+        <div style={{margin:'16px 0 4px'}}><span style={yl}>P/A</span></div>
+        <table style={box}><tbody>
+          {[1,2,3].map(k=><tr key={k}><td style={sc}>Rate {k}</td><td style={{...sc,textAlign:'right'}}>{PA[k].n}</td><td style={{...sc,textAlign:'right'}}>{money2(PA[k].g)}</td></tr>)}
+        </tbody></table>
+        <div style={{textAlign:'right',padding:'5px 7px',fontVariantNumeric:'tabular-nums'}}>{money2(paG)}</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr auto',rowGap:'2px',marginTop:'14px',fontWeight:700}}>
+          <span style={{padding:'3px 0'}}>Gross</span><span style={{textAlign:'right',minWidth:'110px',padding:'3px 7px',borderBottom:XL.line}}>{money2(totG)}</span>
+          <span style={{padding:'3px 0'}}>Net</span><span style={{textAlign:'right',padding:'3px 7px',borderBottom:'3px double #111'}}>{money2(totN)}</span>
+        </div>
+      </div>
+    );
+    return (
+      <div style={{...S.card,padding:isWide?'14px':'10px',marginTop:'2px'}}>
+        <div style={isWide?{display:'flex',gap:'26px',alignItems:'flex-start'}:{}}>{sheet}{totals}</div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:'6px 14px',marginTop:'12px',fontSize:'11.5px',fontWeight:600,color:'var(--muted)'}}>
           {[['#c6efce','Submitted'],['#ffc7ce',`Still to submit (${isWide?'click':'tap'} it)`],['#fff7d6','Today']].map(([bg,l])=><span key={l} style={{display:'inline-flex',alignItems:'center',gap:'5px'}}><i style={{display:'inline-block',width:'12px',height:'12px',background:bg,border:'1px solid #111'}}/>{l}</span>)}
           <span style={{color:'var(--exp-ink)',fontStyle:'italic'}}>Planned</span>
         </div>
