@@ -534,7 +534,6 @@ export function TabSummary({
             </tbody>
           </table>
         </div>
-        {!isWide&&<div style={{textAlign:'center',fontSize:'11.5px',fontWeight:700,color:'var(--muted)',marginTop:'8px'}}>Swipe the sheet ← for P/A Rate and Comments</div>}
       </div>
     );
     // The totals, laid out as on the old sheet: Total Worked by rate, P/A by
@@ -572,6 +571,7 @@ export function TabSummary({
     if (!isWide) {
       const sheetPhone = (
         <div>
+          <div style={{textAlign:'center',fontSize:'11.5px',fontWeight:700,color:'var(--muted)',marginBottom:'8px'}}>Swipe the sheet ← for P/A Rate and Comments</div>
           <div style={{overflow:'auto',maxHeight:`calc(100dvh - ${stickyH}px - 230px)`,minHeight:'320px',border:XL.thick,WebkitOverflowScrolling:'touch',overscrollBehaviorX:'contain',background:'#fff'}}>
             <table style={tableStyle}>{cols}
               <thead>
@@ -584,7 +584,6 @@ export function TabSummary({
               </tbody>
             </table>
           </div>
-          <div style={{textAlign:'center',fontSize:'11.5px',fontWeight:700,color:'var(--muted)',marginTop:'8px'}}>Swipe the sheet ← for P/A Rate and Comments</div>
         </div>
       );
       return renderOS(sheetPhone);
