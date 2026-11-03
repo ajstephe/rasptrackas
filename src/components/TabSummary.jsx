@@ -467,6 +467,7 @@ export function TabSummary({
     const days = [];
     for (let d=new Date(cPeriod.start+'T12:00:00'); localDateStr(d)<=cPeriod.end; d.setDate(d.getDate()+1)) days.push(localDateStr(d));
     const XL = {font:'12.5px/1.2 Arial, Helvetica, sans-serif', ink:'#111', line:'1.5px solid #111', thick:'2.5px solid #111'};
+    const TOILC = {background:'#ede9fe',color:'#5b21b6'};
     const OK = {background:'#c6efce',color:'#006100'}, TODO = {background:'#ffc7ce',color:'#9c0006',fontWeight:700,cursor:'pointer'}, PLAN = {color:'#0369a1',fontStyle:'italic'};
     const td = {border:XL.line,padding:'4px 5px',height:'25px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',background:'#fff',color:XL.ink};
     const pin = {position:'sticky',left:0,zIndex:1,boxShadow:'4px 0 5px -3px rgba(0,0,0,0.35)'};
@@ -474,7 +475,7 @@ export function TabSummary({
     const grp = {background:'#d4d4d8',fontWeight:400,textAlign:'center',border:XL.line,fontSize:'12px',color:'#1f2937'};
     const fmtDay = ds => { const [y,m,d]=ds.split('-'); return `${d}/${m}/${isWide?y:y.slice(2)}`; };
     const num = v => v>0 ? +v.toFixed(2) : '';
-    let H=[0,0,0], G=[0,0,0], paG=0, totN=0;
+    let H=[0,0,0], G=[0,0,0], T=[0,0,0], TB=[0,0,0], paG=0, totN=0;
     const PA={1:{n:0,g:0},2:{n:0,g:0},3:{n:0,g:0}};
     const rows = [];
     days.forEach(ds=>{
@@ -492,6 +493,12 @@ export function TabSummary({
         const hasPA = e.paRate && e.paRate!=='None';
         const otDone = !anyH || isOtSubmitted(e), paDone = !hasPA || isPaSubmitted(e);
         hrs.forEach((h,k)=>{ H[k]+=h; }); G[0]+=c.ot1||0; G[1]+=c.ot2||0; G[2]+=c.ot3||0;
+        // TOIL / Mix: the hours taken as time sit in one rate's cell, shown
+        // purple ("4 TOIL", or "6 (2 TOIL)" when only part is TOIL).
+        const tk = {hours133:0,hours150:1,hours200:2}[c.otRateTier];
+        const toilH = tk!==undefined && hrs[tk]>0 ? Math.min(c.toilH||0, hrs[tk]) : 0;
+        if (toilH>0) { T[tk]+=toilH; TB[tk]+=c.toilBanked||0; }
+        const allToil = toilH>0 && hrs.every((h,k)=>k===tk ? h<=toilH+1e-9 : h===0);
         if (hasPA) { const k=e.paRate.replace(/^PA/,''); if (PA[k]) { PA[k].n++; PA[k].g+=c.pa||0; } paG+=c.pa||0; }
         totN += c.gross>0.005 ? entryNet(e) : 0;
         const all = fut ? PLAN : (otDone&&paDone&&(anyH||hasPA)) ? OK : {};
@@ -502,9 +509,9 @@ export function TabSummary({
         rows.push(
           <tr key={e.id} ref={el=>{ if(el) entryRefs.current[e.id]=el; }} onClick={()=>startEdit(e)} style={{cursor:'pointer'}} title="Open this shift">
             <td style={{...cell,...pin,textAlign:'right',fontWeight:today?700:(cell.fontWeight||400),...(otCell.cursor||paCell.cursor?{background:TODO.background,color:TODO.color,fontWeight:700}:{})}} title={otCell.cursor||paCell.cursor?'Something on this shift is still to submit':undefined}>{fmtDay(ds)}</td>
-            <td style={cell}>{e.reason||'Shift'}</td>
+            <td style={cell}>{e.reason||'Shift'}{toilH>0&&<span style={{display:'inline-block',marginLeft:'5px',padding:'0 4px',borderRadius:'3px',background:'#7c3aed',color:'#fff',fontSize:'9.5px',fontWeight:700,verticalAlign:'1px'}}>{allToil?'TOIL':'Mix'}</span>}</td>
             {hrs.map((h,k)=>h>0
-              ? <td key={k} style={{...cell,...otCell}} onClick={otCell.cursor?ev=>quick(ev,{ot:true}):undefined} title={otCell.cursor?'Tap to mark overtime submitted':undefined}>{num(h)}</td>
+              ? <td key={k} style={{...cell,...(k===tk&&toilH>0&&!otCell.cursor?TOILC:{}),...otCell}} onClick={otCell.cursor?ev=>quick(ev,{ot:true}):undefined} title={otCell.cursor?'Tap to mark overtime submitted':undefined}>{num(h)}{k===tk&&toilH>0&&<span style={{fontSize:'10px',fontWeight:700}}>{h<=toilH+1e-9?' TOIL':` (${num(toilH)} TOIL)`}</span>}</td>
               : <td key={k} style={cell}/>)}
             <td style={{...cell,...paCell}} onClick={paCell.cursor?ev=>quick(ev,{pa:true}):undefined} title={paCell.cursor?`Tap to mark ${e.paRate} submitted`:undefined}>{hasPA?e.paRate.replace(/^PA/,'Rate '):''}</td>
             <td style={cell}>{e.comments||''}</td>
@@ -512,8 +519,8 @@ export function TabSummary({
       });
     });
     const totH = H[0]+H[1]+H[2], totG = G[0]+G[1]+G[2]+paG;
-    const cols = <colgroup><col style={{width:isWide?'110px':'76px'}}/><col style={{width:isWide?'22%':'150px'}}/><col style={{width:'60px'}}/><col style={{width:'60px'}}/><col style={{width:'60px'}}/><col style={{width:isWide?'90px':'70px'}}/><col style={{width:isWide?undefined:'230px'}}/></colgroup>;
-    const tableStyle = {borderCollapse:'collapse',tableLayout:'fixed',width:isWide?'100%':'706px',minWidth:'706px',font:XL.font,color:XL.ink};
+    const cols = <colgroup><col style={{width:isWide?'110px':'76px'}}/><col style={{width:isWide?'22%':'150px'}}/><col style={{width:'74px'}}/><col style={{width:'74px'}}/><col style={{width:'74px'}}/><col style={{width:isWide?'90px':'70px'}}/><col style={{width:isWide?undefined:'230px'}}/></colgroup>;
+    const tableStyle = {borderCollapse:'collapse',tableLayout:'fixed',width:isWide?'100%':'748px',minWidth:'748px',font:XL.font,color:XL.ink};
     // The headings are their own table, stuck under the view switcher while
     // the page scrolls; it follows the sheet's sideways scroll on a phone.
     const sheet = (
@@ -548,6 +555,14 @@ export function TabSummary({
         <table style={box}><tbody>
           {['1.33','1.5','2'].map((r,k)=><tr key={r}><td style={{...sc,textAlign:'right'}}>{r}</td><td style={{...sc,textAlign:'right',fontWeight:700}}>{num(H[k])||0}</td><td style={{...sc,textAlign:'right'}}>{G[k]>0.005?money2(G[k]):'£ -'}</td></tr>)}
         </tbody></table>
+        {T[0]+T[1]+T[2]>0&&<>
+          <div style={{textAlign:'right',fontSize:'11px',color:'#5b21b6',marginTop:'4px'}}>£ is the paid hours only · {fmtHrs(T[0]+T[1]+T[2])} taken as TOIL</div>
+          <div style={{margin:'16px 0 4px'}}><span style={{...yl,background:'#ddd6fe'}}>TOIL</span></div>
+          <table style={box}><tbody>
+            {['1.33','1.5','2'].map((r,k)=><tr key={r}><td style={{...sc,textAlign:'right'}}>{r}</td><td style={{...sc,textAlign:'right',fontWeight:700}}>{num(T[k])||0}</td><td style={{...sc,textAlign:'right'}}>{fmtHrs(TB[k])} banked</td></tr>)}
+          </tbody></table>
+          <div style={{textAlign:'right',padding:'5px 7px',fontVariantNumeric:'tabular-nums'}}>{fmtHrs(TB[0]+TB[1]+TB[2])} banked</div>
+        </>}
         <div style={{margin:'16px 0 4px'}}><span style={yl}>P/A</span></div>
         <table style={box}><tbody>
           {[1,2,3].map(k=><tr key={k}><td style={sc}>Rate {k}</td><td style={{...sc,textAlign:'right'}}>{PA[k].n}</td><td style={{...sc,textAlign:'right'}}>{money2(PA[k].g)}</td></tr>)}
