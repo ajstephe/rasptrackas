@@ -445,7 +445,8 @@ export function TabSummary({
   // One row for every day of the pay month (more if a day has two shifts),
   // the yellow header, hours under their rate, then P/A and comments, with
   // totals underneath. Fully submitted shifts go green across the row; a
-  // claim still to submit is a red cell, and tapping it marks it submitted
+  // claim still to submit is a red cell (and its date goes red too), and
+  // tapping that claim cell marks it submitted
   // (same date picker as the Shifts chips). Any other row opens the shift,
   // an empty day offers to log one. On a phone the sheet scrolls sideways
   // with the Date column pinned. Kept on a white "paper" in both themes so
@@ -488,7 +489,7 @@ export function TabSummary({
         const paCell = !fut&&hasPA&&!paDone ? TODO : {};
         rows.push(
           <tr key={e.id} ref={el=>{ if(el) entryRefs.current[e.id]=el; }} onClick={()=>startEdit(e)} style={{cursor:'pointer'}} title="Open this shift">
-            <td style={{...cell,...pin,textAlign:'right',fontWeight:today?700:(cell.fontWeight||400)}}>{fmtDay(ds)}</td>
+            <td style={{...cell,...pin,textAlign:'right',fontWeight:today?700:(cell.fontWeight||400),...(otCell.cursor||paCell.cursor?{background:TODO.background,color:TODO.color,fontWeight:700}:{})}} title={otCell.cursor||paCell.cursor?'Something on this shift is still to submit':undefined}>{fmtDay(ds)}</td>
             <td style={cell}>{e.reason||'Shift'}</td>
             {hrs.map((h,k)=>h>0
               ? <td key={k} style={{...cell,...otCell}} onClick={otCell.cursor?ev=>quick(ev,{ot:true}):undefined} title={otCell.cursor?'Tap to mark overtime submitted':undefined}>{num(h)}</td>
