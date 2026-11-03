@@ -506,7 +506,7 @@ export function TabSummary({
           <table style={{borderCollapse:'collapse',tableLayout:'fixed',width:isWide?'100%':'706px',minWidth:'706px',font:XL.font,color:XL.ink}}>
             <colgroup><col style={{width:isWide?'110px':'76px'}}/><col style={{width:isWide?'22%':'150px'}}/><col style={{width:'60px'}}/><col style={{width:'60px'}}/><col style={{width:'60px'}}/><col style={{width:isWide?'90px':'70px'}}/><col style={{width:isWide?undefined:'230px'}}/></colgroup>
             <thead>
-              <tr><th style={{...pin,background:'#fff',border:'none'}}/><th style={{...grp,fontStyle:'italic'}}>Dropdown Menu ↓</th><th colSpan={3} style={grp}>Hourly Rate</th><th style={{...grp,fontStyle:'italic'}}>Dropdown ↓</th><th style={{background:'#fff',border:'none'}}/></tr>
+              <tr><th style={{...pin,background:'#fff',border:'none'}}/><th style={{background:'#fff',border:'none'}}/><th colSpan={3} style={grp}>Hourly Rate</th><th style={{background:'#fff',border:'none'}}/><th style={{background:'#fff',border:'none'}}/></tr>
               <tr><th style={{...th,...pin}}>Date</th><th style={th}>Reason</th><th style={th}>1.33</th><th style={th}>1.5</th><th style={th}>2</th><th style={th}>P/A Rate</th><th style={th}>Comments</th></tr>
             </thead>
             <tbody>
