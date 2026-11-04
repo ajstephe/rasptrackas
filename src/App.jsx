@@ -719,6 +719,15 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
           <>
             <label htmlFor="as-su-email" style={AS.label}>Email</label>
             <input id="as-su-email" style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
+            {/* Work email systems (the Met's included) tend to quarantine the
+                confirmation email, leaving the account stuck at "waiting for
+                verification". Nudge people to a personal address, and say it
+                louder once a police.uk address is typed. */}
+            {(()=>{ const work = /@([a-z0-9-]+\.)*police\.uk\s*$/i.test(email);
+              return <div role={work?'alert':undefined} style={{display:'flex',gap:'8px',alignItems:'flex-start',margin:'-6px 0 14px',padding:work?'10px 12px':0,borderRadius:'11px',background:work?'var(--tint-amber)':'transparent',fontSize:'12px',lineHeight:1.45,fontWeight:600,color:work?'var(--text-amber-deep)':'var(--muted)'}}>
+                {work&&<span style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="warn" s={15} c="var(--text-amber-deep)" w={2.4}/></span>}
+                <span>{work?<><b style={{display:'block',fontWeight:900}}>Use a personal email if you can</b>Police work email often blocks our confirmation email, so it may never arrive. A personal address (Gmail, iCloud, Outlook) works best.</>:'Use a personal email if you can. Work email often blocks the confirmation email.'}</span>
+              </div>; })()}
             <label htmlFor="as-su-pass" style={AS.label}>Password</label>
             <input id="as-su-pass" style={AS.input} type="password" placeholder="At least 8 characters" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password"/>
             <label htmlFor="as-su-pass2" style={AS.label}>Confirm password</label>
