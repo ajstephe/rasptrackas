@@ -25,7 +25,7 @@ import {
   calcAutoOTHours, syncShiftTimesIntoForm, shiftDurationMinutes,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -1332,6 +1332,7 @@ export default function App() {
   // localStorage on mount, and re-persisted on every mutation below —
   // without this, a plain page reload would forget everything this device
   // has ever actually synced, since useRef alone doesn't survive that.
+  const syncGenRef = useRef(0); // bumped when local account data is cleared; see pullAndMergeRows
   const lastSyncedEntriesRef = useRef(new Map(Object.entries(dualRead(KEYS.lastSyncedEntries,{}))));
   const lastSyncedToilRef = useRef(new Map(Object.entries(dualRead(KEYS.lastSyncedToilTaken,{}))));
   const lastSyncedSettingsRef = useRef(dualRead(KEYS.lastSyncedSettings,null));
@@ -1522,13 +1523,20 @@ export default function App() {
   // newest server updated_at it has seen), so opening the app downloads
   // what's new rather than every entry in the account. A full pull still
   // runs the first time, and weekly after that — see needsFullPull.
-  async function pullAndMergeRows(table, itemsRef, setLocalItems, lastSyncedRef, persistFn) {
+  async function pullAndMergeRows(table, itemsRef, setLocalItems, lastSyncedRef, persistFn, forceFull=false) {
     if (!supabase || !session || !dataKey) return;
+    // If the account's local data is cleared (sign-out, session ended)
+    // while this pull is still in flight, it must not write anything back
+    // afterwards: a pull cursor restored over the cleared state made the
+    // next sign-in fetch only recent changes, so the account looked empty
+    // on that device. clearLocalAccountData bumps this generation.
+    const gen = syncGenRef.current;
+    const stale = () => gen !== syncGenRef.current;
     const uid = session.user.id;
     const stateKey = table === 'entries' ? KEYS.pullStateEntries : KEYS.pullStateToilTaken;
     const state = dualRead(stateKey, null);
     const today = localDateStr();
-    const full = needsFullPull(state, today);
+    const full = forceFull || needsFullPull(state, today);
     // Paged, because the API returns at most 1,000 rows per request. A list
     // cut short there would read as everything past row 1,000 having been
     // deleted elsewhere.
@@ -1550,7 +1558,7 @@ export default function App() {
       full ? null : supabase.from(table).select('id', { count: 'exact', head: true }).eq('user_id', uid).is('deleted_at', null),
     ]);
     if (error || live?.error) fail(error || live.error);
-    if (!rows) return;
+    if (!rows || stale()) return;
     if (!full) {
       const delta = [];
       for (const row of rows) {
@@ -1558,18 +1566,27 @@ export default function App() {
         try { delta.push({ id: row.id, deleted: false, item: await decryptWithDataKey(dataKey, row.ciphertext) }); }
         catch (e) { /* unreadable: keep this device's copy, as the full pull does */ }
       }
+      if (stale()) return;
       let merged = applyRemoteDelta(itemsRef.current, delta, lastSyncedRef.current);
       let changed = delta.length > 0;
       if (needsIdList(live.count, merged, lastSyncedRef.current, isWithinCloudRetention)) {
         const ids = await fetchAll(() => supabase.from(table).select('id').eq('user_id', uid).is('deleted_at', null));
         if (ids.error) fail(ids.error);
         const liveIds = new Set(ids.data.map(r => r.id));
+        if (stale()) return;
+        // Rows on the server this device has never had: the delta can't be
+        // trusted, so start again with a full pull, which brings them back.
+        if (findMissingIds(merged, liveIds, lastSyncedRef.current).length) {
+          console.warn(`[sync] ${table}: rows missing on this device; doing a full pull`);
+          return pullAndMergeRows(table, itemsRef, setLocalItems, lastSyncedRef, persistFn, true);
+        }
         const removed = findRemovedIds(merged, liveIds, lastSyncedRef.current, isWithinCloudRetention);
         if (removed.length) {
           merged = applyRemoteDelta(merged, removed.map(id => ({ id, deleted: true })), lastSyncedRef.current);
           changed = true;
         }
       }
+      if (stale()) return;
       if (changed) {
         persistFn();
         // entries only — see the matching comment in the full path below.
@@ -1593,6 +1610,7 @@ export default function App() {
       console.error(`[sync] ${failedIds.length} row(s) in ${table} couldn't be decrypted; keeping this device's copies`);
       for (const id of failedIds) { const local = itemsRef.current.find(x=>x.id===id); if (local) remoteMap.set(id, local); }
     }
+    if (stale()) return;
     const merged = mergeRemoteRows(itemsRef.current, remoteMap, lastSyncedRef.current, isWithinCloudRetention);
     persistFn();
     // entries only, not toil_taken — TOIL records have no CARMS-submission
@@ -3502,6 +3520,7 @@ export default function App() {
   // null session exactly like an explicit sign-out does, and none of which
   // used to run this. Pulled out here so both paths call the same thing.
   const clearLocalAccountData = () => {
+    syncGenRef.current++;
     setEntries([]);
     setToilTaken([]);
     setSettings({ rank:'', service:'' });

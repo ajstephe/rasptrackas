@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS } from './sync.js';
+import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS } from './sync.js';
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -440,5 +440,19 @@ describe('needsIdList — skipping the live-id download when nothing was removed
   });
   it('counts a synced id this device is still deleting as live (its soft-delete has not landed)', () => {
     expect(needsIdList(2, [a], new Map([['a', j(a)], ['b', j(b)]]), within)).toBe(false);
+  });
+});
+
+describe('findMissingIds — server rows this device never pulled', () => {
+  it('flags live rows that are neither held locally nor known-synced', () => {
+    const last = new Map([['c', '{}']]);
+    expect(findMissingIds([{ id: 'c' }], new Set(['a', 'b', 'c']), last)).toEqual(['a', 'b']);
+  });
+  it('ignores rows this device synced and then deleted (delete still pending)', () => {
+    const last = new Map([['a', '{}']]);
+    expect(findMissingIds([], new Set(['a']), last)).toEqual([]);
+  });
+  it('is empty when the device already has everything', () => {
+    expect(findMissingIds([{ id: 'a' }, { id: 'b' }], new Set(['a', 'b']), new Map([['a', '{}'], ['b', '{}']]))).toEqual([]);
   });
 });

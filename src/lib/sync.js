@@ -203,6 +203,19 @@ export function findRemovedIds(localItems, liveIds, lastSyncedMap, isWithinCloud
     .map(it => it.id);
 }
 
+// The other way round: live rows on the server that this device neither
+// holds nor has ever synced. A delta only brings rows changed since the
+// cursor, so if this device's copy was emptied while its pull cursor
+// survived (a sync finishing just as the account signed out, say), the
+// older rows never come back and the account looks empty here. Any such
+// row means the delta can't be trusted, and the caller does a full pull.
+// Rows this device has synced but no longer holds are left out: those are
+// its own deletions still on their way up.
+export function findMissingIds(localItems, liveIds, lastSyncedMap) {
+  const have = new Set(localItems.map(it => it.id));
+  return [...liveIds].filter(id => !have.has(id) && !lastSyncedMap.has(id));
+}
+
 // The live-id list only matters when something was removed outright, which
 // is rare, so each pull first asks the server for just a count of live rows
 // (headers only, no body). After the delta is applied, this device's synced
