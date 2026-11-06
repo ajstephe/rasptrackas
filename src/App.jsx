@@ -1040,7 +1040,14 @@ export default function App() {
   // Home/Summary/Settings at 900-950px, still visibly cramped at 850px
   // and clipped outright below that — so the carve-out now only kicks in
   // where the layout actually has room, rather than 300+px earlier.
-  const computeIsWide = () => window.innerWidth>=960 || (window.innerWidth>window.innerHeight && window.innerWidth>=900);
+  // Unfolded foldables (Galaxy Z Fold, a folding iPhone) in landscape are
+  // roughly 830 x 750 in CSS pixels: under 900 wide, but nearly square and
+  // far taller than a phone on its side (about 390-430 tall). The last
+  // clause gives them the desktop layout from 720 wide when the screen is
+  // also at least 600 tall; checked clean at 832 x 750 on Home, Summary
+  // (Shifts, Old School) and Log Overtime. Ordinary phones in landscape
+  // are too short to match it, so nothing changes for them.
+  const computeIsWide = () => window.innerWidth>=960 || (window.innerWidth>window.innerHeight && window.innerWidth>=900) || (window.innerWidth>window.innerHeight && window.innerWidth>=720 && window.innerHeight>=600);
   const [isWide, setIsWide] = useState(()=>typeof window!=='undefined' && computeIsWide());
   useEffect(()=>{
     const onResize = () => setIsWide(computeIsWide());

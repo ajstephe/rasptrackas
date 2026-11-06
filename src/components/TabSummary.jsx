@@ -524,7 +524,7 @@ export function TabSummary({
     // The headings are their own table, stuck under the view switcher while
     // the page scrolls; it follows the sheet's sideways scroll on a phone.
     const sheet = (
-      <div style={{minWidth:0,flex:1}}>
+      <div style={{minWidth:'min(100%, 560px)',flex:'1 1 560px'}}>
         <div ref={osHeadRef} style={{position:'sticky',top:`${stickyH}px`,zIndex:5,overflow:'hidden',borderTop:XL.thick,borderLeft:XL.thick,borderRight:XL.thick,background:'#fff',boxShadow:'0 6px 8px -5px rgba(0,0,0,0.35)'}}>
           <table style={tableStyle}>{cols}
             <thead>
@@ -606,7 +606,10 @@ export function TabSummary({
     return renderOS(sheet);
     function renderOS(sheetEl) { return (
       <div style={{...S.card,padding:isWide?'14px':'10px',marginTop:'2px'}}>
-        <div style={isWide?{display:'flex',gap:'26px',alignItems:'flex-start'}:{}}>{sheetEl}{totals}</div>
+        {/* Totals sit beside the sheet when there's room for both (a full
+            computer screen); on a narrower wide screen, such as an unfolded
+            phone in landscape, they wrap underneath instead of squashing it. */}
+        <div style={isWide?{display:'flex',flexWrap:'wrap',gap:'22px 26px',alignItems:'flex-start'}:{}}>{sheetEl}{totals}</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:'6px 14px',marginTop:'12px',fontSize:'11.5px',fontWeight:600,color:'var(--muted)'}}>
           {[['#c6efce','Submitted'],['#ffc7ce',`Still to submit (${isWide?'click':'tap'} it)`],['#fff7d6','Today']].map(([bg,l])=><span key={l} style={{display:'inline-flex',alignItems:'center',gap:'5px'}}><i style={{display:'inline-block',width:'12px',height:'12px',background:bg,border:'1px solid #111'}}/>{l}</span>)}
           <span style={{color:'var(--exp-ink)',fontStyle:'italic'}}>Planned</span>
