@@ -14,7 +14,7 @@ import { useBackButtonCloses } from '../lib/useBackButtonCloses.js';
 // Matches the mobile theme row's track side padding, so arrow stops line
 // up the same way the row's two ends do.
 const THEME_ROW_PAD = 6;
-const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['luftplane','Luftplane'],['flagship','FlagCarrier'],['heritage','Heritage'],['professional','Pro'],['midnight','Midnight'],['muji','Goji'],['energy','Energy'],['corporate','Corporate']];
+const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['luftplane','Luftplane'],['flagship','FlagCarrier'],['heritage','Heritage'],['professional','Pro'],['midnight','Midnight'],['muji','Goji'],['energy','Energy'],['corporate','Corporate'],['neon80s','80s Neon'],['desktop90s','90s Desktop'],['memphis90s','90s Memphis']];
 
 // ─── More.. (settings) tab ───────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='settings' block — no behaviour

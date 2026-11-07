@@ -110,7 +110,7 @@ const MONO  = 'var(--num-font)';
 // text/pill/button colours too. 'classic' covers system/light/dark, which
 // all share today's brass-on-navy sidebar unchanged.
 
-const SB_THEMES = [['system','Auto',['#f1f5f9','#16314f']],['light','Light',['#f1f5f9','#b8823f']],['dark','Dark',['#16314f','#b8823f']],['luftplane','Luftplane',['#05164d','#ffad00']],['flagship','FlagCarrier',['#0a2356','#ef4a52']],['heritage','Heritage',['#00352f','#cedc00']],['professional','Pro',['#111827','#2dd4bf']],['midnight','Midnight',['#05080f','#22d3ee']],['muji','Goji',['#4a3f35','#f1c9a5']],['energy','Energy',['#000000','#8cf01e']],['corporate','Corporate',['#141414','#ffffff']]];
+const SB_THEMES = [['system','Auto',['#f1f5f9','#16314f']],['light','Light',['#f1f5f9','#b8823f']],['dark','Dark',['#16314f','#b8823f']],['luftplane','Luftplane',['#05164d','#ffad00']],['flagship','FlagCarrier',['#0a2356','#ef4a52']],['heritage','Heritage',['#00352f','#cedc00']],['professional','Pro',['#111827','#2dd4bf']],['midnight','Midnight',['#05080f','#22d3ee']],['muji','Goji',['#4a3f35','#f1c9a5']],['energy','Energy',['#000000','#8cf01e']],['corporate','Corporate',['#141414','#ffffff']],['neon80s','80s Neon',['#1a0b3b','#ff3cac']],['desktop90s','90s Desktop',['#008080','#c0c0c0']],['memphis90s','90s Memphis',['#ffd400','#e6007e']]];
 function SbSwatch({c,size=14,ring}) { return <span style={{width:size,height:size,borderRadius:'50%',flexShrink:0,background:`linear-gradient(135deg, ${c[0]} 50%, ${c[1]} 50%)`,boxShadow:ring?`0 0 0 2px ${ring}`:'0 0 0 1px rgba(255,255,255,0.25)'}}/>; }
 function SidebarThemes({ themeMode, setTheme, THEME }) {
   // Computer-only theme picker, pinned to the bottom of the sidebar: one
@@ -195,6 +195,24 @@ const THEME_PALETTES = {
     sidebarGlow:null, sidebarPill:'rgba(255,255,255,0.12)',
     sidebarBtnBg:'rgba(255,255,255,0.08)', sidebarBtnBorder:'rgba(255,255,255,0.3)', sidebarBtnSubtext:'rgba(255,255,255,0.65)',
   },
+  neon80s: {
+    brass:'#ff3cac', brassLight:'#22e5ff', navActiveIcon:'#22e5ff', pillShadow:'rgba(255,60,172,0.45)',
+    sidebarText:'#b48fe8', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(255,60,172,0.25)',
+    sidebarGlow:'rgba(255,60,172,0.55)', sidebarPill:'rgba(255,60,172,0.2)',
+    sidebarBtnBg:'rgba(34,229,255,0.1)', sidebarBtnBorder:'rgba(34,229,255,0.45)', sidebarBtnSubtext:'rgba(34,229,255,0.75)',
+  },
+  desktop90s: {
+    brass:'#000080', brassLight:'#ffffff', navActiveIcon:'#ffff80', pillShadow:'rgba(0,0,0,0.35)',
+    sidebarText:'#c0c0ff', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(255,255,255,0.25)',
+    sidebarGlow:null, sidebarPill:'rgba(255,255,255,0.16)',
+    sidebarBtnBg:'rgba(192,192,192,0.2)', sidebarBtnBorder:'rgba(255,255,255,0.5)', sidebarBtnSubtext:'rgba(255,255,255,0.7)',
+  },
+  memphis90s: {
+    brass:'#e6007e', brassLight:'#ffd400', navActiveIcon:'#ffd400', pillShadow:'rgba(230,0,126,0.35)',
+    sidebarText:'#c9b8f0', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(255,212,0,0.3)',
+    sidebarGlow:'rgba(255,212,0,0.4)', sidebarPill:'rgba(255,212,0,0.18)',
+    sidebarBtnBg:'rgba(0,163,196,0.15)', sidebarBtnBorder:'rgba(0,163,196,0.5)', sidebarBtnSubtext:'rgba(255,212,0,0.8)',
+  },
   luftplane: {
     brass:'#05164d', brassLight:'#ffad00', navActiveIcon:'#ffad00', pillShadow:'rgba(5,22,77,0.3)',
     sidebarText:'#aab3d6', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(255,255,255,0.12)',
@@ -202,7 +220,7 @@ const THEME_PALETTES = {
     sidebarBtnBg:'rgba(255,173,0,0.1)', sidebarBtnBorder:'rgba(255,173,0,0.45)', sidebarBtnSubtext:'rgba(255,173,0,0.75)',
   },
 };
-const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy','muji','luftplane'];
+const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy','muji','luftplane','neon80s','desktop90s','memphis90s'];
 // Same check TabSummary's calendar swipe already makes before its own
 // snap-back — used by the pull-to-refresh indicator's settle transition
 // below for the same reason: the live drag tracks the finger regardless
@@ -4662,7 +4680,7 @@ export default function App() {
            not dark-mode variants, so they're excluded here the same way an
            explicit "light" choice already is. */
         @media (prefers-color-scheme: dark){
-          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]) input[type=date]{color-scheme:dark}
+          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="memphis90s"]):not([data-theme="desktop90s"]) input[type=date]{color-scheme:dark}
         }
         :root[data-theme="dark"] input[type=date]{color-scheme:dark}
         :root[data-theme="midnight"] input[type=date]{color-scheme:dark}

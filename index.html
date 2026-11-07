@@ -73,7 +73,7 @@
          Web (Heritage) Barlow Semi Condensed (Energy), Zen Kaku Gothic New (Goji) and Arimo (Luftplane) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Exo+2:wght@400;500;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -152,7 +152,7 @@
            any of them one token at a time. Midnight is a dark-first design
            in its own right, so this matters just as much for it as it does
            for the light ones. */
-        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]){
+        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="neon80s"]):not([data-theme="desktop90s"]):not([data-theme="memphis90s"]){
           --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
           --exp:#38bdf8;
           --exp-tint:#0c2a3d;
@@ -194,6 +194,71 @@
           --surface-red-mid:#5c2020;
           --text-blue-deep:#a8c5f0;
         }
+      }
+
+      /* ── 80s Neon ── synthwave night drive: deep purple-black page, violet
+         cards, hot-pink accent and cyan figures, a pink-to-cyan title. */
+      :root[data-theme="neon80s"]{
+        color-scheme: dark;
+        --exp:#22e5ff; --exp-tint:#0b2440; --exp-ink:#8ff3ff;
+        --title-grad:linear-gradient(90deg,#ff3cac,#ffb86b 45%,#22e5ff);
+        --tag-purple:#e3a6ff;
+        --save-bg:#ff3cac; --save-ink:#ffffff; --hero-label:#22e5ff;
+        --page-bg:#0d0221; --surface:#1a0b3b; --surface-rgb:26,11,59;
+        --surface-2:#140730; --surface-2-rgb:20,7,48;
+        --chip-bg:#26114f; --border:#3b1d70; --border-2:#2a1458;
+        --ink:#fbeaff; --muted:#c3a6e8; --quiet:#8a6db8;
+        --navy:#24004d; --savebar:#2b0a5c; --navy-rgb:36,0,77; --sidebar-bg-rgb:20,0,45;
+        --accent:#ff3cac;
+        --app-font:'Exo 2',system-ui,sans-serif; --num-font:'Exo 2',system-ui,sans-serif;
+        --tint-blue:#121a4a; --tint-red:#3a0b2a; --tint-green:#0b2f2a; --tint-green-2:#0e3d36;
+        --tint-purple:#2d1060; --tint-amber:#3a2010; --tint-amber-2:#4a2a12; --tint-teal:#082c38;
+        --text-navy:#8ff3ff; --text-red-deep:#ff8fc8; --text-green-deep:#5cffc4; --text-purple-deep:#e3a6ff;
+        --text-amber-deep:#ffc46b; --tint-blue-2:#1b2466; --tint-brass:#3a0b33; --tint-indigo:#1f1757;
+        --text-indigo-deep:#b8b0ff; --surface-red-mid:#6b1546; --text-blue-deep:#8ff3ff;
+      }
+      /* ── 90s Desktop ── a nod to the old office PC: teal desktop, silver
+         windows with navy title bars, square corners and Tahoma. */
+      :root[data-theme="desktop90s"]{
+        color-scheme: light;
+        --exp:#0000a8; --exp-tint:#d6d6f2; --exp-ink:#000080;
+        --title-grad:linear-gradient(90deg,#000080,#1084d0);
+        --tag-purple:#800080;
+        --save-bg:#c0c0c0; --save-ink:#000000; --hero-label:#ffff80;
+        --page-bg:#008080; --surface:#c0c0c0; --surface-rgb:192,192,192;
+        --surface-2:#d4d0c8; --surface-2-rgb:212,208,200;
+        --chip-bg:#dcdcdc; --border:#808080; --border-2:#a0a0a0;
+        --ink:#000000; --muted:#303030; --quiet:#505050;
+        --navy:#000080; --savebar:#000080; --navy-rgb:0,0,128; --sidebar-bg-rgb:0,0,128;
+        --accent:#000080;
+        --app-font:Tahoma,Verdana,'Segoe UI',sans-serif; --num-font:Tahoma,Verdana,'Segoe UI',sans-serif;
+        --tint-blue:#d0d8ec; --tint-red:#f0c8c8; --tint-green:#c8e8c8; --tint-green-2:#b0dcb0;
+        --tint-purple:#e0c8e8; --tint-amber:#f0e4b8; --tint-amber-2:#e8d890; --tint-teal:#c0e0e0;
+        --text-navy:#000080; --text-red-deep:#a00000; --text-green-deep:#006000; --text-purple-deep:#600080;
+        --text-amber-deep:#7a5200; --tint-blue-2:#b8c4e4; --tint-brass:#d8d8f0; --tint-indigo:#d0d0f0;
+        --text-indigo-deep:#000080; --surface-red-mid:#e08080; --text-blue-deep:#000080;
+      }
+      :root[data-theme="desktop90s"] [style*="border-radius"]{border-radius:2px!important}
+      /* ── 90s Memphis ── bright and playful: cream page, white cards,
+         magenta, teal and sunflower yellow, chunky rounded Fredoka. */
+      :root[data-theme="memphis90s"]{
+        color-scheme: light;
+        --exp:#00a3c4; --exp-tint:#dff6fb; --exp-ink:#00708a;
+        --title-grad:linear-gradient(90deg,#e6007e,#7b2cbf 50%,#00a3c4);
+        --tag-purple:#7b2cbf;
+        --save-bg:#ffd400; --save-ink:#1a1a1a; --hero-label:#ffd400;
+        --page-bg:#fff6e0; --surface:#ffffff; --surface-rgb:255,255,255;
+        --surface-2:#fffaf0; --surface-2-rgb:255,250,240;
+        --chip-bg:#fff0c2; --border:#1a1a1a; --border-2:#f0e2bf;
+        --ink:#1a1a1a; --muted:#4d4d4d; --quiet:#7a7a7a;
+        --navy:#2b1a5c; --savebar:#2b1a5c; --navy-rgb:43,26,92; --sidebar-bg-rgb:43,26,92;
+        --accent:#e6007e;
+        --app-font:'Fredoka',system-ui,sans-serif; --num-font:'Fredoka',system-ui,sans-serif;
+        --tint-blue:#e3f4ff; --tint-red:#ffe0ec; --tint-green:#dcf7e6; --tint-green-2:#bdeed0;
+        --tint-purple:#efe2ff; --tint-amber:#fff3c4; --tint-amber-2:#ffe58a; --tint-teal:#d9f7f5;
+        --text-navy:#2b1a5c; --text-red-deep:#c4005f; --text-green-deep:#0a7a3b; --text-purple-deep:#6a1fb0;
+        --text-amber-deep:#8a5a00; --tint-blue-2:#cfeaff; --tint-brass:#ffe0f0; --tint-indigo:#e6e3ff;
+        --text-indigo-deep:#3b2db0; --surface-red-mid:#ff8fbf; --text-blue-deep:#2b1a5c;
       }
       :root[data-theme="light"]{
         color-scheme: light;
