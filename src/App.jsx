@@ -110,7 +110,7 @@ const MONO  = 'var(--num-font)';
 // text/pill/button colours too. 'classic' covers system/light/dark, which
 // all share today's brass-on-navy sidebar unchanged.
 
-const SB_THEMES = [['system','Auto',['#f1f5f9','#16314f']],['light','Light',['#f1f5f9','#b8823f']],['dark','Dark',['#16314f','#b8823f']],['luftplane','Luftplane',['#05164d','#ffad00']],['flagship','FlagCarrier',['#0a2356','#ef4a52']],['heritage','Heritage',['#00352f','#cedc00']],['professional','Pro',['#111827','#2dd4bf']],['midnight','Midnight',['#05080f','#22d3ee']],['muji','Goji',['#4a3f35','#f1c9a5']],['energy','Energy',['#000000','#8cf01e']],['corporate','Corporate',['#141414','#ffffff']],['miami','Miami Nights',['#3a1660','#ff6ec7']],['desktop90s','90s Desktop',['#008080','#c0c0c0']],['tube','Mind the Gap',['#0019A8','#DC241F']]];
+const SB_THEMES = [['system','Auto',['#f1f5f9','#16314f']],['light','Light',['#f1f5f9','#b8823f']],['dark','Dark',['#16314f','#b8823f']],['luftplane','Luftplane',['#05164d','#ffad00']],['flagship','FlagCarrier',['#0a2356','#ef4a52']],['heritage','Heritage',['#00352f','#cedc00']],['professional','Pro',['#111827','#2dd4bf']],['midnight','Midnight',['#05080f','#22d3ee']],['muji','Goji',['#4a3f35','#f1c9a5']],['energy','Energy',['#000000','#8cf01e']],['corporate','Corporate',['#141414','#ffffff']],['miami','Miami Nights',['#3a1660','#ff6ec7']],['miamidays','Miami Days',['#bdeefa','#ff4fa3']],['desktop90s','90s Desktop',['#008080','#c0c0c0']],['tube','Mind the Gap',['#0019A8','#DC241F']]];
 function SbSwatch({c,size=14,ring}) { return <span style={{width:size,height:size,borderRadius:'50%',flexShrink:0,background:`linear-gradient(135deg, ${c[0]} 50%, ${c[1]} 50%)`,boxShadow:ring?`0 0 0 2px ${ring}`:'0 0 0 1px rgba(255,255,255,0.25)'}}/>; }
 function SidebarThemes({ themeMode, setTheme, THEME }) {
   // Computer-only theme picker, pinned to the bottom of the sidebar: one
@@ -201,6 +201,12 @@ const THEME_PALETTES = {
     sidebarGlow:'rgba(255,110,199,0.5)', sidebarPill:'rgba(255,110,199,0.22)',
     sidebarBtnBg:'rgba(92,225,230,0.1)', sidebarBtnBorder:'rgba(92,225,230,0.45)', sidebarBtnSubtext:'rgba(92,225,230,0.8)',
   },
+  miamidays: {
+    brass:'#ff4fa3', brassLight:'#0e9aa7', navActiveIcon:'#ff4fa3', pillShadow:'rgba(255,79,163,0.35)',
+    sidebarText:'#3d6a75', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(14,143,155,0.2)',
+    sidebarGlow:null, sidebarPill:'#ff4fa3',
+    sidebarBtnBg:'rgba(14,143,155,0.08)', sidebarBtnBorder:'rgba(14,143,155,0.4)', sidebarBtnSubtext:'#0a6e78',
+  },
   // Windows 95: a grey Start-menu sidebar, items highlighted navy.
   desktop90s: {
     brass:'#000080', brassLight:'#000080', navActiveIcon:'#ffffff', pillShadow:'none',
@@ -222,7 +228,7 @@ const THEME_PALETTES = {
     sidebarBtnBg:'rgba(255,173,0,0.1)', sidebarBtnBorder:'rgba(255,173,0,0.45)', sidebarBtnSubtext:'rgba(255,173,0,0.75)',
   },
 };
-const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy','muji','luftplane','miami','desktop90s','tube'];
+const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy','muji','luftplane','miami','miamidays','desktop90s','tube'];
 // Same check TabSummary's calendar swipe already makes before its own
 // snap-back — used by the pull-to-refresh indicator's settle transition
 // below for the same reason: the live drag tracks the finger regardless
@@ -4682,7 +4688,7 @@ export default function App() {
            not dark-mode variants, so they're excluded here the same way an
            explicit "light" choice already is. */
         @media (prefers-color-scheme: dark){
-          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="desktop90s"]):not([data-theme="tube"]) input[type=date]{color-scheme:dark}
+          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="desktop90s"]):not([data-theme="tube"]):not([data-theme="miamidays"]) input[type=date]{color-scheme:dark}
         }
         :root[data-theme="dark"] input[type=date]{color-scheme:dark}
         :root[data-theme="midnight"] input[type=date]{color-scheme:dark}
