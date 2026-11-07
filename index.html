@@ -217,28 +217,62 @@
         --text-amber-deep:#ffc46b; --tint-blue-2:#1b2466; --tint-brass:#3a0b33; --tint-indigo:#1f1757;
         --text-indigo-deep:#b8b0ff; --surface-red-mid:#6b1546; --text-blue-deep:#8ff3ff;
       }
-      /* ── 90s Desktop ── a nod to the old office PC: teal desktop, silver
-         windows with navy title bars, square corners and Tahoma. */
+      /* ── 90s Desktop ── Windows 95: teal desktop, silver windows with
+         raised 3D edges, navy title bars with _ □ × buttons, a grey
+         taskbar with pressed-in tabs, and a Start-menu sidebar with its
+         vertical banner. Tahoma stands in for MS Sans Serif. */
       :root[data-theme="desktop90s"]{
         color-scheme: light;
+        --w95-raised: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+        --w95-sunken: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
         --exp:#0000a8; --exp-tint:#d6d6f2; --exp-ink:#000080;
-        --title-grad:linear-gradient(90deg,#000080,#1084d0);
+        --title-grad:linear-gradient(90deg,#ffffff,#ffffff);
         --tag-purple:#800080;
         --save-bg:#c0c0c0; --save-ink:#000000; --hero-label:#ffff80;
         --page-bg:#008080; --surface:#c0c0c0; --surface-rgb:192,192,192;
         --surface-2:#d4d0c8; --surface-2-rgb:212,208,200;
-        --chip-bg:#dcdcdc; --border:#808080; --border-2:#a0a0a0;
-        --ink:#000000; --muted:#303030; --quiet:#505050;
-        --navy:#000080; --savebar:#000080; --navy-rgb:0,0,128; --sidebar-bg-rgb:0,0,128;
+        --chip-bg:#c0c0c0; --border:#808080; --border-2:#a0a0a0;
+        --ink:#000000; --muted:#202020; --quiet:#404040;
+        --navy:#000080; --savebar:#000080; --navy-rgb:0,0,128; --sidebar-bg-rgb:192,192,192;
         --accent:#000080;
-        --app-font:Tahoma,Verdana,'Segoe UI',sans-serif; --num-font:Tahoma,Verdana,'Segoe UI',sans-serif;
+        --app-font:Tahoma,'MS Sans Serif',Verdana,'Segoe UI',sans-serif; --num-font:Tahoma,'MS Sans Serif',Verdana,'Segoe UI',sans-serif;
         --tint-blue:#d0d8ec; --tint-red:#f0c8c8; --tint-green:#c8e8c8; --tint-green-2:#b0dcb0;
         --tint-purple:#e0c8e8; --tint-amber:#f0e4b8; --tint-amber-2:#e8d890; --tint-teal:#c0e0e0;
         --text-navy:#000080; --text-red-deep:#a00000; --text-green-deep:#006000; --text-purple-deep:#600080;
         --text-amber-deep:#7a5200; --tint-blue-2:#b8c4e4; --tint-brass:#d8d8f0; --tint-indigo:#d0d0f0;
         --text-indigo-deep:#000080; --surface-red-mid:#e08080; --text-blue-deep:#000080;
       }
-      :root[data-theme="desktop90s"] [style*="border-radius"]{border-radius:2px!important}
+      /* square corners everywhere */
+      :root[data-theme="desktop90s"] [style*="border-radius"]{border-radius:0!important}
+      /* every window / card: raised silver */
+      :root[data-theme="desktop90s"] [style*="background: var(--surface)"],
+      :root[data-theme="desktop90s"] [style*="background: rgba(var(--surface-rgb)"]{background:#c0c0c0!important;border:none!important;box-shadow:var(--w95-raised)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+      /* insets / panels inside a window: sunken */
+      :root[data-theme="desktop90s"] [style*="background: var(--surface-2)"]{box-shadow:var(--w95-sunken)!important;border:none!important}
+      /* text boxes: white and sunken */
+      :root[data-theme="desktop90s"] input,:root[data-theme="desktop90s"] select,:root[data-theme="desktop90s"] textarea{background:#ffffff!important;border:none!important;box-shadow:var(--w95-sunken)!important;border-radius:0!important}
+      /* the app header becomes a window title bar */
+      :root[data-theme="desktop90s"] .app-header{background:linear-gradient(90deg,#000080,#1084d0)!important;border:none!important;box-shadow:none!important}
+      :root[data-theme="desktop90s"] .app-header > div:first-child span{color:#dfe6ff!important}
+      :root[data-theme="desktop90s"] .app-nav > :not(button){display:none!important}
+      :root[data-theme="desktop90s"] .app-header [style*="border: 1px solid var(--border)"]{background:#c0c0c0!important;box-shadow:var(--w95-raised)!important;border:none!important}
+      .w95-winbtns{display:inline-flex;gap:2px;margin-left:4px}
+      .w95-winbtns i{font:bold 12px/14px Tahoma,'MS Sans Serif',sans-serif;font-style:normal;width:18px;height:16px;display:inline-flex;align-items:center;justify-content:center;background:#c0c0c0;color:#000;box-shadow:inset -1px -1px #0a0a0a,inset 1px 1px #ffffff,inset -2px -2px #808080,inset 2px 2px #dfdfdf}
+      .w95-winbtns i:last-child{margin-left:2px}
+      /* bottom navigation: the taskbar, active tab pressed in */
+      :root[data-theme="desktop90s"] .app-nav{background:#c0c0c0!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border-top:2px solid #ffffff!important;box-shadow:0 -1px 0 #dfdfdf;gap:3px}
+      :root[data-theme="desktop90s"] .app-nav button{box-shadow:var(--w95-raised)!important;background:#c0c0c0!important;margin:0 1px}
+      :root[data-theme="desktop90s"] .app-nav button[aria-current="page"]{box-shadow:var(--w95-sunken)!important;background:#d4d0c8 repeating-conic-gradient(#c0c0c0 0 25%,#dfdfdf 0 50%) 0 0/2px 2px!important}
+      /* sidebar: the Start menu, with its vertical banner */
+      :root[data-theme="desktop90s"] .app-sidebar{background:#c0c0c0;box-shadow:var(--w95-raised)}
+      :root[data-theme="desktop90s"] .app-sidebar > div[style*="position: absolute"]{display:none!important}
+      :root[data-theme="desktop90s"] .app-sidebar::before{content:'Overtime 95';position:absolute;left:3px;top:3px;bottom:3px;width:30px;z-index:2;background:linear-gradient(0deg,#000080,#1084d0);color:#c0c0c0;font:bold 20px Tahoma,'MS Sans Serif',sans-serif;writing-mode:vertical-rl;transform:rotate(180deg);display:flex;align-items:center;justify-content:flex-start;padding-top:12px;letter-spacing:1px}
+      :root[data-theme="desktop90s"] .app-sidebar > div:last-child{padding-left:46px!important}
+      :root[data-theme="desktop90s"] .sidebar-nav-btn[aria-current="page"]{color:#ffffff!important}
+      :root[data-theme="desktop90s"] .app-sidebar > div:last-child > div:first-child div{color:#000000!important}
+      /* Win95 scrollbars */
+      :root[data-theme="desktop90s"] ::-webkit-scrollbar{width:16px;height:16px;background:#dfdfdf repeating-conic-gradient(#c0c0c0 0 25%,#ffffff 0 50%) 0 0/2px 2px}
+      :root[data-theme="desktop90s"] ::-webkit-scrollbar-thumb{background:#c0c0c0;box-shadow:inset -1px -1px #0a0a0a,inset 1px 1px #ffffff,inset -2px -2px #808080,inset 2px 2px #dfdfdf;border-radius:0}
       /* ── 90s Memphis ── bright and playful: cream page, white cards,
          magenta, teal and sunflower yellow, chunky rounded Fredoka. */
       :root[data-theme="memphis90s"]{

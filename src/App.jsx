@@ -201,11 +201,12 @@ const THEME_PALETTES = {
     sidebarGlow:'rgba(255,60,172,0.55)', sidebarPill:'rgba(255,60,172,0.2)',
     sidebarBtnBg:'rgba(34,229,255,0.1)', sidebarBtnBorder:'rgba(34,229,255,0.45)', sidebarBtnSubtext:'rgba(34,229,255,0.75)',
   },
+  // Windows 95: a grey Start-menu sidebar, items highlighted navy.
   desktop90s: {
-    brass:'#000080', brassLight:'#ffffff', navActiveIcon:'#ffff80', pillShadow:'rgba(0,0,0,0.35)',
-    sidebarText:'#c0c0ff', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(255,255,255,0.25)',
-    sidebarGlow:null, sidebarPill:'rgba(255,255,255,0.16)',
-    sidebarBtnBg:'rgba(192,192,192,0.2)', sidebarBtnBorder:'rgba(255,255,255,0.5)', sidebarBtnSubtext:'rgba(255,255,255,0.7)',
+    brass:'#000080', brassLight:'#000080', navActiveIcon:'#ffffff', pillShadow:'none',
+    sidebarText:'#000000', sidebarTextActive:'#ffffff', sidebarDivider:'#808080',
+    sidebarGlow:null, sidebarPill:'#000080',
+    sidebarBtnBg:'#c0c0c0', sidebarBtnBorder:'#808080', sidebarBtnSubtext:'#404040',
   },
   memphis90s: {
     brass:'#e6007e', brassLight:'#ffd400', navActiveIcon:'#ffd400', pillShadow:'rgba(230,0,126,0.35)',
@@ -4698,7 +4699,7 @@ export default function App() {
       <div className="no-print"><ToastStack toasts={toasts} onDismiss={dismissToast} isWide={isWide}/></div>
 
       {/* ── header ── */}
-      <header className="no-print" style={S.hdr}>
+      <header className="no-print app-header" style={S.hdr}>
         <div style={{display:'flex',alignItems:'center',gap:'8px',minWidth:0}}>
           <ClockCashIcon width={28} height={19}/>
           <div style={{display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0,overflow:'hidden'}}>
@@ -4707,6 +4708,8 @@ export default function App() {
           </div>
         </div>
         <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',flexShrink:0,gap:'8px'}}>
+          {/* 90s Desktop: the title-bar window buttons, purely decorative. */}
+          {themeMode==='desktop90s'&&<span aria-hidden="true" className="w95-winbtns" style={{order:99}}><i>_</i><i>□</i><i>×</i></span>}
           {/* Computer only: this pay month and what's left to submit, one
               click from every screen (they replaced the old At a Glance
               column). The month pill drops out on narrower windows. */}
@@ -5499,10 +5502,10 @@ export default function App() {
            empty rather than pulsing on every visit to every other tab for
            the life of the app. */}
       {(()=>{ const showAddNudge = entries.length===0; return (
-      <nav ref={setNavEl} className="no-print" style={{...S.nav, display:isWide?'none':'flex'}}>
+      <nav ref={setNavEl} className="no-print app-nav" style={{...S.nav, display:isWide?'none':'flex'}}>
         <div className="nav-pill" style={{left:navPillRect.left+'px', width:navPillRect.width+'px'}}/>
         {NAV_TABS.map(t=>(
-          <button key={t.id} ref={el=>navBtnRefs.current[t.id]=el} onClick={()=>leaveEditThen(()=>{ setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add' && formIsBlank(form) && !editing) { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); })} style={{...S.nBtn(tab===t.id,t.id==='add'),position:'relative'}}>
+          <button key={t.id} ref={el=>navBtnRefs.current[t.id]=el} onClick={()=>leaveEditThen(()=>{ setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add' && formIsBlank(form) && !editing) { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); })} aria-current={tab===t.id?'page':undefined} style={{...S.nBtn(tab===t.id,t.id==='add'),position:'relative'}}>
             {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
               // zIndex: the active tab's icon is scaled (.nav-ico.active), and
               // that transform paints it over this earlier sibling otherwise.
@@ -5532,7 +5535,7 @@ export default function App() {
            position, since S.wrap keeps its own scroll/height behavior
            unchanged rather than being restructured into a row layout. ── */}
       {isWide&&(
-        <div className="no-print" style={{position:'fixed',top:0,left:0,bottom:0,width:'230px',zIndex:30,overflow:'hidden'}}>
+        <div className="no-print app-sidebar" style={{position:'fixed',top:0,left:0,bottom:0,width:'230px',zIndex:30,overflow:'hidden'}}>
           {/* Vibrancy material — a translucent, blurred navy over a soft
               glow tinted to whichever tab is active, rather than a flat
               fill. Nothing else sits behind this fixed column to blur (it's
@@ -5576,7 +5579,7 @@ export default function App() {
             const isAdd = t.id==='add';
             const isActive = tab===t.id;
             return (
-              <button key={t.id} data-seg-key={t.id} className="sidebar-nav-btn" onClick={()=>leaveEditThen(()=>{ setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add' && formIsBlank(form) && !editing) { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); })} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'var(--sidebar-hover-bg, transparent)',color:isAdd?'#10b981':(isActive?THEME.sidebarTextActive:THEME.sidebarText),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
+              <button key={t.id} data-seg-key={t.id} className="sidebar-nav-btn" aria-current={tab===t.id?'page':undefined} onClick={()=>leaveEditThen(()=>{ setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add' && formIsBlank(form) && !editing) { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); })} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'var(--sidebar-hover-bg, transparent)',color:isAdd?'#10b981':(isActive?THEME.sidebarTextActive:THEME.sidebarText),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
                 {isAdd ? (
                   <span className={(entries.length===0&&!isActive)?'nav-add-pulse':''} style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
                 ) : (
