@@ -13,7 +13,6 @@ import { useBackButtonCloses } from '../lib/useBackButtonCloses.js';
 
 // Matches the mobile theme row's track side padding, so arrow stops line
 // up the same way the row's two ends do.
-const THEME_ROW_PAD = 6;
 const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['luftplane','Luftplane'],['flagship','FlagCarrier'],['heritage','Heritage'],['professional','Pro'],['midnight','Midnight'],['muji','Goji'],['energy','Energy'],['corporate','Corporate'],['miami','Miami Nights'],['desktop90s','90s Desktop'],['tube','Mind the Gap']];
 
 // ─── More.. (settings) tab ───────────────────────────────────────────────────
@@ -157,102 +156,6 @@ export function TabSettings({
   const exportModalContentRef = useRef(null);
   const dataModalContentRef = useRef(null);
 
-  // ── mobile Appearance row: an arrow + edge fade whenever themes sit
-  // off-screen, since a phone only fits about five of the nine. ──
-  const themeRowRef = useRef(null);
-  const [themeRowEdges, setThemeRowEdges] = useState({ start:true, end:true });
-  const updateThemeRowEdges = () => {
-    const el = themeRowRef.current;
-    if (!el) return;
-    const start = el.scrollLeft <= 2;
-    const end = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
-    setThemeRowEdges(prev => (prev.start===start && prev.end===end) ? prev : { start, end });
-  };
-  const reduceMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  useEffect(() => {
-    if (isWide) return;
-    const el = themeRowRef.current;
-    if (!el) return;
-    updateThemeRowEdges();
-    // Watching the track as well as the scroller: each theme has its own
-    // font, so picking one changes the row's content width without the
-    // scroller itself resizing — the arrows went stale without this.
-    const ro = new ResizeObserver(updateThemeRowEdges);
-    ro.observe(el);
-    if (el.firstElementChild) ro.observe(el.firstElementChild);
-    return () => ro.disconnect();
-  }, [isWide]);
-  // Keep the chosen theme fully in view — on opening Settings (a theme from
-  // past the edge, e.g. Flagship, would otherwise start hidden) and after
-  // each pick, once the new theme's font has changed the row's widths.
-  const themeRevealedRef = useRef(false);
-  useEffect(() => {
-    if (isWide) return;
-    const el = themeRowRef.current;
-    if (!el) return;
-    const smooth = themeRevealedRef.current && !reduceMotion();
-    themeRevealedRef.current = true;
-    let cancelled = false;
-    const reveal = () => {
-      if (cancelled) return;
-      const btn = el.querySelector(`[data-seg-key="${themeMode}"]`);
-      if (!btn) return;
-      const pad = THEME_ROW_PAD, left = btn.offsetLeft - pad, right = btn.offsetLeft + btn.offsetWidth + pad;
-      const max = el.scrollWidth - el.clientWidth;
-      let target = null;
-      if (left < el.scrollLeft) target = left;
-      else if (right > el.scrollLeft + el.clientWidth) target = right - el.clientWidth;
-      if (target !== null) {
-        // A theme whose font makes the row a few px wider would otherwise
-        // leave it sitting a sliver off either end — stay on the end when
-        // the chosen theme is still fully visible there.
-        if (target < 2*pad && btn.offsetLeft + btn.offsetWidth <= el.clientWidth) target = 0;
-        if (target > max - 2*pad && btn.offsetLeft >= max) target = max;
-        el.scrollTo({ left: target, behavior: smooth ? 'smooth' : 'auto' });
-      }
-      updateThemeRowEdges();
-    };
-    // One frame later so App has applied the new data-theme (a parent's
-    // effects run after this child's), then again once its font loads.
-    const raf = requestAnimationFrame(() => {
-      void el.offsetWidth;
-      reveal();
-      document.fonts?.ready?.then(reveal);
-    });
-    return () => { cancelled = true; cancelAnimationFrame(raf); };
-  }, [themeMode, isWide]);
-  // Pages by whole themes rather than a fixed distance, which used to stop
-  // part-way through one: › brings the first theme cut off on the right to
-  // the left edge, ‹ brings the one cut off on the left to the right edge.
-  // pad matches the track's own side padding, so every stop lines up the
-  // same way the row's two ends do.
-  // The arrows step through a fixed set of stops worked out from the row
-  // itself: each stop starts with the first theme the previous one cut
-  // off, so every theme is fully visible at some stop and ‹ retraces
-  // exactly the stops › went through. (Skipping ahead to the end instead,
-  // tried earlier, could jump clean past a theme.)
-  const themeRowStops = (el) => {
-    const items = [...el.querySelectorAll('[data-seg-key]')];
-    const max = el.scrollWidth - el.clientWidth;
-    const stops = [0];
-    let s = 0;
-    while (s < max - 1) {
-      const next = items.find(b => b.offsetLeft + b.offsetWidth > s + el.clientWidth + 1);
-      const t = next ? Math.min(next.offsetLeft - THEME_ROW_PAD, max) : max;
-      s = t > s + 1 ? t : max;
-      stops.push(s);
-    }
-    return stops;
-  };
-  const scrollThemeRow = (dir) => {
-    const el = themeRowRef.current;
-    if (!el) return;
-    const stops = themeRowStops(el), cur = el.scrollLeft;
-    const target = dir > 0
-      ? (stops.find(s => s > cur + 1) ?? stops[stops.length-1])
-      : (stops.slice().reverse().find(s => s < cur - 1) ?? 0);
-    el.scrollTo({ left: target, behavior: reduceMotion()?'auto':'smooth' });
-  };
   const themeIndicator = {background:BRASS,borderRadius:'9px',boxShadow:`0 4px 11px ${pillShadow}`};
   const themeButtons = THEME_OPTIONS.map(([v,lbl])=>(
     <button key={v} data-seg-key={v} onClick={()=>setTheme(v)} style={{position:'relative',zIndex:1,flexShrink:0,whiteSpace:'nowrap',padding:'6px 12px',borderRadius:'9px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:themeMode===v?'#fff':'var(--muted)'}}>{lbl}</button>
@@ -326,44 +229,14 @@ export function TabSettings({
         {isWide ? (
           <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px',overflowX:'auto',padding:'3px 1px'}} indicatorStyle={themeIndicator}>{themeButtons}</SegSlider>
         ) : (
-          <>
-            {/* Arrows sit in their own slots either side of the row, not on
-                top of it — overlaid, they covered the next theme along, so a
-                tap on its visible half scrolled instead of selecting. At an
-                end they dim and disable rather than vanish, so the row never
-                shifts sideways. The scroller wraps SegSlider (rather than
-                being its track) so it can be measured and scrolled from
-                here; paddingBottom gives the pill's shadow room, since a
-                scroller clips everything outside its box. */}
-            <style>{'.theme-row::-webkit-scrollbar{display:none}'}</style>
-            {(()=>{
-              const arrow = (edge, icon, label, dir) => {
-                const off = themeRowEdges[edge];
-                return (
-                  <button type="button" aria-label={label} disabled={off} onClick={()=>scrollThemeRow(dir)} style={{flexShrink:0,width:'28px',height:'28px',borderRadius:'50%',border:'1px solid var(--border)',background:'var(--surface)',color:'var(--muted)',boxShadow:off?'none':'0 2px 6px rgba(15,39,68,0.14)',display:'flex',alignItems:'center',justifyContent:'center',padding:0,cursor:off?'default':'pointer',opacity:off?0.35:1,transition:'opacity .2s,box-shadow .2s',touchAction:'manipulation'}}>
-                    <Ico n={icon} s={13} w={2.6}/>
-                  </button>
-                );
-              };
-              const fade = (edge, side) => (
-                <div aria-hidden="true" style={{position:'absolute',top:0,bottom:0,[side]:0,zIndex:2,width:'22px',pointerEvents:'none',background:`linear-gradient(to ${side==='left'?'right':'left'}, var(--surface), rgba(var(--surface-rgb),0))`,opacity:themeRowEdges[edge]?0:1,transition:'opacity .2s'}}/>
-              );
-              return (
-                <div style={{display:'flex',alignItems:'center',gap:'5px'}}>
-                  {arrow('start','cL','Show earlier themes',-1)}
-                  <div style={{position:'relative',flex:1,minWidth:0}}>
-                    <div ref={themeRowRef} onScroll={updateThemeRowEdges} className="theme-row" style={{overflowX:'auto',scrollbarWidth:'none',paddingBottom:'12px',marginBottom:'-12px'}}>
-                      <SegSlider activeKey={themeMode} trackStyle={{display:'flex',gap:'6px',padding:'3px 6px',width:'max-content'}} indicatorStyle={themeIndicator}>{themeButtons}</SegSlider>
-                    </div>
-                    {fade('start','left')}
-                    {fade('end','right')}
-                  </div>
-                  {arrow('end','cR','Show more themes',1)}
-                </div>
-              );
-            })()}
-            <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'7px'}}>{THEME_OPTIONS.length} themes · swipe or use the arrows to see them all</div>
-          </>
+          /* Phone: a native dropdown (the OS wheel/sheet picker) instead of
+             a sideways-scrolling row — fourteen themes no longer fit. */
+          <div style={{position:'relative'}}>
+            <select aria-label="Theme" value={themeMode} onChange={e=>setTheme(e.target.value)} style={{width:'100%',appearance:'none',WebkitAppearance:'none',padding:'12px 40px 12px 14px',borderRadius:'11px',border:'1px solid var(--border)',background:'var(--surface-2)',color:'var(--ink)',fontFamily:'inherit',fontWeight:800,fontSize:'16px',cursor:'pointer'}}>
+              {THEME_OPTIONS.map(([v,lbl])=><option key={v} value={v}>{lbl}</option>)}
+            </select>
+            <span aria-hidden="true" style={{position:'absolute',right:'14px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'var(--muted)',display:'flex'}}><Ico n="cD" s={16} w={2.4}/></span>
+          </div>
         )}
       </div>}
 
