@@ -73,7 +73,7 @@
          Web (Heritage) Barlow Semi Condensed (Energy), Zen Kaku Gothic New (Goji) and Arimo (Luftplane) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Exo+2:wght@400;500;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -152,7 +152,7 @@
            any of them one token at a time. Midnight is a dark-first design
            in its own right, so this matters just as much for it as it does
            for the light ones. */
-        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="neon80s"]):not([data-theme="desktop90s"]):not([data-theme="memphis90s"]){
+        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="miami"]):not([data-theme="desktop90s"]):not([data-theme="heist"]){
           --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
           --exp:#38bdf8;
           --exp-tint:#0c2a3d;
@@ -196,27 +196,63 @@
         }
       }
 
-      /* ── 80s Neon ── synthwave night drive: deep purple-black page, violet
-         cards, hot-pink accent and cyan figures, a pink-to-cyan title. */
-      :root[data-theme="neon80s"]{
+      /* ── Miami Nights ── 1980s Miami after dark: a dusk sky fading from
+         violet to deep indigo, pastel aqua and flamingo pink neon, white
+         linen text, and a sunset-gradient statement card. Exo 2, with the
+         title in heavy italics like a neon sign. */
+      :root[data-theme="miami"]{
         color-scheme: dark;
-        --exp:#22e5ff; --exp-tint:#0b2440; --exp-ink:#8ff3ff;
-        --title-grad:linear-gradient(90deg,#ff3cac,#ffb86b 45%,#22e5ff);
-        --tag-purple:#e3a6ff;
-        --save-bg:#ff3cac; --save-ink:#ffffff; --hero-label:#22e5ff;
-        --page-bg:#0d0221; --surface:#1a0b3b; --surface-rgb:26,11,59;
-        --surface-2:#140730; --surface-2-rgb:20,7,48;
-        --chip-bg:#26114f; --border:#3b1d70; --border-2:#2a1458;
-        --ink:#fbeaff; --muted:#c3a6e8; --quiet:#8a6db8;
-        --navy:#24004d; --savebar:#2b0a5c; --navy-rgb:36,0,77; --sidebar-bg-rgb:20,0,45;
-        --accent:#ff3cac;
+        --exp:#5ce1e6; --exp-tint:#123a4a; --exp-ink:#a6f3f5;
+        --title-grad:linear-gradient(90deg,#ff6ec7,#ffffff 50%,#5ce1e6);
+        --tag-purple:#d7a8ff;
+        --save-bg:#ff6ec7; --save-ink:#ffffff; --hero-label:#ffe08a;
+        --page-bg:#1a1238; --surface:rgba(30,20,66,0.92); --surface-rgb:30,20,66;
+        --surface-2:#211650; --surface-2-rgb:33,22,80;
+        --chip-bg:#2c1f62; --border:#3d2d7d; --border-2:#2e2163;
+        --ink:#fff7fb; --muted:#cbbbe8; --quiet:#9a88c4;
+        --navy:#2a1450; --savebar:#24124a; --navy-rgb:42,20,80; --sidebar-bg-rgb:22,12,50;
+        --accent:#ff6ec7;
         --app-font:'Exo 2',system-ui,sans-serif; --num-font:'Exo 2',system-ui,sans-serif;
-        --tint-blue:#121a4a; --tint-red:#3a0b2a; --tint-green:#0b2f2a; --tint-green-2:#0e3d36;
-        --tint-purple:#2d1060; --tint-amber:#3a2010; --tint-amber-2:#4a2a12; --tint-teal:#082c38;
-        --text-navy:#8ff3ff; --text-red-deep:#ff8fc8; --text-green-deep:#5cffc4; --text-purple-deep:#e3a6ff;
-        --text-amber-deep:#ffc46b; --tint-blue-2:#1b2466; --tint-brass:#3a0b33; --tint-indigo:#1f1757;
-        --text-indigo-deep:#b8b0ff; --surface-red-mid:#6b1546; --text-blue-deep:#8ff3ff;
+        --tint-blue:#162a55; --tint-red:#4a1438; --tint-green:#0f3a3c; --tint-green-2:#124a4c;
+        --tint-purple:#33196a; --tint-amber:#4a2a2a; --tint-amber-2:#5a3030; --tint-teal:#0f3c48;
+        --text-navy:#a6f3f5; --text-red-deep:#ff9ad5; --text-green-deep:#7af0d0; --text-purple-deep:#d7a8ff;
+        --text-amber-deep:#ffd08a; --tint-blue-2:#1d3466; --tint-brass:#4a1a4a; --tint-indigo:#2a2168;
+        --text-indigo-deep:#c3bbff; --surface-red-mid:#7a2456; --text-blue-deep:#a6f3f5;
       }
+      :root[data-theme="miami"] body,:root[data-theme="miami"] [style*="background: var(--page-bg)"]{background:linear-gradient(180deg,#3a1660 0%,#1a1238 38%,#0f0b26 100%) fixed!important}
+      :root[data-theme="miami"] .app-header span:first-child{font-style:italic;font-weight:900!important;letter-spacing:0!important}
+      :root[data-theme="miami"] [style*="background: var(--navy)"]{background:linear-gradient(160deg,#2a1450 0%,#5a2a9a 42%,#d24fa6 78%,#ff9a6b 100%)!important}
+      :root[data-theme="miami"] [style*="background: var(--navy)"] button{background:rgba(26,18,56,0.78)!important}
+      :root[data-theme="miami"] [style*="background: var(--surface)"]{border:1px solid rgba(92,225,230,0.35)!important;box-shadow:0 0 18px rgba(255,110,199,0.12)}
+      /* ── Heist ── an open-world crime-game HUD: near-black page, smoked
+         glass panels, white condensed caps, money-green amounts and a
+         gold wanted level in the header (one star per claim still to
+         submit, up to five). Oswald for letters and figures. */
+      :root[data-theme="heist"]{
+        color-scheme: dark;
+        --exp:#5aa0e6; --exp-tint:#13243a; --exp-ink:#9cc7f2;
+        --title-grad:linear-gradient(90deg,#ffffff,#ffffff);
+        --tag-purple:#c9a6f2;
+        --save-bg:#72c66b; --save-ink:#0a0a0a; --hero-label:#72c66b;
+        --page-bg:#0b0c0e; --surface:rgba(18,19,22,0.88); --surface-rgb:18,19,22;
+        --surface-2:#17181b; --surface-2-rgb:23,24,27;
+        --chip-bg:#202227; --border:#2c2f35; --border-2:#202227;
+        --ink:#f2f2f2; --muted:#b0b3b8; --quiet:#7d8088;
+        --navy:#000000; --savebar:#000000; --navy-rgb:0,0,0; --sidebar-bg-rgb:0,0,0;
+        --accent:#72c66b;
+        --app-font:'Oswald','Arial Narrow',system-ui,sans-serif; --num-font:'Oswald','Arial Narrow',system-ui,sans-serif;
+        --tint-blue:#132033; --tint-red:#3a1214; --tint-green:#132a14; --tint-green-2:#1a3a1b;
+        --tint-purple:#24193a; --tint-amber:#33280f; --tint-amber-2:#45360f; --tint-teal:#0f2a2a;
+        --text-navy:#ffffff; --text-red-deep:#f0817c; --text-green-deep:#72c66b; --text-purple-deep:#c9a6f2;
+        --text-amber-deep:#f2c14e; --tint-blue-2:#182a42; --tint-brass:#1f2a1f; --tint-indigo:#1c1f3a;
+        --text-indigo-deep:#a9b3f5; --surface-red-mid:#6a2424; --text-blue-deep:#9cc7f2;
+      }
+      :root[data-theme="heist"] body,:root[data-theme="heist"] [style*="background: var(--page-bg)"]{background:radial-gradient(ellipse at top,#1d2024 0%,#0b0c0e 65%) fixed!important}
+      :root[data-theme="heist"] .app-header span:first-child{text-transform:uppercase;letter-spacing:0.3px!important;font-weight:700!important;font-size:17px!important}
+      :root[data-theme="heist"] h1,:root[data-theme="heist"] h2,:root[data-theme="heist"] h3{text-transform:uppercase;letter-spacing:0.5px}
+      :root[data-theme="heist"] [style*="background: var(--navy)"]{background:linear-gradient(135deg,#000 0%,#14261a 100%)!important;border:1px solid #2c2f35}
+      .heist-wanted{display:inline-flex;gap:0;font-size:13px;line-height:1;letter-spacing:0;filter:drop-shadow(0 1px 0 #000)}
+      .heist-wanted b{color:#f2c14e;font-weight:400} .heist-wanted i{color:#3a3c42;font-style:normal}
       /* ── 90s Desktop ── Windows 95: teal desktop, silver windows with
          raised 3D edges, navy title bars with _ □ × buttons, a grey
          taskbar with pressed-in tabs, and a Start-menu sidebar with its
@@ -273,27 +309,6 @@
       /* Win95 scrollbars */
       :root[data-theme="desktop90s"] ::-webkit-scrollbar{width:16px;height:16px;background:#dfdfdf repeating-conic-gradient(#c0c0c0 0 25%,#ffffff 0 50%) 0 0/2px 2px}
       :root[data-theme="desktop90s"] ::-webkit-scrollbar-thumb{background:#c0c0c0;box-shadow:inset -1px -1px #0a0a0a,inset 1px 1px #ffffff,inset -2px -2px #808080,inset 2px 2px #dfdfdf;border-radius:0}
-      /* ── 90s Memphis ── bright and playful: cream page, white cards,
-         magenta, teal and sunflower yellow, chunky rounded Fredoka. */
-      :root[data-theme="memphis90s"]{
-        color-scheme: light;
-        --exp:#00a3c4; --exp-tint:#dff6fb; --exp-ink:#00708a;
-        --title-grad:linear-gradient(90deg,#e6007e,#7b2cbf 50%,#00a3c4);
-        --tag-purple:#7b2cbf;
-        --save-bg:#ffd400; --save-ink:#1a1a1a; --hero-label:#ffd400;
-        --page-bg:#fff6e0; --surface:#ffffff; --surface-rgb:255,255,255;
-        --surface-2:#fffaf0; --surface-2-rgb:255,250,240;
-        --chip-bg:#fff0c2; --border:#1a1a1a; --border-2:#f0e2bf;
-        --ink:#1a1a1a; --muted:#4d4d4d; --quiet:#7a7a7a;
-        --navy:#2b1a5c; --savebar:#2b1a5c; --navy-rgb:43,26,92; --sidebar-bg-rgb:43,26,92;
-        --accent:#e6007e;
-        --app-font:'Fredoka',system-ui,sans-serif; --num-font:'Fredoka',system-ui,sans-serif;
-        --tint-blue:#e3f4ff; --tint-red:#ffe0ec; --tint-green:#dcf7e6; --tint-green-2:#bdeed0;
-        --tint-purple:#efe2ff; --tint-amber:#fff3c4; --tint-amber-2:#ffe58a; --tint-teal:#d9f7f5;
-        --text-navy:#2b1a5c; --text-red-deep:#c4005f; --text-green-deep:#0a7a3b; --text-purple-deep:#6a1fb0;
-        --text-amber-deep:#8a5a00; --tint-blue-2:#cfeaff; --tint-brass:#ffe0f0; --tint-indigo:#e6e3ff;
-        --text-indigo-deep:#3b2db0; --surface-red-mid:#ff8fbf; --text-blue-deep:#2b1a5c;
-      }
       :root[data-theme="light"]{
         color-scheme: light;
       }
