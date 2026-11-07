@@ -211,7 +211,7 @@ const THEME_PALETTES = {
   tube: {
     brass:'#DC241F', brassLight:'#FFD329', navActiveIcon:'#DC241F', pillShadow:'rgba(220,36,31,0.3)',
     sidebarText:'#c9d1ff', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(255,255,255,0.15)',
-    sidebarGlow:null, sidebarPill:'#DC241F',
+    sidebarGlow:null, sidebarPill:'rgba(255,255,255,0.1)',
     sidebarBtnBg:'rgba(255,255,255,0.08)', sidebarBtnBorder:'rgba(255,211,41,0.5)', sidebarBtnSubtext:'rgba(255,211,41,0.85)',
   },
   tycoon: {
