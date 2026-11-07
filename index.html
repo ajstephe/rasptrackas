@@ -308,6 +308,14 @@
       :root[data-theme="miamidays"] [style*="background: var(--surface)"]{border:1px solid #9fdde6!important;box-shadow:0 6px 18px rgba(255,79,163,0.10)}
       :root[data-theme="miamidays"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#e0398f!important}
       :root[data-theme="miamidays"] .app-sidebar > div:last-child > div:first-child div{color:#12323d!important}
+      /* Art Deco hotel fronts: a pastel stripe across the top of each card */
+      :root[data-theme="miamidays"] [style*="background: var(--surface)"]:not(.app-header){border-top:7px solid #9ee6c9!important}
+      :root[data-theme="miamidays"] [style*="background: var(--surface)"]:not(.app-header):nth-child(4n+2){border-top-color:#ffc7a3!important}
+      :root[data-theme="miamidays"] [style*="background: var(--surface)"]:not(.app-header):nth-child(4n+3){border-top-color:#cdb6f2!important}
+      :root[data-theme="miamidays"] [style*="background: var(--surface)"]:not(.app-header):nth-child(4n+4){border-top-color:#ffb3d6!important}
+      /* ocean-blue phone tab bar */
+      :root[data-theme="miamidays"] .app-nav{background:rgba(160,228,236,0.88)!important;border-top:1px solid #7fd3de!important}
+      :root[data-theme="miamidays"] .app-nav button:not([aria-current="page"]){color:#0a5f69!important}
       /* ── 90s Desktop ── Windows 95: teal desktop, silver windows with
          raised 3D edges, navy title bars with _ □ × buttons, a grey
          taskbar with pressed-in tabs, and a Start-menu sidebar with its
