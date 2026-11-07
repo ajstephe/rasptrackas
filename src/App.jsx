@@ -110,7 +110,7 @@ const MONO  = 'var(--num-font)';
 // text/pill/button colours too. 'classic' covers system/light/dark, which
 // all share today's brass-on-navy sidebar unchanged.
 
-const SB_THEMES = [['system','Auto',['#f1f5f9','#16314f']],['light','Light',['#f1f5f9','#b8823f']],['dark','Dark',['#16314f','#b8823f']],['luftplane','Luftplane',['#05164d','#ffad00']],['flagship','FlagCarrier',['#0a2356','#ef4a52']],['heritage','Heritage',['#00352f','#cedc00']],['professional','Pro',['#111827','#2dd4bf']],['midnight','Midnight',['#05080f','#22d3ee']],['muji','Goji',['#4a3f35','#f1c9a5']],['energy','Energy',['#000000','#8cf01e']],['corporate','Corporate',['#141414','#ffffff']],['miami','Miami Nights',['#3a1660','#ff6ec7']],['desktop90s','90s Desktop',['#008080','#c0c0c0']],['heist','Heist',['#0b0c0e','#72c66b']]];
+const SB_THEMES = [['system','Auto',['#f1f5f9','#16314f']],['light','Light',['#f1f5f9','#b8823f']],['dark','Dark',['#16314f','#b8823f']],['luftplane','Luftplane',['#05164d','#ffad00']],['flagship','FlagCarrier',['#0a2356','#ef4a52']],['heritage','Heritage',['#00352f','#cedc00']],['professional','Pro',['#111827','#2dd4bf']],['midnight','Midnight',['#05080f','#22d3ee']],['muji','Goji',['#4a3f35','#f1c9a5']],['energy','Energy',['#000000','#8cf01e']],['corporate','Corporate',['#141414','#ffffff']],['miami','Miami Nights',['#3a1660','#ff6ec7']],['desktop90s','90s Desktop',['#008080','#c0c0c0']],['heist',"Heist '86",['#0c0a1f','#ff2d95']]];
 function SbSwatch({c,size=14,ring}) { return <span style={{width:size,height:size,borderRadius:'50%',flexShrink:0,background:`linear-gradient(135deg, ${c[0]} 50%, ${c[1]} 50%)`,boxShadow:ring?`0 0 0 2px ${ring}`:'0 0 0 1px rgba(255,255,255,0.25)'}}/>; }
 function SidebarThemes({ themeMode, setTheme, THEME }) {
   // Computer-only theme picker, pinned to the bottom of the sidebar: one
@@ -209,10 +209,10 @@ const THEME_PALETTES = {
     sidebarBtnBg:'#c0c0c0', sidebarBtnBorder:'#808080', sidebarBtnSubtext:'#404040',
   },
   heist: {
-    brass:'#72c66b', brassLight:'#72c66b', navActiveIcon:'#72c66b', pillShadow:'rgba(114,198,107,0.35)',
-    sidebarText:'#9a9da4', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(255,255,255,0.1)',
-    sidebarGlow:null, sidebarPill:'rgba(114,198,107,0.16)',
-    sidebarBtnBg:'rgba(255,255,255,0.06)', sidebarBtnBorder:'rgba(255,255,255,0.2)', sidebarBtnSubtext:'rgba(255,255,255,0.6)',
+    brass:'#ff2d95', brassLight:'#29d3e6', navActiveIcon:'#29d3e6', pillShadow:'rgba(255,45,149,0.45)',
+    sidebarText:'#aeb6e0', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(41,211,230,0.25)',
+    sidebarGlow:'rgba(255,45,149,0.4)', sidebarPill:'rgba(255,45,149,0.22)',
+    sidebarBtnBg:'rgba(41,211,230,0.1)', sidebarBtnBorder:'rgba(41,211,230,0.45)', sidebarBtnSubtext:'rgba(41,211,230,0.8)',
   },
   luftplane: {
     brass:'#05164d', brassLight:'#ffad00', navActiveIcon:'#ffad00', pillShadow:'rgba(5,22,77,0.3)',

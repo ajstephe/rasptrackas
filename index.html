@@ -73,7 +73,7 @@
          Web (Heritage) Barlow Semi Condensed (Energy), Zen Kaku Gothic New (Goji) and Arimo (Luftplane) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Oswald:wght@400;500;600;700&family=Kaushan+Script&family=Bowlby+One&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -224,35 +224,45 @@
       :root[data-theme="miami"] [style*="background: var(--navy)"]{background:linear-gradient(160deg,#2a1450 0%,#5a2a9a 42%,#d24fa6 78%,#ff9a6b 100%)!important}
       :root[data-theme="miami"] [style*="background: var(--navy)"] button{background:rgba(26,18,56,0.78)!important}
       :root[data-theme="miami"] [style*="background: var(--surface)"]{border:1px solid rgba(92,225,230,0.35)!important;box-shadow:0 0 18px rgba(255,110,199,0.12)}
-      /* ── Heist ── an open-world crime-game HUD: near-black page, smoked
-         glass panels, white condensed caps, money-green amounts and a
-         gold wanted level in the header (one star per claim still to
-         submit, up to five). Oswald for letters and figures. */
+      /* ── Heist '86 ── a 1980s open-world crime game at night: deep
+         ocean-blue to violet sky, smoked navy HUD panels, hot pink and
+         neon cyan, a brush-script title (Kaushan Script, standing in for
+         the game's script logo), heavy display figures for big money
+         (Bowlby One, standing in for its chunky title face) and a gold
+         wanted level in the header: one star per claim still to submit. */
       :root[data-theme="heist"]{
         color-scheme: dark;
-        --exp:#5aa0e6; --exp-tint:#13243a; --exp-ink:#9cc7f2;
-        --title-grad:linear-gradient(90deg,#ffffff,#ffffff);
-        --tag-purple:#c9a6f2;
-        --save-bg:#72c66b; --save-ink:#0a0a0a; --hero-label:#72c66b;
-        --page-bg:#0b0c0e; --surface:rgba(18,19,22,0.88); --surface-rgb:18,19,22;
-        --surface-2:#17181b; --surface-2-rgb:23,24,27;
-        --chip-bg:#202227; --border:#2c2f35; --border-2:#202227;
-        --ink:#f2f2f2; --muted:#b0b3b8; --quiet:#7d8088;
-        --navy:#000000; --savebar:#000000; --navy-rgb:0,0,0; --sidebar-bg-rgb:0,0,0;
-        --accent:#72c66b;
+        --exp:#29d3e6; --exp-tint:#0e2a3a; --exp-ink:#8eeaf3;
+        --title-grad:linear-gradient(90deg,#ff2d95,#ff2d95);
+        --tag-purple:#d58cff;
+        --save-bg:#ff2d95; --save-ink:#ffffff; --hero-label:#29d3e6;
+        --page-bg:#0c0a1f; --surface:rgba(16,18,46,0.9); --surface-rgb:16,18,46;
+        --surface-2:#151a40; --surface-2-rgb:21,26,64;
+        --chip-bg:#1c2250; --border:#2a3170; --border-2:#1e2456;
+        --ink:#f4f6ff; --muted:#aeb6e0; --quiet:#7d86b8;
+        --navy:#0a0c24; --savebar:#0a0c24; --navy-rgb:10,12,36; --sidebar-bg-rgb:10,10,30;
+        --accent:#ff2d95;
         --app-font:'Oswald','Arial Narrow',system-ui,sans-serif; --num-font:'Oswald','Arial Narrow',system-ui,sans-serif;
-        --tint-blue:#132033; --tint-red:#3a1214; --tint-green:#132a14; --tint-green-2:#1a3a1b;
-        --tint-purple:#24193a; --tint-amber:#33280f; --tint-amber-2:#45360f; --tint-teal:#0f2a2a;
-        --text-navy:#ffffff; --text-red-deep:#f0817c; --text-green-deep:#72c66b; --text-purple-deep:#c9a6f2;
-        --text-amber-deep:#f2c14e; --tint-blue-2:#182a42; --tint-brass:#1f2a1f; --tint-indigo:#1c1f3a;
-        --text-indigo-deep:#a9b3f5; --surface-red-mid:#6a2424; --text-blue-deep:#9cc7f2;
+        --tint-blue:#132045; --tint-red:#3a0f2a; --tint-green:#0f2e22; --tint-green-2:#123d2c;
+        --tint-purple:#26164a; --tint-amber:#33260f; --tint-amber-2:#45340f; --tint-teal:#0d2c3a;
+        --text-navy:#8eeaf3; --text-red-deep:#ff7ab8; --text-green-deep:#7cf08a; --text-purple-deep:#d58cff;
+        --text-amber-deep:#ffcf5c; --tint-blue-2:#18275a; --tint-brass:#3a0f2a; --tint-indigo:#1f1f5a;
+        --text-indigo-deep:#b8bcff; --surface-red-mid:#7a1d4a; --text-blue-deep:#8eeaf3;
       }
-      :root[data-theme="heist"] body,:root[data-theme="heist"] [style*="background: var(--page-bg)"]{background:radial-gradient(ellipse at top,#1d2024 0%,#0b0c0e 65%) fixed!important}
-      :root[data-theme="heist"] .app-header span:first-child{text-transform:uppercase;letter-spacing:0.3px!important;font-weight:700!important;font-size:17px!important}
-      :root[data-theme="heist"] h1,:root[data-theme="heist"] h2,:root[data-theme="heist"] h3{text-transform:uppercase;letter-spacing:0.5px}
-      :root[data-theme="heist"] [style*="background: var(--navy)"]{background:linear-gradient(135deg,#000 0%,#14261a 100%)!important;border:1px solid #2c2f35}
+      :root[data-theme="heist"] body,:root[data-theme="heist"] [style*="background: var(--page-bg)"]{background:linear-gradient(180deg,#1a0f3a 0%,#0c0a1f 45%,#06101e 100%) fixed!important}
+      /* the brush-script title, pink with a cyan drop like the game's logo */
+      :root[data-theme="heist"] .app-header > div:first-child span:first-child{font-family:'Kaushan Script',cursive!important;font-weight:400!important;font-size:clamp(17px,5vw,24px)!important;letter-spacing:0!important;background:none!important;-webkit-text-fill-color:#ff2d95!important;color:#ff2d95!important;text-shadow:2px 2px 0 #29d3e6,0 0 12px rgba(255,45,149,0.55);text-transform:none!important}
+      :root[data-theme="heist"] .app-header > div:first-child span:last-child{text-transform:uppercase;letter-spacing:1.5px!important;font-size:11px!important;color:#29d3e6!important}
+      :root[data-theme="heist"] .app-header{border-bottom:2px solid #ff2d95!important;box-shadow:0 2px 16px rgba(255,45,149,0.35)}
+      /* big money figures in the chunky display face, game-HUD green */
+      :root[data-theme="heist"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-family:'Bowlby One','Arial Black',sans-serif!important;font-weight:400!important;letter-spacing:0.5px;-webkit-text-stroke:1px #000;paint-order:stroke fill;text-shadow:2px 2px 0 #000}
+      :root[data-theme="heist"] [style*="background: var(--navy)"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){color:#7cf08a!important}
+      /* the statement card: a neon-framed night panel */
+      :root[data-theme="heist"] [style*="background: var(--navy)"]{background:linear-gradient(135deg,#0a0c24 0%,#24104a 100%)!important;border:2px solid #29d3e6!important;box-shadow:0 0 18px rgba(41,211,230,0.35),inset 0 0 24px rgba(255,45,149,0.15)}
+      :root[data-theme="heist"] [style*="background: var(--surface)"]{border:1px solid rgba(255,45,149,0.35)!important}
+      :root[data-theme="heist"] h1,:root[data-theme="heist"] h2,:root[data-theme="heist"] h3{text-transform:uppercase;letter-spacing:1px;color:#ff2d95}
       .heist-wanted{display:inline-flex;gap:0;font-size:13px;line-height:1;letter-spacing:0;filter:drop-shadow(0 1px 0 #000)}
-      .heist-wanted b{color:#f2c14e;font-weight:400} .heist-wanted i{color:#3a3c42;font-style:normal}
+      .heist-wanted b{color:#ffcf5c;font-weight:400} .heist-wanted i{color:#3a3f6a;font-style:normal}
       /* ── 90s Desktop ── Windows 95: teal desktop, silver windows with
          raised 3D edges, navy title bars with _ □ × buttons, a grey
          taskbar with pressed-in tabs, and a Start-menu sidebar with its
