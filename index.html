@@ -308,6 +308,9 @@
       :root[data-theme="tube"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#c9d1ff!important}
       :root[data-theme="tube"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#FFD329!important}
       :root[data-theme="tube"] .app-sidebar{background:#0b1033!important}
+      /* platform edge: a yellow "mind the gap" strip along the top of the phone tab bar */
+      :root[data-theme="tube"] .app-nav{border-top:none!important}
+      :root[data-theme="tube"] .app-nav::before{content:'MIND THE GAP';position:absolute;left:0;right:0;top:-14px;height:14px;display:flex;align-items:center;justify-content:center;background:#FFD329;border-top:2px solid #111111;box-sizing:border-box;font:700 9px/1 'Cabin',sans-serif;letter-spacing:4px;color:#111111;pointer-events:none}
       /* sidebar as a line diagram: a red line down the icons */
       :root[data-theme="tube"] .app-sidebar .sidebar-nav-btn{padding-left:40px!important;overflow:visible}
       :root[data-theme="tube"] .app-sidebar .sidebar-nav-btn::before{content:'';position:absolute;left:13px;top:-3px;bottom:-3px;width:6px;background:#DC241F;z-index:-1}
@@ -315,11 +318,6 @@
       :root[data-theme="tube"] .app-sidebar .sidebar-nav-btn:last-of-type::before{bottom:50%}
       :root[data-theme="tube"] .app-sidebar .sidebar-nav-btn::after{content:'';position:absolute;left:8px;top:50%;width:16px;height:16px;margin-top:-8px;box-sizing:border-box;border-radius:50%;background:#ffffff;border:4px solid #0b1033}
       :root[data-theme="tube"] .app-sidebar .sidebar-nav-btn[aria-current="page"]::after{left:4px;width:24px;height:24px;margin-top:-12px;border:5px solid #DC241F}
-      /* roundel-style ring on the hero card (ring only, no bar or name) */
-      :root[data-theme="tube"] [style*="background: var(--navy)"]{position:relative;overflow:hidden}
-      :root[data-theme="tube"] [style*="background: var(--navy)"]::after{content:'';position:absolute;right:-46px;top:50%;width:190px;height:190px;margin-top:-95px;box-sizing:border-box;border-radius:50%;border:30px solid #DC241F;pointer-events:none;z-index:0}
-      :root[data-theme="tube"] [style*="background: var(--navy)"] > *{position:relative;z-index:1}
-      @media (min-width:900px){:root[data-theme="tube"] [style*="background: var(--navy)"]::after{right:auto;left:55%;width:96px;height:96px;margin-top:-48px;border-width:16px}}
       /* ── 90s Desktop ── Windows 95: teal desktop, silver windows with
          raised 3D edges, navy title bars with _ □ × buttons, a grey
          taskbar with pressed-in tabs, and a Start-menu sidebar with its
