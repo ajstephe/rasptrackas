@@ -73,7 +73,7 @@
          Web (Heritage) Barlow Semi Condensed (Energy), Zen Kaku Gothic New (Goji) and Arimo (Luftplane) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -152,7 +152,7 @@
            any of them one token at a time. Midnight is a dark-first design
            in its own right, so this matters just as much for it as it does
            for the light ones. */
-        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="miami"]):not([data-theme="desktop90s"]):not([data-theme="tycoon"]){
+        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="miami"]):not([data-theme="desktop90s"]):not([data-theme="tycoon"]):not([data-theme="tube"]){
           --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
           --exp:#38bdf8;
           --exp-tint:#0c2a3d;
@@ -265,6 +265,51 @@
       :root[data-theme="tycoon"] [style*="background: var(--navy)"]{border:2px solid #1a1a1a!important}
       :root[data-theme="tycoon"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#ffd6dc!important}
       :root[data-theme="tycoon"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#fef200!important}
+      /* ── Mind the Gap ── a city underground railway: tiled white
+         platforms, a blue station-name-board header, white cards with a
+         line-colour stripe down the left like a line diagram, a dark
+         night-tube sidebar, and Cabin (a humanist sans in the spirit of
+         Edward Johnston's lettering) throughout. */
+      :root[data-theme="tube"]{
+        color-scheme: light;
+        --exp:#0019A8; --exp-tint:#e3e7fb; --exp-ink:#0019A8;
+        --title-grad:linear-gradient(90deg,#ffffff,#ffffff);
+        --tag-purple:#9B0056;
+        --save-bg:#FFD329; --save-ink:#111111; --hero-label:#FFD329;
+        --page-bg:#eceef1; --surface:#ffffff; --surface-rgb:255,255,255;
+        --surface-2:#f6f7f9; --surface-2-rgb:246,247,249;
+        --chip-bg:#eef0f4; --border:#d4d8de; --border-2:#e3e6ea;
+        --ink:#111111; --muted:#4a4f57; --quiet:#6b7079;
+        --navy:#0019A8; --savebar:#0b1033; --navy-rgb:0,25,168; --sidebar-bg-rgb:11,16,51;
+        --accent:#DC241F;
+        --app-font:'Cabin',system-ui,sans-serif; --num-font:'Cabin',system-ui,sans-serif;
+        --tint-blue:#e3e7fb; --tint-red:#fde4e3; --tint-green:#ddf1e3; --tint-green-2:#c4e6cf;
+        --tint-purple:#f5e1ec; --tint-amber:#fff6d6; --tint-amber-2:#ffeba3; --tint-teal:#dcf0f8;
+        --text-navy:#0b1033; --text-red-deep:#b01c18; --text-green-deep:#006127; --text-purple-deep:#7a0045;
+        --text-amber-deep:#7a4300; --tint-blue-2:#cdd5f7; --tint-brass:#fde4e3; --tint-indigo:#e3e7fb;
+        --text-indigo-deep:#0019A8; --surface-red-mid:#f2a19e; --text-blue-deep:#0019A8;
+      }
+      :root[data-theme="tube"] .app-header{background:#0019A8!important;border-bottom:4px solid #DC241F!important}
+      :root[data-theme="tube"] .app-header > div:first-child span:first-child{font-family:'Cabin',sans-serif!important;font-weight:700!important;-webkit-text-fill-color:#ffffff!important;letter-spacing:0.2px!important}
+      :root[data-theme="tube"] .app-header > div:first-child span:last-child{color:#c9d1ff!important}
+      :root[data-theme="tube"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-weight:700!important;letter-spacing:-0.5px}
+      :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header){border-left:7px solid #DC241F!important;border-radius:4px!important;box-shadow:0 1px 2px rgba(11,16,51,0.08)!important}
+      :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header):nth-child(10n+1){border-left-color:#DC241F!important}
+      :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header):nth-child(10n+2){border-left-color:#0019A8!important}
+      :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header):nth-child(10n+3){border-left-color:#007D32!important}
+      :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header):nth-child(10n+4){border-left-color:#FFD329!important}
+      :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header):nth-child(10n+5){border-left-color:#9B0056!important}
+      :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header):nth-child(10n+6){border-left-color:#0098D4!important}
+      :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header):nth-child(10n+7){border-left-color:#B36305!important}
+      :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header):nth-child(10n+8){border-left-color:#A0A5A9!important}
+      :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header):nth-child(10n+9){border-left-color:#F3A9BB!important}
+      :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header):nth-child(10n+10){border-left-color:#000000!important}
+      :root[data-theme="tube"] [style*="background: var(--navy)"]{border-radius:4px!important;border-bottom:6px solid #DC241F!important}
+      :root[data-theme="tube"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#c9d1ff!important}
+      :root[data-theme="tube"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#FFD329!important}
+      :root[data-theme="tube"] .app-sidebar{background:#0b1033!important}
+      /* sidebar as a line diagram: a red line down the icons */
+      :root[data-theme="tube"] .app-sidebar .sidebar-nav-btn{position:relative}
       /* ── 90s Desktop ── Windows 95: teal desktop, silver windows with
          raised 3D edges, navy title bars with _ □ × buttons, a grey
          taskbar with pressed-in tabs, and a Start-menu sidebar with its
