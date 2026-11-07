@@ -73,7 +73,7 @@
          Web (Heritage) Barlow Semi Condensed (Energy), Zen Kaku Gothic New (Goji) and Arimo (Luftplane) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -152,7 +152,7 @@
            any of them one token at a time. Midnight is a dark-first design
            in its own right, so this matters just as much for it as it does
            for the light ones. */
-        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="miami"]):not([data-theme="desktop90s"]):not([data-theme="tycoon"]):not([data-theme="tube"]){
+        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="miami"]):not([data-theme="desktop90s"]):not([data-theme="tube"]){
           --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
           --exp:#38bdf8;
           --exp-tint:#0c2a3d;
@@ -224,47 +224,6 @@
       :root[data-theme="miami"] [style*="background: var(--navy)"]{background:linear-gradient(160deg,#2a1450 0%,#5a2a9a 42%,#d24fa6 78%,#ff9a6b 100%)!important}
       :root[data-theme="miami"] [style*="background: var(--navy)"] button{background:rgba(26,18,56,0.78)!important}
       :root[data-theme="miami"] [style*="background: var(--surface)"]{border:1px solid rgba(92,225,230,0.35)!important;box-shadow:0 0 18px rgba(255,110,199,0.12)}
-      /* ── Monopolise ── a classic property-trading board game: the mint
-         board as the page, white cards edged in black like title deeds,
-         each with a coloured property strip across the top, a red title
-         banner, Chance-orange Save button and a board-green sidebar.
-         Archivo Black for the banner and big figures, Archivo for text. */
-      :root[data-theme="tycoon"]{
-        color-scheme: light;
-        --exp:#0072bb; --exp-tint:#e1f0fa; --exp-ink:#005a94;
-        --title-grad:linear-gradient(90deg,#ffffff,#ffffff);
-        --tag-purple:#8b3fa8;
-        --save-bg:#f7941d; --save-ink:#111111; --hero-label:#fff3a0;
-        --page-bg:#cde6d0; --surface:#ffffff; --surface-rgb:255,255,255;
-        --surface-2:#f6fbf6; --surface-2-rgb:246,251,246;
-        --chip-bg:#eef6ee; --border:#1a1a1a; --border-2:#d5e6d6;
-        --ink:#111111; --muted:#3d4a3f; --quiet:#5f6e61;
-        --navy:#c8102e; --savebar:#1f6e3b; --navy-rgb:200,16,46; --sidebar-bg-rgb:31,110,59;
-        --accent:#c8102e;
-        --app-font:'Archivo',system-ui,sans-serif; --num-font:'Archivo',system-ui,sans-serif;
-        --tint-blue:#e3f1fb; --tint-red:#fde3e5; --tint-green:#dff3e2; --tint-green-2:#c3e8c9;
-        --tint-purple:#f1e4f7; --tint-amber:#fff2d6; --tint-amber-2:#ffe2a8; --tint-teal:#dcf2ef;
-        --text-navy:#111111; --text-red-deep:#b0101f; --text-green-deep:#1f6e3b; --text-purple-deep:#6d2a8a;
-        --text-amber-deep:#8a4b00; --tint-blue-2:#cfe6f7; --tint-brass:#fde3e5; --tint-indigo:#e5e6fb;
-        --text-indigo-deep:#2f3aa8; --surface-red-mid:#f39aa2; --text-blue-deep:#005a94;
-      }
-      :root[data-theme="tycoon"] .app-header{background:#c8102e!important;border-bottom:3px solid #1a1a1a!important}
-      :root[data-theme="tycoon"] .app-header > div:first-child span:first-child{font-family:'Archivo Black',sans-serif!important;text-transform:uppercase;letter-spacing:0.5px!important;-webkit-text-fill-color:#ffffff!important;text-shadow:2px 2px 0 #1a1a1a}
-      :root[data-theme="tycoon"] .app-header > div:first-child span:last-child{color:#ffe7ea!important}
-      :root[data-theme="tycoon"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-family:'Archivo Black',sans-serif!important;font-weight:400!important}
-      :root[data-theme="tycoon"] [style*="background: var(--surface)"]:not(.app-header){border:2px solid #1a1a1a!important;box-shadow:3px 3px 0 rgba(26,26,26,0.25)!important}
-      /* title-deed strips, cycling through the board's property colours */
-      :root[data-theme="tycoon"] [style*="background: var(--surface)"]:not(.app-header){border-top-width:12px!important;border-top-color:#955436!important}
-      :root[data-theme="tycoon"] [style*="background: var(--surface)"]:not(.app-header):nth-child(8n+2){border-top-color:#aae0fa!important}
-      :root[data-theme="tycoon"] [style*="background: var(--surface)"]:not(.app-header):nth-child(8n+3){border-top-color:#d93a96!important}
-      :root[data-theme="tycoon"] [style*="background: var(--surface)"]:not(.app-header):nth-child(8n+4){border-top-color:#f7941d!important}
-      :root[data-theme="tycoon"] [style*="background: var(--surface)"]:not(.app-header):nth-child(8n+5){border-top-color:#ed1b24!important}
-      :root[data-theme="tycoon"] [style*="background: var(--surface)"]:not(.app-header):nth-child(8n+6){border-top-color:#fef200!important}
-      :root[data-theme="tycoon"] [style*="background: var(--surface)"]:not(.app-header):nth-child(8n+7){border-top-color:#1fb25a!important}
-      :root[data-theme="tycoon"] [style*="background: var(--surface)"]:not(.app-header):nth-child(8n){border-top-color:#0072bb!important}
-      :root[data-theme="tycoon"] [style*="background: var(--navy)"]{border:2px solid #1a1a1a!important}
-      :root[data-theme="tycoon"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#ffd6dc!important}
-      :root[data-theme="tycoon"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#fef200!important}
       /* ── Mind the Gap ── a city underground railway: tiled white
          platforms, a blue station-name-board header, white cards with a
          line-colour stripe down the left like a line diagram, a dark
