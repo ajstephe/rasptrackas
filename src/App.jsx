@@ -941,7 +941,7 @@ export default function App() {
   const setTheme = v => { setThemeMode(v); dualWrite(KEYS.themeMode, v); };
   // Mind the Gap: one interchange station per tab. The tab's lead card
   // (first sizeable card in the content area) is tagged data-station so
-  // CSS can draw a blue line across its top meeting its side stripe, with
+  // CSS can draw a black line across its top meeting its side stripe, with
   // a station circle on the corner. Home skips it: its hero already has
   // its own junction. Re-tagged as tabs and views re-render.
   useEffect(()=>{
