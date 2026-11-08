@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Vercel sets VERCEL_ENV to production / preview at build time; the app
+  // uses it to allow demo-only switches (e.g. ?festive) on previews only.
+  define: { __VERCEL_ENV__: JSON.stringify(process.env.VERCEL_ENV || 'development') },
   plugins: [
     react(),
     // ── offline resilience ────────────────────────────────────────────────

@@ -5,9 +5,24 @@ export const SEASONAL_THEMES = {
   festive: [11, 30, 12, 31], // Festive: 30 Nov – 31 Dec, gone on New Year's Day
 };
 
+// Demo switch, previews and local builds only (never production): open a
+// preview link with ?festive to make Festive available out of season, for
+// showing it off. It lasts for that browser tab's session.
+const DEMO_ALLOWED = typeof __VERCEL_ENV__ !== 'undefined' && __VERCEL_ENV__ !== 'production';
+const DEMO_KEY = 'ajs_ot_seasonDemo';
+let demoSeason = null;
+if (DEMO_ALLOWED && typeof window !== 'undefined') {
+  try {
+    const q = new URLSearchParams(window.location.search);
+    for (const id of Object.keys(SEASONAL_THEMES)) if (q.has(id)) sessionStorage.setItem(DEMO_KEY, id);
+    demoSeason = sessionStorage.getItem(DEMO_KEY);
+  } catch {}
+}
+
 export function themeInSeason(id, date = new Date()) {
   const w = SEASONAL_THEMES[id];
   if (!w) return true;
+  if (demoSeason === id) return true;
   const [sm, sd, em, ed] = w;
   const md = (date.getMonth() + 1) * 100 + date.getDate();
   const start = sm * 100 + sd, end = em * 100 + ed;
@@ -20,6 +35,7 @@ export function themeInSeason(id, date = new Date()) {
 export function seasonKey(id, date = new Date()) {
   const w = SEASONAL_THEMES[id];
   if (!w) return '';
+  if (demoSeason === id) return `${id}-demo`;
   const wraps = w[2] * 100 + w[3] < w[0] * 100 + w[1];
   const y = date.getFullYear() - (wraps && date.getMonth() + 1 <= w[2] ? 1 : 0);
   return `${id}-${y}`;
