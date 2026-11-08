@@ -52,6 +52,36 @@ export function TabDashboard({
       <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
       {/* Festive only (hidden by CSS in every other theme): Santa's sack of
           presents in the corner, with an elf who pops out now and then. */}
+      <svg className={'festive-deer'+(compact?'':' wide')} viewBox="0 0 100 112" aria-hidden="true" focusable="false">
+        <g className="festive-rock">
+          <path d="M6 100 Q50 114 94 100" fill="none" stroke="#5e3a17" strokeWidth="5" strokeLinecap="round"/>
+          <path d="M24 74 L19 101 M76 74 L81 101" stroke="#6b4423" strokeWidth="4" strokeLinecap="round"/>
+          <rect x="58" y="20" width="28" height="56" rx="10" fill="#a8322a"/>
+          <rect x="62" y="25" width="20" height="45" rx="7" fill="#c2453a"/>
+          <rect x="14" y="64" width="70" height="13" rx="5" fill="#a8322a"/>
+          <rect x="10" y="54" width="17" height="22" rx="7" fill="#c2453a"/>
+          <ellipse cx="50" cy="56" rx="17" ry="14" fill="#8b5a3c"/>
+          <ellipse cx="45" cy="60" rx="9" ry="8" fill="#c79a72"/>
+          <rect x="27" y="66" width="7" height="22" rx="3" fill="#8b5a3c"/><rect x="27" y="85" width="7" height="5" rx="2" fill="#3a2414"/>
+          <rect x="37" y="67" width="7" height="21" rx="3" fill="#7a4d31"/><rect x="37" y="85" width="7" height="5" rx="2" fill="#3a2414"/>
+          <path d="M44 20 L46 8 M45 12 L51 7 M44 16 L38 10 M52 20 L58 9 M56 13 L63 11 M55 16 L54 6" stroke="#6b4423" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
+          <ellipse cx="55" cy="24" rx="5" ry="2.6" fill="#7a4d31" transform="rotate(-25 55 24)"/>
+          <circle cx="45" cy="30" r="11" fill="#8b5a3c"/>
+          <ellipse cx="35" cy="35" rx="9" ry="6.5" fill="#c79a72"/>
+          <circle cx="27.5" cy="34" r="3.6" fill="#e0312f"/>
+          <circle cx="26.6" cy="32.8" r="1" fill="#ffd0d0"/>
+          <circle cx="44" cy="27" r="1.7" fill="#2b1a10"/>
+          <circle cx="44.6" cy="26.4" r="0.5" fill="#ffffff"/>
+          <path d="M33 39.5 Q36 41.5 39 39.5" fill="none" stroke="#5e3a17" strokeWidth="1.1" strokeLinecap="round"/>
+          <g className="festive-carrot">
+            <path d="M52 54 Q44 52 37 45" fill="none" stroke="#8b5a3c" strokeWidth="5.5" strokeLinecap="round"/>
+            <path d="M24 42 L39 41 L37 47 Z" fill="#f08a24"/>
+            <path d="M28 42.5 L29 45 M32 42 L33 45" stroke="#c96a12" strokeWidth="0.8"/>
+            <path d="M39 42 L45 37 M39 43 L46 41 M38 44 L44 46" stroke="#3f9a3a" strokeWidth="1.6" strokeLinecap="round"/>
+            <circle cx="37" cy="45" r="3" fill="#5e3a22"/>
+          </g>
+        </g>
+      </svg>
       <svg className={'festive-sack'+(compact?'':' wide')} viewBox="0 -26 120 138" aria-hidden="true" focusable="false">
         <ellipse cx="60" cy="45" rx="37" ry="8" fill="#3d240e"/>
         <g className="festive-elf">

@@ -438,6 +438,16 @@
       :root[data-theme="festive"] .festive-elf-arm{transform-origin:68px 37px;animation:elfWave 7s ease-in-out infinite}
       @keyframes elfPop{0%,14%{transform:translateY(46px)}22%{transform:translateY(-22px)}26%{transform:translateY(-12px)}29%,48%{transform:translateY(-15px)}56%,100%{transform:translateY(46px)}}
       @keyframes elfWave{0%,28%{transform:rotate(0)}32%{transform:rotate(-22deg)}36%{transform:rotate(14deg)}40%{transform:rotate(-22deg)}44%{transform:rotate(14deg)}48%,100%{transform:rotate(0)}}
+      /* the reindeer in a rocking armchair beside the sack, nibbling a carrot; tucked just behind the sack */
+      .festive-deer{display:none}
+      :root[data-theme="festive"] .festive-deer{display:block;position:absolute;right:90px;bottom:2px;width:66px;height:74px;pointer-events:none;z-index:0;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.35))}
+      @media (max-width:389px){:root[data-theme="festive"] .festive-deer:not(.wide){right:84px;width:48px;height:54px}:root[data-theme="festive"] .festive-sack:not(.wide){width:88px;height:102px}}
+      :root[data-theme="festive"] .festive-deer.wide{right:auto;left:calc(52% - 62px);width:68px;height:76px}
+      :root[data-theme="festive"] .festive-rock{transform-origin:50px 104px;animation:deerRock 2.6s ease-in-out infinite alternate}
+      :root[data-theme="festive"] .festive-carrot{transform-origin:52px 54px;animation:deerNibble 2.2s ease-in-out infinite}
+      @keyframes deerRock{0%{transform:rotate(-7deg)}100%{transform:rotate(7deg)}}
+      @keyframes deerNibble{0%,40%{transform:rotate(14deg)}55%{transform:rotate(0)}62%{transform:rotate(3deg)}69%{transform:rotate(0)}76%{transform:rotate(3deg)}90%,100%{transform:rotate(14deg)}}
+      @media (prefers-reduced-motion: reduce){:root[data-theme="festive"] .festive-rock,:root[data-theme="festive"] .festive-carrot{animation:none}}
       @media (prefers-reduced-motion: reduce){:root[data-theme="festive"] .festive-elf,:root[data-theme="festive"] .festive-elf-arm{animation:none}:root[data-theme="festive"] .festive-elf{transform:translateY(-15px)}:root[data-theme="festive"] .festive-elf-arm{transform:none}}
       :root[data-theme="festive"] [style*="background: var(--navy)"] button{background:rgba(20,8,10,0.45)!important}
       :root[data-theme="festive"] .app-sidebar > div:last-child > div:first-child div{color:#fbf7ee!important}
