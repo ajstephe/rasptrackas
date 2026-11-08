@@ -1,5 +1,6 @@
 import { themeInSeason, SEASONAL_THEMES, seasonKey, rememberPreSeasonTheme, preSeasonTheme, seasonNoticeSeen, markSeasonNoticeSeen } from './seasonal.js';
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback, lazy, Suspense } from "react";
+import { createPortal } from "react-dom";
 // @supabase/supabase-js is dynamically imported inside App() itself (see
 // hasSupabaseConfig / the supabase state below) rather than statically here.
 // Sign-in is mandatory in this build (no local-only bypass — see the
@@ -120,6 +121,7 @@ function SidebarThemes({ themeMode, setTheme, THEME }) {
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
   const btnRef = useRef(null);
+  const panelRef = useRef(null);
   // The list opens as a two-column panel beside the sidebar, anchored to the
   // button's bottom edge: one tall column above the button ran off the top
   // of the screen once there were more than a dozen themes.
@@ -128,7 +130,7 @@ function SidebarThemes({ themeMode, setTheme, THEME }) {
   useEffect(() => { if (!open) return; place(); window.addEventListener('resize', place); return () => window.removeEventListener('resize', place); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open) return;
-    const onDown = e => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
+    const onDown = e => { if (boxRef.current?.contains(e.target) || panelRef.current?.contains(e.target)) return; setOpen(false); };
     const onKey = e => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', onDown); document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
@@ -137,12 +139,14 @@ function SidebarThemes({ themeMode, setTheme, THEME }) {
   const sbThemes = SB_THEMES.filter(t=>themeInSeason(t[0]));
   return (
     <div ref={boxRef} style={{marginTop:'auto',position:'relative',paddingTop:'12px'}}>
-      {open&&pos&&<div role="listbox" aria-label="Theme" style={{position:'fixed',left:`${pos.left}px`,bottom:`${pos.bottom}px`,width:'400px',maxWidth:`calc(100vw - ${pos.left + 12}px)`,maxHeight:'calc(100vh - 24px)',overflowY:'auto',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'13px',boxShadow:'0 12px 32px rgba(0,0,0,0.28)',padding:'8px',display:'grid',gridTemplateColumns:'1fr 1fr',gridAutoFlow:'column',gridTemplateRows:`repeat(${Math.ceil(sbThemes.length/2)}, auto)`,gap:'2px 6px',zIndex:50}}>
+      {/* Rendered into <body>: inside the sidebar (fixed, overflow hidden) Safari
+          clipped the panel away entirely, so it opened invisibly. */}
+      {open&&pos&&createPortal(<div ref={panelRef} role="listbox" aria-label="Theme" style={{position:'fixed',left:`${pos.left}px`,bottom:`${pos.bottom}px`,width:'400px',maxWidth:`calc(100vw - ${pos.left + 12}px)`,maxHeight:'calc(100vh - 24px)',overflowY:'auto',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'13px',boxShadow:'0 12px 32px rgba(0,0,0,0.28)',padding:'8px',display:'grid',gridTemplateColumns:'1fr 1fr',gridAutoFlow:'column',gridTemplateRows:`repeat(${Math.ceil(sbThemes.length/2)}, auto)`,gap:'2px 6px',zIndex:50}}>
         {sbThemes.map(([v,lbl,c])=>{ const on=themeMode===v; return (
           <button key={v} role="option" aria-selected={on} onClick={()=>{ setTheme(v); setOpen(false); }} className="tap-row" style={{display:'flex',alignItems:'center',gap:'9px',padding:'7px 9px',borderRadius:'8px',border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:'12.5px',fontWeight:on?900:700,textAlign:'left',background:on?'var(--tint-brass)':'transparent',color:'var(--ink)'}}>
             <SbSwatch c={c} size={14}/>{lbl}{on&&<span style={{marginLeft:'auto',display:'flex'}}><Ico n="check" s={12} c="var(--ink)" w={3}/></span>}
           </button>); })}
-      </div>}
+      </div>, document.body)}
       <button ref={btnRef} onClick={()=>setOpen(o=>!o)} aria-haspopup="listbox" aria-expanded={open} aria-label={`Theme: ${cur[1]}`} style={{width:'100%',minHeight:'50px',boxSizing:'border-box',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'2px',padding:'9px 11px',borderRadius:'10px',border:`1px solid ${THEME.sidebarBtnBorder}`,background:THEME.sidebarBtnBg,cursor:'pointer',fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:THEME.brassLight}}>
         <span style={{display:'flex',alignItems:'center',gap:'7px'}}><SbSwatch c={cur[2]} size={14}/> Theme</span>
         <span style={{fontSize:'10px',fontWeight:600,color:THEME.sidebarBtnSubtext}}>{cur[1]}</span>
