@@ -50,6 +50,41 @@ export function TabDashboard({
   const masthead = (compact) => (
     <div style={{background:'var(--navy)',padding:compact?'18px':'22px 26px',position:'relative',overflow:'hidden',display:compact?'block':'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'16px',flexWrap:'wrap'}}>
       <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
+      {/* Festive only (hidden by CSS in every other theme): Santa's sack of
+          presents in the corner, with an elf who pops out now and then. */}
+      <svg className={'festive-sack'+(compact?'':' wide')} viewBox="0 -26 120 138" aria-hidden="true" focusable="false">
+        <ellipse cx="60" cy="45" rx="37" ry="8" fill="#3d240e"/>
+        <g className="festive-elf">
+          <path d="M49 52 Q49 36 60 34 Q71 36 71 52 Z" fill="#1f8a4c"/>
+          <path d="M55 35 L60 41 L65 35" fill="none" stroke="#e8b64c" strokeWidth="1.6"/>
+          <g className="festive-elf-arm">
+            <path d="M68 37 Q75 33 78 24" fill="none" stroke="#1f8a4c" strokeWidth="4.5" strokeLinecap="round"/>
+            <circle cx="78.5" cy="22.5" r="3.2" fill="#c8102e"/>
+          </g>
+          <path d="M52 22 L44 16 L53 26 Z" fill="#f2c9a0"/>
+          <path d="M68 22 L76 16 L67 26 Z" fill="#f2c9a0"/>
+          <circle cx="60" cy="24" r="9" fill="#f2c9a0"/>
+          <circle cx="56.6" cy="23" r="1.2" fill="#2b1a10"/>
+          <circle cx="63.4" cy="23" r="1.2" fill="#2b1a10"/>
+          <circle cx="54.6" cy="26.6" r="1.8" fill="#f0909a" opacity="0.7"/>
+          <circle cx="65.4" cy="26.6" r="1.8" fill="#f0909a" opacity="0.7"/>
+          <path d="M57 27.5 Q60 30.5 63 27.5" fill="none" stroke="#7a2a1a" strokeWidth="1.1" strokeLinecap="round"/>
+          <path d="M50.5 18 Q55 3 70 2 Q78 2 80 9 L72 8 Q66 9 69.5 18 Z" fill="#1f8a4c"/>
+          <rect x="49.5" y="16" width="21" height="4.2" rx="2.1" fill="#ffffff"/>
+          <circle cx="80.5" cy="9.5" r="2.6" fill="#e8b64c"/>
+        </g>
+        <rect x="27" y="27" width="22" height="20" rx="1.5" fill="#1f8a4c"/>
+        <rect x="36" y="27" width="4" height="20" fill="#e8b64c"/><rect x="27" y="35" width="22" height="4" fill="#e8b64c"/>
+        <rect x="70" y="23" width="23" height="24" rx="1.5" fill="#2b6cb0"/>
+        <rect x="79.5" y="23" width="4" height="24" fill="#ffffff"/><rect x="70" y="32" width="23" height="4" fill="#ffffff"/>
+        <path d="M81.5 23 q-6 -7 -8 -1 q4 2 8 1 q6 -7 8 -1 q-4 2 -8 1" fill="#ffffff"/>
+        <rect x="51" y="34" width="18" height="13" rx="1.5" fill="#e8b64c"/>
+        <rect x="58" y="34" width="4" height="13" fill="#c8102e"/>
+        <path d="M22 46 C9 62 7 94 22 105 Q60 115 98 105 C113 94 111 62 98 46 Q60 54 22 46 Z" fill="#8a5a2b"/>
+        <path d="M30 60 C26 74 27 90 34 99" fill="none" stroke="#a8733d" strokeWidth="4" strokeLinecap="round" opacity="0.7"/>
+        <path d="M22 46 Q60 54 98 46" fill="none" stroke="#5e3a17" strokeWidth="3" strokeLinecap="round"/>
+        <path d="M48 52 q12 6 24 0" fill="none" stroke="#e8b64c" strokeWidth="3" strokeLinecap="round"/>
+      </svg>
       <div>
         <div style={{fontSize:compact?'11px':'11.5px',fontWeight:800,color:'var(--hero-label,#93c5fd)',marginBottom:'5px'}}>Gross pay this tax year</div>
         <div style={{fontFamily:MONO,fontSize:compact?'28px':'32px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'5px'}}>

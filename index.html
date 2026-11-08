@@ -430,6 +430,15 @@
       :root[data-theme="festive"] [style*="background: var(--navy)"]{background:radial-gradient(rgba(255,255,255,0.16) 1.2px,transparent 1.8px) 0 0/22px 22px,radial-gradient(rgba(255,255,255,0.1) 1px,transparent 1.5px) 11px 11px/22px 22px,linear-gradient(160deg,#c0263a 0%,#9e1b2c 50%,#6e1020 100%)!important;border-bottom:4px solid #e8b64c!important}
       :root[data-theme="festive"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#ffe0e4!important}
       :root[data-theme="festive"] [style*="background: var(--navy)"] [style*="color: rgb(147, 197, 253)"]{color:#f6d27a!important}
+      /* Santa's sack on the Home hero, Festive only; the elf pops out every few seconds */
+      .festive-sack{display:none}
+      :root[data-theme="festive"] .festive-sack{display:block;position:absolute;right:10px;bottom:0;width:104px;height:120px;pointer-events:none;z-index:0;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.35))}
+      :root[data-theme="festive"] .festive-sack.wide{right:auto;left:52%;width:96px;height:110px}
+      :root[data-theme="festive"] .festive-elf{transform:translateY(46px);animation:elfPop 7s cubic-bezier(.3,.7,.4,1) infinite 1.5s}
+      :root[data-theme="festive"] .festive-elf-arm{transform-origin:68px 37px;animation:elfWave 7s ease-in-out infinite 1.5s}
+      @keyframes elfPop{0%,50%{transform:translateY(46px)}58%{transform:translateY(-22px)}62%{transform:translateY(-12px)}65%,84%{transform:translateY(-15px)}92%,100%{transform:translateY(46px)}}
+      @keyframes elfWave{0%,64%{transform:rotate(0)}68%{transform:rotate(-22deg)}72%{transform:rotate(14deg)}76%{transform:rotate(-22deg)}80%{transform:rotate(14deg)}84%,100%{transform:rotate(0)}}
+      @media (prefers-reduced-motion: reduce){:root[data-theme="festive"] .festive-elf,:root[data-theme="festive"] .festive-elf-arm{animation:none}:root[data-theme="festive"] .festive-elf{transform:translateY(-15px)}:root[data-theme="festive"] .festive-elf-arm{transform:none}}
       :root[data-theme="festive"] [style*="background: var(--navy)"] button{background:rgba(20,8,10,0.45)!important}
       :root[data-theme="festive"] .app-sidebar > div:last-child > div:first-child div{color:#fbf7ee!important}
       /* ── 90s Desktop ── Windows 95: teal desktop, silver windows with
