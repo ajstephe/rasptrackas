@@ -447,6 +447,34 @@
       :root[data-theme="festive"] .festive-carrot{transform-origin:52px 54px;animation:deerNibble 2.2s ease-in-out infinite}
       @keyframes deerRock{0%{transform:rotate(-7deg)}100%{transform:rotate(7deg)}}
       @keyframes deerNibble{0%,40%{transform:rotate(14deg)}55%{transform:rotate(0)}62%{transform:rotate(3deg)}69%{transform:rotate(0)}76%{transform:rotate(3deg)}90%,100%{transform:rotate(14deg)}}
+      /* ── Festive gags, driven by data-gag on the hero ── */
+      .festive-quip,.festive-stars,.festive-bauble-x{display:none}
+      :root[data-theme="festive"] .festive-elf{transform-origin:60px 30px}
+      :root[data-theme="festive"] .festive-sack{overflow:visible;--bx:-25px;--by:57px}
+      :root[data-theme="festive"] .festive-sack.wide{--bx:-52px;--by:50px}
+      @media (max-width:389px){:root[data-theme="festive"] .festive-sack:not(.wide){--bx:-27px;--by:62px}:root[data-theme="festive"] .festive-quip:not(.wide){right:78px;bottom:62px}}
+      :root[data-theme="festive"] .festive-quip{position:absolute;right:96px;bottom:84px;z-index:2;white-space:nowrap;padding:5px 8px;border-radius:11px;background:#fffdf6;color:#3a1a12;font:800 9.5px/1.25 var(--app-font);text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:none}
+      :root[data-theme="festive"] .festive-quip::after{content:'';position:absolute;right:44px;bottom:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#fffdf6}
+      :root[data-theme="festive"] .festive-quip.wide{right:auto;left:calc(52% - 140px);bottom:80px;font-size:10.5px}
+      :root[data-theme="festive"] .festive-quip.wide::after{right:22px}
+      :root[data-theme="festive"] [data-gag="bauble"] .festive-quip{display:block;transform-origin:70% 100%;animation:quipPop 4.2s ease-out both}
+      :root[data-theme="festive"] [data-gag="bauble"] .festive-rock{animation:none;transform:none}
+      :root[data-theme="festive"] [data-gag="bauble"] .festive-carrot{animation:deerThrow 4.2s ease-in-out both}
+      :root[data-theme="festive"] [data-gag="bauble"] .festive-bauble-x{display:block;animation:baubleX 4.2s linear both}
+      :root[data-theme="festive"] [data-gag="bauble"] .festive-bauble-y{animation:baubleY 4.2s linear both}
+      :root[data-theme="festive"] [data-gag="bauble"] .festive-elf{animation:elfBonk 4.2s ease-in-out both}
+      :root[data-theme="festive"] [data-gag="bauble"] .festive-elf-arm{animation:none}
+      :root[data-theme="festive"] [data-gag="bauble"] .festive-stars{display:block;transform-origin:60px 22px;animation:starsSpin 4.2s linear both}
+      :root[data-theme="festive"] [data-gag="tip"] .festive-rock{transform-origin:50px 70px;animation:deerTip 3.8s ease-in-out both}
+      :root[data-theme="festive"] [data-gag="tip"] .festive-carrot{animation:none;transform:rotate(14deg)}
+      @keyframes quipPop{0%,8%{opacity:0;transform:scale(.6)}14%{opacity:1;transform:scale(1.06)}18%{transform:scale(1)}74%{opacity:1;transform:scale(1)}82%,100%{opacity:0;transform:scale(1)}}
+      @keyframes deerThrow{0%{transform:rotate(14deg)}9%{transform:rotate(-30deg)}15%{transform:rotate(72deg)}24%{transform:rotate(72deg)}40%,100%{transform:rotate(14deg)}}
+      @keyframes baubleX{0%,14%{opacity:0;transform:translateX(var(--bx))}15%{opacity:1;transform:translateX(var(--bx))}33%{transform:translateX(56px)}48%{opacity:1}53%,100%{opacity:0;transform:translateX(92px)}}
+      @keyframes baubleY{0%,15%{transform:translateY(var(--by));animation-timing-function:ease-out}24%{transform:translateY(-16px);animation-timing-function:ease-in}33%{transform:translateY(6px);animation-timing-function:ease-out}40%{transform:translateY(-6px);animation-timing-function:ease-in}55%,100%{transform:translateY(118px)}}
+      @keyframes elfBonk{0%{transform:translateY(46px)}12%{transform:translateY(-20px)}17%,32%{transform:translateY(-15px) rotate(0)}36%{transform:translateY(-18px) rotate(22deg)}50%,100%{transform:translateY(46px) rotate(38deg)}}
+      @keyframes starsSpin{0%,36%{opacity:0;transform:rotate(0) scale(.6)}42%{opacity:1;transform:rotate(60deg) scale(1)}86%{opacity:1;transform:rotate(420deg) scale(1)}94%,100%{opacity:0;transform:rotate(480deg) scale(.8)}}
+      @keyframes deerTip{0%{transform:rotate(0)}16%{transform:rotate(-9deg)}30%{transform:rotate(28deg)}56%{transform:rotate(360deg)}62%{transform:rotate(350deg)}68%,100%{transform:rotate(360deg)}}
+      @media (prefers-reduced-motion: reduce){.festive-quip,.festive-stars,.festive-bauble-x{display:none!important}}
       @media (prefers-reduced-motion: reduce){:root[data-theme="festive"] .festive-rock,:root[data-theme="festive"] .festive-carrot{animation:none}}
       @media (prefers-reduced-motion: reduce){:root[data-theme="festive"] .festive-elf,:root[data-theme="festive"] .festive-elf-arm{animation:none}:root[data-theme="festive"] .festive-elf{transform:translateY(-15px)}:root[data-theme="festive"] .festive-elf-arm{transform:none}}
       :root[data-theme="festive"] [style*="background: var(--navy)"] button{background:rgba(20,8,10,0.45)!important}
