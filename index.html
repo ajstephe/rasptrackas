@@ -264,8 +264,12 @@
       :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header):nth-child(10n+9){border-left-color:#F3A9BB!important}
       :root[data-theme="tube"] [style*="background: var(--surface)"]:not(.app-header):nth-child(10n+10){border-left-color:#000000!important}
       :root[data-theme="tube"] [style*="background: var(--navy)"]{border-radius:0!important;border-bottom:6px solid #DC241F!important}
-      /* the statement card clips its blue hero so the red side stripe and the hero's red base meet in one clean right angle */
-      :root[data-theme="tube"] [style*="background: var(--surface)"]:has(> [style*="background: var(--navy)"]){overflow:hidden!important}
+      /* the hero's top-right corner follows the card's, so the red side stripe and the hero's red base meet in one clean right angle */
+      :root[data-theme="tube"] [style*="background: var(--surface)"] > [style*="background: var(--navy)"]{border-top-right-radius:3px!important}
+      :root[data-theme="tube"] [style*="background: var(--surface)"]:has(> [style*="background: var(--navy)"]){overflow:visible!important}
+      /* an interchange station where the two red lines cross: white disc, dark ring, centred on the junction */
+      :root[data-theme="tube"] [style*="background: var(--surface)"] > [style*="background: var(--navy)"] + *{position:relative}
+      :root[data-theme="tube"] [style*="background: var(--surface)"] > [style*="background: var(--navy)"] + *::before{content:'';position:absolute;left:-14.5px;top:-14px;width:22px;height:22px;box-sizing:border-box;border-radius:50%;background:#ffffff;border:5px solid #0b1033;z-index:3;pointer-events:none}
       :root[data-theme="tube"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#c9d1ff!important}
       :root[data-theme="tube"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#FFD329!important}
       :root[data-theme="tube"] .app-sidebar{background:#0b1033!important}
