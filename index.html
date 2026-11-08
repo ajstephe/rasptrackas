@@ -446,6 +446,8 @@
       :root[data-theme="festive"] .festive-quip.q1.wide{right:auto;left:calc(52% - 92px);bottom:80px;font-size:10.5px;--tail:20px}
       :root[data-theme="festive"] .festive-quip.q2.wide{right:auto;left:calc(52% - 100px);bottom:56px;font-size:10.5px;--tail:20px}
       @media (max-width:389px){:root[data-theme="festive"] .festive-quip.q1:not(.wide){right:78px;bottom:64px;--tail:16px}:root[data-theme="festive"] .festive-quip.q2:not(.wide){right:100px;bottom:48px;--tail:16px}}
+      /* keep the hero's Review button above the scene: on a phone the reindeer lands behind it */
+      :root[data-theme="festive"] [style*="background: var(--navy)"] > button{position:relative;z-index:3}
       :root[data-theme="festive"] .festive-elf{transform:translateY(46px);transform-origin:60px 30px;animation:elf13 13s infinite}
       :root[data-theme="festive"] .festive-elf-arm{transform-origin:68px 37px;animation:wave13 13s infinite}
       :root[data-theme="festive"] .festive-stars{transform-origin:60px 22px;opacity:0;animation:stars13 13s linear infinite}
@@ -463,7 +465,7 @@
       @keyframes quip1{0%,20%{opacity:0;transform:scale(.6)}22%{opacity:1;transform:scale(1.06)}24%{transform:scale(1)}38%{opacity:1;transform:scale(1)}41%,100%{opacity:0;transform:scale(1)}}
       @keyframes quip2{0%,51%{opacity:0;transform:scale(.6)}53%{opacity:1;transform:scale(1.06)}55%{transform:scale(1)}73%{opacity:1;transform:scale(1)}76%,100%{opacity:0;transform:scale(1)}}
       @media (prefers-reduced-motion: reduce){:root[data-theme="festive"] :is(.festive-elf,.festive-elf-arm,.festive-stars,.deer-rock,.deer-tip,.deer-arm,.festive-pendulum,.festive-quip){animation:none}:root[data-theme="festive"] .festive-elf{transform:translateY(-15px)}:root[data-theme="festive"] .festive-quip{display:none}}
-      :root[data-theme="festive"] [style*="background: var(--navy)"] button{background:rgba(20,8,10,0.45)!important}
+      :root[data-theme="festive"] [style*="background: var(--navy)"] button{background:#5c0f1c!important}
       :root[data-theme="festive"] .app-sidebar > div:last-child > div:first-child div{color:#fbf7ee!important}
       /* ── 90s Desktop ── Windows 95: teal desktop, silver windows with
          raised 3D edges, navy title bars with _ □ × buttons, a grey
