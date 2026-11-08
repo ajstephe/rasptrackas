@@ -550,13 +550,13 @@ export function TabSummary({
     const yl = {display:'inline-block',background:'#ffff4d',color:XL.ink,fontWeight:700,padding:'3px 8px',minWidth:'140px'};
     const money2 = v => fmtGBP(v);
     const totals = (
-      <div style={{font:'13px/1.2 Arial, Helvetica, sans-serif',color:XL.ink,background:'#fff',padding:isWide?0:'14px 2px 2px',width:isWide?'300px':undefined,flexShrink:0,...(isWide?{position:'sticky',top:`${stickyH+8}px`}:{})}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'0 0 4px'}}><span style={yl}>Total Worked</span><b style={{paddingRight:'8px'}}>{num(totH)||0}</b></div>
+      <div style={{font:'13px/1.2 Arial, Helvetica, sans-serif',color:XL.ink,background:'#fff',padding:isWide?'12px':'14px 2px 2px',width:isWide?'300px':undefined,boxSizing:'border-box',flexShrink:0,...(isWide?{border:XL.thick,position:'sticky',top:`${stickyH}px`}:{})}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'0 0 4px'}}><span style={yl}>Total Worked</span><b style={{paddingRight:'7px'}}>{num(totH)||0}</b></div>
         <table style={box}><tbody>
           {['1.33','1.5','2'].map((r,k)=><tr key={r}><td style={{...sc,textAlign:'right'}}>{r}</td><td style={{...sc,textAlign:'right',fontWeight:700}}>{num(H[k])||0}</td><td style={{...sc,textAlign:'right'}}>{G[k]>0.005?money2(G[k]):'£ -'}</td></tr>)}
         </tbody></table>
         {T[0]+T[1]+T[2]>0&&<>
-          <div style={{textAlign:'right',fontSize:'11px',color:'#5b21b6',marginTop:'4px'}}>£ is the paid hours only · {fmtHrs(T[0]+T[1]+T[2])} taken as TOIL</div>
+          <div style={{textAlign:'right',fontSize:'11px',color:'#5b21b6',marginTop:'4px',padding:'0 7px'}}>£ is the paid hours only · {fmtHrs(T[0]+T[1]+T[2])} taken as TOIL</div>
           <div style={{margin:'16px 0 4px'}}><span style={{...yl,background:'#ddd6fe'}}>TOIL</span></div>
           <table style={box}><tbody>
             {['1.33','1.5','2'].map((r,k)=><tr key={r}><td style={{...sc,textAlign:'right'}}>{r}</td><td style={{...sc,textAlign:'right',fontWeight:700}}>{num(T[k])||0}</td><td style={{...sc,textAlign:'right'}}>{fmtHrs(TB[k])} banked</td></tr>)}
@@ -569,8 +569,8 @@ export function TabSummary({
         </tbody></table>
         <div style={{textAlign:'right',padding:'5px 7px',fontVariantNumeric:'tabular-nums'}}>{money2(paG)}</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr auto',rowGap:'2px',marginTop:'14px',fontWeight:700}}>
-          <span style={{padding:'3px 0'}}>Gross</span><span style={{textAlign:'right',minWidth:'110px',padding:'3px 7px',borderBottom:XL.line}}>{money2(totG)}</span>
-          <span style={{padding:'3px 0'}}>Net</span><span style={{textAlign:'right',padding:'3px 7px',borderBottom:'3px double #111'}}>{money2(totN)}</span>
+          <span style={{padding:'3px 7px'}}>Gross</span><span style={{textAlign:'right',minWidth:'110px',padding:'3px 7px',borderBottom:XL.line}}>{money2(totG)}</span>
+          <span style={{padding:'3px 7px'}}>Net</span><span style={{textAlign:'right',padding:'3px 7px',borderBottom:'3px double #111'}}>{money2(totN)}</span>
         </div>
       </div>
     );
