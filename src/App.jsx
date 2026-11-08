@@ -110,7 +110,7 @@ const MONO  = 'var(--num-font)';
 // text/pill/button colours too. 'classic' covers system/light/dark, which
 // all share today's brass-on-navy sidebar unchanged.
 
-const SB_THEMES = [['system','Auto',['#f1f5f9','#16314f']],['light','Light',['#f1f5f9','#b8823f']],['dark','Dark',['#16314f','#b8823f']],['luftplane','Luftplane',['#05164d','#ffad00']],['flagship','FlagCarrier',['#0a2356','#ef4a52']],['heritage','Heritage',['#00352f','#cedc00']],['professional','Pro',['#111827','#2dd4bf']],['midnight','Midnight',['#05080f','#22d3ee']],['muji','Goji',['#4a3f35','#f1c9a5']],['energy','Energy',['#000000','#8cf01e']],['corporate','Corporate',['#141414','#ffffff']],['miami','Miami Nights',['#3a1660','#ff6ec7']],['miamidays','Miami Days',['#bdeefa','#ff4fa3']],['desktop90s','90s Desktop',['#008080','#c0c0c0']],['tube','Mind the Gap',['#0019A8','#DC241F']]];
+const SB_THEMES = [['system','Auto',['#f1f5f9','#16314f']],['light','Light',['#f1f5f9','#b8823f']],['dark','Dark',['#16314f','#b8823f']],['luftplane','Luftplane',['#05164d','#ffad00']],['flagship','FlagCarrier',['#0a2356','#ef4a52']],['heritage','Heritage',['#00352f','#cedc00']],['professional','Pro',['#111827','#2dd4bf']],['midnight','Midnight',['#05080f','#22d3ee']],['muji','Goji',['#4a3f35','#f1c9a5']],['energy','Energy',['#000000','#8cf01e']],['corporate','Corporate',['#141414','#ffffff']],['miami','Miami Nights',['#3a1660','#ff6ec7']],['miamidays','Miami Days',['#bdeefa','#ff4fa3']],['crown','Crown Duty',['#0a1228','#d4af37']],['desktop90s','90s Desktop',['#008080','#c0c0c0']],['tube','Mind the Gap',['#0019A8','#DC241F']]];
 function SbSwatch({c,size=14,ring}) { return <span style={{width:size,height:size,borderRadius:'50%',flexShrink:0,background:`linear-gradient(135deg, ${c[0]} 50%, ${c[1]} 50%)`,boxShadow:ring?`0 0 0 2px ${ring}`:'0 0 0 1px rgba(255,255,255,0.25)'}}/>; }
 function SidebarThemes({ themeMode, setTheme, THEME }) {
   // Computer-only theme picker, pinned to the bottom of the sidebar: one
@@ -207,6 +207,12 @@ const THEME_PALETTES = {
     sidebarGlow:null, sidebarPill:'#ff4fa3',
     sidebarBtnBg:'rgba(14,143,155,0.08)', sidebarBtnBorder:'rgba(14,143,155,0.4)', sidebarBtnSubtext:'#0a6e78',
   },
+  crown: {
+    brass:'#a07c1c', brassLight:'#f3d47a', navActiveIcon:'#d4af37', pillShadow:'rgba(212,175,55,0.35)',
+    sidebarText:'#cdc6b2', sidebarTextActive:'#0a1228', sidebarDivider:'rgba(212,175,55,0.25)',
+    sidebarGlow:null, sidebarPill:'#d4af37',
+    sidebarBtnBg:'rgba(212,175,55,0.08)', sidebarBtnBorder:'rgba(212,175,55,0.45)', sidebarBtnSubtext:'rgba(243,212,122,0.85)',
+  },
   // Windows 95: a grey Start-menu sidebar, items highlighted navy.
   desktop90s: {
     brass:'#000080', brassLight:'#000080', navActiveIcon:'#ffffff', pillShadow:'none',
@@ -228,7 +234,7 @@ const THEME_PALETTES = {
     sidebarBtnBg:'rgba(255,173,0,0.1)', sidebarBtnBorder:'rgba(255,173,0,0.45)', sidebarBtnSubtext:'rgba(255,173,0,0.75)',
   },
 };
-const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy','muji','luftplane','miami','miamidays','desktop90s','tube'];
+const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy','muji','luftplane','miami','miamidays','crown','desktop90s','tube'];
 // Same check TabSummary's calendar swipe already makes before its own
 // snap-back — used by the pull-to-refresh indicator's settle transition
 // below for the same reason: the live drag tracks the finger regardless

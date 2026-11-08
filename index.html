@@ -73,7 +73,7 @@
          Web (Heritage) Barlow Semi Condensed (Energy), Zen Kaku Gothic New (Goji) and Arimo (Luftplane) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Cabin:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Cinzel:wght@600;700;800&family=Lato:wght@400;700;900&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Cabin:wght@400;500;600;700&family=Cinzel:wght@600;700;800&family=Lato:wght@400;700;900&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -152,7 +152,7 @@
            any of them one token at a time. Midnight is a dark-first design
            in its own right, so this matters just as much for it as it does
            for the light ones. */
-        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="miami"]):not([data-theme="miamidays"]):not([data-theme="desktop90s"]):not([data-theme="tube"]){
+        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="miami"]):not([data-theme="miamidays"]):not([data-theme="crown"]):not([data-theme="desktop90s"]):not([data-theme="tube"]){
           --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
           --exp:#38bdf8;
           --exp-tint:#0c2a3d;
@@ -319,6 +319,44 @@
       :root[data-theme="miamidays"] [style*="background: var(--surface)"]{border:1px solid #9fdde6!important;box-shadow:0 6px 18px rgba(255,79,163,0.10)}
       :root[data-theme="miamidays"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#e0398f!important}
       :root[data-theme="miamidays"] .app-sidebar > div:last-child > div:first-child div{color:#12323d!important}
+      /* ── Crown Duty ── royalty and specialist protection: deep royal
+         navy, gold braid and crimson. White-tie formality over a working
+         police base: a blue-and-white chequer band under the header (the
+         generic UK police chequer, no force insignia), gold-edged cards,
+         a crimson statement card trimmed in gold, and Cinzel's engraved
+         capitals for the title and big figures. */
+      :root[data-theme="crown"]{
+        color-scheme: dark;
+        --exp:#8fb6ff; --exp-tint:#14244a; --exp-ink:#bcd3ff;
+        --title-grad:linear-gradient(90deg,#f3d47a,#d4af37 50%,#f3d47a);
+        --tag-purple:#cdb4ff;
+        --save-bg:#d4af37; --save-ink:#0a1228; --hero-label:#f3d47a;
+        --page-bg:#0a1228; --surface:rgba(17,27,56,0.97); --surface-rgb:17,27,56;
+        --surface-2:#16224a; --surface-2-rgb:22,34,74;
+        --chip-bg:#1b2a58; --border:#33427a; --border-2:#222f5c;
+        --ink:#f6f0e1; --muted:#cdc6b2; --quiet:#9196ad;
+        --navy:#6e0f24; --savebar:#0d1630; --navy-rgb:110,15,36; --sidebar-bg-rgb:8,14,32;
+        --accent:#d4af37;
+        --app-font:'Lato',system-ui,sans-serif; --num-font:'Lato',system-ui,sans-serif;
+        --tint-blue:#15264f; --tint-red:#43121f; --tint-green:#0f3329; --tint-green-2:#124034;
+        --tint-purple:#2a1d55; --tint-amber:#3d2f12; --tint-amber-2:#4d3a14; --tint-teal:#0f3340;
+        --text-navy:#e8dfc4; --text-red-deep:#ff9aa8; --text-green-deep:#7ee0b5; --text-purple-deep:#cdb4ff;
+        --text-amber-deep:#f3d47a; --tint-blue-2:#1b3062; --tint-brass:#3d2f12; --tint-indigo:#1f2a5e;
+        --text-indigo-deep:#c3c9ff; --surface-red-mid:#7a1c33; --text-blue-deep:#bcd3ff;
+      }
+      :root[data-theme="crown"] body,:root[data-theme="crown"] [style*="background: var(--page-bg)"]{background:radial-gradient(ellipse at top,#16224a 0%,#0a1228 55%,#070d1e 100%) fixed!important}
+      /* header: midnight navy with the police chequer band along its foot */
+      :root[data-theme="crown"] .app-header{background:repeating-conic-gradient(#1d3f9a 0 25%,#ffffff 0 50%) left bottom/10px 10px repeat-x,#0b1533!important;border-bottom:none!important;padding-bottom:22px!important}
+      :root[data-theme="crown"] .app-header > div:first-child span:first-child{font-family:'Cinzel',serif!important;font-weight:700!important;letter-spacing:0.6px!important}
+      :root[data-theme="crown"] .app-header > div:first-child span:last-child{color:#cdc6b2!important}
+      :root[data-theme="crown"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-family:'Cinzel',serif!important;font-weight:700!important;letter-spacing:0.3px}
+      /* gold-edged cards */
+      :root[data-theme="crown"] [style*="background: var(--surface)"]:not(.app-header){border:1px solid rgba(212,175,55,0.38)!important;box-shadow:0 8px 24px rgba(0,0,0,0.35),inset 0 1px 0 rgba(243,212,122,0.08)!important}
+      /* crimson statement card, gold rule and a double gold trim along its foot */
+      :root[data-theme="crown"] [style*="background: var(--navy)"]{background:linear-gradient(160deg,#8a1530 0%,#6e0f24 45%,#4a0a19 100%)!important;border-bottom:4px double #d4af37!important}
+      :root[data-theme="crown"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#efd9b0!important}
+      :root[data-theme="crown"] [style*="background: var(--navy)"] button{background:rgba(10,18,40,0.55)!important}
+      :root[data-theme="crown"] .app-sidebar > div:last-child > div:first-child div{color:#f6f0e1!important}
       /* ── 90s Desktop ── Windows 95: teal desktop, silver windows with
          raised 3D edges, navy title bars with _ □ × buttons, a grey
          taskbar with pressed-in tabs, and a Start-menu sidebar with its
