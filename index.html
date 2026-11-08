@@ -430,53 +430,39 @@
       :root[data-theme="festive"] [style*="background: var(--navy)"]{background:radial-gradient(rgba(255,255,255,0.16) 1.2px,transparent 1.8px) 0 0/22px 22px,radial-gradient(rgba(255,255,255,0.1) 1px,transparent 1.5px) 11px 11px/22px 22px,linear-gradient(160deg,#c0263a 0%,#9e1b2c 50%,#6e1020 100%)!important;border-bottom:4px solid #e8b64c!important}
       :root[data-theme="festive"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#ffe0e4!important}
       :root[data-theme="festive"] [style*="background: var(--navy)"] [style*="color: rgb(147, 197, 253)"]{color:#f6d27a!important}
-      /* Santa's sack on the Home hero, Festive only; the elf pops out every few seconds */
-      .festive-sack{display:none}
-      :root[data-theme="festive"] .festive-sack{display:block;position:absolute;right:10px;bottom:0;width:104px;height:120px;pointer-events:none;z-index:0;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.35))}
-      :root[data-theme="festive"] .festive-sack.wide{right:auto;left:52%;width:96px;height:110px}
-      :root[data-theme="festive"] .festive-elf{transform:translateY(46px);animation:elfPop 7s cubic-bezier(.3,.7,.4,1) infinite}
-      :root[data-theme="festive"] .festive-elf-arm{transform-origin:68px 37px;animation:elfWave 7s ease-in-out infinite}
-      @keyframes elfPop{0%,14%{transform:translateY(46px)}22%{transform:translateY(-22px)}26%{transform:translateY(-12px)}29%,48%{transform:translateY(-15px)}56%,100%{transform:translateY(46px)}}
-      @keyframes elfWave{0%,28%{transform:rotate(0)}32%{transform:rotate(-22deg)}36%{transform:rotate(14deg)}40%{transform:rotate(-22deg)}44%{transform:rotate(14deg)}48%,100%{transform:rotate(0)}}
-      /* the reindeer in a rocking armchair beside the sack, nibbling a carrot; tucked just behind the sack */
-      .festive-deer{display:none}
-      :root[data-theme="festive"] .festive-deer{display:block;position:absolute;right:90px;bottom:2px;width:66px;height:74px;pointer-events:none;z-index:0;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.35))}
-      @media (max-width:389px){:root[data-theme="festive"] .festive-deer:not(.wide){right:84px;width:48px;height:54px}:root[data-theme="festive"] .festive-sack:not(.wide){width:88px;height:102px}}
-      :root[data-theme="festive"] .festive-deer.wide{right:auto;left:calc(52% - 62px);width:68px;height:76px}
-      :root[data-theme="festive"] .festive-rock{transform-origin:50px 104px;animation:deerRock 2.6s ease-in-out infinite alternate}
-      :root[data-theme="festive"] .festive-carrot{transform-origin:52px 54px;animation:deerNibble 2.2s ease-in-out infinite}
-      @keyframes deerRock{0%{transform:rotate(-7deg)}100%{transform:rotate(7deg)}}
-      @keyframes deerNibble{0%,40%{transform:rotate(14deg)}55%{transform:rotate(0)}62%{transform:rotate(3deg)}69%{transform:rotate(0)}76%{transform:rotate(3deg)}90%,100%{transform:rotate(14deg)}}
-      /* ── Festive gags, driven by data-gag on the hero ── */
-      .festive-quip,.festive-stars,.festive-bauble-x{display:none}
-      :root[data-theme="festive"] .festive-elf{transform-origin:60px 30px}
-      :root[data-theme="festive"] .festive-sack{overflow:visible;--bx:-25px;--by:57px}
-      :root[data-theme="festive"] .festive-sack.wide{--bx:-52px;--by:50px}
-      @media (max-width:389px){:root[data-theme="festive"] .festive-sack:not(.wide){--bx:-27px;--by:62px}:root[data-theme="festive"] .festive-quip:not(.wide){right:78px;bottom:62px}}
-      :root[data-theme="festive"] .festive-quip{position:absolute;right:96px;bottom:84px;z-index:2;white-space:nowrap;padding:5px 8px;border-radius:11px;background:#fffdf6;color:#3a1a12;font:800 9.5px/1.25 var(--app-font);text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:none}
-      :root[data-theme="festive"] .festive-quip::after{content:'';position:absolute;right:44px;bottom:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#fffdf6}
-      :root[data-theme="festive"] .festive-quip.wide{right:auto;left:calc(52% - 140px);bottom:80px;font-size:10.5px}
-      :root[data-theme="festive"] .festive-quip.wide::after{right:22px}
-      :root[data-theme="festive"] [data-gag="bauble"] .festive-quip{display:block;transform-origin:70% 100%;animation:quipPop 4.2s ease-out both}
-      :root[data-theme="festive"] [data-gag="bauble"] .festive-rock{animation:none;transform:none}
-      :root[data-theme="festive"] [data-gag="bauble"] .festive-carrot{animation:deerThrow 4.2s ease-in-out both}
-      :root[data-theme="festive"] [data-gag="bauble"] .festive-bauble-x{display:block;animation:baubleX 4.2s linear both}
-      :root[data-theme="festive"] [data-gag="bauble"] .festive-bauble-y{animation:baubleY 4.2s linear both}
-      :root[data-theme="festive"] [data-gag="bauble"] .festive-elf{animation:elfBonk 4.2s ease-in-out both}
-      :root[data-theme="festive"] [data-gag="bauble"] .festive-elf-arm{animation:none}
-      :root[data-theme="festive"] [data-gag="bauble"] .festive-stars{display:block;transform-origin:60px 22px;animation:starsSpin 4.2s linear both}
-      :root[data-theme="festive"] [data-gag="tip"] .festive-rock{transform-origin:50px 70px;animation:deerTip 3.8s ease-in-out both}
-      :root[data-theme="festive"] [data-gag="tip"] .festive-carrot{animation:none;transform:rotate(14deg)}
-      @keyframes quipPop{0%,8%{opacity:0;transform:scale(.6)}14%{opacity:1;transform:scale(1.06)}18%{transform:scale(1)}74%{opacity:1;transform:scale(1)}82%,100%{opacity:0;transform:scale(1)}}
-      @keyframes deerThrow{0%{transform:rotate(14deg)}9%{transform:rotate(-30deg)}15%{transform:rotate(72deg)}24%{transform:rotate(72deg)}40%,100%{transform:rotate(14deg)}}
-      @keyframes baubleX{0%,14%{opacity:0;transform:translateX(var(--bx))}15%{opacity:1;transform:translateX(var(--bx))}33%{transform:translateX(56px)}48%{opacity:1}53%,100%{opacity:0;transform:translateX(92px)}}
-      @keyframes baubleY{0%,15%{transform:translateY(var(--by));animation-timing-function:ease-out}24%{transform:translateY(-16px);animation-timing-function:ease-in}33%{transform:translateY(6px);animation-timing-function:ease-out}40%{transform:translateY(-6px);animation-timing-function:ease-in}55%,100%{transform:translateY(118px)}}
-      @keyframes elfBonk{0%{transform:translateY(46px)}12%{transform:translateY(-20px)}17%,32%{transform:translateY(-15px) rotate(0)}36%{transform:translateY(-18px) rotate(22deg)}50%,100%{transform:translateY(46px) rotate(38deg)}}
-      @keyframes starsSpin{0%,36%{opacity:0;transform:rotate(0) scale(.6)}42%{opacity:1;transform:rotate(60deg) scale(1)}86%{opacity:1;transform:rotate(420deg) scale(1)}94%,100%{opacity:0;transform:rotate(480deg) scale(.8)}}
-      @keyframes deerTip{0%{transform:rotate(0)}16%{transform:rotate(-9deg)}30%{transform:rotate(28deg)}56%{transform:rotate(360deg)}62%{transform:rotate(350deg)}68%,100%{transform:rotate(360deg)}}
-      @media (prefers-reduced-motion: reduce){.festive-quip,.festive-stars,.festive-bauble-x{display:none!important}}
-      @media (prefers-reduced-motion: reduce){:root[data-theme="festive"] .festive-rock,:root[data-theme="festive"] .festive-carrot{animation:none}}
-      @media (prefers-reduced-motion: reduce){:root[data-theme="festive"] .festive-elf,:root[data-theme="festive"] .festive-elf-arm{animation:none}:root[data-theme="festive"] .festive-elf{transform:translateY(-15px)}:root[data-theme="festive"] .festive-elf-arm{transform:none}}
+      /* ── Festive Home scene: one 13s loop, every part on the same clock ──
+         0.5s elf pops up · 1.3s reindeer winds up · 1.8-2.6s bauble on a string
+         swings and bonks the elf · 2.7s "ya filthy animal" · 4-5.6s rocking
+         builds · 5.6s over backwards · 6.6s "happy new year" on the floor ·
+         10s back upright. Held still under reduced motion. */
+      .festive-scene,.festive-quip{display:none}
+      :root[data-theme="festive"] .festive-scene{display:block;position:absolute;right:10px;bottom:0;width:147px;height:120px;overflow:visible;pointer-events:none;z-index:0;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.35))}
+      :root[data-theme="festive"] .festive-scene.wide{right:auto;left:calc(52% - 40px);width:136px;height:110px}
+      @media (max-width:389px){:root[data-theme="festive"] .festive-scene:not(.wide){width:120px;height:97px}}
+      :root[data-theme="festive"] .festive-quip{display:block;position:absolute;z-index:2;white-space:nowrap;padding:5px 8px;border-radius:11px;background:#fffdf6;color:#3a1a12;font:800 9.5px/1.25 var(--app-font);text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:none;opacity:0;transform-origin:80% 100%}
+      :root[data-theme="festive"] .festive-quip::after{content:'';position:absolute;right:var(--tail,20px);bottom:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#fffdf6}
+      :root[data-theme="festive"] .festive-quip.q1{right:96px;bottom:86px;--tail:18px;animation:quip1 13s infinite}
+      :root[data-theme="festive"] .festive-quip.q2{right:120px;bottom:60px;--tail:20px;animation:quip2 13s infinite}
+      :root[data-theme="festive"] .festive-quip.q1.wide{right:auto;left:calc(52% - 92px);bottom:80px;font-size:10.5px;--tail:20px}
+      :root[data-theme="festive"] .festive-quip.q2.wide{right:auto;left:calc(52% - 100px);bottom:56px;font-size:10.5px;--tail:20px}
+      @media (max-width:389px){:root[data-theme="festive"] .festive-quip.q1:not(.wide){right:78px;bottom:64px;--tail:16px}:root[data-theme="festive"] .festive-quip.q2:not(.wide){right:100px;bottom:48px;--tail:16px}}
+      :root[data-theme="festive"] .festive-elf{transform:translateY(46px);transform-origin:60px 30px;animation:elf13 13s infinite}
+      :root[data-theme="festive"] .festive-elf-arm{transform-origin:68px 37px;animation:wave13 13s infinite}
+      :root[data-theme="festive"] .festive-stars{transform-origin:60px 22px;opacity:0;animation:stars13 13s linear infinite}
+      :root[data-theme="festive"] .deer-rock{transform-box:fill-box;transform-origin:50% 100%;animation:rock13 13s infinite}
+      :root[data-theme="festive"] .deer-tip{transform-box:fill-box;transform-origin:50% 55%;animation:tip13 13s infinite}
+      :root[data-theme="festive"] .deer-arm{transform-box:fill-box;transform-origin:96% 92%;transform:rotate(14deg);animation:arm13 13s infinite}
+      :root[data-theme="festive"] .festive-pendulum{opacity:0;transform:translate(50px,50px) rotate(40deg);animation:swing13 13s infinite}
+      @keyframes elf13{0%,4%{transform:translateY(46px)}8%{transform:translateY(-20px)}10%,20%{transform:translateY(-15px) rotate(0)}22%{transform:translateY(-18px) rotate(22deg)}27%{transform:translateY(46px) rotate(38deg)}28%,100%{transform:translateY(46px) rotate(0)}}
+      @keyframes wave13{0%,10%{transform:rotate(0)}12%{transform:rotate(-22deg)}14%{transform:rotate(14deg)}16%{transform:rotate(-22deg)}18%{transform:rotate(14deg)}20%,100%{transform:rotate(0)}}
+      @keyframes stars13{0%,21%{opacity:0;transform:rotate(0) scale(.6)}24%{opacity:1;transform:rotate(50deg) scale(1)}38%{opacity:1;transform:rotate(330deg) scale(1)}42%,100%{opacity:0;transform:rotate(380deg) scale(.8)}}
+      @keyframes arm13{0%{transform:rotate(14deg)}3%{transform:rotate(2deg)}5%{transform:rotate(14deg)}10%{transform:rotate(14deg)}13%{transform:rotate(85deg)}15%{transform:rotate(-15deg)}24%{transform:rotate(-15deg)}30%,86%{transform:rotate(14deg)}90%{transform:rotate(2deg)}93%{transform:rotate(14deg)}96%{transform:rotate(2deg)}100%{transform:rotate(14deg)}}
+      @keyframes swing13{0%,13%{opacity:0;transform:translate(50px,50px) rotate(40deg)}14%{opacity:1;transform:translate(50px,50px) rotate(40deg);animation-timing-function:cubic-bezier(.5,0,.9,.6)}20%{transform:translate(50px,50px) rotate(-124deg);animation-timing-function:ease-out}23%{transform:translate(50px,50px) rotate(-96deg);animation-timing-function:ease-in}27%{transform:translate(50px,50px) rotate(-30deg)}29%{opacity:1;transform:translate(50px,50px) rotate(8deg)}31%,100%{opacity:0;transform:translate(50px,50px) rotate(0)}}
+      @keyframes rock13{0%{transform:rotate(0)}5%{transform:rotate(4deg)}10%{transform:rotate(-4deg)}13%,31%{transform:rotate(0)}34%{transform:rotate(-6deg)}37%{transform:rotate(9deg)}40%{transform:rotate(-12deg)}43%,85%{transform:rotate(0)}89%{transform:rotate(4deg)}94%{transform:rotate(-4deg)}100%{transform:rotate(0)}}
+      @keyframes tip13{0%,43%{transform:rotate(0);animation-timing-function:ease-in}48%{transform:rotate(100deg);animation-timing-function:ease-out}50%{transform:rotate(84deg)}52%,77%{transform:rotate(90deg)}82%{transform:rotate(-8deg)}85%,100%{transform:rotate(0)}}
+      @keyframes quip1{0%,20%{opacity:0;transform:scale(.6)}22%{opacity:1;transform:scale(1.06)}24%{transform:scale(1)}38%{opacity:1;transform:scale(1)}41%,100%{opacity:0;transform:scale(1)}}
+      @keyframes quip2{0%,51%{opacity:0;transform:scale(.6)}53%{opacity:1;transform:scale(1.06)}55%{transform:scale(1)}73%{opacity:1;transform:scale(1)}76%,100%{opacity:0;transform:scale(1)}}
+      @media (prefers-reduced-motion: reduce){:root[data-theme="festive"] :is(.festive-elf,.festive-elf-arm,.festive-stars,.deer-rock,.deer-tip,.deer-arm,.festive-pendulum,.festive-quip){animation:none}:root[data-theme="festive"] .festive-elf{transform:translateY(-15px)}:root[data-theme="festive"] .festive-quip{display:none}}
       :root[data-theme="festive"] [style*="background: var(--navy)"] button{background:rgba(20,8,10,0.45)!important}
       :root[data-theme="festive"] .app-sidebar > div:last-child > div:first-child div{color:#fbf7ee!important}
       /* ── 90s Desktop ── Windows 95: teal desktop, silver windows with

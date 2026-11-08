@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment } from 'react';
 import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
@@ -26,23 +26,6 @@ export function TabDashboard({
   const animatedNet = useCountUp(pb ? pb.combinedNet : 0);
   const animatedGrossYTD = useCountUp(settings.rank&&settings.service ? totals.combinedGrossYTD : 0);
 
-  // Festive only: every so often the reindeer and elf act out a gag in turn
-  // (a bauble lobbed at the elf, or the reindeer rocking clean over in his
-  // chair). Drives a data-gag attribute on the hero that the CSS keys its
-  // one-off animations to; skipped entirely under reduced motion.
-  const [gag, setGag] = useState(null);
-  useEffect(() => {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    const seq = [['bauble', 4200], [null, 6900], ['tip', 3800], [null, 7300]];
-    let i = 0, t;
-    const run = () => {
-      const [g, d] = seq[i++ % seq.length];
-      setGag(document.documentElement.getAttribute('data-theme') === 'festive' ? g : null);
-      t = setTimeout(run, d);
-    };
-    t = setTimeout(run, 4200);
-    return () => clearTimeout(t);
-  }, []);
 
   // ── Net-pay hero row ──────────────────────────────────────────────
   // Replaces the old cramped "Gross & Net" mini-columns with the one
@@ -66,13 +49,19 @@ export function TabDashboard({
   // tax year, and — when there's anything unclaimed — a pill that says
   // where tapping it goes.
   const masthead = (compact) => (
-    <div data-gag={gag||undefined} style={{background:'var(--navy)',padding:compact?'18px':'22px 26px',position:'relative',overflow:'hidden',display:compact?'block':'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'16px',flexWrap:'wrap'}}>
+    <div style={{background:'var(--navy)',padding:compact?'18px':'22px 26px',position:'relative',overflow:'hidden',display:compact?'block':'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'16px',flexWrap:'wrap'}}>
       <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
       {/* Festive only (hidden by CSS in every other theme): Santa's sack of
           presents in the corner, with an elf who pops out now and then. */}
-      <div className={'festive-quip'+(compact?'':' wide')} aria-hidden="true">Merry Christmas,<br/>you filthy animal!</div>
-      <svg className={'festive-deer'+(compact?'':' wide')} viewBox="0 0 100 112" aria-hidden="true" focusable="false">
-        <g className="festive-rock">
+      {/* Festive only (hidden by CSS otherwise): one looping scene. The elf
+          pops out of Santa's sack, the reindeer swings a bauble on a string
+          at him, then rocks his chair over backwards and lies on the floor. */}
+      <div className={'festive-quip q1'+(compact?'':' wide')} aria-hidden="true">Merry Christmas,<br/>ya filthy animal!</div>
+      <div className={'festive-quip q2'+(compact?'':' wide')} aria-hidden="true">And a happy<br/>new year!</div>
+      <svg className={'festive-scene'+(compact?'':' wide')} viewBox="0 -26 170 138" aria-hidden="true" focusable="false">
+        <svg x="0" y="27" width="76" height="85" viewBox="0 0 100 112" overflow="visible">
+          <g transform="matrix(-1 0 0 1 100 0)">
+            <g className="deer-rock"><g className="deer-tip">
           <path d="M6 100 Q50 114 94 100" fill="none" stroke="#5e3a17" strokeWidth="5" strokeLinecap="round"/>
           <path d="M24 74 L19 101 M76 74 L81 101" stroke="#6b4423" strokeWidth="4" strokeLinecap="round"/>
           <rect x="58" y="20" width="28" height="56" rx="10" fill="#a8322a"/>
@@ -92,16 +81,17 @@ export function TabDashboard({
           <circle cx="44" cy="27" r="1.7" fill="#2b1a10"/>
           <circle cx="44.6" cy="26.4" r="0.5" fill="#ffffff"/>
           <path d="M33 39.5 Q36 41.5 39 39.5" fill="none" stroke="#5e3a17" strokeWidth="1.1" strokeLinecap="round"/>
-          <g className="festive-carrot">
+          <g className="deer-arm">
             <path d="M52 54 Q44 52 37 45" fill="none" stroke="#8b5a3c" strokeWidth="5.5" strokeLinecap="round"/>
             <path d="M24 42 L39 41 L37 47 Z" fill="#f08a24"/>
             <path d="M28 42.5 L29 45 M32 42 L33 45" stroke="#c96a12" strokeWidth="0.8"/>
             <path d="M39 42 L45 37 M39 43 L46 41 M38 44 L44 46" stroke="#3f9a3a" strokeWidth="1.6" strokeLinecap="round"/>
             <circle cx="37" cy="45" r="3" fill="#5e3a22"/>
           </g>
-        </g>
-      </svg>
-      <svg className={'festive-sack'+(compact?'':' wide')} viewBox="0 -26 120 138" aria-hidden="true" focusable="false">
+            </g></g>
+          </g>
+        </svg>
+        <svg x="50" y="-26" width="120" height="138" viewBox="0 -26 120 138" overflow="visible">
         <ellipse cx="60" cy="45" rx="37" ry="8" fill="#3d240e"/>
         <g className="festive-elf">
           <path d="M49 52 Q49 36 60 34 Q71 36 71 52 Z" fill="#1f8a4c"/>
@@ -138,12 +128,15 @@ export function TabDashboard({
           <path d="M74 18 l1.3 2.7 2.9 .4 -2.1 2 .5 2.9 -2.6 -1.4 -2.6 1.4 .5 -2.9 -2.1 -2 2.9 -.4 z" fill="#ffffff"/>
           <path d="M60 10 l1.4 3 3.2 .4 -2.3 2.2 .6 3.2 -2.9 -1.6 -2.9 1.6 .6 -3.2 -2.3 -2.2 3.2 -.4 z" fill="#ffe27a"/>
         </g>
-        <g className="festive-bauble-x"><g className="festive-bauble-y">
-          <circle r="6.5" fill="#d61f3a"/><circle r="6.5" fill="none" stroke="#8a0f22" strokeWidth="0.8"/>
-          <circle cx="-2.2" cy="-2.4" r="1.8" fill="#ffffff" opacity="0.75"/>
-          <rect x="-2.4" y="-9" width="4.8" height="3" rx="0.8" fill="#e8b64c"/>
-          <path d="M0 -9 q-2 -3 0 -4 q2 1 0 4" fill="none" stroke="#e8b64c" strokeWidth="0.9"/>
-        </g></g>
+        </svg>
+        <g className="festive-pendulum">
+          <line x1="0" y1="0" x2="0" y2="63" stroke="#fff3c4" strokeWidth="1"/>
+          <g transform="translate(0 70)">
+            <circle r="6.5" fill="#d61f3a"/><circle r="6.5" fill="none" stroke="#8a0f22" strokeWidth="0.8"/>
+            <circle cx="-2.2" cy="-2.4" r="1.8" fill="#ffffff" opacity="0.75"/>
+            <rect x="-2.4" y="-9" width="4.8" height="3" rx="0.8" fill="#e8b64c"/>
+          </g>
+        </g>
       </svg>
       <div>
         <div style={{fontSize:compact?'11px':'11.5px',fontWeight:800,color:'var(--hero-label,#93c5fd)',marginBottom:'5px'}}>Gross pay this tax year</div>
