@@ -1,4 +1,4 @@
-import { themeInSeason } from './seasonal.js';
+import { themeInSeason, SEASONAL_THEMES, seasonKey, rememberPreSeasonTheme, preSeasonTheme, seasonNoticeSeen, markSeasonNoticeSeen } from './seasonal.js';
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback, lazy, Suspense } from "react";
 // @supabase/supabase-js is dynamically imported inside App() itself (see
 // hasSupabaseConfig / the supabase state below) rather than statically here.
@@ -953,12 +953,28 @@ export default function App() {
   // A saved theme that's since been removed (Terminal) falls back to Auto.
   // Apple-Inspired was reworked into Corporate, so a saved 'apple' carries over,
   // and Heather was replaced by Energy, so a saved 'heather' does too.
-  const [themeMode, setThemeMode] = useState(()=>{ let v = dualRead(KEYS.themeMode,'system'); if (v==='apple') v='corporate'; if (v==='heather') v='energy'; if (v==='tycoon') v='tube'; return THEME_IDS.includes(v) && themeInSeason(v) ? v : 'system'; });
+  const [themeMode, setThemeMode] = useState(()=>{ let v = dualRead(KEYS.themeMode,'system'); if (v==='apple') v='corporate'; if (v==='heather') v='energy'; if (v==='tycoon') v='tube'; if (!THEME_IDS.includes(v)) return 'system';
+    // A seasonal theme whose season has ended hands back whatever the
+    // person was using before they picked it (or Auto).
+    if (!themeInSeason(v)) { const prev = preSeasonTheme(); return prev && THEME_IDS.includes(prev) && !SEASONAL_THEMES[prev] && themeInSeason(prev) ? prev : 'system'; }
+    return v; });
+  // Persist a season-end revert straight away, so the seasonal theme doesn't
+  // quietly come back on next year's first day.
+  useEffect(()=>{ if (dualRead(KEYS.themeMode,'system')!==themeMode) dualWrite(KEYS.themeMode, themeMode); },[]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{
     if(themeMode==='system') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', themeMode);
   },[themeMode]);
-  const setTheme = v => { setThemeMode(v); dualWrite(KEYS.themeMode, v); };
+  const setTheme = v => { if (SEASONAL_THEMES[v] && !SEASONAL_THEMES[themeMode]) rememberPreSeasonTheme(themeMode); setThemeMode(v); dualWrite(KEYS.themeMode, v); };
+  // One-off "Festive is here" pop-up, once per season, never switching on
+  // its own: the person chooses.
+  const [festiveNotice, setFestiveNotice] = useState(false);
+  useEffect(()=>{
+    if (!themeInSeason('festive') || themeMode==='festive' || seasonNoticeSeen(seasonKey('festive'))) return;
+    const t = setTimeout(()=>setFestiveNotice(true), 1200);
+    return () => clearTimeout(t);
+  },[]); // eslint-disable-line react-hooks/exhaustive-deps
+  const closeFestiveNotice = tryIt => { markSeasonNoticeSeen(seasonKey('festive')); setFestiveNotice(false); if (tryIt) setTheme('festive'); };
   // Mind the Gap: one interchange station per tab. The tab's lead card
   // (first sizeable card in the content area) is tagged data-station so
   // CSS can draw a black line across its top meeting its side stripe, with
@@ -4789,6 +4805,23 @@ export default function App() {
           )}
         </div>
       </header>
+
+      {/* ── seasonal: Festive theme is available (shown once a season) ── */}
+      {festiveNotice&&(
+        <div onClick={()=>closeFestiveNotice(false)} className="ov-in" style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.45)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px',zIndex:400}}>
+          <div role="dialog" aria-modal="true" aria-label="Festive theme available" onClick={e=>e.stopPropagation()} className="alert-pop" style={{background:'#0e2419',color:'#fbf7ee',borderRadius:'20px',border:'1px solid rgba(232,182,76,0.45)',width:'100%',maxWidth:'380px',padding:'26px 22px 20px',boxSizing:'border-box',position:'relative',boxShadow:'0 24px 64px rgba(0,0,0,0.4)',textAlign:'center',overflow:'hidden'}}>
+            <div aria-hidden="true" className="festive-notice-lights"/>
+            <div style={{fontSize:'34px',lineHeight:1,margin:'8px 0 10px'}}>🎄</div>
+            <div style={{fontSize:'17px',fontWeight:900,marginBottom:'6px'}}>The Festive theme is here</div>
+            <div style={{fontSize:'13px',color:'#cfd9cf',lineHeight:1.55,marginBottom:'18px'}}>Pine green, berry red and twinkling fairy lights, available until 31 December. Your current theme stays as it is unless you switch, and comes back on its own when the season ends.</div>
+            <div style={{display:'flex',gap:'8px'}}>
+              <button onClick={()=>closeFestiveNotice(true)} style={{flex:1,padding:'12px',background:'#c8102e',border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Try it</button>
+              <button onClick={()=>closeFestiveNotice(false)} style={{flex:1,padding:'12px',background:'rgba(255,255,255,0.08)',border:'none',borderRadius:'11px',color:'#fbf7ee',fontWeight:700,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Not now</button>
+            </div>
+            <div style={{fontSize:'11px',color:'#93a99a',marginTop:'12px'}}>You can switch any time from the theme menu</div>
+          </div>
+        </div>
+      )}
 
       {/* ── sign-out confirmation — bottom sheet, same pattern as the export
            modal, with an explicit close (×) as well as Cancel ── */}
