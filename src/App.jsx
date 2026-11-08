@@ -939,6 +939,34 @@ export default function App() {
     else document.documentElement.setAttribute('data-theme', themeMode);
   },[themeMode]);
   const setTheme = v => { setThemeMode(v); dualWrite(KEYS.themeMode, v); };
+  // Mind the Gap: one interchange station per tab. The tab's lead card
+  // (first sizeable card in the content area) is tagged data-station so
+  // CSS can draw a blue line across its top meeting its side stripe, with
+  // a station circle on the corner. Home skips it: its hero already has
+  // its own junction. Re-tagged as tabs and views re-render.
+  useEffect(()=>{
+    const clear = () => document.querySelectorAll('[data-station]').forEach(el=>el.removeAttribute('data-station'));
+    if (themeMode !== 'tube') { clear(); return; }
+    let raf = 0;
+    const tag = () => {
+      raf = 0;
+      const cards = [...document.querySelectorAll('[style*="background: var(--surface)"]')]
+        .filter(el => !el.closest('.app-header,.app-nav,.app-sidebar,[role="dialog"]') && el.offsetParent && el.getBoundingClientRect().height >= 80);
+      // A blue hero standing on its own (Awaits) is the junction itself;
+      // otherwise the tab's lead card is.
+      const hero = [...document.querySelectorAll('[style*="background: var(--navy)"]')]
+        .find(el => !el.closest('.app-header,.app-nav,.app-sidebar,[role="dialog"]') && el.offsetParent && el.getBoundingClientRect().height >= 80 && !el.parentElement?.closest('[style*="background: var(--surface)"]'));
+      const lead = cards.find(el => !el.parentElement?.closest('[style*="background: var(--surface)"]'));
+      const pick = hero || (lead && !lead.querySelector(':scope > [style*="background: var(--navy)"]') ? lead : null);
+      document.querySelectorAll('[data-station]').forEach(el => { if (el !== pick) el.removeAttribute('data-station'); });
+      if (pick) { const kind = pick===hero ? 'hero' : 'card'; if (pick.getAttribute('data-station')!==kind) pick.setAttribute('data-station',kind); }
+    };
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(tag); };
+    schedule();
+    const mo = new MutationObserver(schedule);
+    mo.observe(document.body, { childList:true, subtree:true });
+    return () => { mo.disconnect(); if (raf) cancelAnimationFrame(raf); clear(); };
+  },[themeMode]);
   const THEME = THEME_PALETTES[themeMode] || THEME_PALETTES.classic;
   const BRASS = THEME.brass;
 

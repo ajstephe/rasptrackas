@@ -270,6 +270,11 @@
       /* an interchange station where the two red lines cross: white disc, dark ring, centred on the junction */
       :root[data-theme="tube"] [style*="background: var(--surface)"] > [style*="background: var(--navy)"] + *{position:relative}
       :root[data-theme="tube"] [style*="background: var(--surface)"] > [style*="background: var(--navy)"] + *::before{content:'';position:absolute;left:-14.5px;top:-14px;width:22px;height:22px;box-sizing:border-box;border-radius:50%;background:#ffffff;border:5px solid #0b1033;z-index:3;pointer-events:none}
+      /* the lead card on every other tab: a Piccadilly-blue line along its top meets its side stripe, with the same interchange on the corner */
+      :root[data-theme="tube"] [data-station="hero"]{position:relative;overflow:visible!important;border-left:7px solid #DC241F!important}
+      :root[data-theme="tube"] [data-station="hero"]::before{content:'';position:absolute;left:-14.5px;bottom:-14px;width:22px;height:22px;box-sizing:border-box;border-radius:50%;background:#ffffff;border:5px solid #0b1033;z-index:3;pointer-events:none}
+      :root[data-theme="tube"] [data-station="card"]{position:relative;overflow:visible!important;border-top:5px solid #0019A8!important}
+      :root[data-theme="tube"] [data-station="card"]::before{content:'';position:absolute;left:-14.5px;top:-13.5px;width:22px;height:22px;box-sizing:border-box;border-radius:50%;background:#ffffff;border:5px solid #0b1033;z-index:3;pointer-events:none}
       :root[data-theme="tube"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#c9d1ff!important}
       :root[data-theme="tube"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#FFD329!important}
       :root[data-theme="tube"] .app-sidebar{background:#0b1033!important}
