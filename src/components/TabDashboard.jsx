@@ -130,11 +130,12 @@ export function TabDashboard({
         </g>
         </svg>
         <g className="festive-pendulum">
-          <line x1="0" y1="0" x2="0" y2="63" stroke="#fff3c4" strokeWidth="1"/>
-          <g transform="translate(0 70)">
-            <circle r="6.5" fill="#d61f3a"/><circle r="6.5" fill="none" stroke="#8a0f22" strokeWidth="0.8"/>
-            <circle cx="-2.2" cy="-2.4" r="1.8" fill="#ffffff" opacity="0.75"/>
-            <rect x="-2.4" y="-9" width="4.8" height="3" rx="0.8" fill="#e8b64c"/>
+          <line x1="0" y1="0" x2="0" y2="106" stroke="#fff3c4" strokeWidth="1"/>
+          <g transform="translate(0 115.4)">
+            <circle r="6.5" fill="#e8b64c"/><circle r="6.5" fill="none" stroke="#9a6b12" strokeWidth="0.9"/>
+            <path d="M-6 1 Q0 4 6 1" fill="none" stroke="#c8961e" strokeWidth="1.1"/>
+            <circle cx="-2.2" cy="-2.4" r="1.8" fill="#fff8dc" opacity="0.85"/>
+            <rect x="-2.4" y="-9" width="4.8" height="3" rx="0.8" fill="#b8862a"/>
           </g>
         </g>
       </svg>
