@@ -59,7 +59,7 @@ export function TabDashboard({
           <path d="M55 35 L60 41 L65 35" fill="none" stroke="#e8b64c" strokeWidth="1.6"/>
           <g className="festive-elf-arm">
             <path d="M68 37 Q75 33 78 24" fill="none" stroke="#1f8a4c" strokeWidth="4.5" strokeLinecap="round"/>
-            <circle cx="78.5" cy="22.5" r="3.2" fill="#c8102e"/>
+            <circle cx="78.5" cy="22.5" r="3.6" fill="#ffffff" stroke="#2b1a10" strokeWidth="0.8"/>
           </g>
           <path d="M52 22 L44 16 L53 26 Z" fill="#f2c9a0"/>
           <path d="M68 22 L76 16 L67 26 Z" fill="#f2c9a0"/>
