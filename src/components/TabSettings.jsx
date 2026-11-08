@@ -14,7 +14,7 @@ import { useBackButtonCloses } from '../lib/useBackButtonCloses.js';
 
 // Matches the mobile theme row's track side padding, so arrow stops line
 // up the same way the row's two ends do.
-const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['corporate','Corporate'],['energy','Energy'],['festive','Festive'],['flagship','FlagCarrier'],['muji','Goji'],['heritage','Heritage'],['claret','Irons'],['luftplane','Luftplane'],['miamidays','Miami Days'],['miami','Miami Nights'],['midnight','Midnight'],['tube','Mind the Gap'],['desktop90s','90s Desktop'],['professional','Pro'],['pumpkin','Pumpkin Spice']];
+const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['barista','Barista'],['corporate','Corporate'],['energy','Energy'],['festive','Festive'],['flagship','FlagCarrier'],['muji','Goji'],['heritage','Heritage'],['claret','Irons'],['luftplane','Luftplane'],['miamidays','Miami Days'],['miami','Miami Nights'],['midnight','Midnight'],['tube','Mind the Gap'],['desktop90s','90s Desktop'],['professional','Pro']];
 
 // ─── More.. (settings) tab ───────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='settings' block — no behaviour

@@ -111,7 +111,7 @@ const MONO  = 'var(--num-font)';
 // text/pill/button colours too. 'classic' covers system/light/dark, which
 // all share today's brass-on-navy sidebar unchanged.
 
-const SB_THEMES = [['system','Auto',['#f1f5f9','#16314f']],['light','Light',['#f1f5f9','#b8823f']],['dark','Dark',['#16314f','#b8823f']],['corporate','Corporate',['#141414','#ffffff']],['energy','Energy',['#000000','#8cf01e']],['festive','Festive',['#0e2419','#c8102e']],['flagship','FlagCarrier',['#0a2356','#ef4a52']],['muji','Goji',['#4a3f35','#f1c9a5']],['heritage','Heritage',['#00352f','#cedc00']],['claret','Irons',['#7a263a','#1bb1e7']],['luftplane','Luftplane',['#05164d','#ffad00']],['miamidays','Miami Days',['#bdeefa','#ff4fa3']],['miami','Miami Nights',['#3a1660','#ff6ec7']],['midnight','Midnight',['#05080f','#22d3ee']],['tube','Mind the Gap',['#0019A8','#DC241F']],['desktop90s','90s Desktop',['#008080','#c0c0c0']],['professional','Pro',['#111827','#2dd4bf']],['pumpkin','Pumpkin Spice',['#f7efe3','#d9731f']]];
+const SB_THEMES = [['system','Auto',['#f1f5f9','#16314f']],['light','Light',['#f1f5f9','#b8823f']],['dark','Dark',['#16314f','#b8823f']],['barista','Barista',['#f2f0eb','#00704a']],['corporate','Corporate',['#141414','#ffffff']],['energy','Energy',['#000000','#8cf01e']],['festive','Festive',['#0e2419','#c8102e']],['flagship','FlagCarrier',['#0a2356','#ef4a52']],['muji','Goji',['#4a3f35','#f1c9a5']],['heritage','Heritage',['#00352f','#cedc00']],['claret','Irons',['#7a263a','#1bb1e7']],['luftplane','Luftplane',['#05164d','#ffad00']],['miamidays','Miami Days',['#bdeefa','#ff4fa3']],['miami','Miami Nights',['#3a1660','#ff6ec7']],['midnight','Midnight',['#05080f','#22d3ee']],['tube','Mind the Gap',['#0019A8','#DC241F']],['desktop90s','90s Desktop',['#008080','#c0c0c0']],['professional','Pro',['#111827','#2dd4bf']]];
 function SbSwatch({c,size=14,ring}) { return <span style={{width:size,height:size,borderRadius:'50%',flexShrink:0,background:`linear-gradient(135deg, ${c[0]} 50%, ${c[1]} 50%)`,boxShadow:ring?`0 0 0 2px ${ring}`:'0 0 0 1px rgba(255,255,255,0.25)'}}/>; }
 function SidebarThemes({ themeMode, setTheme, THEME }) {
   // Computer-only theme picker, pinned to the bottom of the sidebar: one
@@ -215,11 +215,11 @@ const THEME_PALETTES = {
     sidebarGlow:null, sidebarPill:'#9fdcf6',
     sidebarBtnBg:'rgba(255,255,255,0.08)', sidebarBtnBorder:'rgba(159,220,246,0.55)', sidebarBtnSubtext:'#9fdcf6',
   },
-  pumpkin: {
-    brass:'#c4621a', brassLight:'#f3c58a', navActiveIcon:'#c4621a', pillShadow:'rgba(196,98,26,0.35)',
-    sidebarText:'#e9d6c3', sidebarTextActive:'#3b2416', sidebarDivider:'rgba(243,197,138,0.25)',
-    sidebarGlow:null, sidebarPill:'#f3c58a',
-    sidebarBtnBg:'rgba(243,197,138,0.1)', sidebarBtnBorder:'rgba(243,197,138,0.45)', sidebarBtnSubtext:'#f3c58a',
+  barista: {
+    brass:'#00704a', brassLight:'#c8a97e', navActiveIcon:'#00704a', pillShadow:'rgba(0,112,74,0.3)',
+    sidebarText:'#d4e9e2', sidebarTextActive:'#1e3932', sidebarDivider:'rgba(255,255,255,0.15)',
+    sidebarGlow:null, sidebarPill:'#d4e9e2',
+    sidebarBtnBg:'rgba(255,255,255,0.07)', sidebarBtnBorder:'rgba(200,169,126,0.6)', sidebarBtnSubtext:'#c8a97e',
   },
   festive: {
     brass:'#c8102e', brassLight:'#e8b64c', navActiveIcon:'#e8b64c', pillShadow:'rgba(200,16,46,0.4)',
@@ -248,7 +248,7 @@ const THEME_PALETTES = {
     sidebarBtnBg:'rgba(255,173,0,0.1)', sidebarBtnBorder:'rgba(255,173,0,0.45)', sidebarBtnSubtext:'rgba(255,173,0,0.75)',
   },
 };
-const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy','muji','luftplane','miami','miamidays','claret','pumpkin','festive','desktop90s','tube'];
+const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy','muji','luftplane','miami','miamidays','claret','barista','festive','desktop90s','tube'];
 // Same check TabSummary's calendar swipe already makes before its own
 // snap-back — used by the pull-to-refresh indicator's settle transition
 // below for the same reason: the live drag tracks the finger regardless
@@ -4736,7 +4736,7 @@ export default function App() {
            not dark-mode variants, so they're excluded here the same way an
            explicit "light" choice already is. */
         @media (prefers-color-scheme: dark){
-          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="desktop90s"]):not([data-theme="tube"]):not([data-theme="miamidays"]):not([data-theme="claret"]):not([data-theme="pumpkin"]) input[type=date]{color-scheme:dark}
+          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="desktop90s"]):not([data-theme="tube"]):not([data-theme="miamidays"]):not([data-theme="claret"]):not([data-theme="barista"]) input[type=date]{color-scheme:dark}
         }
         :root[data-theme="dark"] input[type=date]{color-scheme:dark}
         :root[data-theme="midnight"] input[type=date]{color-scheme:dark}

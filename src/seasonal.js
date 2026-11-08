@@ -2,7 +2,6 @@
 // Windows are [startMonth, startDay, endMonth, endDay], inclusive, months
 // 1-12; a window whose end is before its start wraps over New Year.
 export const SEASONAL_THEMES = {
-  pumpkin: [9, 1, 11, 30],   // Pumpkin Spice: 1 Sep – 30 Nov
   festive: [12, 1, 1, 6],    // Festive: 1 Dec – 6 Jan (Twelfth Night)
 };
 

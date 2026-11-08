@@ -152,7 +152,7 @@
            any of them one token at a time. Midnight is a dark-first design
            in its own right, so this matters just as much for it as it does
            for the light ones. */
-        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="miami"]):not([data-theme="miamidays"]):not([data-theme="claret"]):not([data-theme="pumpkin"]):not([data-theme="festive"]):not([data-theme="desktop90s"]):not([data-theme="tube"]){
+        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="miami"]):not([data-theme="miamidays"]):not([data-theme="claret"]):not([data-theme="barista"]):not([data-theme="festive"]):not([data-theme="desktop90s"]):not([data-theme="tube"]){
           --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
           --exp:#38bdf8;
           --exp-tint:#0c2a3d;
@@ -355,40 +355,39 @@
       :root[data-theme="claret"] .app-sidebar > div:last-child > div:first-child div{color:#ffffff!important}
       /* month selector: no claret ring on the chosen month, its pink fill and claret text are enough */
       :root[data-theme="claret"] button[style*="border: 1.5px solid rgb(122, 38, 58)"]{border:1px solid var(--border-2)!important}
-      /* ── Pumpkin Spice ── (seasonal: 1 Sep – 30 Nov) an autumn coffee-
-         house: steamed-milk cream page, espresso header with a pumpkin
-         band, cream cards, a latte-pour statement card running espresso
-         to caramel to pumpkin, Lora for the title and figures. No coffee
-         chain name or logo. */
-      :root[data-theme="pumpkin"]{
+      /* ── Barista ── a coffee-house counter: warm cream page, clean white
+         cards, a house-green header, and a deep green statement card with a
+         kraft-paper cup-sleeve band along its foot. Lora for the title and
+         figures, Lato for text. No coffee-chain name, logo or siren. */
+      :root[data-theme="barista"]{
         color-scheme: light;
-        --exp:#b4561a; --exp-tint:#fbe9d8; --exp-ink:#8a3f10;
+        --exp:#00704a; --exp-tint:#d4e9e2; --exp-ink:#005a3b;
         --title-grad:linear-gradient(90deg,#ffffff,#ffffff);
-        --tag-purple:#8a4b2a;
-        --save-bg:#d9731f; --save-ink:#ffffff; --hero-label:#ffe2b8;
-        --page-bg:#f7efe3; --surface:#fffaf3; --surface-rgb:255,250,243;
-        --surface-2:#fbf3e7; --surface-2-rgb:251,243,231;
-        --chip-bg:#f5e8d6; --border:#e7d5bf; --border-2:#efe2d0;
-        --ink:#3b2416; --muted:#6e5340; --quiet:#9a806b;
-        --navy:#6b3a20; --savebar:#3b2416; --navy-rgb:107,58,32; --sidebar-bg-rgb:59,36,22;
-        --accent:#d9731f;
+        --tag-purple:#6b4f2f;
+        --save-bg:#00704a; --save-ink:#ffffff; --hero-label:#d4e9e2;
+        --page-bg:#f2f0eb; --surface:#ffffff; --surface-rgb:255,255,255;
+        --surface-2:#f9f8f5; --surface-2-rgb:249,248,245;
+        --chip-bg:#edebe4; --border:#dcd7cc; --border-2:#e8e4da;
+        --ink:#1e1e1e; --muted:#555049; --quiet:#857f75;
+        --navy:#1e3932; --savebar:#1e3932; --navy-rgb:30,57,50; --sidebar-bg-rgb:30,57,50;
+        --accent:#00704a;
         --app-font:'Lato',system-ui,sans-serif; --num-font:'Lora',Georgia,serif;
-        --tint-blue:#e8eef6; --tint-red:#fbe3dc; --tint-green:#e4f0dc; --tint-green-2:#d2e6c5;
-        --tint-purple:#f2e6dc; --tint-amber:#fdeed7; --tint-amber-2:#fbdcae; --tint-teal:#e2efea;
-        --text-navy:#3b2416; --text-red-deep:#a3361c; --text-green-deep:#3f6b25; --text-purple-deep:#7a3f22;
-        --text-amber-deep:#8a4c00; --tint-blue-2:#d8e3f0; --tint-brass:#fbe3dc; --tint-indigo:#e8e4f2;
-        --text-indigo-deep:#4a3f8a; --surface-red-mid:#efa98a; --text-blue-deep:#2f5a8a;
+        --tint-blue:#e3eef5; --tint-red:#f9e2df; --tint-green:#d4e9e2; --tint-green-2:#bfdfd3;
+        --tint-purple:#efe7dc; --tint-amber:#f7edd8; --tint-amber-2:#efdbb2; --tint-teal:#d7ece8;
+        --text-navy:#1e1e1e; --text-red-deep:#a3302a; --text-green-deep:#00704a; --text-purple-deep:#6b4f2f;
+        --text-amber-deep:#86561a; --tint-blue-2:#d2e4f0; --tint-brass:#f7edd8; --tint-indigo:#e6e6f2;
+        --text-indigo-deep:#3a3f8a; --surface-red-mid:#e8a29b; --text-blue-deep:#245a80;
       }
-      :root[data-theme="pumpkin"] .app-header{background:#3b2416!important;border-bottom:5px solid #d9731f!important}
-      :root[data-theme="pumpkin"] .app-header > div:first-child span:first-child{font-family:'Lora',Georgia,serif!important;font-weight:700!important;font-style:italic;-webkit-text-fill-color:#fff3e2!important}
-      :root[data-theme="pumpkin"] .app-header > div:first-child span:last-child{color:#f3c58a!important}
-      :root[data-theme="pumpkin"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-weight:700!important}
-      :root[data-theme="pumpkin"] [style*="background: var(--surface)"]:not(.app-header){border:1px solid #ead7bf!important;box-shadow:0 6px 18px rgba(107,58,32,0.08)!important}
-      :root[data-theme="pumpkin"] [style*="background: var(--navy)"]{background:linear-gradient(160deg,#3b2416 0%,#6b3a20 35%,#a8592a 70%,#d9731f 100%)!important;border-bottom:5px solid #f3e2c7!important}
-      :root[data-theme="pumpkin"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#f6dcc0!important}
-      :root[data-theme="pumpkin"] [style*="background: var(--navy)"] button{background:rgba(40,20,10,0.45)!important}
-      :root[data-theme="pumpkin"] .app-sidebar > div:last-child > div:first-child div{color:#fff3e2!important}
-      :root[data-theme="pumpkin"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#f3c58a!important}
+      :root[data-theme="barista"] .app-header{background:#00704a!important;border-bottom:none!important}
+      :root[data-theme="barista"] .app-header > div:first-child span:first-child{font-family:'Lora',Georgia,serif!important;font-weight:700!important;-webkit-text-fill-color:#ffffff!important}
+      :root[data-theme="barista"] .app-header > div:first-child span:last-child{color:#d4e9e2!important}
+      :root[data-theme="barista"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-weight:700!important}
+      :root[data-theme="barista"] [style*="background: var(--surface)"]:not(.app-header){border:1px solid #e3ded3!important;box-shadow:0 2px 10px rgba(30,57,50,0.07)!important}
+      :root[data-theme="barista"] [style*="background: var(--navy)"]{background:linear-gradient(160deg,#24443b 0%,#1e3932 60%,#16302a 100%)!important;border-bottom:10px solid #c8a97e!important;box-shadow:inset 0 -1px 0 rgba(0,0,0,0.15)}
+      :root[data-theme="barista"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#cfe3dc!important}
+      :root[data-theme="barista"] [style*="background: var(--navy)"] button{background:rgba(0,0,0,0.25)!important}
+      :root[data-theme="barista"] .app-sidebar > div:last-child > div:first-child div{color:#ffffff!important}
+      :root[data-theme="barista"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#d4e9e2!important}
 
       /* ── Festive ── (seasonal: 1 Dec – 6 Jan) deep pine green, berry
          red and gold, a snow-dusted red statement card, and a string of
