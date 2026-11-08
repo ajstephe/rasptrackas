@@ -73,7 +73,7 @@
          Web (Heritage) Barlow Semi Condensed (Energy), Zen Kaku Gothic New (Goji) and Arimo (Luftplane) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=Lato:wght@400;700;900&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Cabin:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=Lato:wght@400;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=Lora:ital,wght@0,600;0,700;1,700&family=Mountains+of+Christmas:wght@700&family=Lato:wght@400;700;900&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Cabin:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=Lora:ital,wght@0,600;0,700;1,700&family=Mountains+of+Christmas:wght@700&family=Lato:wght@400;700;900&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -152,7 +152,7 @@
            any of them one token at a time. Midnight is a dark-first design
            in its own right, so this matters just as much for it as it does
            for the light ones. */
-        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="miami"]):not([data-theme="miamidays"]):not([data-theme="claret"]):not([data-theme="desktop90s"]):not([data-theme="tube"]){
+        :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="midnight"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="miami"]):not([data-theme="miamidays"]):not([data-theme="claret"]):not([data-theme="pumpkin"]):not([data-theme="festive"]):not([data-theme="desktop90s"]):not([data-theme="tube"]){
           --title-grad:linear-gradient(135deg,#eef2f7,#93c5fd);
           --exp:#38bdf8;
           --exp-tint:#0c2a3d;
@@ -355,6 +355,80 @@
       :root[data-theme="claret"] .app-sidebar > div:last-child > div:first-child div{color:#ffffff!important}
       /* month selector: no claret ring on the chosen month, its pink fill and claret text are enough */
       :root[data-theme="claret"] button[style*="border: 1.5px solid rgb(122, 38, 58)"]{border:1px solid var(--border-2)!important}
+      /* ── Pumpkin Spice ── (seasonal: 1 Sep – 30 Nov) an autumn coffee-
+         house: steamed-milk cream page, espresso header with a pumpkin
+         band, cream cards, a latte-pour statement card running espresso
+         to caramel to pumpkin, Lora for the title and figures. No coffee
+         chain name or logo. */
+      :root[data-theme="pumpkin"]{
+        color-scheme: light;
+        --exp:#b4561a; --exp-tint:#fbe9d8; --exp-ink:#8a3f10;
+        --title-grad:linear-gradient(90deg,#ffffff,#ffffff);
+        --tag-purple:#8a4b2a;
+        --save-bg:#d9731f; --save-ink:#ffffff; --hero-label:#ffe2b8;
+        --page-bg:#f7efe3; --surface:#fffaf3; --surface-rgb:255,250,243;
+        --surface-2:#fbf3e7; --surface-2-rgb:251,243,231;
+        --chip-bg:#f5e8d6; --border:#e7d5bf; --border-2:#efe2d0;
+        --ink:#3b2416; --muted:#6e5340; --quiet:#9a806b;
+        --navy:#6b3a20; --savebar:#3b2416; --navy-rgb:107,58,32; --sidebar-bg-rgb:59,36,22;
+        --accent:#d9731f;
+        --app-font:'Lato',system-ui,sans-serif; --num-font:'Lora',Georgia,serif;
+        --tint-blue:#e8eef6; --tint-red:#fbe3dc; --tint-green:#e4f0dc; --tint-green-2:#d2e6c5;
+        --tint-purple:#f2e6dc; --tint-amber:#fdeed7; --tint-amber-2:#fbdcae; --tint-teal:#e2efea;
+        --text-navy:#3b2416; --text-red-deep:#a3361c; --text-green-deep:#3f6b25; --text-purple-deep:#7a3f22;
+        --text-amber-deep:#8a4c00; --tint-blue-2:#d8e3f0; --tint-brass:#fbe3dc; --tint-indigo:#e8e4f2;
+        --text-indigo-deep:#4a3f8a; --surface-red-mid:#efa98a; --text-blue-deep:#2f5a8a;
+      }
+      :root[data-theme="pumpkin"] .app-header{background:#3b2416!important;border-bottom:5px solid #d9731f!important}
+      :root[data-theme="pumpkin"] .app-header > div:first-child span:first-child{font-family:'Lora',Georgia,serif!important;font-weight:700!important;font-style:italic;-webkit-text-fill-color:#fff3e2!important}
+      :root[data-theme="pumpkin"] .app-header > div:first-child span:last-child{color:#f3c58a!important}
+      :root[data-theme="pumpkin"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-weight:700!important}
+      :root[data-theme="pumpkin"] [style*="background: var(--surface)"]:not(.app-header){border:1px solid #ead7bf!important;box-shadow:0 6px 18px rgba(107,58,32,0.08)!important}
+      :root[data-theme="pumpkin"] [style*="background: var(--navy)"]{background:linear-gradient(160deg,#3b2416 0%,#6b3a20 35%,#a8592a 70%,#d9731f 100%)!important;border-bottom:5px solid #f3e2c7!important}
+      :root[data-theme="pumpkin"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#f6dcc0!important}
+      :root[data-theme="pumpkin"] [style*="background: var(--navy)"] button{background:rgba(40,20,10,0.45)!important}
+      :root[data-theme="pumpkin"] .app-sidebar > div:last-child > div:first-child div{color:#fff3e2!important}
+      :root[data-theme="pumpkin"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#f3c58a!important}
+
+      /* ── Festive ── (seasonal: 1 Dec – 6 Jan) deep pine green, berry
+         red and gold, a snow-dusted red statement card, and a string of
+         fairy lights along the header that twinkle in turn (held still
+         for anyone who prefers reduced motion). */
+      :root[data-theme="festive"]{
+        color-scheme: dark;
+        --exp:#8fd3b0; --exp-tint:#173d2c; --exp-ink:#bfe8d2;
+        --title-grad:linear-gradient(90deg,#f6d27a,#ffffff 50%,#f6d27a);
+        --tag-purple:#e3b8ff;
+        --save-bg:#e8b64c; --save-ink:#0e2419; --hero-label:#f6d27a;
+        --page-bg:#0e2419; --surface:rgba(20,48,34,0.97); --surface-rgb:20,48,34;
+        --surface-2:#18392a; --surface-2-rgb:24,57,42;
+        --chip-bg:#1d4231; --border:#2b5a43; --border-2:#20483a;
+        --ink:#fbf7ee; --muted:#cfd9cf; --quiet:#93a99a;
+        --navy:#9e1b2c; --savebar:#0b1d14; --navy-rgb:158,27,44; --sidebar-bg-rgb:9,26,18;
+        --accent:#e8b64c;
+        --app-font:'Lato',system-ui,sans-serif; --num-font:'Lato',system-ui,sans-serif;
+        --tint-blue:#163450; --tint-red:#4a1520; --tint-green:#123d2a; --tint-green-2:#164a33;
+        --tint-purple:#2e2150; --tint-amber:#3f3112; --tint-amber-2:#4f3d14; --tint-teal:#0f3d3a;
+        --text-navy:#fbf7ee; --text-red-deep:#ff9aa3; --text-green-deep:#86e0b0; --text-purple-deep:#e3b8ff;
+        --text-amber-deep:#f6d27a; --tint-blue-2:#1c3f60; --tint-brass:#3f3112; --tint-indigo:#24275a;
+        --text-indigo-deep:#c3c9ff; --surface-red-mid:#7a2230; --text-blue-deep:#a8d4ff;
+      }
+      :root[data-theme="festive"] body,:root[data-theme="festive"] [style*="background: var(--page-bg)"]{background:radial-gradient(ellipse at top,#164030 0%,#0e2419 55%,#081710 100%) fixed!important}
+      :root[data-theme="festive"] .app-header{position:relative;background:#0b1d14!important;border-bottom:2px solid #1b3a29!important;margin-bottom:12px}
+      :root[data-theme="festive"] .app-header > div:first-child span:first-child{font-family:'Mountains of Christmas',cursive!important;font-weight:700!important;font-size:1.25em!important;letter-spacing:0.5px!important}
+      :root[data-theme="festive"] .app-header > div:first-child span:last-child{color:#cfd9cf!important}
+      /* fairy lights: a dark wire with two interleaved sets of bulbs that fade in turn */
+      :root[data-theme="festive"] .app-header::before,:root[data-theme="festive"] .app-header::after{content:'';position:absolute;left:0;right:0;bottom:-13px;height:14px;pointer-events:none;z-index:11;background-repeat:repeat-x}
+      :root[data-theme="festive"] .app-header::before{background-image:linear-gradient(#2a3d31,#2a3d31),radial-gradient(circle at 12px 8px,#ff4d5e 0 3.5px,rgba(255,77,94,0.45) 4.5px,transparent 7px),radial-gradient(circle at 60px 8px,#ffd25e 0 3.5px,rgba(255,210,94,0.45) 4.5px,transparent 7px);background-size:100% 1.5px,96px 14px,96px 14px;background-position:0 2px,0 0,0 0;animation:fairyA 1.6s ease-in-out infinite alternate}
+      :root[data-theme="festive"] .app-header::after{background-image:radial-gradient(circle at 36px 8px,#5ef08a 0 3.5px,rgba(94,240,138,0.45) 4.5px,transparent 7px),radial-gradient(circle at 84px 8px,#5ec8ff 0 3.5px,rgba(94,200,255,0.45) 4.5px,transparent 7px);background-size:96px 14px,96px 14px;animation:fairyB 1.6s ease-in-out infinite alternate}
+      @keyframes fairyA{0%{opacity:1;filter:drop-shadow(0 0 4px rgba(255,220,150,0.9))}100%{opacity:0.35;filter:none}}
+      @keyframes fairyB{0%{opacity:0.35;filter:none}100%{opacity:1;filter:drop-shadow(0 0 4px rgba(180,230,255,0.9))}}
+      @media (prefers-reduced-motion: reduce){:root[data-theme="festive"] .app-header::before,:root[data-theme="festive"] .app-header::after{animation:none;opacity:1}}
+      :root[data-theme="festive"] [style*="background: var(--surface)"]:not(.app-header){border:1px solid rgba(232,182,76,0.3)!important;box-shadow:0 8px 22px rgba(0,0,0,0.3)!important}
+      :root[data-theme="festive"] [style*="background: var(--navy)"]{background:radial-gradient(rgba(255,255,255,0.16) 1.2px,transparent 1.8px) 0 0/22px 22px,radial-gradient(rgba(255,255,255,0.1) 1px,transparent 1.5px) 11px 11px/22px 22px,linear-gradient(160deg,#c0263a 0%,#9e1b2c 50%,#6e1020 100%)!important;border-bottom:4px solid #e8b64c!important}
+      :root[data-theme="festive"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#ffe0e4!important}
+      :root[data-theme="festive"] [style*="background: var(--navy)"] button{background:rgba(20,8,10,0.45)!important}
+      :root[data-theme="festive"] .app-sidebar > div:last-child > div:first-child div{color:#fbf7ee!important}
       /* ── 90s Desktop ── Windows 95: teal desktop, silver windows with
          raised 3D edges, navy title bars with _ □ × buttons, a grey
          taskbar with pressed-in tabs, and a Start-menu sidebar with its

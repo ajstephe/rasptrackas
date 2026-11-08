@@ -1,3 +1,4 @@
+import { themeInSeason } from './seasonal.js';
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback, lazy, Suspense } from "react";
 // @supabase/supabase-js is dynamically imported inside App() itself (see
 // hasSupabaseConfig / the supabase state below) rather than statically here.
@@ -110,7 +111,7 @@ const MONO  = 'var(--num-font)';
 // text/pill/button colours too. 'classic' covers system/light/dark, which
 // all share today's brass-on-navy sidebar unchanged.
 
-const SB_THEMES = [['system','Auto',['#f1f5f9','#16314f']],['light','Light',['#f1f5f9','#b8823f']],['dark','Dark',['#16314f','#b8823f']],['corporate','Corporate',['#141414','#ffffff']],['energy','Energy',['#000000','#8cf01e']],['flagship','FlagCarrier',['#0a2356','#ef4a52']],['muji','Goji',['#4a3f35','#f1c9a5']],['heritage','Heritage',['#00352f','#cedc00']],['claret','Irons',['#7a263a','#1bb1e7']],['luftplane','Luftplane',['#05164d','#ffad00']],['miamidays','Miami Days',['#bdeefa','#ff4fa3']],['miami','Miami Nights',['#3a1660','#ff6ec7']],['midnight','Midnight',['#05080f','#22d3ee']],['tube','Mind the Gap',['#0019A8','#DC241F']],['desktop90s','90s Desktop',['#008080','#c0c0c0']],['professional','Pro',['#111827','#2dd4bf']]];
+const SB_THEMES = [['system','Auto',['#f1f5f9','#16314f']],['light','Light',['#f1f5f9','#b8823f']],['dark','Dark',['#16314f','#b8823f']],['corporate','Corporate',['#141414','#ffffff']],['energy','Energy',['#000000','#8cf01e']],['festive','Festive',['#0e2419','#c8102e']],['flagship','FlagCarrier',['#0a2356','#ef4a52']],['muji','Goji',['#4a3f35','#f1c9a5']],['heritage','Heritage',['#00352f','#cedc00']],['claret','Irons',['#7a263a','#1bb1e7']],['luftplane','Luftplane',['#05164d','#ffad00']],['miamidays','Miami Days',['#bdeefa','#ff4fa3']],['miami','Miami Nights',['#3a1660','#ff6ec7']],['midnight','Midnight',['#05080f','#22d3ee']],['tube','Mind the Gap',['#0019A8','#DC241F']],['desktop90s','90s Desktop',['#008080','#c0c0c0']],['professional','Pro',['#111827','#2dd4bf']],['pumpkin','Pumpkin Spice',['#f7efe3','#d9731f']]];
 function SbSwatch({c,size=14,ring}) { return <span style={{width:size,height:size,borderRadius:'50%',flexShrink:0,background:`linear-gradient(135deg, ${c[0]} 50%, ${c[1]} 50%)`,boxShadow:ring?`0 0 0 2px ${ring}`:'0 0 0 1px rgba(255,255,255,0.25)'}}/>; }
 function SidebarThemes({ themeMode, setTheme, THEME }) {
   // Computer-only theme picker, pinned to the bottom of the sidebar: one
@@ -126,10 +127,11 @@ function SidebarThemes({ themeMode, setTheme, THEME }) {
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open]);
   const cur = SB_THEMES.find(t=>t[0]===themeMode) || SB_THEMES[0];
+  const sbThemes = SB_THEMES.filter(t=>themeInSeason(t[0]));
   return (
     <div ref={boxRef} style={{marginTop:'auto',position:'relative',paddingTop:'12px'}}>
       {open&&<div role="listbox" aria-label="Theme" style={{position:'absolute',bottom:'calc(100% + 6px)',left:0,right:0,background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'13px',boxShadow:'0 12px 32px rgba(0,0,0,0.28)',padding:'6px',display:'flex',flexDirection:'column',gap:'1px',zIndex:5}}>
-        {SB_THEMES.map(([v,lbl,c])=>{ const on=themeMode===v; return (
+        {sbThemes.map(([v,lbl,c])=>{ const on=themeMode===v; return (
           <button key={v} role="option" aria-selected={on} onClick={()=>{ setTheme(v); setOpen(false); }} className="tap-row" style={{display:'flex',alignItems:'center',gap:'9px',padding:'7px 9px',borderRadius:'8px',border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:'12.5px',fontWeight:on?900:700,textAlign:'left',background:on?'var(--tint-brass)':'transparent',color:'var(--ink)'}}>
             <SbSwatch c={c} size={14}/>{lbl}{on&&<span style={{marginLeft:'auto',display:'flex'}}><Ico n="check" s={12} c="var(--ink)" w={3}/></span>}
           </button>); })}
@@ -213,6 +215,18 @@ const THEME_PALETTES = {
     sidebarGlow:null, sidebarPill:'#9fdcf6',
     sidebarBtnBg:'rgba(255,255,255,0.08)', sidebarBtnBorder:'rgba(159,220,246,0.55)', sidebarBtnSubtext:'#9fdcf6',
   },
+  pumpkin: {
+    brass:'#c4621a', brassLight:'#f3c58a', navActiveIcon:'#c4621a', pillShadow:'rgba(196,98,26,0.35)',
+    sidebarText:'#e9d6c3', sidebarTextActive:'#3b2416', sidebarDivider:'rgba(243,197,138,0.25)',
+    sidebarGlow:null, sidebarPill:'#f3c58a',
+    sidebarBtnBg:'rgba(243,197,138,0.1)', sidebarBtnBorder:'rgba(243,197,138,0.45)', sidebarBtnSubtext:'#f3c58a',
+  },
+  festive: {
+    brass:'#c8102e', brassLight:'#e8b64c', navActiveIcon:'#e8b64c', pillShadow:'rgba(200,16,46,0.4)',
+    sidebarText:'#cfd9cf', sidebarTextActive:'#ffffff', sidebarDivider:'rgba(232,182,76,0.25)',
+    sidebarGlow:null, sidebarPill:'rgba(200,16,46,0.85)',
+    sidebarBtnBg:'rgba(232,182,76,0.08)', sidebarBtnBorder:'rgba(232,182,76,0.45)', sidebarBtnSubtext:'#e8b64c',
+  },
   // Windows 95: a grey Start-menu sidebar, items highlighted navy.
   desktop90s: {
     brass:'#000080', brassLight:'#000080', navActiveIcon:'#ffffff', pillShadow:'none',
@@ -234,7 +248,7 @@ const THEME_PALETTES = {
     sidebarBtnBg:'rgba(255,173,0,0.1)', sidebarBtnBorder:'rgba(255,173,0,0.45)', sidebarBtnSubtext:'rgba(255,173,0,0.75)',
   },
 };
-const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy','muji','luftplane','miami','miamidays','claret','desktop90s','tube'];
+const THEME_IDS = ['system','light','dark','corporate','professional','midnight','flagship','heritage','energy','muji','luftplane','miami','miamidays','claret','pumpkin','festive','desktop90s','tube'];
 // Same check TabSummary's calendar swipe already makes before its own
 // snap-back — used by the pull-to-refresh indicator's settle transition
 // below for the same reason: the live drag tracks the finger regardless
@@ -939,7 +953,7 @@ export default function App() {
   // A saved theme that's since been removed (Terminal) falls back to Auto.
   // Apple-Inspired was reworked into Corporate, so a saved 'apple' carries over,
   // and Heather was replaced by Energy, so a saved 'heather' does too.
-  const [themeMode, setThemeMode] = useState(()=>{ let v = dualRead(KEYS.themeMode,'system'); if (v==='apple') v='corporate'; if (v==='heather') v='energy'; if (v==='tycoon') v='tube'; return THEME_IDS.includes(v) ? v : 'system'; });
+  const [themeMode, setThemeMode] = useState(()=>{ let v = dualRead(KEYS.themeMode,'system'); if (v==='apple') v='corporate'; if (v==='heather') v='energy'; if (v==='tycoon') v='tube'; return THEME_IDS.includes(v) && themeInSeason(v) ? v : 'system'; });
   useEffect(()=>{
     if(themeMode==='system') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', themeMode);
@@ -4722,7 +4736,7 @@ export default function App() {
            not dark-mode variants, so they're excluded here the same way an
            explicit "light" choice already is. */
         @media (prefers-color-scheme: dark){
-          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="desktop90s"]):not([data-theme="tube"]):not([data-theme="miamidays"]):not([data-theme="claret"]) input[type=date]{color-scheme:dark}
+          :root:not([data-theme="light"]):not([data-theme="corporate"]):not([data-theme="professional"]):not([data-theme="flagship"]):not([data-theme="heritage"]):not([data-theme="energy"]):not([data-theme="muji"]):not([data-theme="luftplane"]):not([data-theme="desktop90s"]):not([data-theme="tube"]):not([data-theme="miamidays"]):not([data-theme="claret"]):not([data-theme="pumpkin"]) input[type=date]{color-scheme:dark}
         }
         :root[data-theme="dark"] input[type=date]{color-scheme:dark}
         :root[data-theme="midnight"] input[type=date]{color-scheme:dark}

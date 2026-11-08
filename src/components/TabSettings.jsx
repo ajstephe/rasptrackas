@@ -1,3 +1,4 @@
+import { themeInSeason } from '../seasonal.js';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CURRENT_FY_YEAR, generateFYPeriods, localDateStr } from '../lib/payPeriods.js';
@@ -13,7 +14,7 @@ import { useBackButtonCloses } from '../lib/useBackButtonCloses.js';
 
 // Matches the mobile theme row's track side padding, so arrow stops line
 // up the same way the row's two ends do.
-const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['corporate','Corporate'],['energy','Energy'],['flagship','FlagCarrier'],['muji','Goji'],['heritage','Heritage'],['claret','Irons'],['luftplane','Luftplane'],['miamidays','Miami Days'],['miami','Miami Nights'],['midnight','Midnight'],['tube','Mind the Gap'],['desktop90s','90s Desktop'],['professional','Pro']];
+const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['corporate','Corporate'],['energy','Energy'],['festive','Festive'],['flagship','FlagCarrier'],['muji','Goji'],['heritage','Heritage'],['claret','Irons'],['luftplane','Luftplane'],['miamidays','Miami Days'],['miami','Miami Nights'],['midnight','Midnight'],['tube','Mind the Gap'],['desktop90s','90s Desktop'],['professional','Pro'],['pumpkin','Pumpkin Spice']];
 
 // ─── More.. (settings) tab ───────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='settings' block — no behaviour
@@ -157,7 +158,8 @@ export function TabSettings({
   const dataModalContentRef = useRef(null);
 
   const themeIndicator = {background:BRASS,borderRadius:'9px',boxShadow:`0 4px 11px ${pillShadow}`};
-  const themeButtons = THEME_OPTIONS.map(([v,lbl])=>(
+  const themeOptions = THEME_OPTIONS.filter(([v])=>themeInSeason(v));
+  const themeButtons = themeOptions.map(([v,lbl])=>(
     <button key={v} data-seg-key={v} onClick={()=>setTheme(v)} style={{position:'relative',zIndex:1,flexShrink:0,whiteSpace:'nowrap',padding:'6px 12px',borderRadius:'9px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:themeMode===v?'#fff':'var(--muted)'}}>{lbl}</button>
   ));
 
@@ -233,7 +235,7 @@ export function TabSettings({
              a sideways-scrolling row — fourteen themes no longer fit. */
           <div style={{position:'relative'}}>
             <select aria-label="Theme" value={themeMode} onChange={e=>setTheme(e.target.value)} style={{width:'100%',appearance:'none',WebkitAppearance:'none',padding:'12px 40px 12px 14px',borderRadius:'11px',border:'1px solid var(--border)',background:'var(--surface-2)',color:'var(--ink)',fontFamily:'inherit',fontWeight:800,fontSize:'16px',cursor:'pointer'}}>
-              {THEME_OPTIONS.map(([v,lbl])=><option key={v} value={v}>{lbl}</option>)}
+              {themeOptions.map(([v,lbl])=><option key={v} value={v}>{lbl}</option>)}
             </select>
             <span aria-hidden="true" style={{position:'absolute',right:'14px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'var(--muted)',display:'flex'}}><Ico n="cD" s={16} w={2.4}/></span>
           </div>
