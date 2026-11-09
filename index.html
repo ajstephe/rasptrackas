@@ -342,8 +342,8 @@
       :root[data-theme="arcade"] body,:root[data-theme="arcade"] body *{font-synthesis:none!important}
       :root[data-theme="arcade"] body{font-size-adjust:0.56;letter-spacing:0.4px}
       @keyframes arcadeBlink{0%,100%{opacity:1}50%{opacity:0.15}}
-      /* attract-mode flash: hard on/off like a cabinet's coin prompt, alternating yellow and pink with a neon glow */
-      @keyframes arcadeCoin{0%{color:#ffe600;text-shadow:0 0 6px rgba(255,230,0,0.9),0 0 12px rgba(255,230,0,0.5)}25%{color:transparent;text-shadow:none}50%{color:#ff2e88;text-shadow:0 0 6px rgba(255,46,136,0.9),0 0 12px rgba(255,46,136,0.5)}75%{color:transparent;text-shadow:none}}
+      /* attract-mode flash: hard on/off in yellow with a neon glow, like a cabinet's coin prompt */
+      @keyframes arcadeCoin{0%{color:#ffe600;text-shadow:0 0 6px rgba(255,230,0,0.9),0 0 12px rgba(255,230,0,0.5)}50%{color:transparent;text-shadow:none}}
       @media (prefers-reduced-motion: reduce){:root[data-theme="arcade"] .app-nav::before,:root[data-theme="arcade"] .app-sidebar .sidebar-nav-btn[aria-current="page"]::before{animation:none}}
       /* ── Miami Days ── the same 1980s Miami by daylight: a bright
          sky fading to warm sand, white Art Deco cards edged in aqua,
