@@ -73,7 +73,7 @@
          Web (Heritage) Barlow Semi Condensed (Energy), Zen Kaku Gothic New (Goji) and Arimo (Luftplane) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=Lora:ital,wght@0,600;0,700;1,700&family=Mountains+of+Christmas:wght@700&family=Lato:wght@400;700;900&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Cabin:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=Lora:ital,wght@0,600;0,700;1,700&family=Mountains+of+Christmas:wght@700&family=Lato:wght@400;700;900&family=Press+Start+2P&family=Jersey+10&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=Lora:ital,wght@0,600;0,700;1,700&family=Mountains+of+Christmas:wght@700&family=Lato:wght@400;700;900&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Cabin:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=Lora:ital,wght@0,600;0,700;1,700&family=Mountains+of+Christmas:wght@700&family=Lato:wght@400;700;900&family=Press+Start+2P&family=Jersey+10&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}
@@ -291,7 +291,7 @@
       /* ── Insert Coin ── an 80s coin-op cabinet: a black CRT screen
          with faint scanlines, neon cyan/magenta pixel-edged cards with a
          hard drop shadow, Press Start 2P for the marquee title and
-         Jersey 10 for everything else, a flashing INSERT OVERTIME strip
+         Chakra Petch (a squared, readable arcade-style face) for text, with Jersey 10 pixel digits on the big figures, a flashing INSERT OVERTIME strip
          on the phone tab bar and a ▶ menu cursor in the sidebar. */
       :root[data-theme="arcade"]{
         color-scheme: dark;
@@ -305,7 +305,7 @@
         --ink:#f4f1ff; --muted:#d4ceff; --quiet:#a99fe6;
         --navy:#2d2170; --savebar:#2d2170; --navy-rgb:45,33,112; --sidebar-bg-rgb:30,22,80;
         --accent:#ff2e88;
-        --app-font:'Jersey 10',system-ui,sans-serif; --num-font:'Jersey 10',system-ui,sans-serif;
+        --app-font:'Chakra Petch',system-ui,sans-serif; --num-font:'Chakra Petch',system-ui,sans-serif;
         --tint-blue:#2a3a80; --tint-red:#5a2060; --tint-green:#1d4a4a; --tint-green-2:#225a50;
         --tint-purple:#4a2c90; --tint-amber:#5a4a20; --tint-amber-2:#6a5626; --tint-teal:#1a4a66;
         --text-navy:#7df8ff; --text-red-deep:#ff7ab4; --text-green-deep:#6dff5a; --text-purple-deep:#d07bff;
@@ -328,7 +328,7 @@
       :root[data-theme="arcade"] [style*="background: var(--navy)"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){color:#ffe600!important;text-shadow:3px 3px 0 #ff2e88;letter-spacing:2px!important}
       :root[data-theme="arcade"] [style*="background: var(--navy)"] button{background:#ff2e88!important;color:#fff!important;border:none!important;box-shadow:3px 3px 0 #00f0ff!important}
       :root[data-theme="arcade"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#7df8ff!important}
-      :root[data-theme="arcade"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-weight:700!important;letter-spacing:1px}
+      :root[data-theme="arcade"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){letter-spacing:1px}
       :root[data-theme="arcade"] .app-sidebar{background:#1e1650!important;border-right:3px solid #ff2e88!important}
       :root[data-theme="arcade"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#6dff5a!important}
       /* sidebar as a game menu: a blinking ▶ cursor beside the selected item */
@@ -338,9 +338,8 @@
       /* phone tab bar: a flashing INSERT OVERTIME strip like a cabinet's coin door */
       :root[data-theme="arcade"] .app-nav{background:#1e1650!important;border-top:none!important}
       :root[data-theme="arcade"] .app-nav::before{content:'INSERT OVERTIME';position:absolute;left:0;right:0;top:-16px;height:16px;display:flex;align-items:center;justify-content:center;background:#1e1650;border-top:2px solid #ff2e88;box-sizing:border-box;font:8px/1 'Press Start 2P',monospace;letter-spacing:2px;color:#ffe600;pointer-events:none;animation:arcadeCoin 1s steps(1) infinite}
-      /* Jersey 10 runs small and tight: nudge it up so labels stay legible */
-      :root[data-theme="arcade"] body,:root[data-theme="arcade"] body *{font-synthesis:none!important}
-      :root[data-theme="arcade"] body{font-size-adjust:0.56;letter-spacing:0.4px}
+      /* the big headline figures stay pixel-font (Jersey 10, one weight, so no faux bold) */
+      :root[data-theme="arcade"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-family:'Jersey 10',monospace!important;font-weight:400!important;font-synthesis:none}
       @keyframes arcadeBlink{0%,100%{opacity:1}50%{opacity:0.15}}
       /* attract-mode flash: hard on/off in yellow with a neon glow, like a cabinet's coin prompt */
       @keyframes arcadeCoin{0%{color:#ffe600;text-shadow:0 0 6px rgba(255,230,0,0.9),0 0 12px rgba(255,230,0,0.5)}50%{color:transparent;text-shadow:none}}
