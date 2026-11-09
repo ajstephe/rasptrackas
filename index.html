@@ -291,7 +291,7 @@
       /* ── Insert Coin ── an 80s coin-op cabinet: a black CRT screen
          with faint scanlines, neon cyan/magenta pixel-edged cards with a
          hard drop shadow, Press Start 2P for the marquee title and
-         Jersey 10 for everything else, a blinking INSERT COIN strip
+         Jersey 10 for everything else, a flashing INSERT OVERTIME strip
          on the phone tab bar and a ▶ menu cursor in the sidebar. */
       :root[data-theme="arcade"]{
         color-scheme: dark;
@@ -299,23 +299,23 @@
         --title-grad:linear-gradient(90deg,#ffe600,#ffe600);
         --tag-purple:#d07bff;
         --save-bg:#ff2e88; --save-ink:#ffffff; --hero-label:#ffe600;
-        --page-bg:#07060f; --surface:#100e24; --surface-rgb:16,14,36;
-        --surface-2:#17143a; --surface-2-rgb:23,20,58;
-        --chip-bg:#1d1a48; --border:#2f2a6e; --border-2:#231f55;
-        --ink:#f4f1ff; --muted:#b9b2e6; --quiet:#857dbd;
-        --navy:#0b0920; --savebar:#0b0920; --navy-rgb:11,9,32; --sidebar-bg-rgb:5,4,12;
+        --page-bg:#2a2063; --surface:#352a7a; --surface-rgb:53,42,122;
+        --surface-2:#3d3189; --surface-2-rgb:61,49,137;
+        --chip-bg:#463a96; --border:#5f53b8; --border-2:#4a3ea0;
+        --ink:#f4f1ff; --muted:#d4ceff; --quiet:#a99fe6;
+        --navy:#2d2170; --savebar:#2d2170; --navy-rgb:45,33,112; --sidebar-bg-rgb:30,22,80;
         --accent:#ff2e88;
         --app-font:'Jersey 10',system-ui,sans-serif; --num-font:'Jersey 10',system-ui,sans-serif;
-        --tint-blue:#0f2148; --tint-red:#3a0f2a; --tint-green:#0d331c; --tint-green-2:#114424;
-        --tint-purple:#2a1450; --tint-amber:#3a3008; --tint-amber-2:#4a3c0a; --tint-teal:#073038;
+        --tint-blue:#2a3a80; --tint-red:#5a2060; --tint-green:#1d4a4a; --tint-green-2:#225a50;
+        --tint-purple:#4a2c90; --tint-amber:#5a4a20; --tint-amber-2:#6a5626; --tint-teal:#1a4a66;
         --text-navy:#7df8ff; --text-red-deep:#ff7ab4; --text-green-deep:#6dff5a; --text-purple-deep:#d07bff;
         --text-amber-deep:#ffe600; --tint-blue-2:#14295a; --tint-brass:#3a0f2a; --tint-indigo:#1d1a48;
         --text-indigo-deep:#b3abff; --surface-red-mid:#7a1846; --text-blue-deep:#7df8ff;
       }
-      :root[data-theme="arcade"] body,:root[data-theme="arcade"] [style*="background: var(--page-bg)"]{background:radial-gradient(ellipse at 50% 0%,#15123a 0%,#07060f 60%) fixed!important}
+      :root[data-theme="arcade"] body,:root[data-theme="arcade"] [style*="background: var(--page-bg)"]{background:linear-gradient(180deg,#3a2a85 0%,#2a2063 45%,#221a52 100%) fixed!important}
       /* CRT scanlines over the whole screen */
-      :root[data-theme="arcade"] body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background:repeating-linear-gradient(180deg,rgba(0,0,0,0) 0 2px,rgba(0,0,0,0.18) 2px 3px)}
-      :root[data-theme="arcade"] .app-header{background:#05040c!important;border-bottom:3px solid #ff2e88!important;box-shadow:0 3px 0 #00f0ff}
+      :root[data-theme="arcade"] body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background:repeating-linear-gradient(180deg,rgba(0,0,0,0) 0 2px,rgba(0,0,0,0.08) 2px 3px)}
+      :root[data-theme="arcade"] .app-header{background:#1e1650!important;border-bottom:3px solid #ff2e88!important;box-shadow:0 3px 0 #00f0ff}
       :root[data-theme="arcade"] .app-header > div:first-child span:first-child{font-family:'Press Start 2P',monospace!important;font-weight:400!important;font-size:0.82em!important;letter-spacing:0!important;-webkit-text-fill-color:#ffe600!important;text-shadow:0 0 6px rgba(255,230,0,0.6),2px 2px 0 #ff2e88}
       :root[data-theme="arcade"] .app-header > div:first-child span:last-child{color:#00f0ff!important;text-transform:uppercase;letter-spacing:1px!important}
       /* pixel cards: square corners, neon edge, hard offset shadow */
@@ -324,24 +324,26 @@
       :root[data-theme="arcade"] button[style*="background: var(--surface)"]:not(.app-header){box-shadow:none!important;border:1px solid #2f2a6e!important}
       :root[data-theme="arcade"] button,:root[data-theme="arcade"] input,:root[data-theme="arcade"] select{border-radius:0!important}
       /* the hero: a high-score screen on a starfield */
-      :root[data-theme="arcade"] [style*="background: var(--navy)"]{border-radius:0!important;background:radial-gradient(1px 1px at 12% 22%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 38% 70%,#7df8ff 50%,transparent 51%),radial-gradient(1.5px 1.5px at 66% 30%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 84% 78%,#ff7ab4 50%,transparent 51%),radial-gradient(1px 1px at 92% 14%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 24% 88%,#ffe600 50%,transparent 51%),linear-gradient(180deg,#0b0920,#1a0f3a)!important;border-bottom:3px solid #ffe600!important}
+      :root[data-theme="arcade"] [style*="background: var(--navy)"]{border-radius:0!important;background:radial-gradient(1px 1px at 12% 22%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 38% 70%,#7df8ff 50%,transparent 51%),radial-gradient(1.5px 1.5px at 66% 30%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 84% 78%,#ff7ab4 50%,transparent 51%),radial-gradient(1px 1px at 92% 14%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 24% 88%,#ffe600 50%,transparent 51%),linear-gradient(180deg,#2d2170,#4a2a8a)!important;border-bottom:3px solid #ffe600!important}
       :root[data-theme="arcade"] [style*="background: var(--navy)"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){color:#ffe600!important;text-shadow:3px 3px 0 #ff2e88;letter-spacing:2px!important}
       :root[data-theme="arcade"] [style*="background: var(--navy)"] button{background:#ff2e88!important;color:#fff!important;border:none!important;box-shadow:3px 3px 0 #00f0ff!important}
       :root[data-theme="arcade"] [style*="background: var(--navy)"] [style*="color: rgb(124, 147, 179)"]{color:#7df8ff!important}
       :root[data-theme="arcade"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-weight:700!important;letter-spacing:1px}
-      :root[data-theme="arcade"] .app-sidebar{background:#05040c!important;border-right:3px solid #ff2e88!important}
+      :root[data-theme="arcade"] .app-sidebar{background:#1e1650!important;border-right:3px solid #ff2e88!important}
       :root[data-theme="arcade"] .app-sidebar button[style*="color: rgb(16, 185, 129)"]{color:#6dff5a!important}
       /* sidebar as a game menu: a blinking ▶ cursor beside the selected item */
       :root[data-theme="arcade"] .app-sidebar .sidebar-nav-btn{border-radius:0!important;position:relative}
       :root[data-theme="arcade"] .app-sidebar .sidebar-nav-btn[aria-current="page"]{padding-left:30px!important}
       :root[data-theme="arcade"] .app-sidebar .sidebar-nav-btn[aria-current="page"]::before{content:'▶';position:absolute;left:8px;top:50%;transform:translateY(-50%);font:12px/1 'Press Start 2P',monospace;color:#ffe600;animation:arcadeBlink 1s steps(1) infinite}
-      /* phone tab bar: a blinking INSERT COIN strip like a cabinet's coin door */
-      :root[data-theme="arcade"] .app-nav{background:#05040c!important;border-top:none!important}
-      :root[data-theme="arcade"] .app-nav::before{content:'INSERT COIN';position:absolute;left:0;right:0;top:-16px;height:16px;display:flex;align-items:center;justify-content:center;background:#05040c;border-top:2px solid #ff2e88;box-sizing:border-box;font:8px/1 'Press Start 2P',monospace;letter-spacing:2px;color:#ffe600;pointer-events:none;animation:arcadeBlink 1.2s steps(1) infinite}
+      /* phone tab bar: a flashing INSERT OVERTIME strip like a cabinet's coin door */
+      :root[data-theme="arcade"] .app-nav{background:#1e1650!important;border-top:none!important}
+      :root[data-theme="arcade"] .app-nav::before{content:'INSERT OVERTIME';position:absolute;left:0;right:0;top:-16px;height:16px;display:flex;align-items:center;justify-content:center;background:#1e1650;border-top:2px solid #ff2e88;box-sizing:border-box;font:8px/1 'Press Start 2P',monospace;letter-spacing:2px;color:#ffe600;pointer-events:none;animation:arcadeCoin 1s steps(1) infinite}
       /* Jersey 10 runs small and tight: nudge it up so labels stay legible */
       :root[data-theme="arcade"] body,:root[data-theme="arcade"] body *{font-synthesis:none!important}
       :root[data-theme="arcade"] body{font-size-adjust:0.56;letter-spacing:0.4px}
       @keyframes arcadeBlink{0%,100%{opacity:1}50%{opacity:0.15}}
+      /* attract-mode flash: hard on/off like a cabinet's coin prompt, alternating yellow and pink with a neon glow */
+      @keyframes arcadeCoin{0%{color:#ffe600;text-shadow:0 0 6px rgba(255,230,0,0.9),0 0 12px rgba(255,230,0,0.5)}25%{color:transparent;text-shadow:none}50%{color:#ff2e88;text-shadow:0 0 6px rgba(255,46,136,0.9),0 0 12px rgba(255,46,136,0.5)}75%{color:transparent;text-shadow:none}}
       @media (prefers-reduced-motion: reduce){:root[data-theme="arcade"] .app-nav::before,:root[data-theme="arcade"] .app-sidebar .sidebar-nav-btn[aria-current="page"]::before{animation:none}}
       /* ── Miami Days ── the same 1980s Miami by daylight: a bright
          sky fading to warm sand, white Art Deco cards edged in aqua,
