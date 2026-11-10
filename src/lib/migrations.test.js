@@ -138,3 +138,13 @@ describe('migrateEntries applied to a pull result — the fix for entries syncin
     expect(result[0]).toEqual(remoteMap.get('a1'));
   });
 });
+
+describe('paidImport setting', () => {
+  it('keeps a valid figure and drops a broken one', async () => {
+    const { migrateSettings } = await import('./migrations.js');
+    const ok = migrateSettings({ rank:'Constable', service:'PC 4', paidImport:{ taxYear:2026, amount:900, basis:'net', gross:1210.5, upTo:'2026-10-20' } });
+    expect(ok.paidImport).toEqual({ taxYear:2026, amount:900, basis:'net', gross:1210.5, upTo:'2026-10-20' });
+    expect(migrateSettings({ rank:'Constable', service:'PC 4', paidImport:{ taxYear:2026, amount:-5, basis:'gross', gross:-5, upTo:'2026-10-20' } }).paidImport).toBeUndefined();
+    expect(migrateSettings({ rank:'Constable', service:'PC 4', paidImport:null }).paidImport).toBeUndefined();
+  });
+});

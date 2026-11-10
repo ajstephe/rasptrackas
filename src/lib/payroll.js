@@ -100,7 +100,10 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const salaryAlone = m.salary - salaryPension - sliceTax[0] - payeNI(m.salary);
     const lwAlone = m.lw - lwPension - sliceTax[1] - (payeNI(m.salary + m.lw) - payeNI(m.salary));
     const laAlone = m.la - sliceTax[2] - (payeNI(m.base) - payeNI(m.salary + m.lw));
-    const { ot=0, pa=0, parts=[] } = money[i] || {};
+    const { ot:claimedOt=0, pa=0, parts=[], imported=0 } = money[i] || {};
+    // Overtime already paid before the person started logging shifts (see
+    // importedShares) is taxed like overtime, ahead of the month's claims.
+    const ot = claimedOt + imported;
     const otResult = paySlice(cumBase, ot, taxMonth, m.base);
     const paResult = paySlice(cumBase+ot, pa, taxMonth, m.base+ot);
     cum = cumBase + ot + pa;
@@ -125,12 +128,47 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
       month:p.month, start:p.start, end:p.end, payDate, taxMonth,
       baseAmt:m.base, salary:m.salary, salaryNet, lw:m.lw, lwNet, la:m.la, laNet,
       pensionablePayThisPeriod:m.pensionable, pensionRate, periodPension,
-      ot, pa, otResult, paResult,
+      ot, pa, otResult, paResult, imported,
       combinedGross: ot+pa, combinedNet: otResult.net+paResult.net,
       cumBase, cumAfter: cum, parts,
       monthGross, monthTax, monthNI, monthNet, taxToDate,
     };
   });
+};
+
+// "Overtime already paid" (More › Config): one gross figure for paydays
+// already gone this tax year, for someone starting the app part-way through
+// who'd rather not backdate every claim. It's spread evenly across the
+// paydays it covers (April pay up to `upTo`), so tax and NI are charged
+// month by month as payroll would have. `settings.paidImport` is
+// { taxYear, gross, amount, basis:'gross'|'net', upTo } — `gross` is the
+// figure used; for a net amount it's worked out once when saved.
+export const importedShares = (periods, settings) => {
+  const imp = settings && settings.paidImport;
+  const out = periods.map(()=>0);
+  if (!imp || !(imp.gross > 0) || !imp.upTo || !periods.length) return out;
+  if (Number(payDateOf(periods[0]).slice(0,4)) !== Number(imp.taxYear)) return out;
+  const idx = periods.map((p,i)=>payDateOf(p) <= imp.upTo ? i : -1).filter(i=>i>=0);
+  if (!idx.length) return out;
+  const pennies = Math.round(imp.gross*100);
+  const each = Math.floor(pennies/idx.length);
+  idx.forEach((i,k)=>{ out[i] = (each + (k===idx.length-1 ? pennies - each*idx.length : 0))/100; });
+  return out;
+};
+
+// The gross that takes home `net` when spread over the paydays up to `upTo`
+// on top of everything else logged — so a figure read off the bank
+// statements can be entered as net.
+export const grossForImportedNet = ({ periods, entries, settings, net, upTo, taxYear }) => {
+  const base = { ...settings, paidImport: null };
+  const months = buildPayYear({ periods, entries, settings: base });
+  const inRange = (pb) => pb.payDate <= upTo;
+  const netOf = list => list.filter(inRange).reduce((s,pb)=>s+pb.monthNet,0);
+  const baseNet = netOf(months);
+  const netWith = g => netOf(buildPayYear({ periods, entries, settings: { ...base, paidImport: { taxYear, gross:g, upTo } } })) - baseNet;
+  let lo = net, hi = net*3 + 100;
+  for (let k=0; k<50 && hi-lo>0.004; k++) { const mid=(lo+hi)/2; if (netWith(mid) < net) lo = mid; else hi = mid; }
+  return Math.round(hi*100)/100;
 };
 
 // All twelve pay months of one pay year, from the claims logged.
@@ -144,13 +182,14 @@ export const buildPayYear = ({ periods, entries, settings, svcData }) => {
     const parts = list.sort((a,b)=>a.entry.date.localeCompare(b.entry.date) || String(a.entry.id).localeCompare(String(b.entry.id)) || (a.kind==='ot'?-1:1));
     return { parts, ot: parts.filter(x=>x.kind==='ot').reduce((s,x)=>s+x.amount,0), pa: parts.filter(x=>x.kind==='pa').reduce((s,x)=>s+x.amount,0) };
   });
+  importedShares(periods, settings).forEach((amt,i)=>{ money[i].imported = amt; });
   return runPayYear({ periods, settings, svcData, money });
 };
 
 // Each claimed part's share of its pay month's take-home, stacked in date
 // order, so the shares always add up exactly to the month's net.
 export const partNets = pb => {
-  let prior = 0;
+  let prior = pb.imported || 0;   // imported overtime stacks first
   return pb.parts.map(part=>{
     const cumBefore = pb.cumBase + prior;
     const r = paySlice(cumBefore, part.amount, pb.taxMonth, pb.baseAmt + prior);

@@ -150,3 +150,34 @@ describe('shift take-home adds up', () => {
     expect(periodNet(nov, nov.ot, nov.pa)).toBeCloseTo(nov.combinedNet, 8);
   });
 });
+
+// ── overtime already paid (settings.paidImport) ─────────────────────────────
+import { importedShares, grossForImportedNet } from './payroll.js';
+import { generateFYPeriods as genFY } from './payPeriods.js';
+describe('overtime already paid this tax year', () => {
+  const periods = genFY(2026);
+  const settings = { rank:'Constable', service:'PC 4' };
+  it('spreads the gross evenly over the paydays it covers, to the penny', () => {
+    const s = importedShares(periods, { ...settings, paidImport:{ taxYear:2026, gross:1000, amount:1000, basis:'gross', upTo:'2026-06-19' } });
+    expect(s.slice(0,3)).toEqual([333.33, 333.33, 333.34]);
+    expect(s.slice(3).every(x=>x===0)).toBe(true);
+  });
+  it('ignores a figure from another tax year', () => {
+    const s = importedShares(periods, { ...settings, paidImport:{ taxYear:2025, gross:1000, upTo:'2026-06-19' } });
+    expect(s.every(x=>x===0)).toBe(true);
+  });
+  it('counts towards each covered month as overtime, ahead of claims', () => {
+    const year = buildPayYear({ periods, entries:[], settings:{ ...settings, paidImport:{ taxYear:2026, gross:600, amount:600, basis:'gross', upTo:'2026-05-20' } } });
+    expect(year[0].imported).toBe(300); expect(year[0].ot).toBe(300);
+    expect(year[1].combinedGross).toBe(300); expect(year[2].combinedGross).toBe(0);
+  });
+  it('works out the gross that takes home a given net', () => {
+    const upTo = '2026-07-20';
+    const g = grossForImportedNet({ periods, entries:[], settings, net:2000, upTo, taxYear:2026 });
+    const withImp = buildPayYear({ periods, entries:[], settings:{ ...settings, paidImport:{ taxYear:2026, gross:g, upTo } } });
+    const without = buildPayYear({ periods, entries:[], settings });
+    const net = withImp.filter(pb=>pb.payDate<=upTo).reduce((s,pb)=>s+pb.monthNet,0) - without.filter(pb=>pb.payDate<=upTo).reduce((s,pb)=>s+pb.monthNet,0);
+    expect(Math.abs(net-2000)).toBeLessThan(0.02);
+    expect(g).toBeGreaterThan(2000);
+  });
+});

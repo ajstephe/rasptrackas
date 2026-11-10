@@ -279,6 +279,7 @@ export function TabDashboard({
                   ['Overtime', totals.otPaidGross, totals.otPaidNet],
                   ['Protection Allowance', totals.paPaidGross, totals.paPaidNet],
                 ].map(row)}
+                {totals.importedYTD>0.005 && <span style={{gridColumn:'1 / -1',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'-4px'}}>Overtime includes {fmtGBP(totals.importedYTD)} gross you entered as already paid (More › Config)</span>}
                 {/* Everything paid so far: the rows above add up to it, and it
                     matches the payslips (gross, and take-home after pension,
                     tax and NI). */}
@@ -293,6 +294,16 @@ export function TabDashboard({
                 {totals.onItsWayGross>0.005 && <>
                   {hasPay && <div style={rule}/>}
                   {row(['Submitted, not paid yet', totals.onItsWayGross, totals.onItsWayNet])}
+                  {/* which payday each part lands on — it joins the total
+                      once that payday has passed */}
+                  {(totals.onItsWayByPayday||[]).map(p=>(
+                    <Fragment key={p.payDate}>
+                      <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--quiet)',paddingLeft:'12px'}}>Due {new Date(p.payDate+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
+                      <span style={{fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--quiet)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(p.gross)}</span>
+                      <span style={{fontFamily:MONO,fontSize:'11px',fontWeight:600,color:'var(--quiet)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(p.net)}</span>
+                    </Fragment>
+                  ))}
+                  <span style={{gridColumn:'1 / -1',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',lineHeight:1.45}}>Claims are paid on the payday for the date you mark them submitted, and join the total once that payday has passed.</span>
                 </>}
               </>);
             })()}

@@ -15,6 +15,12 @@ export const migrateSettings = s => {
     const h = s.payHistory.filter(x => x && typeof x === 'object' && validPayPoint(x.rank, x.service) && (x.from === '' || validDate(x.from)));
     if (h.length) out.payHistory = h.map(x => ({ from:x.from, rank:x.rank, service:x.service }));
   }
+  // "Overtime already paid this tax year" (see importedShares in payroll.js).
+  const imp = s.paidImport;
+  if (imp && typeof imp === 'object' && Number.isInteger(Number(imp.taxYear)) && Number(imp.gross) > 0 && Number(imp.amount) > 0
+      && (imp.basis === 'gross' || imp.basis === 'net') && validDate(imp.upTo)) {
+    out.paidImport = { taxYear:Number(imp.taxYear), amount:Number(imp.amount), basis:imp.basis, gross:Number(imp.gross), upTo:imp.upTo };
+  }
   return out;
 };
 

@@ -37,7 +37,7 @@ import {
   crossPeriodInfo as crossPeriodInfoPure,
   isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate,
 } from './lib/calc.js';
-import { buildPayYear, runPayYear, entryNet as entryNetPure, partNets, claimedParts } from './lib/payroll.js';
+import { buildPayYear, runPayYear, entryNet as entryNetPure, partNets, claimedParts, payDateOf, grossForImportedNet } from './lib/payroll.js';
 import { Ico, ClockCashIcon, FireExitIcon } from './components/Icons.jsx';
 import { PrivacyNotice } from './components/PrivacyNotice.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
@@ -1331,6 +1331,9 @@ export default function App() {
   // One shift's claim being marked submitted straight from Summary (a day
   // card's "To submit" box, or a not-submitted label): {id, ot, pa}.
   const [quickSubmit, setQuickSubmit] = useState(null);
+  // Bulk 'mark as submitted' with a date long after the oldest shift picked:
+  // asks first, since every claim then lands on that date's payday.
+  const [bulkSubmitCheck, setBulkSubmitCheck] = useState(null);
 
   // ── Escape closes whatever's open ───────────────────────────────────────
   // Every dismissible overlay in the app could so far only be closed by
@@ -2303,6 +2306,35 @@ export default function App() {
   // quite small on desktop browsers. Deliberately generous sizing — this
   // exists specifically because the native picker felt too small here;
   // mobile keeps the native input untouched, where it already works well.
+  // The check shown when a bulk submission date is more than six weeks
+  // after the oldest shift picked — usually someone loading their history
+  // who's picked today's date for claims sent in (and paid) months ago.
+  const renderBulkSubmitCheck = (closing=false) => {
+    const { date, oldest } = bulkSubmitCheck;
+    const p = PAY_PERIODS.find(x=>date>=x.start&&date<=x.end) || generateFYPeriods(getFYStartYearFor(date)).find(x=>date>=x.start&&date<=x.end);
+    const pd = p ? payDateOf(p) : null;
+    const dd = x => new Date(x+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    const mo = x => new Date(x+'T12:00:00').toLocaleDateString('en-GB',{month:'long'});
+    const n = carmsSelectedClaimCount;
+    return (
+      <div role="alertdialog" aria-modal="true" aria-labelledby="bulk-check-title" onClick={ev=>ev.stopPropagation()} className={'alert-pop'+(closing?' pop-out':'')} style={{background:'var(--surface)',borderRadius:'18px',boxShadow:'0 24px 64px rgba(0,0,0,0.28)',border:'1px solid var(--border)',padding:'22px',width:'min(400px, calc(100vw - 32px))',boxSizing:'border-box'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'10px'}}>
+          <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'12px',flexShrink:0}}><Ico n="cal" s={18} c="#b45309"/></div>
+          <div id="bulk-check-title" style={{fontWeight:900,fontSize:'16px',color:'var(--ink)'}}>Submitted on {dd(date)}?</div>
+        </div>
+        <div style={{fontSize:'13px',fontWeight:600,color:'var(--muted)',lineHeight:1.55}}>
+          {n===1?'This shift goes':'Some of these shifts go'} back to <b style={{color:'var(--ink)'}}>{mo(oldest)}</b>. Claims are paid on the payday for the date you mark them submitted, so {n===1?'it':`all ${n} claims`} will count towards {pd?<b style={{color:'var(--ink)'}}>{dd(pd)} pay</b>:'that payday'} and won't be in your total until then.
+        </div>
+        <div style={{fontSize:'13px',fontWeight:600,color:'var(--muted)',lineHeight:1.55,marginTop:'8px'}}>
+          {n===1?'If you sent it in earlier, pick the date you actually submitted it.':'If you sent them in earlier, pick the date you actually submitted them. You can tick and mark them in batches.'} If older claims have all been paid already, More › Config can take one total instead.
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:'8px',marginTop:'16px'}}>
+          <button onClick={()=>{ setBulkSubmitCheck(null); bulkMarkCarmsSubmitted(date); }} style={{background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'14px',cursor:'pointer',fontFamily:'inherit'}}>Yes, submitted on {dd(date)}</button>
+          <button onClick={()=>{ setDatePickerMonth(oldest.slice(0,7)); setBulkSubmitCheck(null); }} style={{background:'var(--surface)',color:'var(--ink)',border:'1px solid var(--border)',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'14px',cursor:'pointer',fontFamily:'inherit'}}>Pick another date</button>
+        </div>
+      </div>
+    );
+  };
   const renderDatePickerGrid = (currentValue, onSelect, closing=false, bounds=null) => {
     const [y, m] = datePickerMonth.split('-').map(Number);
     const firstDay = new Date(y, m-1, 1);
@@ -2341,7 +2373,7 @@ export default function App() {
             // A claim can't be made before the shift was worked, or in the future.
             const off = !!bounds && ((bounds.min && dateStr<bounds.min) || (bounds.max && dateStr>bounds.max));
             return (
-              <button key={i} disabled={off} onClick={()=>{ onSelect(dateStr); setDatePickerFor(null); }} style={{aspectRatio:'1',border:isToday&&!isSelected?`1.5px solid ${BRASS}`:'none',borderRadius:'10px',background:isSelected?BRASS:isMark?'var(--chip-bg)':'transparent',color:isSelected?'#fff':'var(--ink)',fontWeight:isSelected?900:700,fontSize:'14.5px',cursor:off?'default':'pointer',opacity:off?0.3:1,fontFamily:'inherit'}}>{d}</button>
+              <button key={i} disabled={off} onClick={()=>{ if (onSelect(dateStr) !== false) setDatePickerFor(null); }} style={{aspectRatio:'1',border:isToday&&!isSelected?`1.5px solid ${BRASS}`:'none',borderRadius:'10px',background:isSelected?BRASS:isMark?'var(--chip-bg)':'transparent',color:isSelected?'#fff':'var(--ink)',fontWeight:isSelected?900:700,fontSize:'14.5px',cursor:off?'default':'pointer',opacity:off?0.3:1,fontFamily:'inherit'}}>{d}</button>
             );
           })}
         </div>
@@ -2413,6 +2445,10 @@ export default function App() {
     const otPaidGross = sum(paidMonths, pb=>pb.ot),  otPaidNet = sum(paidMonths, pb=>pb.otResult.net);
     const paPaidGross = sum(paidMonths, pb=>pb.pa),  paPaidNet = sum(paidMonths, pb=>pb.paResult.net);
     const onItsWayGross = sum(upcoming, pb=>pb.combinedGross), onItsWayNet = sum(upcoming, pb=>pb.combinedNet);
+    // ...and which payday each part of it lands on, so it's clear why it
+    // isn't in the total yet.
+    const onItsWayByPayday = upcoming.filter(pb=>pb.combinedGross>0.005).map(pb=>({ payDate:pb.payDate, gross:pb.combinedGross, net:pb.combinedNet }));
+    const importedYTD = sum(paidMonths, pb=>pb.imported||0);
     const combinedGrossYTD = sum(paidMonths, pb=>pb.monthGross);
     const pensionYTD = sum(paidMonths, pb=>pb.periodPension);
     const taxableGrossYTD = Math.max(0, combinedGrossYTD - pensionYTD);
@@ -2480,7 +2516,7 @@ export default function App() {
       totalGross, totalNet, totalHrs, periodBreakdown,
       prev:getP(currPeriodIdx-1), curr:getP(currPeriodIdx),
       salaryYTD, salaryNetYTD, lwYTD, laYTD, lwNetYTD, laNetYTD, salaryAnnualTotal,
-      otPaidGross, otPaidNet, paPaidGross, paPaidNet, onItsWayGross, onItsWayNet,
+      otPaidGross, otPaidNet, paPaidGross, paPaidNet, onItsWayGross, onItsWayNet, onItsWayByPayday, importedYTD,
       combinedGrossYTD, combinedNetYTD, pensionYTD, ytdTax, ytdNI,
       taxYearDaysElapsed, taxYearStart, taxYearFraction, taxFY,
       paidMonths, forecastYear, projectedAnnualGross,
@@ -2672,6 +2708,7 @@ export default function App() {
   };
   const openCarmsBulkConfirm = () => {
     setDatePickerMonth(todayStr.slice(0,7));
+    setBulkSubmitCheck(null);
     setDatePickerFor('carmsBulk');
   };
   const bulkMarkCarmsSubmitted = (dateStr) => {
@@ -5581,7 +5618,7 @@ export default function App() {
            shaded; the claim only counts as submitted once a day is picked,
            so dismissing it changes nothing. */}
       {datePickerMounted&&(
-        <div onClick={()=>setDatePickerFor(null)} className={datePickerFor?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60}}>
+        <div onClick={()=>{ setDatePickerFor(null); setBulkSubmitCheck(null); }} className={datePickerFor?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:60}}>
           {datePickerForV==='ot'
             ? renderDatePickerGrid(form.otSubmitted?(form.otSubmittedDate||''):'', v=>setForm(f=>({...f,otSubmittedDate:v,otSubmitted:true})), !datePickerFor, { min: form.date, max: todayStr, mark: form.date })
             : datePickerForV==='pa'
@@ -5593,7 +5630,11 @@ export default function App() {
             : datePickerForV==='toil'
             ? renderDatePickerGrid(toilTakenForm.date, v=>setToilTakenForm(f=>({...f,date:v})), !datePickerFor)
             : datePickerForV==='carmsBulk'
-            ? renderDatePickerGrid(todayStr, v=>bulkMarkCarmsSubmitted(v), !datePickerFor, { min: entries.filter(e=>carmsSelected[e.id]).reduce((m,e)=>e.date>m?e.date:m,''), max: todayStr })
+            ? (bulkSubmitCheck ? renderBulkSubmitCheck(!datePickerFor) : renderDatePickerGrid(todayStr, v=>{
+                const oldest = entries.filter(e=>carmsSelected[e.id]).reduce((m,e)=>!m||e.date<m?e.date:m,'');
+                const gapDays = oldest ? (new Date(v+'T12:00:00') - new Date(oldest+'T12:00:00'))/86400000 : 0;
+                if (gapDays > 42) { setBulkSubmitCheck({ date:v, oldest }); return false; } bulkMarkCarmsSubmitted(v);
+              }, !datePickerFor, { min: entries.filter(e=>carmsSelected[e.id]).reduce((m,e)=>e.date>m?e.date:m,''), max: todayStr }))
             : renderDatePickerGrid(form.date||todayStr, v=>setForm(f=>({...f,date:v})), !datePickerFor)}
         </div>
       )}

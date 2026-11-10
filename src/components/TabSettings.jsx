@@ -1,7 +1,8 @@
 import { themeInSeason } from '../seasonal.js';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CURRENT_FY_YEAR, generateFYPeriods, localDateStr } from '../lib/payPeriods.js';
+import { CURRENT_FY_YEAR, generateFYPeriods, localDateStr, getUKTaxYearStart } from '../lib/payPeriods.js';
+import { payDateOf, grossForImportedNet } from '../lib/payroll.js';
 import { PAY_RATES } from '../lib/payRates.js';
 import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
@@ -53,6 +54,11 @@ export function TabSettings({
   // Pay scales table in Config: just your own rank around your pay point
   // until "Show all pay scales" is tapped.
   const [showAllScales, setShowAllScales] = useState(false);
+  // "Overtime already paid this tax year" form (Config card)
+  const [impOpen, setImpOpen] = useState(false);
+  const [impAmount, setImpAmount] = useState('');
+  const [impBasis, setImpBasis] = useState('gross');
+  const [impUpTo, setImpUpTo] = useState('');
   // A change of rank or pay point once you're set up: held here until you
   // say when it took effect, so earlier shifts and paydays keep the rates
   // they were actually paid at (see payPointOn in lib/payRates.js).
@@ -368,6 +374,81 @@ export function TabSettings({
             <button onClick={undoLastPayChange} style={{background:'none',border:'none',padding:'4px 0 0',fontSize:'11.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',cursor:'pointer',fontFamily:'inherit'}}>Undo the last change</button>
           </div>
         )}
+        {/* ── Overtime already paid this tax year ── for someone starting
+             part-way through the year: one figure instead of backdating
+             every claim. Spread across the paydays it covers (see
+             importedShares in lib/payroll.js). */}
+        {settings.rank && settings.service && (()=>{
+          const today = localDateStr();
+          const taxYear = Number(getUKTaxYearStart(today).slice(0,4));
+          const periods = generateFYPeriods(taxYear);
+          const paydays = periods.map(p=>({ month:p.month, payDate:payDateOf(p) })).filter(p=>p.payDate<=today);
+          const imp = settings.paidImport && Number(settings.paidImport.taxYear)===taxYear ? settings.paidImport : null;
+          const dd = x => new Date(x+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+          const monthOnly = m => m.split(' ')[0];
+          const covered = upTo => paydays.filter(p=>p.payDate<=upTo);
+          const field = {width:'100%',boxSizing:'border-box',padding:'11px 12px',borderRadius:'11px',border:'1px solid var(--border)',background:'var(--surface-2)',color:'var(--ink)',fontFamily:'inherit',fontWeight:700,fontSize:'16px'};
+          const startEdit = () => { setImpAmount(imp ? String(imp.amount) : ''); setImpBasis(imp ? imp.basis : 'gross'); setImpUpTo(imp ? imp.upTo : (paydays[paydays.length-1]?.payDate || '')); setImpOpen(true); };
+          const amt = parseFloat(String(impAmount).replace(/[£,\s]/g,''));
+          const valid = amt > 0 && impUpTo;
+          const save = () => {
+            if (!valid) return;
+            const gross = impBasis==='gross' ? Math.round(amt*100)/100 : grossForImportedNet({ periods, entries, settings, net: amt, upTo: impUpTo, taxYear });
+            saveSett({ ...settings, paidImport: { taxYear, amount: Math.round(amt*100)/100, basis: impBasis, gross, upTo: impUpTo } });
+            setImpOpen(false);
+          };
+          if (!paydays.length) return null;
+          return (
+            <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                <div style={{background:'var(--tint-green)',padding:'9px',borderRadius:'13px'}}><Ico n="dl" s={17} c="#059669"/></div>
+                <div><div style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Overtime already paid this tax year</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Starting part-way through? Enter one total instead of backdating claims.</div></div>
+              </div>
+              {!impOpen && imp && (
+                <div style={{marginTop:'10px',background:'var(--surface-2)',borderRadius:'11px',padding:'11px 12px'}}>
+                  <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>{fmtGBP(imp.amount)} {imp.basis}{imp.basis==='net'?<span style={{fontWeight:600,color:'var(--muted)'}}> (≈ {fmtGBP(imp.gross)} gross)</span>:null}</div>
+                  <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'3px'}}>Spread across {covered(imp.upTo).length} payday{covered(imp.upTo).length!==1?'s':''}: April to {monthOnly(covered(imp.upTo).slice(-1)[0]?.month||'')} pay</div>
+                  <div style={{display:'flex',gap:'14px',marginTop:'8px'}}>
+                    <button onClick={startEdit} style={{background:'none',border:'none',padding:0,fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>Edit</button>
+                    <button onClick={()=>{ const { paidImport, ...rest } = settings; saveSett(rest); }} style={{background:'none',border:'none',padding:0,fontSize:'12px',fontWeight:800,color:'var(--text-red-deep)',cursor:'pointer',fontFamily:'inherit'}}>Remove</button>
+                  </div>
+                </div>
+              )}
+              {!impOpen && !imp && (
+                <button onClick={startEdit} style={{marginTop:'10px',width:'100%',background:'var(--surface-2)',color:'var(--ink)',border:'1px dashed var(--border)',borderRadius:'11px',padding:'11px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Add overtime already paid</button>
+              )}
+              {impOpen && (
+                <div style={{marginTop:'10px',display:'flex',flexDirection:'column',gap:'10px'}}>
+                  <div>
+                    <div style={{fontSize:'11px',fontWeight:800,color:'var(--muted)',marginBottom:'5px'}}>Overtime &amp; PA paid so far this tax year</div>
+                    <div style={{display:'flex',gap:'8px'}}>
+                      <input inputMode="decimal" aria-label="Amount already paid" placeholder="£0.00" value={impAmount} onChange={e=>setImpAmount(e.target.value)} style={{...field,flex:1,minWidth:0,fontFamily:MONO}}/>
+                      <div role="group" aria-label="Gross or net" style={{display:'flex',background:'var(--chip-bg)',borderRadius:'11px',padding:'3px',flexShrink:0}}>
+                        {['gross','net'].map(b=>(
+                          <button key={b} type="button" aria-pressed={impBasis===b} onClick={()=>setImpBasis(b)} style={{border:'none',borderRadius:'9px',padding:'0 14px',fontFamily:'inherit',fontWeight:800,fontSize:'13px',cursor:'pointer',background:impBasis===b?BRASS:'transparent',color:impBasis===b?'#fff':'var(--muted)',textTransform:'capitalize'}}>{b}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:'11px',fontWeight:800,color:'var(--muted)',marginBottom:'5px'}}>Covers April pay up to</div>
+                    <select aria-label="Last payday covered" value={impUpTo} onChange={e=>setImpUpTo(e.target.value)} style={{...field,appearance:'auto'}}>
+                      {paydays.map(p=><option key={p.payDate} value={p.payDate}>{p.month} pay ({dd(p.payDate)})</option>)}
+                    </select>
+                  </div>
+                  <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>
+                    {impBasis==='net' ? 'Take-home from your bank statements; the app works out the gross. ' : 'The gross figure from your payslips. '}
+                    It's spread evenly across those paydays and counts towards your totals and tax. Don't include anything you've also logged as shifts.
+                  </div>
+                  <div style={{display:'flex',gap:'8px'}}>
+                    <button disabled={!valid} onClick={save} style={{flex:1,background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'11px',fontWeight:800,fontSize:'13px',cursor:valid?'pointer':'default',opacity:valid?1:0.5,fontFamily:'inherit'}}>Save</button>
+                    <button onClick={()=>setImpOpen(false)} style={{background:'var(--surface)',color:'var(--muted)',border:'1px solid var(--border)',borderRadius:'11px',padding:'11px 16px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
         <div style={{display:'flex',alignItems:'center',gap:'8px',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}}>
           <div style={{background:'var(--tint-blue)',padding:'9px',borderRadius:'13px'}}><Ico n="clock" s={17} c="#2563eb"/></div>
           <span style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Hourly rates &amp; pay scales</span>

@@ -121,7 +121,7 @@ export function TabSummary({
         <Ico n="cR" s={13} c="var(--quiet)" w={2.2}/>
       </button>
     );
-    const noOT = tierHours.t133+tierHours.t150+tierHours.t200===0;
+    const noOT = tierHours.t133+tierHours.t150+tierHours.t200===0 && !(pb.imported>0);
     const noPA = paCount.PA1+paCount.PA2+paCount.PA3===0;
     // An empty current pay month with claims still to submit from earlier
     // shifts (e.g. the start of a new pay year) points to them, as Months does.
@@ -139,6 +139,10 @@ export function TabSummary({
       {!noOT&&<div style={section}>
         {secHead('Overtime','var(--text-blue-deep)',pb.ot,pb.otResult.net)}
         {tier('t133','1.33×')}{tier('t150','1.5×')}{tier('t200','2×')}
+        {pb.imported>0&&<div style={{padding:'7px 0'}}>
+          <div style={{...lineRow,color:'var(--ink)'}}><span>Already paid (entered in More)</span><span style={{fontFamily:MONO}}>{fmt(pb.imported)}</span></div>
+          <div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)',marginTop:'2px'}}>Your share of the overtime figure you entered, spread across these paydays</div>
+        </div>}
       </div>}
       {!noPA&&<div style={section}>
         {secHead('Protection Allowance','var(--text-amber-deep)',pb.pa,pb.paResult.net)}
