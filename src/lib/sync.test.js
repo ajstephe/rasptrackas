@@ -463,3 +463,14 @@ describe('hasNoPendingLocalEdit — same content, different key order', () => {
     expect(hasNoPendingLocalEdit({ rank:'Constable', service:'PC 4', theme:'tube' }, synced)).toBe(false);
   });
 });
+
+describe('dropUnheldSynced — a device that lost items locally must not delete them everywhere', () => {
+  it('forgets synced ids the device does not hold, so no delete is pushed for them', async () => {
+    const { dropUnheldSynced, computeRowPushDiff } = await import('./sync.js');
+    const synced = new Map([['a','{}'],['b','{}'],['c','{}']]);
+    const local = [{ id:'a' }];
+    dropUnheldSynced(synced, local);
+    expect([...synced.keys()]).toEqual(['a']);
+    expect(computeRowPushDiff(local, synced).toDelete).toEqual([]);
+  });
+});

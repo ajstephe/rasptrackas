@@ -96,6 +96,15 @@ export function chainSequential(chainMap, key, fn) {
 // calling this until the initial pull has actually finished (see
 // initialSyncDoneRef in App.jsx). That's a caller responsibility, not a
 // bug in the diff itself — it's exactly why the guard exists.
+// On load: forget "synced" bookkeeping for items this device doesn't hold.
+// Otherwise a device whose saved items lag its saved synced-list (closed
+// mid-sync) reads the gap as local deletions and pushes them to the server.
+export function dropUnheldSynced(lastSyncedMap, localItems) {
+  const held = new Set(localItems.map(x => x.id));
+  for (const id of [...lastSyncedMap.keys()]) if (!held.has(id)) lastSyncedMap.delete(id);
+  return lastSyncedMap;
+}
+
 export function computeRowPushDiff(items, lastSyncedMap) {
   const currentIds = new Set(items.map(it => it.id));
   const toUpsert = items.filter(it => lastSyncedMap.get(it.id) !== JSON.stringify(it));

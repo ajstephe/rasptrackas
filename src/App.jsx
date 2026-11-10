@@ -27,7 +27,7 @@ import {
   calcAutoOTHours, syncShiftTimesIntoForm, shiftDurationMinutes,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
+import { mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -1464,8 +1464,24 @@ export default function App() {
   // without this, a plain page reload would forget everything this device
   // has ever actually synced, since useRef alone doesn't survive that.
   const syncGenRef = useRef(0); // bumped when local account data is cleared; see pullAndMergeRows
-  const lastSyncedEntriesRef = useRef(new Map(Object.entries(dualRead(KEYS.lastSyncedEntries,{}))));
-  const lastSyncedToilRef = useRef(new Map(Object.entries(dualRead(KEYS.lastSyncedToilTaken,{}))));
+  // "Synced" bookkeeping only counts for items this device actually holds.
+  // If the two ever disagree on load (the app closed mid-sync, so the synced
+  // list was saved but the items weren't), an item marked synced but missing
+  // locally used to be read as "deleted here" and soft-deleted on the server
+  // — wiping it from every device. It's dropped from the synced list instead,
+  // so the next pull simply brings it back.
+  const keepHeld = dropUnheldSynced;
+  const lastSyncedEntriesRef = useRef(null);
+  if (lastSyncedEntriesRef.current === null) lastSyncedEntriesRef.current = keepHeld(new Map(Object.entries(dualRead(KEYS.lastSyncedEntries,{}))), entries);
+  const lastSyncedToilRef = useRef(null);
+  if (lastSyncedToilRef.current === null) lastSyncedToilRef.current = keepHeld(new Map(Object.entries(dualRead(KEYS.lastSyncedToilTaken,{}))), toilTaken);
+  // Every id this device has shown during this session. A deletion is only
+  // ever pushed for one of these — a person can only delete what they've had
+  // on screen — never for an id this device never held.
+  const seenIdsRef = useRef(null);
+  if (seenIdsRef.current === null) seenIdsRef.current = { entries: new Set(entries.map(e=>e.id)), toil_taken: new Set(toilTaken.map(t=>t.id)) };
+  useEffect(()=>{ entries.forEach(e=>seenIdsRef.current.entries.add(e.id)); },[entries]);
+  useEffect(()=>{ toilTaken.forEach(t=>seenIdsRef.current.toil_taken.add(t.id)); },[toilTaken]);
   const lastSyncedSettingsRef = useRef(dualRead(KEYS.lastSyncedSettings,null));
   // Newest settings-row updated_at this device has actually established —
   // either by pushing it, or by accepting an incoming pull/realtime update.
@@ -1568,7 +1584,15 @@ export default function App() {
       // unsynced either way. That distinction can only be made by NOT
       // calling this function until the initial pull has finished, which
       // is exactly what initialSyncDoneRef above guards.
-      const { toUpsert, toDelete } = computeRowPushDiff(items, lastSyncedRef.current);
+      const diff = computeRowPushDiff(items, lastSyncedRef.current);
+      const { toUpsert } = diff;
+      const seen = seenIdsRef.current[table] || new Set();
+      const toDelete = diff.toDelete.filter(id => seen.has(id));
+      const neverHeld = diff.toDelete.filter(id => !seen.has(id));
+      if (neverHeld.length) {
+        neverHeld.forEach(id => lastSyncedRef.current.delete(id)); persistFn();
+        console.warn(`[sync] ${table}: not deleting ${neverHeld.length} item(s) this device never held; they'll be pulled back down`);
+      }
       if (toUpsert.length === 0 && toDelete.length === 0) return 0;
       const now = new Date().toISOString();
       let failed = 0;
