@@ -13,7 +13,12 @@
 export function hasNoPendingLocalEdit(currentItem, priorSyncedJson) {
   if (!currentItem) return true;
   if (priorSyncedJson === undefined) return true;
-  return priorSyncedJson === JSON.stringify(currentItem);
+  if (priorSyncedJson === JSON.stringify(currentItem)) return true;
+  // Same content with keys in a different order (e.g. settings rebuilt by
+  // migrateSettings, or a field appended on another device) is not an edit:
+  // treating it as one made a device ignore every later update from the
+  // others and push its own copy back over them.
+  try { return stableJSON(JSON.parse(priorSyncedJson)) === stableJSON(currentItem); } catch { return false; }
 }
 
 // "Safe to take the remote copy" isn't the same question as "is this
@@ -56,7 +61,7 @@ export function remoteSettingsChanged(migratedRemote, currentSettings) {
 // Key order varies with how a settings object was built (a field added on
 // this device lands last, the migrated copy puts it in its own place), so
 // compare with keys sorted.
-function stableJSON(v) {
+export function stableJSON(v) {
   return JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x)
     ? Object.keys(x).sort().reduce((o, key) => { o[key] = x[key]; return o; }, {}) : x);
 }

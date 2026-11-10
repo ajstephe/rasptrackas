@@ -988,7 +988,11 @@ export default function App() {
   // left alone, as on this device.
   useEffect(()=>{
     const t = settings.theme;
-    if (!t) { if (themeMode !== 'system') setSettings(s => s.theme ? s : { ...s, theme:themeMode }); return; }
+    // Only a theme someone actually picks is synced. (Copying each device's
+    // current theme in on open made that copy look like a fresh local edit,
+    // so the device ignored the theme picked elsewhere and pushed its own
+    // back over it.)
+    if (!t) return;
     if (t === themeMode || !THEME_IDS.includes(t) || !themeInSeason(t)) return;
     if (SEASONAL_THEMES[t] && !SEASONAL_THEMES[themeMode]) rememberPreSeasonTheme(themeMode);
     setThemeMode(t); dualWrite(KEYS.themeMode, t);
@@ -1612,7 +1616,7 @@ export default function App() {
     // whichever the network happened to finish first.
     const run = async () => {
       const json = JSON.stringify(settingsObj);
-      if (lastSyncedSettingsRef.current === json) return 0;
+      if (lastSyncedSettingsRef.current === json || hasNoPendingLocalEdit(settingsObj, lastSyncedSettingsRef.current ?? undefined) && lastSyncedSettingsRef.current != null) return 0;
       try {
         const ciphertext = await encryptWithDataKey(dataKey, settingsObj);
         const now = new Date().toISOString();
@@ -1991,6 +1995,23 @@ export default function App() {
   // pull/realtime update, both of which already go through their own
   // hasNoPendingLocalEdit/remoteSettingsChanged guards) ever queue a push.
   const settingsMountedRef = useRef(false);
+  // Coming back to the app (switching tabs, unlocking the phone, reopening
+  // the installed app) picks up settings changed on another device straight
+  // away — the theme in particular — rather than waiting for the live
+  // channel to reconnect or the next manual sync.
+  const lastFgPullRef = useRef(0);
+  useEffect(()=>{
+    if (!session || !dataKey) return;
+    const onFg = () => {
+      if (document.visibilityState !== 'visible' || !initialSyncDoneRef.current) return;
+      const now = Date.now(); if (now - lastFgPullRef.current < 5000) return;
+      lastFgPullRef.current = now;
+      pullAndMergeSettings().catch(()=>{});
+    };
+    document.addEventListener('visibilitychange', onFg);
+    window.addEventListener('focus', onFg);
+    return () => { document.removeEventListener('visibilitychange', onFg); window.removeEventListener('focus', onFg); };
+  },[session, dataKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const pushSettingsDebounceRef = useRef(null);
   useEffect(()=>{
     dualWrite(KEYS.settings,settings);

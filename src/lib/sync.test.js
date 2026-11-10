@@ -454,3 +454,12 @@ describe('findMissingIds — server rows this device never pulled', () => {
     expect(findMissingIds([{ id: 'a' }, { id: 'b' }], new Set(['a', 'b']), new Map([['a', '{}'], ['b', '{}']]))).toEqual([]);
   });
 });
+
+describe('hasNoPendingLocalEdit — same content, different key order', () => {
+  it('is not a pending edit when only the key order differs', async () => {
+    const { hasNoPendingLocalEdit } = await import('./sync.js');
+    const synced = JSON.stringify({ theme:'miami', rank:'Constable', service:'PC 4' });
+    expect(hasNoPendingLocalEdit({ rank:'Constable', service:'PC 4', theme:'miami' }, synced)).toBe(true);
+    expect(hasNoPendingLocalEdit({ rank:'Constable', service:'PC 4', theme:'tube' }, synced)).toBe(false);
+  });
+});
