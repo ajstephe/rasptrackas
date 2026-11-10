@@ -1,3 +1,4 @@
+import { AppSelect } from './AppSelect.jsx';
 import { useState } from 'react';
 import { fmtHrs } from '../lib/format.js';
 import { Ico } from './Icons.jsx';
@@ -48,26 +49,22 @@ export function TabToil({ isWide, S, MONO, setDatePickerFor, setDatePickerMonth,
       <div style={{...S.lbl,fontSize:'11px'}}>Record TOIL taken</div>
       <div style={{display:'grid',gridTemplateColumns:'minmax(0,1.4fr) minmax(0,0.8fr) minmax(0,0.8fr)',gap:'8px'}}>
         <label style={{minWidth:0}}><span style={lbl}>Date</span>
-          {/* A computer uses the app's own date picker, as Log Overtime does. */}
-          {isWide ? (
-            <button type="button" onClick={()=>{ setDatePickerMonth((toilTakenForm.date||'').slice(0,7)||new Date().toISOString().slice(0,7)); setDatePickerFor('toil'); }} style={{...field,display:'flex',alignItems:'center',gap:'8px',textAlign:'left',cursor:'pointer',fontFamily:'inherit',fontSize:'14px',fontWeight:700}}>
+          {/* The app's own date picker on every screen, as Log Overtime does. */}
+          <button type="button" onClick={()=>{ setDatePickerMonth((toilTakenForm.date||'').slice(0,7)||new Date().toISOString().slice(0,7)); setDatePickerFor('toil'); }} style={{...field,display:'flex',alignItems:'center',gap:'8px',textAlign:'left',cursor:'pointer',fontFamily:'inherit',fontSize:'14px',fontWeight:700}}>
               <Ico n="cal" s={14} c="var(--quiet)"/>{toilTakenForm.date ? new Date(toilTakenForm.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}).replace(/\bSep\b/,'Sept') : 'Choose a date'}
             </button>
-          ) : (
-            <input type="date" style={field} value={toilTakenForm.date} onChange={e=>setToilTakenForm({...toilTakenForm,date:e.target.value})}/>
-          )}
         </label>
         <label style={{minWidth:0}}><span style={lbl}>Hours</span>
           <input type="number" min="0" step="1" inputMode="numeric" placeholder="0" style={{...field,textAlign:'center'}} value={toilTakenForm.hours} onChange={e=>setToilTakenForm({...toilTakenForm,hours:e.target.value})}/>
         </label>
         <label style={{minWidth:0}}><span style={lbl}>Minutes</span>
           <span style={{position:'relative',display:'block'}}>
-            <select style={{...field,padding:'9px 20px 9px 8px',textAlign:'center',appearance:'none'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
+            <AppSelect aria-label="Minutes" style={{...field,padding:'9px 20px 9px 8px',textAlign:'center',appearance:'none'}} value={toilTakenForm.minutes} onChange={e=>setToilTakenForm({...toilTakenForm,minutes:e.target.value})}>
               <option value="00">00</option>
               <option value="15">15</option>
               <option value="30">30</option>
               <option value="45">45</option>
-            </select>
+            </AppSelect>
             <span style={{position:'absolute',right:'6px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex'}}><Ico n="cD" s={11} c="var(--quiet)" w={2.5}/></span>
           </span>
         </label>

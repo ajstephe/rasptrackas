@@ -8,6 +8,7 @@ import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { PrivacyNotice } from './PrivacyNotice.jsx';
 import { SegSlider } from './SegSlider.jsx';
+import { AppSelect } from './AppSelect.jsx';
 import { useMountTransition } from '../lib/useMountTransition.js';
 import { useFocusTrap } from '../lib/useFocusTrap.js';
 import { useEscapeToClose } from '../lib/useEscapeToClose.js';
@@ -245,9 +246,9 @@ export function TabSettings({
           /* Phone: a native dropdown (the OS wheel/sheet picker) instead of
              a sideways-scrolling row — fourteen themes no longer fit. */
           <div style={{position:'relative'}}>
-            <select aria-label="Theme" value={themeMode} onChange={e=>setTheme(e.target.value)} style={{width:'100%',appearance:'none',WebkitAppearance:'none',padding:'12px 40px 12px 14px',borderRadius:'11px',border:'1px solid var(--border)',background:'var(--surface-2)',color:'var(--ink)',fontFamily:'inherit',fontWeight:800,fontSize:'16px',cursor:'pointer'}}>
+            <AppSelect aria-label="Theme" value={themeMode} onChange={e=>setTheme(e.target.value)} style={{width:'100%',appearance:'none',WebkitAppearance:'none',padding:'12px 40px 12px 14px',borderRadius:'11px',border:'1px solid var(--border)',background:'var(--surface-2)',color:'var(--ink)',fontFamily:'inherit',fontWeight:800,fontSize:'16px',cursor:'pointer'}}>
               {themeOptions.map(([v,lbl])=><option key={v} value={v}>{lbl}</option>)}
-            </select>
+            </AppSelect>
             <span aria-hidden="true" style={{position:'absolute',right:'14px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'var(--muted)',display:'flex'}}><Ico n="cD" s={16} w={2.4}/></span>
           </div>
         )}
@@ -301,7 +302,7 @@ export function TabSettings({
               it was ever the actual cause here, so no reason to bring
               that part back too. */}
           <div className={!settings.rank?'setup-pulse-urgent':''} style={{borderRadius:'13px',position:'relative'}}>
-            <select style={{...S.sel,paddingRight:'36px',border: !settings.rank ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.rank ? 900 : 700}} value={pendingPay ? pendingPay.rank : settings.rank} onChange={e=>{
+            <AppSelect aria-label="Rank" style={{...S.sel,paddingRight:'36px',border: !settings.rank ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.rank ? 900 : 700}} value={pendingPay ? pendingPay.rank : settings.rank} onChange={e=>{
               const r=e.target.value;
               if (setUp) {
                 // Once set up, a change waits for its "from" date below.
@@ -313,7 +314,7 @@ export function TabSettings({
             }}>
               <option value="">Choose your rank</option>
               {Object.keys(PAY_RATES).map(k=><option key={k} value={k}>{k}</option>)}
-            </select>
+            </AppSelect>
             {/* appearance:'none' above strips the native dropdown arrow for
                 custom styling — nothing was ever drawn in to replace it, so
                 this looked like a plain text box with no hint it opens a
@@ -337,7 +338,7 @@ export function TabSettings({
             </div>
             {/* Same restoration, same reasoning, as Rank's wrapper above. */}
             <div className={!settings.service?'setup-pulse-urgent':''} style={{borderRadius:'13px',position:'relative'}}>
-              <select style={{...S.sel,paddingRight:'36px',border: !settings.service ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.service ? 900 : 700}} value={pendingPay ? pendingPay.service : settings.service} onChange={e=>{
+              <AppSelect aria-label="Pay point" style={{...S.sel,paddingRight:'36px',border: !settings.service ? '2px solid #dc2626' : '1px solid var(--border-2)',fontWeight: !settings.service ? 900 : 700}} value={pendingPay ? pendingPay.service : settings.service} onChange={e=>{
                 const v = e.target.value;
                 if (setUp) {
                   const r = pendingPay ? pendingPay.rank : settings.rank;
@@ -348,7 +349,7 @@ export function TabSettings({
               }}>
                 <option value="">Choose your pay point</option>
                 {Object.keys(PAY_RATES[pendingPay ? pendingPay.rank : settings.rank]).map(p=><option key={p} value={p}>{p}</option>)}
-              </select>
+              </AppSelect>
               <div style={{position:'absolute',right:'13px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex'}}><Ico n="cD" s={13} c="var(--quiet)" w={2.5}/></div>
             </div>
           </div>
@@ -797,9 +798,9 @@ export function TabSettings({
                   </div>
                   <div>
                     <div style={{fontSize:'11px',fontWeight:800,color:'var(--muted)',marginBottom:'5px'}}>Covers April pay up to</div>
-                    <select aria-label="Last payday covered" value={impUpTo} onChange={e=>setImpUpTo(e.target.value)} style={{...field,appearance:'auto'}}>
+                    <AppSelect aria-label="Covers April pay up to" value={impUpTo} onChange={e=>setImpUpTo(e.target.value)} style={{...field,appearance:'auto'}}>
                       {paydays.map(p=><option key={p.payDate} value={p.payDate}>{p.month} pay ({dd(p.payDate)})</option>)}
-                    </select>
+                    </AppSelect>
                   </div>
                   <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>
                     {impBasis==='net' ? 'Take-home from your bank statements; the app works out the gross. ' : 'The gross figure from your payslips. '}

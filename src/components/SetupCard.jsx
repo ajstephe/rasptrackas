@@ -1,3 +1,4 @@
+import { AppSelect } from './AppSelect.jsx';
 import { PAY_RATES } from '../lib/payRates.js';
 import { Ico } from './Icons.jsx';
 
@@ -24,23 +25,23 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home' }) {
         <div>
           <label htmlFor={`setup-rank-${where}`} style={lbl}>Rank</label>
           <div style={{position:'relative'}}>
-            <select id={`setup-rank-${where}`} style={{...S.sel,paddingRight:'36px'}} value={rank} onChange={e=>{
+            <AppSelect aria-label="Rank" id={`setup-rank-${where}`} style={{...S.sel,paddingRight:'36px'}} value={rank} onChange={e=>{
               const r = e.target.value;
               saveSett({ ...settings, rank:r, service:'' });
             }}>
               <option value="">Choose your rank</option>
               {Object.keys(PAY_RATES).map(r=><option key={r} value={r}>{r}</option>)}
-            </select>
+            </AppSelect>
             {chevron}
           </div>
         </div>
         <div>
           <label htmlFor={`setup-pp-${where}`} style={lbl}>Pay point</label>
           <div style={{position:'relative'}}>
-            <select id={`setup-pp-${where}`} disabled={!rank} style={{...S.sel,paddingRight:'36px',opacity:rank?1:0.55,cursor:rank?'pointer':'not-allowed'}} value={rank ? (settings.service||'') : ''} onChange={e=>saveSett({ ...settings, service:e.target.value })}>
+            <AppSelect aria-label="Pay point" id={`setup-pp-${where}`} disabled={!rank} style={{...S.sel,paddingRight:'36px',opacity:rank?1:0.55,cursor:rank?'pointer':'not-allowed'}} value={rank ? (settings.service||'') : ''} onChange={e=>saveSett({ ...settings, service:e.target.value })}>
               <option value="">{rank ? 'Choose your pay point' : 'Choose your rank first'}</option>
               {points.map(p=><option key={p} value={p}>{p}</option>)}
-            </select>
+            </AppSelect>
             {chevron}
           </div>
           <div style={{fontSize:'11.5px',color:'var(--muted)',marginTop:'6px',lineHeight:1.45}}>It's on your payslip, e.g. "{rank==='Sergeant' ? 'SGT 3' : 'PC 4'}".</div>

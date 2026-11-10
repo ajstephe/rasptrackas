@@ -389,12 +389,12 @@ export function TabLogOvertime({
         <div className={isWide?'split-log':undefined}><div>
         {step(1,'When and what',(
           <>
-            {row('Date','', isWide ? (
-              <button type="button" onClick={()=>{ setDatePickerMonth((form.date||todayStr).slice(0,7)); setDatePickerFor('shift'); }} style={{...S.inp,display:'flex',alignItems:'center',gap:'9px',height:'44px',fontSize:inputFont,textAlign:'left',cursor:'pointer'}}>
+            {/* The app's own calendar on every screen, so the date picker
+                looks like the rest of the app rather than the phone's. */}
+            {row('Date','', (
+              <button type="button" onClick={()=>{ setDatePickerMonth((form.date||todayStr).slice(0,7)); setDatePickerFor('shift'); }} style={{...S.inp,display:'flex',alignItems:'center',gap:'9px',height:isWide?'44px':'46px',fontSize:inputFont,textAlign:'left',cursor:'pointer',color:'var(--ink)'}}>
                 <Ico n="cal" s={15} c="var(--quiet)"/>{dateLabel(form.date)}
               </button>
-            ) : (
-              <input type="date" style={{...S.inp,display:'block',height:'46px'}} value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
             ))}
             {row('Reason (optional)','',<input type="text" placeholder="e.g. Earlies, Lates" style={{...S.inp,fontSize:inputFont}} value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})}/>,{last:true})}
           </>

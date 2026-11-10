@@ -4734,6 +4734,14 @@ export default function App() {
         @keyframes ovFadeIn{from{opacity:0}to{opacity:1}}
         @keyframes ovFadeOut{from{opacity:1}to{opacity:0}}
         .ov-in{animation:ovFadeIn 0.22s ease}
+        .app-select-sheet{animation:appSheetIn 0.24s cubic-bezier(.2,.8,.2,1)}
+        .app-select-sheet.out{animation:appSheetOut 0.16s ease forwards}
+        .app-select-pop{animation:appPopIn 0.14s ease-out;transform-origin:top center}
+        .app-select-pop.out{animation:appPopOut 0.14s ease forwards}
+        @keyframes appSheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}
+        @keyframes appSheetOut{from{transform:translateY(0)}to{transform:translateY(100%)}}
+        @keyframes appPopIn{from{opacity:0;transform:translateY(-4px) scale(0.98)}to{opacity:1;transform:none}}
+        @keyframes appPopOut{from{opacity:1}to{opacity:0}}
         .ov-out{animation:ovFadeOut 0.2s ease forwards}
         /* ── the two dismissible top banners collapse their own height on
              the way out instead of the content underneath jumping up the
@@ -5266,11 +5274,11 @@ export default function App() {
                   <div style={{display:'flex',gap:'10px',marginBottom:'6px'}}>
                     <div style={{flex:1}}>
                       <label style={{display:'block',fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>Start</label>
-                      <input type="date" value={payslipStart} onChange={e=>setPayslipStart(e.target.value)} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1.5px solid var(--border)',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
+                      <button type="button" onClick={()=>openCustomDatePicker(payslipStart||todayStr, v=>setPayslipStart(v), 'Select the start date')} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1.5px solid var(--border)',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer',color:'var(--ink)'}}>{payslipStart ? new Date(payslipStart+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Choose'}</button>
                     </div>
                     <div style={{flex:1}}>
                       <label style={{display:'block',fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>End</label>
-                      <input type="date" value={payslipEnd} onChange={e=>setPayslipEnd(e.target.value)} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1.5px solid var(--border)',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)'}}/>
+                      <button type="button" onClick={()=>openCustomDatePicker(payslipEnd||todayStr, v=>setPayslipEnd(v), 'Select the end date')} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1.5px solid var(--border)',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer',color:'var(--ink)'}}>{payslipEnd ? new Date(payslipEnd+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Choose'}</button>
                     </div>
                   </div>
                   {payslipStart&&payslipEnd&&!rangeValid&&<div style={{fontSize:'10.5px',color:'var(--text-red-deep)',fontWeight:700,marginTop:'6px'}}>End date must be on or after the start date.</div>}
