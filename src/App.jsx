@@ -4957,15 +4957,6 @@ export default function App() {
           </div>
         </div>
         <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',flexShrink:0,gap:'8px'}}>
-          {/* Computer only: what's left to submit, one click from every
-              screen. (This pay month's figures used to sit here too; Home's
-              "Net overtime this month" already shows them.) */}
-          {isWide && (()=>{
-            const pill = {display:'inline-flex',alignItems:'center',gap:'8px',border:'1px solid var(--border)',background:'var(--surface-2)',borderRadius:'999px',padding:'6px 12px',fontSize:'12.5px',fontWeight:700,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'};
-            return (<>
-              {carmsOutstanding.totalClaims>0&&<button type="button" onClick={()=>setTab('carms')} title="Open Awaits Submission" style={{...pill,background:'var(--tint-red)',borderColor:'transparent',color:'var(--text-red-deep)'}}><span style={{fontFamily:MONO,fontWeight:700}}>{fmtGBP(carmsOutstanding.totalAmount)}</span> to submit · {carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''}</button>}
-            </>);
-          })()}
           {/* Desktop-only, hidden here — the fixed sidebar already carries
               its own persistent Sync button at all times, so this would
               just be a second one doing the exact same thing. */}

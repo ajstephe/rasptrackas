@@ -173,9 +173,9 @@ export function TabDashboard({
         })()}
         <div style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'#7c93b3'}}>{taxYearLine}</div>
       </div>
-      {carmsOutstanding.totalAmount>0&&(
-        <button onClick={()=>setTab('carms')} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'6px',marginTop:compact?'12px':0,fontSize:'11.5px',fontWeight:800,color:'#fbbf24',background:'rgba(251,191,36,0.14)',border:'none',borderRadius:'20px',padding:'6px 12px',cursor:'pointer',fontFamily:'inherit',position:'relative'}}>
-          {fmtGBP(carmsOutstanding.totalAmount)} to submit · Review <Ico n="cR" s={11} c="#fbbf24" w={2.5}/>
+      {(carmsOutstanding.totalAmount>0||carmsOutstanding.totalClaims>0)&&(
+        <button onClick={()=>setTab('carms')} title="Open Awaits Submission" className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'6px',marginTop:compact?'12px':0,fontSize:'11.5px',fontWeight:800,color:'#fbbf24',background:'rgba(251,191,36,0.14)',border:'none',borderRadius:'20px',padding:'6px 12px',cursor:'pointer',fontFamily:'inherit',position:'relative',whiteSpace:'nowrap'}}>
+          {fmtGBP(carmsOutstanding.totalAmount)} to submit · {carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} <Ico n="cR" s={11} c="#fbbf24" w={2.5}/>
         </button>
       )}
     </div>
