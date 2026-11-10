@@ -339,7 +339,7 @@
       :root[data-theme="arcade"] .app-nav{background:#1e1650!important;border-top:none!important}
       :root[data-theme="arcade"] .app-nav::before{content:'INSERT OVERTIME';position:absolute;left:0;right:0;top:-16px;height:16px;display:flex;align-items:center;justify-content:center;background:#1e1650;border-top:2px solid #ff2e88;box-sizing:border-box;font:8px/1 'Press Start 2P',monospace;letter-spacing:2px;color:#ffe600;pointer-events:none;animation:arcadeCoin 1s steps(1) infinite}
       /* the big headline figures stay pixel-font (Jersey 10, one weight, so no faux bold) */
-      :root[data-theme="arcade"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-family:'Jersey 10',monospace!important;font-weight:400!important;font-synthesis:none}
+      :root[data-theme="arcade"] [style*="--num-font"]:is([style*="font-size: 2"],[style*="font-size: 3"]){font-family:'Jersey 10',monospace!important;font-weight:400!important;font-synthesis:none;font-size-adjust:cap-height 0.8}
       /* desktop: the same flashing INSERT OVERTIME strip in the sidebar, between the tabs and the Theme button */
       :root[data-theme="arcade"] .sidebar-theme-box::before{content:'INSERT OVERTIME';display:flex;align-items:center;justify-content:center;height:24px;margin-bottom:12px;border-top:2px solid #ff2e88;border-bottom:2px solid #ff2e88;font:9px/1 'Press Start 2P',monospace;letter-spacing:2px;color:#ffe600;pointer-events:none;animation:arcadeCoin 1s steps(1) infinite}
       @keyframes arcadeBlink{0%,100%{opacity:1}50%{opacity:0.15}}
