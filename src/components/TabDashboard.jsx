@@ -141,9 +141,36 @@ export function TabDashboard({
       </svg>
       <div>
         <div style={{fontSize:compact?'11px':'11.5px',fontWeight:800,color:'var(--hero-label,#93c5fd)',marginBottom:'5px'}}>Gross pay this tax year</div>
-        <div style={{fontFamily:MONO,fontSize:compact?'28px':'32px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'5px'}}>
-          {settings.rank&&settings.service ? fmtGBP(animatedGrossYTD) : '—'}
-        </div>
+        {(()=>{
+          const hasPay = !!(settings.rank&&settings.service);
+          const due = hasPay ? (totals.onItsWayGross||0) : 0;
+          // Nothing submitted and waiting for a payday: one figure, as before.
+          if (due < 0.005) return (
+            <div style={{fontFamily:MONO,fontSize:compact?'28px':'32px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'5px'}}>
+              {hasPay ? fmtGBP(animatedGrossYTD) : '—'}
+            </div>
+          );
+          // Paid so far, and the same plus claims submitted but waiting for
+          // their payday — so logging and submitting overtime moves a
+          // headline figure straight away, while "Paid" still matches the
+          // payslips.
+          const paydays = (totals.onItsWayByPayday||[]).map(p=>new Date(p.payDate+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}));
+          const lbl = {fontSize:'9.5px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'3px'};
+          const fig = {fontFamily:MONO,fontSize:compact?'22px':'32px',fontWeight:600,letterSpacing:'-0.5px',lineHeight:1.15};
+          return (
+            <div style={{display:'flex',alignItems:'flex-start',gap:compact?'14px':'26px',marginBottom:'6px',flexWrap:'wrap'}}>
+              <div>
+                <div style={{...lbl,color:'var(--hero-label,#93c5fd)'}}>Paid</div>
+                <div style={{...fig,color:'#fff'}}>{fmtGBP(animatedGrossYTD)}</div>
+              </div>
+              <div style={{borderLeft:'1px solid rgba(255,255,255,0.18)',paddingLeft:compact?'14px':'26px'}}>
+                <div style={{...lbl,color:'#fbbf24'}}>Incl. submitted</div>
+                <div style={{...fig,color:'#fde68a'}}>{fmtGBP(animatedGrossYTD + due)}</div>
+                <div style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'#fbbf24',opacity:0.85,marginTop:'3px'}}>+{fmtGBP(due)} due {paydays.length>1?`${paydays[0]} – ${paydays[paydays.length-1]}`:paydays[0]||''}</div>
+              </div>
+            </div>
+          );
+        })()}
         <div style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'#7c93b3'}}>{taxYearLine}</div>
       </div>
       {carmsOutstanding.totalAmount>0&&(

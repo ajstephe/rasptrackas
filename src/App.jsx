@@ -138,7 +138,7 @@ function SidebarThemes({ themeMode, setTheme, THEME }) {
   const cur = SB_THEMES.find(t=>t[0]===themeMode) || SB_THEMES[0];
   const sbThemes = SB_THEMES.filter(t=>themeInSeason(t[0]));
   return (
-    <div ref={boxRef} style={{marginTop:'auto',position:'relative',paddingTop:'12px'}}>
+    <div ref={boxRef} className="sidebar-theme-box" style={{marginTop:'auto',position:'relative',paddingTop:'12px'}}>
       {/* Rendered into <body>: inside the sidebar (fixed, overflow hidden) Safari
           clipped the panel away entirely, so it opened invisibly. */}
       {open&&pos&&createPortal(<div ref={panelRef} role="listbox" aria-label="Theme" style={{fontFamily:'var(--app-font)',color:'var(--ink)',position:'fixed',left:`${pos.left}px`,bottom:`${pos.bottom}px`,width:'400px',maxWidth:`calc(100vw - ${pos.left + 12}px)`,maxHeight:'calc(100vh - 24px)',overflowY:'auto',boxSizing:'border-box',background:'var(--surface)',border:'1px solid var(--border-2)',borderRadius:'13px',boxShadow:'0 12px 32px rgba(0,0,0,0.28)',padding:'8px',display:'grid',gridTemplateColumns:'1fr 1fr',gridAutoFlow:'column',gridTemplateRows:`repeat(${Math.ceil(sbThemes.length/2)}, auto)`,gap:'2px 6px',zIndex:50}}>
