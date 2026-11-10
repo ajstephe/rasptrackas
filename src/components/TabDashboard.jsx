@@ -160,7 +160,7 @@ export function TabDashboard({
           return (
             <div style={{display:'flex',alignItems:'flex-start',gap:compact?'14px':'26px',marginBottom:'6px',flexWrap:'wrap'}}>
               <div>
-                <div style={{...lbl,color:'var(--hero-label,#93c5fd)'}}>Paid</div>
+                <div style={{...lbl,color:'var(--hero-label,#93c5fd)'}}>Paid to date</div>
                 <div style={{...fig,color:'#fff'}}>{fmtGBP(animatedGrossYTD)}</div>
               </div>
               <div style={{borderLeft:'1px solid rgba(255,255,255,0.18)',paddingLeft:compact?'14px':'26px'}}>
