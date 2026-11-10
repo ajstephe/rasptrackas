@@ -148,3 +148,12 @@ describe('paidImport setting', () => {
     expect(migrateSettings({ rank:'Constable', service:'PC 4', paidImport:null }).paidImport).toBeUndefined();
   });
 });
+
+describe('synced theme', () => {
+  it('keeps a theme id, even before rank and pay point are set, and drops junk', async () => {
+    const { migrateSettings } = await import('./migrations.js');
+    expect(migrateSettings({ rank:'Constable', service:'PC 4', theme:'arcade' }).theme).toBe('arcade');
+    expect(migrateSettings({ rank:'', service:'', theme:'miami' })).toEqual({ rank:'', service:'', theme:'miami' });
+    expect(migrateSettings({ rank:'Constable', service:'PC 4', theme:'<script>' }).theme).toBeUndefined();
+  });
+});

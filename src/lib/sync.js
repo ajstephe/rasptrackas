@@ -51,7 +51,14 @@ export function isStaleSettingsUpdate(incomingUpdatedAt, lastKnownUpdatedAt) {
 // self-echo isn't a race, it's guaranteed. Only skip when the two are
 // actually equivalent; a genuine change from elsewhere still applies.
 export function remoteSettingsChanged(migratedRemote, currentSettings) {
-  return JSON.stringify(migratedRemote) !== JSON.stringify(currentSettings);
+  return stableJSON(migratedRemote) !== stableJSON(currentSettings);
+}
+// Key order varies with how a settings object was built (a field added on
+// this device lands last, the migrated copy puts it in its own place), so
+// compare with keys sorted.
+function stableJSON(v) {
+  return JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x)
+    ? Object.keys(x).sort().reduce((o, key) => { o[key] = x[key]; return o; }, {}) : x);
 }
 
 // Runs fn after whatever's still pending in chainMap[key], and leaves the

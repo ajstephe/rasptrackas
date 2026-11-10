@@ -982,7 +982,17 @@ export default function App() {
     if(themeMode==='system') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', themeMode);
   },[themeMode]);
-  const setTheme = v => { if (SEASONAL_THEMES[v] && !SEASONAL_THEMES[themeMode]) rememberPreSeasonTheme(themeMode); setThemeMode(v); dualWrite(KEYS.themeMode, v); };
+  const setTheme = v => { if (SEASONAL_THEMES[v] && !SEASONAL_THEMES[themeMode]) rememberPreSeasonTheme(themeMode); setThemeMode(v); dualWrite(KEYS.themeMode, v); setSettings(s => s.theme===v ? s : { ...s, theme:v }); };
+  // The theme travels with the (synced) settings: a sign-in on another
+  // device brings the last theme picked. A seasonal theme out of season is
+  // left alone, as on this device.
+  useEffect(()=>{
+    const t = settings.theme;
+    if (!t) { if (themeMode !== 'system') setSettings(s => s.theme ? s : { ...s, theme:themeMode }); return; }
+    if (t === themeMode || !THEME_IDS.includes(t) || !themeInSeason(t)) return;
+    if (SEASONAL_THEMES[t] && !SEASONAL_THEMES[themeMode]) rememberPreSeasonTheme(themeMode);
+    setThemeMode(t); dualWrite(KEYS.themeMode, t);
+  },[settings.theme]); // eslint-disable-line react-hooks/exhaustive-deps
   // One-off "Festive is here" pop-up, once per season, never switching on
   // its own: the person chooses.
   const [festiveNotice, setFestiveNotice] = useState(false);
@@ -4757,7 +4767,6 @@ export default function App() {
         .hint-pulse{animation:subtlePulse 1.8s ease-in-out infinite}
         .backup-pulse{animation:backupPulse 1.4s ease-in-out infinite}
         .save-pulse-idle{animation:savePulseIdle 1.8s ease-in-out infinite}
-        @media (max-width:1180px){.hdr-month{display:none!important}}
         /* Two-column layouts on a computer only once there's room for them
            (sidebar is 250px); narrower windows keep the single column. */
         @media (min-width:1400px){.split-log{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:12px;align-items:stretch}.split-log>div{display:flex;flex-direction:column}.split-log>div>:last-child{flex:1 1 auto}}
@@ -4833,14 +4842,12 @@ export default function App() {
           </div>
         </div>
         <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',flexShrink:0,gap:'8px'}}>
-          {/* Computer only: this pay month and what's left to submit, one
-              click from every screen (they replaced the old At a Glance
-              column). The month pill drops out on narrower windows. */}
+          {/* Computer only: what's left to submit, one click from every
+              screen. (This pay month's figures used to sit here too; Home's
+              "Net overtime this month" already shows them.) */}
           {isWide && (()=>{
-            const cp = totals.curr;
             const pill = {display:'inline-flex',alignItems:'center',gap:'8px',border:'1px solid var(--border)',background:'var(--surface-2)',borderRadius:'999px',padding:'6px 12px',fontSize:'12.5px',fontWeight:700,color:'var(--muted)',cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'};
             return (<>
-              {cp&&<button type="button" className="hdr-month" onClick={()=>setTab('dashboard')} title="This pay month — open Home" style={pill}>{payLabel(cp.month)}<span style={{fontFamily:MONO,fontWeight:700,color:'var(--ink)'}}>{fmtGBP(cp.gross)}</span><span style={{fontFamily:MONO,fontWeight:700,color:'#059669'}}>{fmtGBP(cp.net)} net</span></button>}
               {carmsOutstanding.totalClaims>0&&<button type="button" onClick={()=>setTab('carms')} title="Open Awaits Submission" style={{...pill,background:'var(--tint-red)',borderColor:'transparent',color:'var(--text-red-deep)'}}><span style={{fontFamily:MONO,fontWeight:700}}>{fmtGBP(carmsOutstanding.totalAmount)}</span> to submit · {carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''}</button>}
             </>);
           })()}

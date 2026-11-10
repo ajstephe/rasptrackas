@@ -7,7 +7,10 @@ const validPayPoint = (rank, service) => !!PAY_RATES[rank]?.[service];
 export const migrateSettings = s => {
   const def = { rank:'', service:'' };
   if (!s || typeof s !== 'object') return def;
-  if (!validPayPoint(s.rank, s.service)) return def;
+  // The last theme picked, synced so a new device opens in it (App checks
+  // it's a real theme id before using it).
+  const theme = typeof s.theme === 'string' && /^[a-z0-9]{2,24}$/.test(s.theme) ? s.theme : null;
+  if (!validPayPoint(s.rank, s.service)) return theme ? { ...def, theme } : def;
   const out = { rank:s.rank, service:s.service };
   // Dated pay point changes (see payPointOn in payRates.js), kept only if
   // every step is a real pay point with a sensible date.
@@ -21,6 +24,7 @@ export const migrateSettings = s => {
       && (imp.basis === 'gross' || imp.basis === 'net') && validDate(imp.upTo)) {
     out.paidImport = { taxYear:Number(imp.taxYear), amount:Number(imp.amount), basis:imp.basis, gross:Number(imp.gross), upTo:imp.upTo };
   }
+  if (theme) out.theme = theme;
   return out;
 };
 

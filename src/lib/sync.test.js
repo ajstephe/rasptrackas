@@ -286,16 +286,14 @@ describe('remoteSettingsChanged — the guard behind not re-applying a settings 
     expect(remoteSettingsChanged({ rank: 'Constable', service: 'PC 3' }, { rank: '', service: '' })).toBe(true);
   });
 
-  it('is order-sensitive to key order in practice, matching JSON.stringify — same fields, same order, is the only thing that reads as unchanged', () => {
-    // Documents the actual comparison this relies on: both call sites build
-    // `migrated` and read `settingsRef.current` through the same shape
-    // (migrateSettings' own output, or a plain settings object), so this
-    // never actually sees two objects with the same fields in a different
-    // order in practice — this test exists so a future refactor that did
-    // introduce that risk would fail loudly here instead of silently.
-    const a = { rank: 'Constable', service: 'PC 3' };
-    const b = { service: 'PC 3', rank: 'Constable' };
-    expect(remoteSettingsChanged(a, b)).toBe(true);
+  it('ignores key order — a field added on this device lands last, the migrated copy puts it in its own place', () => {
+    // e.g. the synced theme: setTheme appends `theme`, migrateSettings puts
+    // it after payHistory/paidImport. Same content must read as unchanged,
+    // or every self-echo would re-fire the "Saved" badge.
+    const a = { rank: 'Constable', service: 'PC 3', paidImport: { taxYear: 2026, gross: 5 }, theme: 'miami' };
+    const b = { theme: 'miami', rank: 'Constable', service: 'PC 3', paidImport: { gross: 5, taxYear: 2026 } };
+    expect(remoteSettingsChanged(a, b)).toBe(false);
+    expect(remoteSettingsChanged(a, { ...b, theme: 'tube' })).toBe(true);
   });
 });
 
