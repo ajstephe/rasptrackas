@@ -264,7 +264,7 @@ export function TabDashboard({
           this row's own toggle; now that the toggle lives on this button
           alone (a sibling of the body, not an ancestor of it), a click
           inside the body was never going to reach it in the first place. */}
-      <button disabled={isWide} onClick={()=>setSalaryBreakdownExpanded(v=>!v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:isWide?'default':'pointer'}}>
+      <button disabled={isWide} onClick={()=>setSalaryBreakdownExpanded(v=>!v)} aria-expanded={isWide?undefined:salaryBreakdownExpanded} style={{touchAction:'manipulation',WebkitTapHighlightColor:'transparent',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:isWide?'default':'pointer'}}>
         <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
           <div style={{background:'var(--tint-brass)',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c={BRASS}/></div>
           <div>

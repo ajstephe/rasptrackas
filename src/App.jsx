@@ -4056,6 +4056,8 @@ export default function App() {
   // How far a raw finger movement has to travel before the resistance
   // curve below reports 1 pull-unit — tunable feel, not a hard distance.
   const PULL_RESISTANCE = 80;
+  // Movement below this is a tap, not a pull.
+  const PULL_DEADZONE = 12;
   useEffect(() => {
     // mainRef.current is reliably null on this effect's first (and, with
     // an empty dep array, ONLY) run: <main> itself only renders once past
@@ -4085,7 +4087,12 @@ export default function App() {
     const onMove = (ev) => {
       if (!state.active) return;
       const dy = ev.touches[0].clientY - state.startY;
-      if (dy <= 0 || el.scrollTop > 0) { state.active = false; cancelPullSpring(); pullYCur = 0; setPullY(0); setPullArmed(false); return; }
+      if (dy < 0 || el.scrollTop > 0) { state.active = false; cancelPullSpring(); pullYCur = 0; setPullY(0); setPullArmed(false); return; }
+      // A finger always wobbles a few pixels during a tap. Treating that as
+      // the start of a pull cancelled the tap (preventDefault) and nudged
+      // the page under the finger, so buttons near the top of Home, like
+      // Salary breakdown & forecast, sometimes needed several tries.
+      if (!state.dragging && dy < PULL_DEADZONE) return;
       ev.preventDefault();
       if (!state.dragging) state.dragging = true;
       // Elastic resistance, not a flat multiplier with a hard cap — the
@@ -4095,7 +4102,7 @@ export default function App() {
       // A flat clamp (the old `Math.min(PULL_MAX, dy*0.5)`) feels fine
       // right up until it hits that ceiling, then dead-stops — the one
       // moment an elastic gesture should least feel rigid.
-      const damped = PULL_MAX * (1 - Math.exp(-dy / PULL_RESISTANCE));
+      const damped = PULL_MAX * (1 - Math.exp(-Math.max(0, dy - PULL_DEADZONE) / PULL_RESISTANCE));
       pullYCur = damped;
       setPullY(damped);
       // A short tap the instant the pull crosses the trigger distance —
@@ -4111,6 +4118,8 @@ export default function App() {
     const onEnd = () => {
       if (!state.active) return;
       state.active = false;
+      // A plain tap: nothing moved, nothing to settle.
+      if (!state.dragging) return;
       state.dragging = false;
       // Springs shut immediately either way, rather than holding open at
       // PULL_TRIGGER through the sync itself — that used to mean the
