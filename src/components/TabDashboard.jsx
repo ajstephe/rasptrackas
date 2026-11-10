@@ -164,7 +164,7 @@ export function TabDashboard({
                 <div style={{...fig,color:'#fff'}}>{fmtGBP(animatedGrossYTD)}</div>
               </div>
               <div style={{borderLeft:'1px solid rgba(255,255,255,0.18)',paddingLeft:compact?'14px':'26px'}}>
-                <div style={{...lbl,color:'#fbbf24'}}>Incl. submitted</div>
+                <div style={{...lbl,color:'#fbbf24'}}>Paid to date + submitted</div>
                 <div style={{...fig,color:'#fde68a'}}>{fmtGBP(animatedGrossYTD + due)}</div>
                 <div style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'#fbbf24',opacity:0.85,marginTop:'3px'}}>+{fmtGBP(due)} due {paydays.length>1?`${paydays[0]} – ${paydays[paydays.length-1]}`:paydays[0]||''}</div>
               </div>
