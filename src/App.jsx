@@ -2291,7 +2291,22 @@ export default function App() {
       // old cached version until every other open tab closes.
       const updateSW = registerSW({
         immediate: true,
+        // A tab or installed app left open for days never looked for a new
+        // version, and a plain reload kept serving the old one: look again
+        // each time the app comes back to the front.
+        onRegisteredSW(_url, reg) {
+          if (!reg) return;
+          let last = 0;
+          const check = () => { if (document.visibilityState !== 'visible' || Date.now() - last < 60000) return; last = Date.now(); reg.update().catch(()=>{}); };
+          document.addEventListener('visibilitychange', check);
+          window.addEventListener('focus', check);
+        },
         onNeedRefresh() {
+          // Found while the app is only just opening: nothing's been typed
+          // yet, so switch straight over rather than leave this device on
+          // old code (an old copy is what kept undoing theme changes made on
+          // other devices).
+          if (performance.now() < 20000) { updateSW(true); return; }
           // Stays put until Reload is tapped: a 30-second window was easy to
           // miss, leaving people on the old version until the next prompt.
           addToast('A new version is ready', 'warn', { label: 'Reload', fn: () => updateSW(true) }, null);
