@@ -1642,6 +1642,23 @@ export default function App() {
       const json = JSON.stringify(settingsObj);
       if (lastSyncedSettingsRef.current === json || hasNoPendingLocalEdit(settingsObj, lastSyncedSettingsRef.current ?? undefined) && lastSyncedSettingsRef.current != null) return 0;
       try {
+        // Blank rank/pay point here must never replace real ones in the
+        // cloud (a device signed in moments ago, with a theme picked before
+        // its first pull finished, wiped someone's settings this way). Take
+        // the cloud's settings instead, keeping this device's theme choice.
+        if (!settingsObj.rank) {
+          const { data: cur } = await supabase.from('settings').select('ciphertext, updated_at').eq('user_id', session.user.id).maybeSingle();
+          if (cur) {
+            const remote = await decryptWithDataKey(dataKey, cur.ciphertext).catch(()=>null);
+            if (remote && remote.rank) {
+              const merged = migrateSettings(settingsObj.theme ? { ...remote, theme: settingsObj.theme } : remote);
+              lastSyncedSettingsRef.current = JSON.stringify(remote); persistLastSyncedSettings();
+              lastSettingsUpdatedAtRef.current = cur.updated_at; persistLastSettingsUpdatedAt();
+              setSettings(merged);
+              return 0;
+            }
+          }
+        }
         const ciphertext = await encryptWithDataKey(dataKey, settingsObj);
         const now = new Date().toISOString();
         const { error } = await supabase.from('settings').upsert({ user_id: session.user.id, ciphertext, updated_at: now });
@@ -1801,7 +1818,10 @@ export default function App() {
       // needs to be treated as safe to overwrite, same as no pending edit.
       // hasNoPendingLocalEdit expects undefined for "never synced" rather
       // than this ref's own null default, hence the ?? below.
-      const noPendingLocalEdit = hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined);
+      // A device with no rank set (just signed in, or reset) has nothing
+      // worth protecting: real settings from the cloud always win over it.
+      const blankHere = !(settingsRef.current && settingsRef.current.rank) && !!(remoteSettings && remoteSettings.rank);
+      const noPendingLocalEdit = blankHere || hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined);
       // See isStaleSettingsUpdate in sync.js — a pulled row can satisfy
       // hasNoPendingLocalEdit purely by coincidence if it's actually an
       // older snapshot than what this device has already established
@@ -1933,7 +1953,8 @@ export default function App() {
           const decrypted = await decryptWithDataKey(dataKey, row.ciphertext);
           // Same noPendingLocalEdit protection as handleRowChange above —
           // settings had the identical unconditional-overwrite gap.
-          if (!hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined)) return;
+          const blankHere = !(settingsRef.current && settingsRef.current.rank) && !!(decrypted && decrypted.rank);
+          if (!blankHere && !hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined)) return;
           // See isStaleSettingsUpdate in sync.js — the realtime channel
           // delivers events in the order Postgres committed them, but
           // delivery/decryption timing to THIS client isn't guaranteed to
