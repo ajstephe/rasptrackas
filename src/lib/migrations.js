@@ -10,7 +10,10 @@ export const migrateSettings = s => {
   // The last theme picked, synced so a new device opens in it (App checks
   // it's a real theme id before using it).
   const theme = typeof s.theme === 'string' && /^[a-z0-9]{2,24}$/.test(s.theme) ? s.theme : null;
-  if (!validPayPoint(s.rank, s.service)) return theme ? { ...def, theme } : def;
+  // When it was picked (ms), so the newest pick wins between devices.
+  const themeAt = theme && Number.isFinite(Number(s.themeAt)) && Number(s.themeAt) > 0 ? Number(s.themeAt) : null;
+  const withTheme = o => { if (theme) { o.theme = theme; if (themeAt) o.themeAt = themeAt; } return o; };
+  if (!validPayPoint(s.rank, s.service)) return withTheme({ ...def });
   const out = { rank:s.rank, service:s.service };
   // Dated pay point changes (see payPointOn in payRates.js), kept only if
   // every step is a real pay point with a sensible date.
@@ -24,8 +27,7 @@ export const migrateSettings = s => {
       && (imp.basis === 'gross' || imp.basis === 'net') && validDate(imp.upTo)) {
     out.paidImport = { taxYear:Number(imp.taxYear), amount:Number(imp.amount), basis:imp.basis, gross:Number(imp.gross), upTo:imp.upTo };
   }
-  if (theme) out.theme = theme;
-  return out;
+  return withTheme(out);
 };
 
 // Records that could crash the app (not an object, no id, or no proper

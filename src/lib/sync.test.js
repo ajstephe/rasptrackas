@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS } from './sync.js';
+import { newestTheme, mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS } from './sync.js';
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -472,5 +472,25 @@ describe('dropUnheldSynced — a device that lost items locally must not delete 
     dropUnheldSynced(synced, local);
     expect([...synced.keys()]).toEqual(['a']);
     expect(computeRowPushDiff(local, synced).toDelete).toEqual([]);
+  });
+});
+
+describe('newestTheme', () => {
+  const base = { rank:'PC', service:'4', theme:'ocean', themeAt:100 };
+  it('takes a newer pick from the other copy', () => {
+    expect(newestTheme(base, { theme:'arcade', themeAt:200 })).toEqual({ ...base, theme:'arcade', themeAt:200 });
+  });
+  it('keeps its own theme when the other pick is older', () => {
+    expect(newestTheme(base, { theme:'arcade', themeAt:50 })).toBe(base);
+  });
+  it('an unstamped theme (older app) never beats a stamped one', () => {
+    expect(newestTheme(base, { theme:'arcade' })).toBe(base);
+  });
+  it('fills in a theme the base has lost', () => {
+    expect(newestTheme({ rank:'PC', service:'4' }, { theme:'arcade', themeAt:5 })).toEqual({ rank:'PC', service:'4', theme:'arcade', themeAt:5 });
+  });
+  it('returns the same object when nothing changes', () => {
+    expect(newestTheme(base, { ...base })).toBe(base);
+    expect(newestTheme(base, null)).toBe(base);
   });
 });

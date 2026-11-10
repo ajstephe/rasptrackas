@@ -27,7 +27,7 @@ import {
   calcAutoOTHours, syncShiftTimesIntoForm, shiftDurationMinutes,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
-import { mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
+import { mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -982,7 +982,7 @@ export default function App() {
     if(themeMode==='system') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', themeMode);
   },[themeMode]);
-  const setTheme = v => { if (SEASONAL_THEMES[v] && !SEASONAL_THEMES[themeMode]) rememberPreSeasonTheme(themeMode); setThemeMode(v); dualWrite(KEYS.themeMode, v); setSettings(s => s.theme===v ? s : { ...s, theme:v }); };
+  const setTheme = v => { if (SEASONAL_THEMES[v] && !SEASONAL_THEMES[themeMode]) rememberPreSeasonTheme(themeMode); setThemeMode(v); dualWrite(KEYS.themeMode, v); setSettings(s => ({ ...s, theme:v, themeAt:Date.now() })); };
   // The theme travels with the (synced) settings: a sign-in on another
   // device brings the last theme picked. A seasonal theme out of season is
   // left alone, as on this device.
@@ -1639,7 +1639,7 @@ export default function App() {
     // earlier one, so pushes land in the order they were made, not
     // whichever the network happened to finish first.
     const run = async () => {
-      const json = JSON.stringify(settingsObj);
+      let json = JSON.stringify(settingsObj);
       if (lastSyncedSettingsRef.current === json || hasNoPendingLocalEdit(settingsObj, lastSyncedSettingsRef.current ?? undefined) && lastSyncedSettingsRef.current != null) return 0;
       try {
         // Blank rank/pay point here must never replace real ones in the
@@ -1651,13 +1651,20 @@ export default function App() {
           if (cur) {
             const remote = await decryptWithDataKey(dataKey, cur.ciphertext).catch(()=>null);
             if (remote && remote.rank) {
-              const merged = migrateSettings(settingsObj.theme ? { ...remote, theme: settingsObj.theme } : remote);
+              const merged = newestTheme(migrateSettings(remote), settingsObj);
               lastSyncedSettingsRef.current = JSON.stringify(remote); persistLastSyncedSettings();
               lastSettingsUpdatedAtRef.current = cur.updated_at; persistLastSettingsUpdatedAt();
               setSettings(merged);
               return 0;
             }
           }
+        }
+        // Never send an older theme over a newer pick made elsewhere.
+        else {
+          const { data: cur } = await supabase.from('settings').select('ciphertext').eq('user_id', session.user.id).maybeSingle();
+          const remote = cur ? await decryptWithDataKey(dataKey, cur.ciphertext).catch(()=>null) : null;
+          const fixed = remote ? newestTheme(settingsObj, remote) : settingsObj;
+          if (fixed !== settingsObj) { settingsObj = fixed; json = JSON.stringify(fixed); setSettings(fixed); }
         }
         const ciphertext = await encryptWithDataKey(dataKey, settingsObj);
         const now = new Date().toISOString();
@@ -1855,12 +1862,18 @@ export default function App() {
         // Comparing the actual content first means a real remote change
         // still applies exactly as before; only a pure echo of this
         // device's own edit is skipped.
-        const migrated = migrateSettings(remoteSettings);
+        // A theme picked here more recently than the cloud's stays (and,
+        // now differing from what's synced, goes back up on the next push).
+        const migrated = newestTheme(migrateSettings(remoteSettings), settingsRef.current);
         if (remoteSettingsChanged(migrated, settingsRef.current)) saveSett(migrated);
         lastSyncedSettingsRef.current = JSON.stringify(remoteSettings);
         persistLastSyncedSettings();
         lastSettingsUpdatedAtRef.current = row.updated_at;
         persistLastSettingsUpdatedAt();
+      } else if (!stale) {
+        // Keeping this device's own edits still takes a newer theme picked elsewhere.
+        const withTheme = newestTheme(settingsRef.current, remoteSettings);
+        if (withTheme !== settingsRef.current) setSettings(withTheme);
       }
       markSynced();
     } catch (e) { /* undecryptable — skip */ }
@@ -1954,7 +1967,11 @@ export default function App() {
           // Same noPendingLocalEdit protection as handleRowChange above —
           // settings had the identical unconditional-overwrite gap.
           const blankHere = !(settingsRef.current && settingsRef.current.rank) && !!(decrypted && decrypted.rank);
-          if (!blankHere && !hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined)) return;
+          if (!blankHere && !hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined)) {
+            const withTheme = newestTheme(settingsRef.current, decrypted);
+            if (withTheme !== settingsRef.current) setSettings(withTheme);
+            return;
+          }
           // See isStaleSettingsUpdate in sync.js — the realtime channel
           // delivers events in the order Postgres committed them, but
           // delivery/decryption timing to THIS client isn't guaranteed to
@@ -1985,7 +2002,7 @@ export default function App() {
           // was likely being opened. Comparing content first means a
           // genuine change from elsewhere still applies; a pure self-echo
           // no longer does.
-          const migrated = migrateSettings(decrypted);
+          const migrated = newestTheme(migrateSettings(decrypted), settingsRef.current);
           if (remoteSettingsChanged(migrated, settingsRef.current)) saveSett(migrated);
           markSynced();
         } catch (e) { /* undecryptable — skip */ }

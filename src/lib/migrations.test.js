@@ -157,3 +157,13 @@ describe('synced theme', () => {
     expect(migrateSettings({ rank:'Constable', service:'PC 4', theme:'<script>' }).theme).toBeUndefined();
   });
 });
+
+describe('migrateSettings themeAt', () => {
+  it('keeps a valid stamp alongside the theme', () => {
+    expect(migrateSettings({ rank:'', service:'', theme:'ocean', themeAt:123 })).toEqual({ rank:'', service:'', theme:'ocean', themeAt:123 });
+  });
+  it('drops a stamp with no theme or a junk stamp', () => {
+    expect(migrateSettings({ rank:'', service:'', themeAt:123 })).toEqual({ rank:'', service:'' });
+    expect(migrateSettings({ rank:'', service:'', theme:'ocean', themeAt:'x' })).toEqual({ rank:'', service:'', theme:'ocean' });
+  });
+});

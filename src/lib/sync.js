@@ -55,6 +55,19 @@ export function isStaleSettingsUpdate(incomingUpdatedAt, lastKnownUpdatedAt) {
 // every field is unchanged) — on literally every single edit, since the
 // self-echo isn't a race, it's guaranteed. Only skip when the two are
 // actually equivalent; a genuine change from elsewhere still applies.
+// The theme follows the most recent pick on any device, whatever else is
+// going on with the rest of the settings: each pick is stamped (themeAt),
+// and a copy with no stamp (an older version of the app, which copied a
+// device's own theme in on open) never beats a stamped one. Returns
+// `base` with the winning theme, or `base` itself when it already has it.
+export function newestTheme(base, other) {
+  if (!base || !other) return base;
+  const a = Number(base.themeAt) || 0, b = Number(other.themeAt) || 0;
+  if (!(b > a) || !other.theme) return base;
+  if (base.theme === other.theme && base.themeAt === other.themeAt) return base;
+  return { ...base, theme: other.theme, themeAt: other.themeAt };
+}
+
 export function remoteSettingsChanged(migratedRemote, currentSettings) {
   return stableJSON(migratedRemote) !== stableJSON(currentSettings);
 }
