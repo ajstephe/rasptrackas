@@ -2268,7 +2268,15 @@ export default function App() {
     // an actionable toast (Undo, Reload…) otherwise gives no sense of how
     // long that action stays live before it's gone.
     // dur null means it stays until its action is tapped.
-    setToasts(t=>[...t,{id,message:msg,type,action,title,dur}]);
+    // The same message already on screen isn't shown twice: a second new
+    // version arriving while the first still waits fired another "A new
+    // version is ready", stacking two Reload toasts. The newer one's action
+    // replaces the older's.
+    setToasts(t=>{
+      const i = t.findIndex(x=>x.message===msg && x.title===title);
+      if (i < 0) return [...t,{id,message:msg,type,action,title,dur}];
+      return action ? t.map((x,j)=>j===i?{...x,action}:x) : t;
+    });
     if (dur != null) setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),dur);
   },[]);
 
