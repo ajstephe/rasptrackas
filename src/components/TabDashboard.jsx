@@ -35,16 +35,26 @@ export function TabDashboard({
   // Narrow computers scroll the Overview sideways; it opens on the current month.
   const ovScroll = useRef(null);
   const [ovEdge, setOvEdge] = useState({l:false,r:false});
+  // Width of the scrolling area, so as many months show as fit comfortably.
+  const [ovW, setOvW] = useState(0);
   const ovNarrow = isWide && vw < NARROW_W;
+  // Months that fit with each column at least 44px (a "£4,076" figure plus
+  // breathing room) and an 8px gap; the rest are a swipe away.
+  const ovFit = Math.max(6, Math.min(12, Math.floor(((ovW || vw - 320) - 152 + 8) / 52)));
+  useEffect(()=>{
+    const el = ovScroll.current; if (!el || !ovNarrow) return;
+    const ro = new ResizeObserver(()=>setOvW(el.clientWidth)); ro.observe(el);
+    return () => ro.disconnect();
+  }, [ovNarrow]);
   useEffect(()=>{
     const el = ovScroll.current; if (!el || !ovNarrow) return;
     const upd = () => setOvEdge({l:el.scrollLeft>4, r:el.scrollLeft+el.clientWidth<el.scrollWidth-4});
     // Start with the current month third from the right, like a calendar.
-    const colW = (el.clientWidth-152-64)/8 + 8;
-    el.scrollLeft = Math.max(0, ((currPeriodIdx>=0?currPeriodIdx:0) - 5) * colW);
+    const colW = (el.clientWidth-152-ovFit*8)/ovFit + 8;
+    el.scrollLeft = Math.max(0, ((currPeriodIdx>=0?currPeriodIdx:0) - (ovFit-3)) * colW);
     upd(); el.addEventListener('scroll', upd, {passive:true});
     return () => el.removeEventListener('scroll', upd);
-  }, [ovNarrow, vw, currPeriodIdx]);
+  }, [ovNarrow, ovFit, currPeriodIdx]);
   const animatedNet = useCountUp(pb ? pb.combinedNet : 0);
   const animatedGrossYTD = useCountUp(settings.rank&&settings.service ? totals.combinedGrossYTD : 0);
 
@@ -301,8 +311,8 @@ export function TabDashboard({
       ['Total gross', c=>cell(c.gross,'var(--ink)',800)],
       ['Take-home', c=>cell(c.takeHome,'var(--text-green-deep)',800)],
     ];
-    // Narrow: eight months fill the visible width and the rest scroll sideways.
-    const gridCols = narrow ? '152px repeat(12, calc((100cqw - 152px - 64px) / 8))' : `152px repeat(${cols.length},minmax(0,1fr))`;
+    // Narrow: as many months as fit fill the visible width; the rest scroll sideways.
+    const gridCols = narrow && ovFit<12 ? `152px repeat(12, calc((100cqw - 152px - ${ovFit*8}px) / ${ovFit}))` : `152px repeat(${cols.length},minmax(0,1fr))`;
     const stick = narrow ? {position:'sticky',left:0,zIndex:2,background:'var(--surface)'} : {};
     const TOT = [['Overtime submitted','Submitted',sum('g'),'var(--text-green-deep)'],['To submit','To submit',sum('t'),'var(--text-red-deep)'],['Planned','Planned',sum('e'),'var(--exp-ink)']];
     const pick = allCols[pickIdx];
