@@ -259,46 +259,71 @@ export function TabDashboard({
   const monthChartCard = (()=>{
     const pbs = totals.periodBreakdown || [];
     const cols = PAY_PERIODS.map((p,idx)=>{
-      const g = pbs[idx]?.combinedGross || 0;
-      const ts = totals.toSubmit?.[idx]; const t = ts && ts.gross>0.005 ? ts.gross : 0;
-      const ex = totals.expected?.[idx]; const e = ex && ex.n>0 ? ex.gross : 0;
-      return { p, idx, g, t, e, tot:g+t+e };
+      const pb = pbs[idx]; const g = pb?.combinedGross || 0, gn = pb?.combinedNet || 0;
+      const ts = totals.toSubmit?.[idx]; const tOn = ts && ts.gross>0.005;
+      const ex = totals.expected?.[idx]; const eOn = ex && ex.n>0;
+      const t = tOn ? ts.gross : 0, tn = tOn ? (ts.net||0) : 0, e = eOn ? ex.gross : 0, en = eOn ? (ex.net||0) : 0;
+      return { p, idx, g, t, e, gn, tn, en, tot:g+t+e, net:gn+tn+en };
     });
     if (!cols.some(c=>c.tot>0.005)) return null;
     const max = Math.max(1, ...cols.map(c=>c.tot));
     const sum = k => cols.reduce((a,c)=>a+c[k],0);
-    const GRN='#059669', RED='#dc2626';
+    const GRN='#059669', RED='#dc2626', LINE='var(--text-navy)';
     const STRIPE='repeating-linear-gradient(135deg, var(--exp) 0 4px, color-mix(in srgb, var(--exp) 50%, white) 4px 8px)';
-    const H = isWide ? 110 : 76;
+    const H = isWide ? 110 : 84;
     const open = () => { skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); };
-    const fig = (lbl,v,col) => <div style={{minWidth:0}}>
+    const gap = isWide ? '6px' : '3px';
+    const short = c => String(c.p.short||c.p.month).slice(0,3);
+    const whole = v => fmtGBP(Math.round(v)).replace('.00','');
+    // Net line: one point per month with anything in it, joined in order,
+    // drawn over the bars on the same scale as gross.
+    const pts = cols.map((c,i)=>c.tot>0.005?{x:(i+0.5)/cols.length*100, y:H - c.net/max*H, c}:null).filter(Boolean);
+    const fig = (lbl,g,n,col) => <div style={{minWidth:0}}>
       <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>{lbl}</div>
-      <div style={{fontFamily:MONO,fontSize:isWide?'16px':'14px',fontWeight:700,color:col,marginTop:'2px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div>
+      <div style={{fontFamily:MONO,fontSize:isWide?'16px':'14px',fontWeight:700,color:col,marginTop:'2px',whiteSpace:'nowrap'}}>{fmtGBP(g)}</div>
+      <div style={{fontFamily:MONO,fontSize:isWide?'12px':'11px',fontWeight:600,color:'var(--muted)',marginTop:'1px',whiteSpace:'nowrap'}}>{fmtGBP(n)} net</div>
     </div>;
+    const key = (sw,t) => <span key={t} style={{display:'inline-flex',alignItems:'center',gap:'4px'}}>{sw}{t}</span>;
     return (
       <div style={{...S.card,padding:isWide?'16px 20px 14px':'14px 14px 12px'}}>
         <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'baseline',gap:'4px 12px',marginBottom:'12px'}}>
           <span style={{fontSize:'13.5px',fontWeight:800,color:'var(--ink)'}}>Overtime by pay month</span>
           <span style={{display:'flex',flexWrap:'wrap',gap:'4px 10px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
-            {[[GRN,'Submitted'],[RED,'To submit'],['var(--exp)','Planned']].map(([c,t])=><span key={t} style={{display:'inline-flex',alignItems:'center',gap:'4px'}}><i style={{width:'9px',height:'9px',borderRadius:'3px',background:c}}/>{t}</span>)}
+            {[[GRN,'Submitted'],[RED,'To submit'],['var(--exp)','Planned']].map(([c,t])=>key(<i style={{width:'9px',height:'9px',borderRadius:'3px',background:c}}/>,t))}
+            {key(<svg width="18" height="9" aria-hidden="true"><line x1="1" y1="4.5" x2="17" y2="4.5" stroke={LINE} strokeWidth="2"/><circle cx="9" cy="4.5" r="3" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,'Net')}
           </span>
         </div>
-        <div style={{display:'flex',alignItems:'flex-end',gap:isWide?'6px':'3px'}}>
-          {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx;
-            const seg=(v,bg)=>v>0.005&&<i style={{display:'block',height:`${v/max*H}px`,background:bg}}/>;
-            return (
-              <button key={c.p.month} type="button" onClick={open} aria-label={`${payLabel(c.p.month)}: ${fmtGBP(c.tot)}`} title={isWide?`${payLabel(c.p.month)}: ${fmtGBP(c.tot)}`:undefined}
-                style={{flex:'1 1 0',minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',gap:'4px',background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
-                {isWide&&<span style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:700,color:'var(--muted)',visibility:c.tot>0.005?'visible':'hidden'}}>{fmtGBP(Math.round(c.tot)).replace('.00','')}</span>}
-                <span style={{height:`${H}px`,width:isWide?'46%':'70%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:isCurr?`0 0 0 2px color-mix(in srgb, ${BRASS} 55%, transparent)`:'none'}}>
-                  {seg(c.g,GRN)}{seg(c.t,RED)}{seg(c.e,STRIPE)}
-                </span>
-                <span style={{fontSize:isWide?'11px':'9.5px',fontWeight:isCurr?900:800,color:isCurr?BRASS:'var(--quiet)'}}>{String(c.p.short||c.p.month).slice(0,3)}</span>
-              </button>);
-          })}
+        {isWide&&<div style={{display:'flex',gap,marginBottom:'4px'}}>
+          {cols.map(c=><span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',lineHeight:1.25,visibility:c.tot>0.005?'visible':'hidden'}}>
+            <span style={{display:'block',fontFamily:MONO,fontSize:'10.5px',fontWeight:700,color:'var(--muted)'}}>{whole(c.tot)}</span>
+            <span style={{display:'block',fontFamily:MONO,fontSize:'10px',fontWeight:700,color:LINE}}>{whole(c.net)}</span>
+          </span>)}
+        </div>}
+        <div style={{position:'relative'}}>
+          <div style={{display:'flex',alignItems:'flex-end',gap}}>
+            {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx;
+              const seg=(v,bg)=>v>0.005&&<i style={{display:'block',height:`${v/max*H}px`,background:bg}}/>;
+              return (
+                <button key={c.p.month} type="button" onClick={open} aria-label={`${payLabel(c.p.month)}: ${fmtGBP(c.tot)} gross, ${fmtGBP(c.net)} net`} title={isWide?`${payLabel(c.p.month)}: ${fmtGBP(c.tot)} gross · ${fmtGBP(c.net)} net`:undefined}
+                  style={{flex:'1 1 0',minWidth:0,display:'flex',justifyContent:'center',background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
+                  <span style={{height:`${H}px`,width:isWide?'46%':'70%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:isCurr?`0 0 0 2px color-mix(in srgb, ${BRASS} 55%, transparent)`:'none'}}>
+                    {seg(c.g,GRN)}{seg(c.t,RED)}{seg(c.e,STRIPE)}
+                  </span>
+                </button>);
+            })}
+          </div>
+          {pts.length>0&&<div aria-hidden="true" style={{position:'absolute',inset:0,pointerEvents:'none'}}>
+            <svg width="100%" height={H} viewBox={`0 0 100 ${H}`} preserveAspectRatio="none" style={{display:'block',overflow:'visible'}}>
+              <polyline points={pts.map(q=>`${q.x},${q.y}`).join(' ')} fill="none" stroke={LINE} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
+            </svg>
+            {pts.map(q=><i key={q.c.p.month} style={{position:'absolute',left:`${q.x}%`,top:`${q.y}px`,width:isWide?'9px':'7px',height:isWide?'9px':'7px',margin:isWide?'-4.5px 0 0 -4.5px':'-3.5px 0 0 -3.5px',borderRadius:'50%',background:LINE,boxShadow:'0 0 0 2px var(--surface)'}}/>)}
+          </div>}
+        </div>
+        <div style={{display:'flex',gap,marginTop:'5px'}}>
+          {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:isWide?'11px':'9.5px',fontWeight:isCurr?900:800,color:isCurr?BRASS:'var(--quiet)'}}>{short(c)}</span>; })}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:'10px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'11px'}}>
-          {fig('Submitted',sum('g'),GRN)}{fig('To submit',sum('t'),'var(--text-red-deep)')}{fig('Planned',sum('e'),'var(--exp-ink)')}
+          {fig('Submitted',sum('g'),sum('gn'),GRN)}{fig('To submit',sum('t'),sum('tn'),'var(--text-red-deep)')}{fig('Planned',sum('e'),sum('en'),'var(--exp-ink)')}
         </div>
       </div>
     );
