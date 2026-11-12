@@ -2,6 +2,7 @@ import { calcEntry, isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDa
 import { pensionTierRate, payeTaxToDate, payeNI, payeBandName, LONDON_WEIGHTING, LONDON_ALLOWANCE } from './tax.js';
 import { RATE_CHANGE_DATE } from './payPeriods.js';
 import { svcDataOn } from './payRates.js';
+import { deductionsFor } from './deductions.js';
 
 // ─── payroll: one pay month = one PAYE tax month ─────────────────────────────
 // Pay lands on the 20th of the month each pay period is named after, or the
@@ -63,8 +64,8 @@ const paySlice = (payBefore, amount, taxMonth, monthPayBefore) => {
 // Take-home from a pay month's overtime and PA, stacked on top of that
 // month's salary and everything earlier in the tax year.
 export const periodNet = (pb, ot, pa) =>
-  paySlice(pb.cumBase, ot, pb.taxMonth, pb.baseAmt).net +
-  paySlice(pb.cumBase+ot, pa, pb.taxMonth, pb.baseAmt+ot).net;
+  paySlice(pb.cumBase, ot, pb.taxMonth, pb.niBase ?? pb.baseAmt).net +
+  paySlice(pb.cumBase+ot, pa, pb.taxMonth, (pb.niBase ?? pb.baseAmt)+ot).net;
 
 // Runs the twelve payslips of one pay year (= one tax year) given each
 // month's overtime and PA. `svcData` pins one pay point (tests); otherwise
@@ -80,7 +81,14 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const m = monthlyPay(svc, payDate);
     const pensionRate = svc ? pensionTierRate(m.annualPensionable) : 0;
     const periodPension = Math.round((m.pensionable * pensionRate + Number.EPSILON)*100)/100;
-    const cumBase = cum + m.base - periodPension;   // salary is taxed first, net of pension
+    // Salary sacrifice (deductions set to come off before tax and NI) lowers
+    // the pay both are worked out on. Pension stays on the full pensionable
+    // pay. The sacrificed amount itself is taken off with the other
+    // deductions where take-home is shown, so monthNet here is the payslip
+    // before any of the person's own deductions.
+    const sacrifice = m.base > 0 ? Math.min(deductionsFor(settings, p.month).before, m.base - periodPension) : 0;
+    const niBase = m.base - sacrifice;
+    const cumBase = cum + m.base - periodPension - sacrifice;   // salary is taxed first, net of pension
     // How the salary, London Weighting and London Allowance would each take
     // home if they were the only pay this tax year: the salary first, then
     // London Weighting on top of it, then London Allowance. Each takes its own
@@ -104,15 +112,15 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     // Overtime already paid before the person started logging shifts (see
     // importedShares) is taxed like overtime, ahead of the month's claims.
     const ot = claimedOt + imported;
-    const otResult = paySlice(cumBase, ot, taxMonth, m.base);
-    const paResult = paySlice(cumBase+ot, pa, taxMonth, m.base+ot);
+    const otResult = paySlice(cumBase, ot, taxMonth, niBase);
+    const paResult = paySlice(cumBase+ot, pa, taxMonth, niBase+ot);
     cum = cumBase + ot + pa;
     // The whole payslip for the month: salary and allowances plus overtime/PA.
     const newTaxToDate = payeTaxToDate(cum, taxMonth);
     const monthTax = newTaxToDate - taxToDate;
     taxToDate = newTaxToDate;
     const monthGross = m.base + ot + pa;
-    const monthNI = payeNI(monthGross);
+    const monthNI = payeNI(monthGross - sacrifice);
     const monthNet = monthGross - periodPension - monthTax - monthNI;
     // The month's take-home that isn't overtime or PA, shared between the
     // salary, London Weighting and London Allowance in proportion to the
@@ -126,7 +134,7 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const laNet = aloneSum > 0 ? baseReal - salaryNet - lwNet : laAlone;
     return {
       month:p.month, start:p.start, end:p.end, payDate, taxMonth,
-      baseAmt:m.base, salary:m.salary, salaryNet, lw:m.lw, lwNet, la:m.la, laNet,
+      baseAmt:m.base, niBase, sacrifice, salary:m.salary, salaryNet, lw:m.lw, lwNet, la:m.la, laNet,
       pensionablePayThisPeriod:m.pensionable, pensionRate, periodPension,
       ot, pa, otResult, paResult, imported,
       combinedGross: ot+pa, combinedNet: otResult.net+paResult.net,
@@ -192,7 +200,7 @@ export const partNets = pb => {
   let prior = pb.imported || 0;   // imported overtime stacks first
   return pb.parts.map(part=>{
     const cumBefore = pb.cumBase + prior;
-    const r = paySlice(cumBefore, part.amount, pb.taxMonth, pb.baseAmt + prior);
+    const r = paySlice(cumBefore, part.amount, pb.taxMonth, (pb.niBase ?? pb.baseAmt) + prior);
     prior += part.amount;
     return { part, net:r.net, tax:r.tax, ni:r.ni, rate:r.rate, bandName:r.bandName, cumBefore };
   });

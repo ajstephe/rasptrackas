@@ -3,6 +3,7 @@ import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
 import { localDateStr, PAY_PERIODS } from '../lib/payPeriods.js';
+import { deductionsFor } from '../lib/deductions.js';
 import { submitWindow } from '../lib/deadline.js';
 
 // ─── Home (dashboard) tab ────────────────────────────────────────────────────
@@ -33,6 +34,25 @@ export function TabDashboard({
   const [vw, setVw] = useState(()=>typeof window!=='undefined'?window.innerWidth:1440);
   useEffect(()=>{ const on=()=>setVw(window.innerWidth); window.addEventListener('resize',on); return ()=>window.removeEventListener('resize',on); },[]);
   // Narrow computers scroll the Overview sideways; it opens on the current month.
+  // Monthly deductions from Config (Federation subs, ATOC, savings…): each
+  // month's are taken off that month's take-home so it matches what lands in
+  // the bank. Salary sacrifice ones have already lowered the tax and NI in
+  // the payroll run; here the amount itself comes off.
+  const dedFor = month => deductionsFor(settings, month).total;
+  // What should land in the bank on the current pay month's payday: pay,
+  // overtime paid, claimed or planned for it, less tax, NI, pension and the
+  // deductions taken that month.
+  const currTakeHome = (()=>{
+    if (currPeriodIdx<0 || !settings.rank) return null;
+    const pb = totals.periodBreakdown?.[currPeriodIdx]; if (!pb || !(pb.baseAmt>0)) return null;
+    const ts = totals.toSubmit?.[currPeriodIdx], ex = totals.expected?.[currPeriodIdx];
+    const ded = dedFor(PAY_PERIODS[currPeriodIdx].month);
+    return { net:(pb.monthNet||0)+(ts&&ts.gross>0.005?(ts.net||0):0)+(ex&&ex.n>0?(ex.net||0):0)-ded, ded };
+  })();
+  const takeHomeTag = big => currTakeHome && <div style={{textAlign:'right',lineHeight:1.2}}>
+    <div style={{fontFamily:MONO,fontSize:big?'15px':'14px',fontWeight:700,color:'var(--text-green-deep)'}}>{fmtGBP(currTakeHome.net)}</div>
+    <div style={{fontSize:'10.5px',fontWeight:700,color:'var(--quiet)'}}>net take-home</div>
+  </div>;
   const ovScroll = useRef(null);
   const [ovEdge, setOvEdge] = useState({l:false,r:false});
   // Width of the scrolling area, so as many months show as fit comfortably.
@@ -282,7 +302,7 @@ export function TabDashboard({
       const t = tOn ? ts.gross : 0, tn = tOn ? (ts.net||0) : 0, e = eOn ? ex.gross : 0, en = eOn ? (ex.net||0) : 0;
       const ot = g+t+e, otN = gn+tn+en;
       return { p, idx, sal, g, t, e, ot, otN, future: !!pb.payDate && pb.payDate > today, payDate: pb.payDate,
-        gross: sal+ot, takeHome: (pb.monthNet||0)+tn+en };
+        gross: sal+ot, ded: sal>0.005?dedFor(p.month):0, takeHome: (pb.monthNet||0)+tn+en-(sal>0.005?dedFor(p.month):0) };
     });
     if (!allCols.some(c=>c.ot>0.005)) return null;
     const cols = allCols;
@@ -392,7 +412,8 @@ export function TabDashboard({
             {pick.e>0.005&&line('Overtime planned',pick.e,false,'var(--exp-ink)')}
             {pick.ot<=0.005&&line('Overtime & PA',0,false,'var(--quiet)')}
             {line('Total gross',pick.gross,true,'var(--ink)')}
-            {line('Take-home',pick.takeHome,false,'var(--text-green-deep)')}
+            {pick.ded>0.005&&line('Less deductions',pick.ded,false,'var(--text-red-deep)')}
+            {line(pick.ded>0.005?'Net take-home':'Take-home',pick.takeHome,false,'var(--text-green-deep)')}
           </div>
         )}
         {!wc&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'5px',textAlign:'center'}}>Tap a month for its pay · hollow dots = not paid yet</div>}
@@ -625,7 +646,7 @@ export function TabDashboard({
                 </div>
               </div>
             </div>
-            {chev}
+            <div style={{display:'flex',alignItems:'center',gap:'10px'}}>{takeHomeTag(true)}{chev}</div>
           </button>
         )}
         {netHeroRow(false)}
@@ -678,7 +699,7 @@ export function TabDashboard({
                 <div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{shiftSpan(totals.curr.start,totals.curr.end)}</div>
               </div>
             </div>
-            {chev}
+            <div style={{display:'flex',alignItems:'center',gap:'8px'}}>{takeHomeTag(false)}{chev}</div>
           </button>
         )}
         {netHeroRow(true)}

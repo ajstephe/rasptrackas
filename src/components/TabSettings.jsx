@@ -1,9 +1,10 @@
 import { themeInSeason } from '../seasonal.js';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CURRENT_FY_YEAR, generateFYPeriods, localDateStr, getUKTaxYearStart } from '../lib/payPeriods.js';
+import { CURRENT_FY_YEAR, PAY_PERIODS, generateFYPeriods, localDateStr, getUKTaxYearStart } from '../lib/payPeriods.js';
 import { payDateOf, grossForImportedNet } from '../lib/payroll.js';
 import { PAY_RATES } from '../lib/payRates.js';
+import { deductionFor } from '../lib/deductions.js';
 import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { PrivacyNotice } from './PrivacyNotice.jsx';
@@ -380,6 +381,87 @@ export function TabSettings({
             <button onClick={undoLastPayChange} style={{background:'none',border:'none',padding:'4px 0 0',fontSize:'11.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',cursor:'pointer',fontFamily:'inherit'}}>Undo the last change</button>
           </div>
         )}
+        {/* ── Monthly deductions ──
+            Things taken off every payslip that the app can't know about —
+            Federation subs, ATOC, regular savings — so take-home matches the
+            bank. Each is named, a monthly amount, and either after tax (most)
+            or before tax and NI (salary sacrifice). Kept in the encrypted
+            settings like everything else. */}
+        {(()=>{
+          const list = Array.isArray(settings.deductions) ? settings.deductions : [];
+          const save = l => saveSett({...settings, deductions:l});
+          const upd = (id,patch) => save(list.map(d=>d.id===id?{...d,...patch}:d));
+          const add = (name='') => save([...list,{id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,amount:'',when:PRE_TAX.includes(name)?'before':'after'}]);
+          const curIdx = PAY_PERIODS.findIndex(p=>p.start<=localDateStr() && localDateStr()<=p.end);
+          const curMonth = PAY_PERIODS[curIdx]?.month;
+          const total = list.reduce((a,d)=>a+deductionFor(d,curMonth),0);
+          // Presets, A–Z. Cycle2Work is salary sacrifice, so it starts before tax & NI.
+          const SUGG = ['ATOC','Cycle2Work','Federation subs','PFOA','Police Mutual','Regular savings','Sports & social'];
+          const PRE_TAX = ['Cycle2Work'];
+          const unused = SUGG.filter(n=>!list.some(d=>d.name.toLowerCase()===n.toLowerCase()));
+          return (
+            <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                <div style={{background:'var(--tint-green, color-mix(in srgb, #059669 14%, transparent))',padding:'9px',borderRadius:'13px'}}><Ico n="cash" s={17} c="#059669"/></div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Monthly deductions</div>
+                  <div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>Taken off every payslip, so take-home matches your bank</div>
+                </div>
+                {list.length>0&&<div style={{textAlign:'right'}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:800,color:'var(--text-red-deep)'}}>{total>0.005?"−":""}£{total.toFixed(2)}</div><div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)'}}>{curMonth?`${PAY_PERIODS[curIdx].short.slice(0,3)} pay`:'a month'}</div></div>}
+              </div>
+              {list.length>0&&<div style={{display:'flex',flexDirection:'column',gap:'8px',marginTop:'12px'}}>
+                {list.map(d=>(
+                  <div key={d.id} style={{background:'var(--surface-2)',borderRadius:'12px',padding:'10px'}}>
+                    <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+                      <input aria-label="Deduction name" value={d.name} placeholder="Name, e.g. Federation subs" onChange={e=>upd(d.id,{name:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'9px 11px',fontSize:'14px'}}/>
+                      <div style={{position:'relative',flex:'0 0 104px'}}>
+                        <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
+                        <input aria-label={`${d.name||'Deduction'} monthly amount`} inputMode="decimal" value={d.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) upd(d.id,{amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'9px 10px 9px 22px',fontSize:'14px',textAlign:'right'}}/>
+                      </div>
+                      <button type="button" aria-label={`Remove ${d.name||'deduction'}`} onClick={()=>save(list.filter(x=>x.id!==d.id))} style={{background:'none',border:'none',padding:'6px',cursor:'pointer',display:'flex',flexShrink:0}}><Ico n="x" s={15} c="var(--quiet)"/></button>
+                    </div>
+                    {/* Pay months it's taken: tap a month to skip it (opted out
+                        of the insurance for a while, a savings holiday…). */}
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(6,minmax(0,1fr))',gap:'4px',marginTop:'8px'}}>
+                      {PAY_PERIODS.map((p,pi)=>{ const off=(d.off||[]).includes(p.month); const past=pi<curIdx; return (
+                        <button key={p.month} type="button" aria-pressed={!off} aria-label={`${p.month} pay: ${off?'not taken':'taken'}`} onClick={()=>upd(d.id,{off: off ? (d.off||[]).filter(m=>m!==p.month) : [...(d.off||[]),p.month]})}
+                          style={{border:pi===curIdx?`1.5px solid ${BRASS}`:'1px solid var(--border-2)',borderRadius:'7px',padding:'5px 0',fontSize:'11px',fontWeight:800,cursor:'pointer',fontFamily:'inherit',background:off?'transparent':'var(--tint-green-2, var(--surface))',color:off?'var(--quiet)':'var(--text-green-deep)',textDecoration:off?'line-through':'none',opacity:past&&off?0.6:1}}>{p.short.slice(0,3)}</button>); })}
+                    </div>
+                    {(d.off||[]).length>0&&<div style={{fontSize:'10.5px',fontWeight:700,color:'var(--quiet)',marginTop:'5px'}}>Skipped: {PAY_PERIODS.filter(p=>(d.off||[]).includes(p.month)).map(p=>p.short.slice(0,3)).join(', ')}</div>}
+                    {/* Amount changes: "from January pay it's £25" — later
+                        months use the newest change on or before them. */}
+                    {(d.changes||[]).map((c,ci)=>{
+                      const setC = patch => upd(d.id,{changes:(d.changes||[]).map((x,k)=>k===ci?{...x,...patch}:x)});
+                      return (
+                        <div key={ci} style={{display:'flex',alignItems:'center',gap:'6px',marginTop:'8px'}}>
+                          <span style={{fontSize:'12px',fontWeight:800,color:'var(--muted)',flexShrink:0}}>From</span>
+                          <select aria-label="Change from pay month" value={c.from} onChange={e=>setC({from:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'8px 10px',fontSize:'14px'}}>
+                            {PAY_PERIODS.map(p=><option key={p.month} value={p.month}>{p.short.slice(0,3)} pay</option>)}
+                          </select>
+                          <div style={{position:'relative',flex:'0 0 96px'}}>
+                            <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
+                            <input aria-label="New monthly amount" inputMode="decimal" value={c.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) setC({amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'8px 10px 8px 22px',fontSize:'14px',textAlign:'right'}}/>
+                          </div>
+                          <button type="button" aria-label="Remove amount change" onClick={()=>upd(d.id,{changes:(d.changes||[]).filter((_,k)=>k!==ci)})} style={{background:'none',border:'none',padding:'6px',cursor:'pointer',display:'flex',flexShrink:0}}><Ico n="x" s={14} c="var(--quiet)"/></button>
+                        </div>);
+                    })}
+                    <button type="button" onClick={()=>upd(d.id,{changes:[...(d.changes||[]),{from:PAY_PERIODS[Math.min(11,Math.max(0,curIdx+1))].month,amount:d.amount||''}]})} style={{background:'none',border:'none',padding:'8px 0 0',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>+ Change the amount from a month</button>
+                    <div style={{display:'flex',gap:'4px',marginTop:'8px',background:'var(--surface)',borderRadius:'9px',padding:'3px'}}>
+                      {[['after','After tax'],['before','Before tax & NI']].map(([k,l])=>(
+                        <button key={k} type="button" onClick={()=>upd(d.id,{when:k})} aria-pressed={d.when===k} style={{flex:1,border:'none',borderRadius:'7px',padding:'6px 4px',fontSize:'11.5px',fontWeight:800,cursor:'pointer',fontFamily:'inherit',background:d.when===k?BRASS:'transparent',color:d.when===k?'#fff':'var(--muted)'}}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>}
+              <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginTop:'10px'}}>
+                {unused.map(n=><button key={n} type="button" onClick={()=>add(n)} style={{background:'var(--chip-bg)',border:'none',borderRadius:'999px',padding:'6px 11px',fontSize:'11.5px',fontWeight:800,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit'}}>+ {n}</button>)}
+                <button type="button" onClick={()=>add('')} style={{background:'none',border:`1.5px dashed ${BRASS}`,borderRadius:'999px',padding:'5px 11px',fontSize:'11.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>+ Add your own</button>
+              </div>
+              {list.length>0&&<div style={{marginTop:'9px',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Most deductions come off after tax. Choose "Before tax &amp; NI" for salary sacrifice schemes (e.g. Cycle2Work), which also lower your tax and NI.</div>}
+            </div>
+          );
+        })()}
         <div style={{display:'flex',alignItems:'center',gap:'8px',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}}>
           <div style={{background:'var(--tint-blue)',padding:'9px',borderRadius:'13px'}}><Ico n="clock" s={17} c="#2563eb"/></div>
           <span style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Hourly rates &amp; pay scales</span>

@@ -27,6 +27,22 @@ export const migrateSettings = s => {
       && (imp.basis === 'gross' || imp.basis === 'net') && validDate(imp.upTo)) {
     out.paidImport = { taxYear:Number(imp.taxYear), amount:Number(imp.amount), basis:imp.basis, gross:Number(imp.gross), upTo:imp.upTo };
   }
+  // Monthly deductions (Federation subs, ATOC, savings…), each named with a
+  // monthly amount, taken off after tax or before tax and NI. The amount is
+  // kept as typed so a half-entered "12." survives a save.
+  if (Array.isArray(s.deductions)) {
+    const d = s.deductions.filter(x => x && typeof x === 'object' && typeof x.id === 'string' && x.id.length <= 40)
+      .slice(0, 30)
+      .map(x => ({ id:x.id, name: typeof x.name === 'string' ? x.name.slice(0, 40) : '',
+        amount: typeof x.amount === 'string' && /^\d{0,6}(\.\d{0,2})?$/.test(x.amount) ? x.amount : '',
+        when: x.when === 'before' ? 'before' : 'after',
+        // Pay months it's skipped, by their label ("January 2027").
+        off: Array.isArray(x.off) ? x.off.filter(m => typeof m === 'string' && /^[A-Za-z]+ \d{4}$/.test(m)).slice(0, 60) : [],
+        // Amount changes from a given pay month onwards.
+        changes: Array.isArray(x.changes) ? x.changes.filter(c => c && typeof c.from === 'string' && /^[A-Za-z]+ \d{4}$/.test(c.from)
+          && typeof c.amount === 'string' && /^\d{0,6}(\.\d{0,2})?$/.test(c.amount)).slice(0, 24).map(c => ({ from:c.from, amount:c.amount })) : [] }));
+    if (d.length) out.deductions = d;
+  }
   return withTheme(out);
 };
 
