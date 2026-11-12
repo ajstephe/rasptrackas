@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useRef } from 'react';
 import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
@@ -32,8 +32,19 @@ export function TabDashboard({
   // Screen width, so the Overview can switch layout on narrow computers.
   const [vw, setVw] = useState(()=>typeof window!=='undefined'?window.innerWidth:1440);
   useEffect(()=>{ const on=()=>setVw(window.innerWidth); window.addEventListener('resize',on); return ()=>window.removeEventListener('resize',on); },[]);
-  // First pay month shown when the Overview can't fit all twelve.
-  const [winStart, setWinStart] = useState(null);
+  // Narrow computers scroll the Overview sideways; it opens on the current month.
+  const ovScroll = useRef(null);
+  const [ovEdge, setOvEdge] = useState({l:false,r:false});
+  const ovNarrow = isWide && vw < NARROW_W;
+  useEffect(()=>{
+    const el = ovScroll.current; if (!el || !ovNarrow) return;
+    const upd = () => setOvEdge({l:el.scrollLeft>4, r:el.scrollLeft+el.clientWidth<el.scrollWidth-4});
+    // Start with the current month third from the right, like a calendar.
+    const colW = (el.clientWidth-152-64)/8 + 8;
+    el.scrollLeft = Math.max(0, ((currPeriodIdx>=0?currPeriodIdx:0) - 5) * colW);
+    upd(); el.addEventListener('scroll', upd, {passive:true});
+    return () => el.removeEventListener('scroll', upd);
+  }, [ovNarrow, vw, currPeriodIdx]);
   const animatedNet = useCountUp(pb ? pb.combinedNet : 0);
   const animatedGrossYTD = useCountUp(settings.rank&&settings.service ? totals.combinedGrossYTD : 0);
 
@@ -250,9 +261,6 @@ export function TabDashboard({
     // tablet in landscape) can't fit twelve months of figures side by side.
     const narrow = isWide && vw < NARROW_W;
     const wc = isWide;
-    // As many months as fit at about 54px each beside the 152px labels
-    // (the sidebar and card padding take roughly 300px of the screen).
-    const fit = narrow ? Math.max(6, Math.min(12, Math.floor((vw - 300 - 152) / 54))) : 12;
     const pbs = totals.periodBreakdown || [];
     const today = localDateStr();
     const allCols = PAY_PERIODS.map((p,idx)=>{
@@ -267,9 +275,7 @@ export function TabDashboard({
         gross: sal+ot, takeHome: (pb.monthNet||0)+tn+en };
     });
     if (!allCols.some(c=>c.ot>0.005)) return null;
-    const maxStart = 12 - fit;
-    const start = fit>=12 ? 0 : Math.max(0, Math.min(maxStart, winStart ?? ((currPeriodIdx>=0?currPeriodIdx:0) - (fit-3))));
-    const cols = fit>=12 ? allCols : allCols.slice(start, start+fit);
+    const cols = allCols;
     const max = Math.max(1, ...allCols.map(c=>c.ot));
     const sum = k => allCols.reduce((a,c)=>a+c[k],0);
     const GRN='#059669', RED='#dc2626', LINE='var(--text-navy)';
@@ -295,7 +301,9 @@ export function TabDashboard({
       ['Total gross', c=>cell(c.gross,'var(--ink)',800)],
       ['Take-home', c=>cell(c.takeHome,'var(--text-green-deep)',800)],
     ];
-    const gridCols = `152px repeat(${cols.length},minmax(0,1fr))`;
+    // Narrow: eight months fill the visible width and the rest scroll sideways.
+    const gridCols = narrow ? '152px repeat(12, calc((100cqw - 152px - 64px) / 8))' : `152px repeat(${cols.length},minmax(0,1fr))`;
+    const stick = narrow ? {position:'sticky',left:0,zIndex:2,background:'var(--surface)'} : {};
     const TOT = [['Overtime submitted','Submitted',sum('g'),'var(--text-green-deep)'],['To submit','To submit',sum('t'),'var(--text-red-deep)'],['Planned','Planned',sum('e'),'var(--exp-ink)']];
     const pick = allCols[pickIdx];
     const line = (l,v,strong,col) => <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'2px 0',borderTop:strong?'1px solid var(--border-2)':'none',marginTop:strong?'3px':0,paddingTop:strong?'4px':'2px'}}>
@@ -317,18 +325,11 @@ export function TabDashboard({
             {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,wc?'Overtime take-home':'Take-home')}
           </span>
         </div>
-        {fit<12&&(()=>{
-          const step = n => setWinStart(Math.max(0, Math.min(maxStart, start + n)));
-          const nb = (dis, lbl, n) => <button type="button" disabled={dis} onClick={()=>step(n)} aria-label={lbl} style={{border:'none',background:dis?'transparent':'var(--surface)',borderRadius:'8px',width:'30px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',cursor:dis?'default':'pointer',opacity:dis?0.35:1,boxShadow:dis?'none':'0 1px 3px rgba(15,23,42,0.12)',transform:n<0?'scaleX(-1)':'none'}}><Ico n="cR" s={14} c="var(--ink)" w={2.6}/></button>;
-          return <div style={{display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--chip-bg)',borderRadius:'10px',padding:'3px',marginBottom:'10px'}}>
-            {nb(start===0,'Earlier months',-4)}
-            <span style={{fontSize:'12px',fontWeight:800,color:'var(--ink)',minWidth:'92px',textAlign:'center'}}>{short(cols[0])} – {short(cols[cols.length-1])}</span>
-            {nb(start>=maxStart,'Later months',4)}
-          </div>;
-        })()}
+        <div style={narrow?{position:'relative'}:undefined}>
+        <div ref={ovScroll} className={narrow?'ov-scroll':undefined} style={narrow?{overflowX:'auto',containerType:'inline-size',overscrollBehaviorX:'contain',paddingBottom:'6px'}:undefined}>
         <div style={wc?{display:'grid',gridTemplateColumns:gridCols,columnGap:gap}:undefined}>
           {/* Computers: the year's overtime totals stand in the space left of the bars. */}
-          {wc&&<div style={{gridRow:'span 2',display:'flex',flexDirection:'column',justifyContent:'center',gap:'6px',paddingRight:'10px'}}>
+          {wc&&<div style={{...stick,gridRow:'span 2',display:'flex',flexDirection:'column',justifyContent:'center',gap:'6px',paddingRight:'10px'}}>
             {TOT.map(([l,,v,col])=><div key={l} style={{minWidth:0}}><div style={{...lbl,whiteSpace:'nowrap'}}>{l}</div><div style={{fontFamily:MONO,fontSize:'15px',fontWeight:700,color:col,marginTop:'1px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
           </div>}
           <div style={{position:'relative',...(wc?{gridColumn:'2 / -1'}:{})}}>
@@ -356,9 +357,15 @@ export function TabDashboard({
             {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!wc&&c.idx===pickIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:wc?'11.5px':'9.5px',fontWeight:isCurr||on?900:800,color:isCurr||on?BRASS:'var(--quiet)'}}>{short(c)}{wc&&c.future&&<span style={{display:'block',fontSize:'9px',fontWeight:700,color:'var(--quiet)',lineHeight:1.1}}>forecast</span>}</span>; })}
           </div>
           {wc&&ROWS.map(([l,f],ri)=><Fragment key={l}>
-            <span style={{...lbl,whiteSpace:'nowrap',alignSelf:'stretch',display:'flex',alignItems:'center',padding:'2px 0',borderTop:ri===2?'1px solid var(--border)':ri===0?'1px solid var(--border-2)':'none',marginTop:ri===0?'6px':0,paddingTop:ri===0||ri===2?'4px':'2px',color:ri>=2?'var(--ink)':'var(--quiet)'}}>{l}</span>
+            <span style={{...lbl,...stick,whiteSpace:'nowrap',alignSelf:'stretch',display:'flex',alignItems:'center',padding:'2px 0',borderTop:ri===2?'1px solid var(--border)':ri===0?'1px solid var(--border-2)':'none',marginTop:ri===0?'6px':0,paddingTop:ri===0||ri===2?'4px':'2px',color:ri>=2?'var(--ink)':'var(--quiet)'}}>{l}</span>
             {cols.map(c=><span key={c.p.month} style={{textAlign:'center',padding:'2px 0',borderTop:ri===2?'1px solid var(--border)':ri===0?'1px solid var(--border-2)':'none',marginTop:ri===0?'6px':0,paddingTop:ri===0||ri===2?'4px':'2px',opacity:c.future?0.75:1,background:c.idx===currPeriodIdx?'color-mix(in srgb, var(--tint-brass) 70%, transparent)':'transparent'}}>{f(c)}</span>)}
           </Fragment>)}
+        </div>
+        </div>
+        {narrow&&<>
+          <i aria-hidden="true" style={{position:'absolute',top:0,bottom:'6px',left:'152px',width:'22px',pointerEvents:'none',background:'linear-gradient(90deg, var(--surface), transparent)',opacity:ovEdge.l?1:0,transition:'opacity .2s',zIndex:3}}/>
+          <i aria-hidden="true" style={{position:'absolute',top:0,bottom:'6px',right:0,width:'34px',pointerEvents:'none',background:'linear-gradient(270deg, var(--surface), transparent)',opacity:ovEdge.r?1:0,transition:'opacity .2s',zIndex:3}}/>
+        </>}
         </div>
         {!wc&&pick&&(
           <div style={{marginTop:'8px',padding:'8px 12px 6px',borderRadius:'12px',background:'var(--surface-2)'}}>
@@ -407,7 +414,7 @@ export function TabDashboard({
       {!isWide&&<div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em',borderTop:'2px solid var(--border)',marginTop:'16px',paddingTop:'14px'}}>Salary breakdown &amp; forecast</div>}
 
       {(salaryBreakdownExpanded||!isWide)&&(
-        <div style={{cursor:'default',...(isWide&&vw>=NARROW_W?{display:'grid',gridTemplateColumns:'minmax(0,1.1fr) minmax(0,1fr)',gap:'40px',alignItems:'start'}:{})}}>
+        <div style={{cursor:'default',...(isWide?{display:'grid',gridTemplateColumns:'minmax(0,1.1fr) minmax(0,1fr)',gap:'40px',alignItems:'start'}:{})}}>
           {/* Desktop: the year-to-date figures on the left, the gross salary
               bars on the right, across the card's full width (the monthly
               chart now has its own card above). Phones stack them. */}
@@ -592,7 +599,7 @@ export function TabDashboard({
       {/* Desktop: the four rows sit in a 2 × 2 grid (pay month | net pay,
           TOIL | CARMS & PSOP) so each label stays close to its figure
           instead of stretching across the full width. */}
-      <div style={{padding:'4px 26px',display:'grid',gridTemplateColumns:vw<NARROW_W?'minmax(0,1fr)':'minmax(0,1fr) minmax(0,1fr)',columnGap:'44px',alignItems:'stretch'}}>
+      <div style={{padding:'4px 26px',display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',columnGap:'44px',alignItems:'stretch'}}>
         {totals.curr&&(
           <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
@@ -609,7 +616,7 @@ export function TabDashboard({
           </button>
         )}
         {netHeroRow(false)}
-        <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:vw<NARROW_W&&carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
+        <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
           <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
             <div>
