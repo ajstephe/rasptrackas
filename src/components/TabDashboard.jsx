@@ -244,12 +244,6 @@ export function TabDashboard({
             )}
             </div>
           </div>
-          {pts.length>1&&(
-            <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="net-spark" preserveAspectRatio="xMaxYMax meet" style={{flexShrink:1,minWidth:0,marginBottom:'2px'}}>
-              <polyline points={pts.join(' ')} fill="none" stroke={BRASS} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx={pts[pts.length-1].split(',')[0]} cy={pts[pts.length-1].split(',')[1]} r="3" fill={BRASS}/>
-            </svg>
-          )}
         </div>
       </div>
     );
@@ -291,17 +285,21 @@ export function TabDashboard({
     const sq = c => <i style={{width:'10px',height:'10px',borderRadius:'3px',background:c}}/>;
     const lbl = {fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'};
     const num = (v,col,w=600,fs) => <span style={{fontFamily:MONO,fontSize:fs||(isWide?'11px':'13px'),fontWeight:w,color:col,whiteSpace:'nowrap'}}>{fmtGBP(v)}</span>;
+    // The grid under the columns rounds to the pound so twelve months sit
+    // comfortably side by side; the phone panel keeps the pence.
+    const pound = v => '£'+Math.round(v).toLocaleString('en-GB');
+    const cell = (v,col,w=600) => <span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:w,color:col,whiteSpace:'nowrap'}}>{pound(v)}</span>;
     // Computers: one row per figure, a cell per month under its column.
     const ROWS = [
-      ['Salary & allowances', c=>num(c.sal,'var(--muted)')],
-      ['Overtime & PA', c=>num(c.ot, c.ot>0.005?'var(--ink)':'var(--quiet)')],
-      ['Total gross', c=>num(c.gross,'var(--ink)',800)],
-      ['Take-home', c=>num(c.takeHome,GRN,800)],
+      ['Salary & allowances', c=>cell(c.sal,'var(--muted)')],
+      ['Overtime & PA', c=>c.ot>0.005?cell(c.ot,'var(--ink)',700):<span style={{color:'var(--quiet)'}}>–</span>],
+      ['Total gross', c=>cell(c.gross,'var(--ink)',800)],
+      ['Take-home', c=>cell(c.takeHome,GRN,800)],
     ];
-    const gridCols = `118px repeat(${cols.length},minmax(0,1fr))`;
+    const gridCols = `152px repeat(${cols.length},minmax(0,1fr))`;
     const pick = cols[pickIdx];
-    const line = (l,v,strong,col) => <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'5px 0',borderTop:strong?'1px solid var(--border-2)':'none',marginTop:strong?'3px':0}}>
-      <span style={{fontSize:'13px',fontWeight:strong?800:700,color:strong?'var(--ink)':'var(--muted)'}}>{l}</span>{num(v,col,strong?800:600,'13.5px')}</div>;
+    const line = (l,v,strong,col) => <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'3px 0',borderTop:strong?'1px solid var(--border-2)':'none',marginTop:strong?'3px':0,paddingTop:strong?'5px':'3px'}}>
+      <span style={{fontSize:'12.5px',fontWeight:strong?800:700,color:strong?'var(--ink)':'var(--muted)'}}>{l}</span>{num(v,col,strong?800:600,'13px')}</div>;
     return (
       <div style={{...S.card,padding:isWide?'18px 22px 16px':'14px 14px 12px'}}>
         <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'flex-end',gap:'6px 16px',marginBottom:'14px'}}>
@@ -342,8 +340,8 @@ export function TabDashboard({
             {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!isWide&&c.idx===pickIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:isWide?'11.5px':'9.5px',fontWeight:isCurr||on?900:800,color:isCurr||on?BRASS:'var(--quiet)'}}>{short(c)}{isWide&&c.future&&<span style={{display:'block',fontSize:'9px',fontWeight:700,color:'var(--quiet)'}}>forecast</span>}</span>; })}
           </div>
           {isWide&&ROWS.map(([l,f],ri)=><Fragment key={l}>
-            <span style={{...lbl,alignSelf:'center',padding:'7px 0',borderTop:'1px solid var(--border-2)',marginTop:ri===0?'10px':0,color:ri>=2?'var(--ink)':'var(--quiet)'}}>{l}</span>
-            {cols.map(c=><span key={c.p.month} style={{textAlign:'center',padding:'7px 0',borderTop:'1px solid var(--border-2)',marginTop:ri===0?'10px':0,opacity:c.future?0.75:1,background:c.idx===currPeriodIdx?'color-mix(in srgb, var(--tint-brass) 70%, transparent)':'transparent'}}>{f(c)}</span>)}
+            <span style={{...lbl,whiteSpace:'nowrap',alignSelf:'stretch',display:'flex',alignItems:'center',padding:'4px 0',borderTop:ri===2?'1px solid var(--border)':ri===0?'1px solid var(--border-2)':'none',marginTop:ri===0?'8px':0,color:ri>=2?'var(--ink)':'var(--quiet)'}}>{l}</span>
+            {cols.map(c=><span key={c.p.month} style={{textAlign:'center',padding:'4px 0',borderTop:ri===2?'1px solid var(--border)':ri===0?'1px solid var(--border-2)':'none',marginTop:ri===0?'8px':0,opacity:c.future?0.75:1,background:c.idx===currPeriodIdx?'color-mix(in srgb, var(--tint-brass) 70%, transparent)':'transparent'}}>{f(c)}</span>)}
           </Fragment>)}
         </div>
         {!isWide&&pick&&(
