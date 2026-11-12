@@ -339,7 +339,7 @@ export function TabDashboard({
           </span>
         </div>
         <div style={narrow?{position:'relative'}:undefined}>
-        <div ref={ovScroll} className={narrow?'ov-scroll':undefined} style={narrow?{overflowX:'auto',containerType:'inline-size',overscrollBehaviorX:'contain',paddingBottom:'6px'}:undefined}>
+        <div ref={ovScroll} className={narrow?'ov-scroll':undefined} style={narrow?{overflowX:'auto',containerType:'inline-size',overscrollBehaviorX:'contain',paddingTop:'6px',marginTop:'-6px',paddingBottom:'6px'}:undefined}>
         <div style={wc?{display:'grid',gridTemplateColumns:gridCols,columnGap:gap}:undefined}>
           {/* Computers: the year's overtime totals stand in the space left of the bars. */}
           {wc&&<div style={{...stick,gridRow:'span 2',display:'flex',flexDirection:'column',justifyContent:'center',gap:'6px',paddingRight:'10px'}}>
