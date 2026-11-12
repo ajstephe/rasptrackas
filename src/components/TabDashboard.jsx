@@ -307,6 +307,7 @@ export function TabDashboard({
     if (!allCols.some(c=>c.ot>0.005)) return null;
     const cols = allCols;
     const max = Math.max(1, ...allCols.map(c=>c.ot));
+    const anyDed = allCols.some(c=>c.ded>0.005);
     const sum = k => allCols.reduce((a,c)=>a+c[k],0);
     const GRN='#059669', RED='#dc2626', LINE='var(--text-navy)';
     const STRIPE='repeating-linear-gradient(135deg, var(--exp) 0 4px, color-mix(in srgb, var(--exp) 50%, white) 4px 8px)';
@@ -329,7 +330,10 @@ export function TabDashboard({
       ['Salary & allowances', c=>cell(c.sal,'var(--muted)')],
       ['Overtime & PA', c=>c.ot>0.005?cell(c.ot,'var(--ink)',700):<span style={{color:'var(--quiet)'}}>–</span>],
       ['Total gross', c=>cell(c.gross,'var(--ink)',800)],
-      ['Take-home', c=>cell(c.takeHome,'var(--text-green-deep)',800)],
+      // Pay after tax, NI and pension, before the person's own deductions;
+      // only worth its own row once there are deductions to separate it from.
+      ...(anyDed ? [['Total net', c=>cell(c.takeHome+c.ded,'var(--ink)',700)]] : []),
+      [anyDed?'Net take-home':'Take-home', c=>cell(c.takeHome,'var(--text-green-deep)',800)],
     ];
     // Narrow: as many months as fit fill the visible width; the rest scroll sideways.
     const gridCols = narrow && ovFit<12 ? `152px repeat(12, calc((100cqw - 152px - ${ovFit*8}px) / ${ovFit}))` : `152px repeat(${cols.length},minmax(0,1fr))`;
@@ -343,16 +347,14 @@ export function TabDashboard({
       <span style={{fontSize:'12.5px',fontWeight:strong?800:700,color:strong?'var(--ink)':'var(--muted)'}}>{l}</span>{num(v,col,strong?800:600,'13px')}</div>;
     return (
       <div style={isWide?S.card:undefined}>
-        {isWide&&<button disabled onClick={()=>setOverviewOpen(v=>!v)} aria-expanded={isWide?undefined:overviewOpen} style={{touchAction:'manipulation',WebkitTapHighlightColor:'transparent',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:isWide?'default':'pointer'}}>
-          <div style={{display:'flex',alignItems:'center',gap:'11px',minWidth:0}}>
-            <div style={{background:'var(--tint-green, color-mix(in srgb, #059669 14%, transparent))',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c={GRN}/></div>
-            <div style={{minWidth:0}}>
-              <div style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>Overview</div>
-            </div>
-          </div>
-        </button>}
         {(isWide||overviewOpen)&&<div>
-        <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'baseline',gap:'6px 16px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'10px',marginBottom:'10px'}}>
+        {/* Computers: one slim line carries the title and the key, so the
+            grid of figures below has room for its rows. */}
+        <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'center',gap:'6px 16px',...(isWide?{paddingBottom:'10px',borderBottom:'1px solid var(--border-2)',marginBottom:'10px'}:{borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'10px',marginBottom:'10px'})}}>
+          {isWide&&<div style={{display:'flex',alignItems:'center',gap:'9px'}}>
+            <div style={{background:'var(--tint-green, color-mix(in srgb, #059669 14%, transparent))',padding:'6px',borderRadius:'9px',display:'flex'}}><Ico n="bar" s={14} c={GRN}/></div>
+            <span style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>Overview</span>
+          </div>}
           <span style={{display:'flex',flexWrap:'wrap',gap:'5px 12px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
             {key(sq(GRN),'Submitted')}{key(sq(RED),'To submit')}{key(sq(STRIPE),'Planned')}
             {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,wc?'Overtime take-home':'Take-home')}
@@ -412,6 +414,7 @@ export function TabDashboard({
             {pick.e>0.005&&line('Overtime planned',pick.e,false,'var(--exp-ink)')}
             {pick.ot<=0.005&&line('Overtime & PA',0,false,'var(--quiet)')}
             {line('Total gross',pick.gross,true,'var(--ink)')}
+            {pick.ded>0.005&&line('Total net',pick.takeHome+pick.ded,false,'var(--ink)')}
             {pick.ded>0.005&&line('Less deductions',pick.ded,false,'var(--text-red-deep)')}
             {line(pick.ded>0.005?'Net take-home':'Take-home',pick.takeHome,false,'var(--text-green-deep)')}
           </div>
