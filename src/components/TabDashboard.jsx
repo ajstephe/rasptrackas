@@ -144,7 +144,7 @@ export function TabDashboard({
         </g>
       </svg>
       <div>
-        <div style={{fontSize:compact?'11px':'11.5px',fontWeight:800,color:'var(--hero-label,#93c5fd)',marginBottom:'4px'}}>Gross pay this tax year</div>
+        <div style={{fontSize:compact?'14px':'15px',fontWeight:800,color:'#fff',letterSpacing:'-0.01em',marginBottom:compact?'8px':'10px'}}>Gross pay this tax year</div>
         {(()=>{
           const hasPay = !!(settings.rank&&settings.service);
           const due = hasPay ? (totals.onItsWayGross||0) : 0;
@@ -259,7 +259,7 @@ export function TabDashboard({
     const sum = k => cols.reduce((a,c)=>a+c[k],0);
     const GRN='#059669', RED='#dc2626', LINE='var(--text-navy)';
     const STRIPE='repeating-linear-gradient(135deg, var(--exp) 0 4px, color-mix(in srgb, var(--exp) 50%, white) 4px 8px)';
-    const H = isWide ? 100 : 84;
+    const H = isWide ? 76 : 84;
     const gap = isWide ? '8px' : '3px';
     const short = c => String(c.p.short||c.p.month).slice(0,3);
     const pickIdx = chartPick ?? (currPeriodIdx>=0 ? currPeriodIdx : 0);
@@ -305,7 +305,7 @@ export function TabDashboard({
         </div>
         <div style={isWide?{display:'grid',gridTemplateColumns:gridCols,columnGap:gap}:undefined}>
           {/* Computers: the year's overtime totals stand in the space left of the bars. */}
-          {isWide&&<div style={{gridRow:'span 2',display:'flex',flexDirection:'column',justifyContent:'space-between',gap:'4px',paddingRight:'10px'}}>
+          {isWide&&<div style={{gridRow:'span 2',display:'flex',flexDirection:'column',justifyContent:'center',gap:'6px',paddingRight:'10px'}}>
             {TOT.map(([l,,v,col])=><div key={l} style={{minWidth:0}}><div style={{...lbl,whiteSpace:'nowrap'}}>{l}</div><div style={{fontFamily:MONO,fontSize:'15px',fontWeight:700,color:col,marginTop:'1px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
           </div>}
           <div style={{position:'relative',...(isWide?{gridColumn:'2 / -1'}:{})}}>
