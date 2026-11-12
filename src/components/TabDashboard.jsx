@@ -53,7 +53,7 @@ export function TabDashboard({
   // tax year, and — when there's anything unclaimed — a pill that says
   // where tapping it goes.
   const masthead = (compact) => (
-    <div style={{background:'var(--navy)',padding:compact?'18px':'22px 26px',position:'relative',overflow:'hidden',display:compact?'block':'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'16px',flexWrap:'wrap'}}>
+    <div style={{background:'var(--navy)',padding:compact?'14px 16px':'16px 26px 14px',position:'relative',overflow:'hidden',display:compact?'block':'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'16px',flexWrap:'wrap'}}>
       <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
       {/* Festive only (hidden by CSS in every other theme): Santa's sack of
           presents in the corner, with an elf who pops out now and then. */}
@@ -144,13 +144,13 @@ export function TabDashboard({
         </g>
       </svg>
       <div>
-        <div style={{fontSize:compact?'11px':'11.5px',fontWeight:800,color:'var(--hero-label,#93c5fd)',marginBottom:'5px'}}>Gross pay this tax year</div>
+        <div style={{fontSize:compact?'11px':'11.5px',fontWeight:800,color:'var(--hero-label,#93c5fd)',marginBottom:'4px'}}>Gross pay this tax year</div>
         {(()=>{
           const hasPay = !!(settings.rank&&settings.service);
           const due = hasPay ? (totals.onItsWayGross||0) : 0;
           // Nothing submitted and waiting for a payday: one figure, as before.
           if (due < 0.005) return (
-            <div style={{fontFamily:MONO,fontSize:compact?'28px':'32px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'5px'}}>
+            <div style={{fontFamily:MONO,fontSize:compact?'26px':'28px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'4px'}}>
               {hasPay ? fmtGBP(animatedGrossYTD) : '—'}
             </div>
           );
@@ -160,9 +160,9 @@ export function TabDashboard({
           // payslips.
           const paydays = (totals.onItsWayByPayday||[]).map(p=>new Date(p.payDate+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}));
           const lbl = {fontSize:'9.5px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'3px'};
-          const fig = {fontFamily:MONO,fontSize:compact?'22px':'32px',fontWeight:600,letterSpacing:'-0.5px',lineHeight:1.15};
+          const fig = {fontFamily:MONO,fontSize:compact?'21px':'28px',fontWeight:600,letterSpacing:'-0.5px',lineHeight:1.15};
           return (
-            <div style={{display:'flex',alignItems:'flex-start',gap:compact?'14px':'26px',marginBottom:'6px',flexWrap:'wrap'}}>
+            <div style={{display:'flex',alignItems:'flex-start',gap:compact?'14px':'24px',marginBottom:'4px',flexWrap:'wrap'}}>
               <div>
                 <div style={{...lbl,color:'var(--hero-label,#93c5fd)'}}>Paid to date</div>
                 <div style={{...fig,color:'#fff'}}>{fmtGBP(animatedGrossYTD)}</div>
@@ -178,7 +178,7 @@ export function TabDashboard({
         <div style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'#7c93b3'}}>{taxYearLine}</div>
       </div>
       {(carmsOutstanding.totalAmount>0||carmsOutstanding.totalClaims>0)&&(
-        <button onClick={()=>setTab('carms')} title="Open Awaits Submission" className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'6px',marginTop:compact?'12px':0,fontSize:'11.5px',fontWeight:800,color:'#fbbf24',background:'rgba(251,191,36,0.14)',border:'none',borderRadius:'20px',padding:'6px 12px',cursor:'pointer',fontFamily:'inherit',position:'relative',whiteSpace:'nowrap'}}>
+        <button onClick={()=>setTab('carms')} title="Open Awaits Submission" className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'6px',marginTop:compact?'10px':0,fontSize:'11.5px',fontWeight:800,color:'#fbbf24',background:'rgba(251,191,36,0.14)',border:'none',borderRadius:'20px',padding:'6px 12px',cursor:'pointer',fontFamily:'inherit',position:'relative',whiteSpace:'nowrap'}}>
           {fmtGBP(carmsOutstanding.totalAmount)} to submit · {carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} <Ico n="cR" s={11} c="#fbbf24" w={2.5}/>
         </button>
       )}
@@ -201,49 +201,31 @@ export function TabDashboard({
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
     return (
-      <div style={{padding:compact?'14px 0':'16px 0',borderBottom:'1px solid var(--border-2)'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',marginBottom:'2px'}}>
-          <div style={{display:'flex',alignItems:'center',gap:compact?'10px':'12px'}}>
-            <div style={{background:'var(--tint-green-2)',padding:compact?'8px':'9px',borderRadius:compact?'10px':'11px',flexShrink:0}}><Ico n="cash" s={compact?16:17} c="#15803d"/></div>
-            {/* Matches the plain-text header style every other row in this
-                card uses (Current Pay Period / TOIL Balance / CARMS &
-                PSOP Outstanding, below) — this was the one header still
-                set as a small uppercase mono eyebrow instead, which read
-                as a different kind of label sitting in the same list. */}
-            <span style={{fontSize:compact?'13px':'14px',fontWeight:800,color:'var(--ink)'}}>Net overtime this month</span>
-          </div>
-          <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)',textAlign:'right'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}{exp&&exp.n>0&&<span style={{display:'block',fontWeight:700,color:'var(--exp-ink)'}}>+{fmtGBP(exp.gross)} planned</span>}</span>
-        </div>
-        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:'12px',paddingLeft:compact?'42px':'46px'}}>
-          {/* The figure and trend pill keep their width; when a phone is
-              too narrow for both, the sparkline scales down rather than
-              squeezing the pill onto two lines. On the narrowest phones
-              (under 350px) it's hidden outright — see .net-spark in
-              index.html — as it would only be a sliver. */}
-          <div style={{flexShrink:0}}>
-            <div style={{fontFamily:MONO,fontSize:compact?'22px':'25px',fontWeight:700,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.1}}>{fmtGBP(animatedNet)}</div>
-            <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'6px'}}>
-            {/* Tapping the trend pill jumps straight to the period it's
-                actually comparing against (currPeriodIdx-1, not the
-                current one) — same drill-down instinct as every other
-                tap-to-go-deeper spot on this tab, applied to the one
-                figure here that was previously just decorative. */}
-            {delta!=null&&(
-              <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx-1); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:600,color:'var(--muted)',background:'var(--chip-bg)',padding:'2px 6px 2px 8px',borderRadius:'20px',marginTop:'4px',border:'none',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
-                {/* This pay month is still filling up, so a red "down on last
-                    month" read as a drop when it's only part-way through.
-                    It now just shows last month's figure to compare with. */}
-                <span>Last pay month <span style={{fontFamily:MONO,fontWeight:700,color:'var(--ink)'}}>{fmtGBP(prevPb.combinedNet)}</span></span>
-                <Ico n="cR" s={9} c="currentColor" w={2.5}/>
-              </button>
-            )}
-            {/* What this month's planned shifts should add once worked and
-                claimed — its own colour, never part of the figure above. */}
-            {exp&&exp.n>0&&(
-              <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10.5px',fontWeight:800,color:'var(--exp-ink)',background:'var(--exp-tint)',border:'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)',padding:'2px 8px',borderRadius:'20px',marginTop:'4px',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
-                <span style={{fontFamily:MONO}}>+{fmtGBP(exp.net)}</span>{compact?` · ${exp.n} planned`:` planned · ${exp.n} shift${exp.n!==1?'s':''}`}
-              </button>
-            )}
+      <div style={{padding:compact?'10px 0':'11px 0',borderBottom:'1px solid var(--border-2)'}}>
+        <div style={{display:'flex',alignItems:'center',gap:compact?'10px':'12px'}}>
+          <div style={{background:'var(--tint-green-2)',padding:compact?'8px':'9px',borderRadius:compact?'10px':'11px',flexShrink:0,alignSelf:'flex-start'}}><Ico n="cash" s={compact?16:17} c="#15803d"/></div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px'}}>
+              <span style={{fontSize:compact?'12px':'12.5px',fontWeight:700,color:'var(--muted)'}}>Net overtime this month</span>
+              <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)',textAlign:'right',whiteSpace:'nowrap'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}{exp&&exp.n>0&&<span style={{fontWeight:700,color:'var(--exp-ink)'}}> · +{fmtGBP(exp.gross)}</span>}</span>
+            </div>
+            <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px 8px',marginTop:'1px'}}>
+              <span style={{fontFamily:MONO,fontSize:compact?'19px':'18px',fontWeight:700,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.2}}>{fmtGBP(animatedNet)}</span>
+              {/* Last month's figure to compare with (this month is still
+                  filling up); tapping it opens that pay month. */}
+              {delta!=null&&(
+                <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx-1); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:600,color:'var(--muted)',background:'var(--chip-bg)',padding:'2px 6px 2px 8px',borderRadius:'20px',border:'none',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
+                  <span>Last month <span style={{fontFamily:MONO,fontWeight:700,color:'var(--ink)'}}>{fmtGBP(prevPb.combinedNet)}</span></span>
+                  <Ico n="cR" s={9} c="currentColor" w={2.5}/>
+                </button>
+              )}
+              {/* What this month's planned shifts should add once worked and
+                  claimed — its own colour, never part of the figure. */}
+              {exp&&exp.n>0&&(
+                <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10.5px',fontWeight:800,color:'var(--exp-ink)',background:'var(--exp-tint)',border:'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)',padding:'2px 8px',borderRadius:'20px',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
+                  <span style={{fontFamily:MONO}}>+{fmtGBP(exp.net)}</span>{` planned · ${exp.n} shift${exp.n!==1?'s':''}`}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -589,25 +571,22 @@ export function TabDashboard({
           instead of stretching across the full width. */}
       <div style={{padding:'4px 26px',display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',columnGap:'44px',alignItems:'stretch'}}>
         {totals.curr&&(
-          <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
-            {/* Laid out like the Net pay tile beside it: a heading by the
-                icon, then the pay month at the same size as the net figure,
-                with its shift dates level with the trend pill. */}
-            <div>
-              <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'2px'}}>
-                <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
-                <span style={{fontSize:'14px',fontWeight:800,color:'var(--ink)'}}>Current pay month</span>
-              </div>
-              <div style={{paddingLeft:'46px'}}>
-                <div style={{fontSize:'25px',fontWeight:800,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.1}}>{payLabel(totals.curr.month)}</div>
-                <div style={{fontSize:'12.5px',fontWeight:600,color:'var(--quiet)',marginTop:'6px'}}>{shiftSpan(totals.curr.start,totals.curr.end)}</div>
+          <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+              <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
+              <div>
+                <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Current pay month</div>
+                <div style={{display:'flex',alignItems:'baseline',gap:'8px',marginTop:'1px'}}>
+                  <span style={{fontSize:'18px',fontWeight:800,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.2}}>{payLabel(totals.curr.month)}</span>
+                  <span style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)'}}>{shiftSpan(totals.curr.start,totals.curr.end)}</span>
+                </div>
               </div>
             </div>
             {chev}
           </button>
         )}
         {netHeroRow(false)}
-        <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
+        <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
           <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
             <div>
@@ -621,7 +600,7 @@ export function TabDashboard({
           </div>
         </button>
         {carmsOutstanding.totalClaims>0&&(
-          <button onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'16px 0',cursor:'pointer',background:'none',border:'none',textAlign:'left',fontFamily:'inherit'}}>
+          <button onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
               <div>
@@ -648,7 +627,7 @@ export function TabDashboard({
 
       <div style={{padding:'2px 18px'}}>
         {totals.curr&&(
-          <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'14px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
+          <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'10px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
               <div style={{background:'var(--tint-teal)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={16} c="#0d9488"/></div>
               <div>
@@ -660,7 +639,7 @@ export function TabDashboard({
           </button>
         )}
         {netHeroRow(true)}
-        <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'14px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
+        <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'10px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
           <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="clock" s={16} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
             <div>
@@ -674,7 +653,7 @@ export function TabDashboard({
           </div>
         </button>
         {carmsOutstanding.totalClaims>0&&(
-          <button onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'14px 0',cursor:'pointer',background:'none',border:'none',textAlign:'left',fontFamily:'inherit'}}>
+          <button onClick={()=>setTab('carms')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'10px 0',cursor:'pointer',background:'none',border:'none',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'10px',minWidth:0,flex:1}}>
               <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
               <div>
