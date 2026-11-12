@@ -58,6 +58,9 @@ export function TabSettings({
   const [showAllScales, setShowAllScales] = useState(false);
   const [importExpanded, setImportExpanded] = useState(false);   // Bulk input overtime card
   const [dedExpanded, setDedExpanded] = useState(false);         // Monthly deductions card
+  const [dedDraft, setDedDraft] = useState(null);                // unsaved deduction edits
+  const [dedSavedAt, setDedSavedAt] = useState(0);
+  useEffect(()=>{ if (!dedSavedAt) return; const t=setTimeout(()=>setDedSavedAt(0),3000); return ()=>clearTimeout(t); },[dedSavedAt]);
   // "Overtime already paid this tax year" form (Config card)
   const [impOpen, setImpOpen] = useState(false);
   const [impAmount, setImpAmount] = useState('');
@@ -493,8 +496,16 @@ export function TabSettings({
           or before tax and NI (salary sacrifice). Kept in the encrypted
           settings like everything else. Sits beside Config on desktop. */}
       {(()=>{
-        const list = Array.isArray(settings.deductions) ? settings.deductions : [];
-        const save = l => saveSett({...settings, deductions:l});
+        // Edits go into a draft and only reach the payslip maths (and sync)
+        // when Save is tapped, so half-typed amounts never move take-home.
+        const saved = Array.isArray(settings.deductions) ? settings.deductions : [];
+        const list = dedDraft ?? saved;
+        const save = l => setDedDraft(l);
+        const dirty = dedDraft!==null && JSON.stringify(dedDraft)!==JSON.stringify(saved);
+        const commit = () => {
+          const clean = list.filter(d=>d.name.trim() || parseFloat(d.amount)>0).map(d=>({...d,name:d.name.trim()||'Deduction'}));
+          saveSett({...settings, deductions:clean}); setDedDraft(null); setDedSavedAt(Date.now());
+        };
         const upd = (id,patch) => save(list.map(d=>d.id===id?{...d,...patch}:d));
         const add = (name='') => save([...list,{id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,amount:'',when:PRE_TAX.includes(name)?'before':'after'}]);
         const curIdx = PAY_PERIODS.findIndex(p=>p.start<=localDateStr() && localDateStr()<=p.end);
@@ -567,6 +578,13 @@ export function TabSettings({
               <button type="button" onClick={()=>add('')} style={{background:'none',border:`1.5px dashed ${BRASS}`,borderRadius:'999px',padding:'5px 11px',fontSize:'11.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>+ Add your own</button>
             </div>
             {list.length>0&&<div style={{marginTop:'9px',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Most deductions come off after tax. Choose "Before tax &amp; NI" for salary sacrifice schemes (e.g. Cycle2Work), which also lower your tax and NI.</div>}
+            {(dirty || Date.now()-dedSavedAt<3000) && <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'12px',paddingTop:'12px',borderTop:'1px solid var(--border-2)'}}>
+              {dirty ? <>
+                <span style={{flex:1,fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)'}}>Unsaved changes</span>
+                <button type="button" onClick={()=>setDedDraft(null)} style={{background:'var(--surface)',color:'var(--muted)',border:'1px solid var(--border)',borderRadius:'10px',padding:'10px 14px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Discard</button>
+                <button type="button" onClick={commit} style={{background:BRASS,color:'#fff',border:'none',borderRadius:'10px',padding:'10px 18px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Save deductions</button>
+              </> : <span style={{flex:1,fontSize:'12px',fontWeight:800,color:'var(--text-green-deep)',display:'flex',alignItems:'center',gap:'6px'}}><Ico n="check" s={14} c="var(--text-green-deep)"/>Saved. Take-home updated.</span>}
+            </div>}
             </>);
             if (dedModalOpen) dedModalContentRef.current = <>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></>;
             return (<>
