@@ -1170,8 +1170,13 @@ export default function App() {
   // are too short to match it, so nothing changes for them.
   const computeIsWide = () => window.innerWidth>=960 || (window.innerWidth>window.innerHeight && window.innerWidth>=900) || (window.innerWidth>window.innerHeight && window.innerWidth>=720 && window.innerHeight>=600);
   const [isWide, setIsWide] = useState(()=>typeof window!=='undefined' && computeIsWide());
+  // Unfolded foldables held portrait (Z Fold, Surface Duo: about 720-760
+  // wide) keep the phone shell and bottom bar, but the column widens to use
+  // the screen and Home lays its cards out as on a computer.
+  const computeTabletP = () => !computeIsWide() && window.innerWidth>=700;
+  const [tabletP, setTabletP] = useState(()=>typeof window!=='undefined' && computeTabletP());
   useEffect(()=>{
-    const onResize = () => setIsWide(computeIsWide());
+    const onResize = () => { setIsWide(computeIsWide()); setTabletP(computeTabletP()); };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   },[]);
@@ -4554,7 +4559,7 @@ export default function App() {
   }
 
   return (
-    <div style={isWide ? {...S.wrap, maxWidth:'1180px', margin:'0 auto 0 250px'} : S.wrap}>
+    <div style={isWide ? {...S.wrap, maxWidth:'1180px', margin:'0 auto 0 250px'} : tabletP ? {...S.wrap, maxWidth:'820px'} : S.wrap}>
       <style>{`
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         /* Hiding the scrollbar app-wide is right for the touch/mobile
@@ -5178,7 +5183,7 @@ export default function App() {
         {tab==='dashboard'&&(
           <TabDashboard
             animClass={tabAnimClass}
-            isWide={isWide} settings={settings} setTab={setTab} totals={totals}
+            isWide={isWide||tabletP} settings={settings} setTab={setTab} totals={totals}
             currPeriodIdx={currPeriodIdx} toilLedger={toilLedger} carmsOutstanding={carmsOutstanding}
             salaryBreakdownExpanded={salaryBreakdownExpanded} setSalaryBreakdownExpanded={setSalaryBreakdownExpanded}
             scrollToTaxImpact={scrollToTaxImpact} setTaxImpactExpanded={setTaxImpactExpanded}
