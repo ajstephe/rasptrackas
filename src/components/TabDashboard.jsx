@@ -253,77 +253,86 @@ export function TabDashboard({
     );
   };
 
-  // The Summary tab's year chart, brought to Home: a column per pay month,
-  // stacked submitted (green), still to submit (red) and planned (striped
-  // blue), with the year's totals under it. A column opens Summary.
+  // Monthly pay, a column per pay month: salary and allowances at the
+  // bottom, then overtime and PA stacked on top (submitted green, still to
+  // submit red, planned striped blue), so each column is that month's whole
+  // gross pay. The line is the month's take-home after tax, NI and pension.
+  // Months whose payday hasn't come yet are forecasts and show lighter.
+  // A column opens Summary.
   const monthChartCard = (()=>{
     const pbs = totals.periodBreakdown || [];
     const cols = PAY_PERIODS.map((p,idx)=>{
-      const pb = pbs[idx]; const g = pb?.combinedGross || 0, gn = pb?.combinedNet || 0;
+      const pb = pbs[idx] || {};
+      const sal = pb.baseAmt || 0, salN = (pb.salaryNet||0)+(pb.lwNet||0)+(pb.laNet||0);
+      const g = pb.combinedGross || 0, gn = pb.combinedNet || 0;
       const ts = totals.toSubmit?.[idx]; const tOn = ts && ts.gross>0.005;
       const ex = totals.expected?.[idx]; const eOn = ex && ex.n>0;
       const t = tOn ? ts.gross : 0, tn = tOn ? (ts.net||0) : 0, e = eOn ? ex.gross : 0, en = eOn ? (ex.net||0) : 0;
-      return { p, idx, g, t, e, gn, tn, en, tot:g+t+e, net:gn+tn+en };
+      const future = !!pb.payDate && pb.payDate > localDateStr();
+      return { p, idx, sal, salN, g, t, e, gn, tn, en, future, tot:sal+g+t+e, net:(pb.monthNet||0)+tn+en };
     });
     if (!cols.some(c=>c.tot>0.005)) return null;
     const max = Math.max(1, ...cols.map(c=>c.tot));
     const sum = k => cols.reduce((a,c)=>a+c[k],0);
-    const GRN='#059669', RED='#dc2626', LINE='var(--text-navy)';
+    const GRN='#059669', RED='#dc2626', LINE='var(--text-navy)', SAL='color-mix(in srgb, var(--muted) 45%, var(--surface-2))';
     const STRIPE='repeating-linear-gradient(135deg, var(--exp) 0 4px, color-mix(in srgb, var(--exp) 50%, white) 4px 8px)';
-    const H = isWide ? 110 : 84;
+    const H = isWide ? 170 : 120;
     const open = () => { skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); };
-    const gap = isWide ? '6px' : '3px';
+    const gap = isWide ? '8px' : '3px';
     const short = c => String(c.p.short||c.p.month).slice(0,3);
-    const whole = v => fmtGBP(Math.round(v)).replace('.00','');
-    // Net line: one point per month with anything in it, joined in order,
-    // drawn over the bars on the same scale as gross.
+    const k = v => v>=1000 ? `£${(v/1000).toFixed(1)}k` : `£${Math.round(v)}`;
     const pts = cols.map((c,i)=>c.tot>0.005?{x:(i+0.5)/cols.length*100, y:H - c.net/max*H, c}:null).filter(Boolean);
-    const fig = (lbl,g,n,col) => <div style={{minWidth:0}}>
-      <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>{lbl}</div>
-      <div style={{fontFamily:MONO,fontSize:isWide?'16px':'14px',fontWeight:700,color:col,marginTop:'2px',whiteSpace:'nowrap'}}>{fmtGBP(g)}</div>
-      <div style={{fontFamily:MONO,fontSize:isWide?'12px':'11px',fontWeight:600,color:'var(--muted)',marginTop:'1px',whiteSpace:'nowrap'}}>{fmtGBP(n)} net</div>
+    const fig = (lbl,g,n,col,sw) => <div style={{minWidth:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}><i style={{width:'8px',height:'8px',borderRadius:'2px',background:sw,flexShrink:0}}/>{lbl}</div>
+      <div style={{fontFamily:MONO,fontSize:isWide?'16px':'14px',fontWeight:700,color:col,marginTop:'3px',whiteSpace:'nowrap'}}>{fmtGBP(g)}</div>
+      <div style={{fontFamily:MONO,fontSize:isWide?'12px':'11px',fontWeight:600,color:'var(--muted)',marginTop:'1px',whiteSpace:'nowrap'}}>{fmtGBP(n)} take-home</div>
     </div>;
-    const key = (sw,t) => <span key={t} style={{display:'inline-flex',alignItems:'center',gap:'4px'}}>{sw}{t}</span>;
+    const key = (sw,t) => <span key={t} style={{display:'inline-flex',alignItems:'center',gap:'5px'}}>{sw}{t}</span>;
+    const sq = c => <i style={{width:'10px',height:'10px',borderRadius:'3px',background:c}}/>;
     return (
-      <div style={{...S.card,padding:isWide?'16px 20px 14px':'14px 14px 12px'}}>
-        <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'baseline',gap:'4px 12px',marginBottom:'12px'}}>
-          <span style={{fontSize:'13.5px',fontWeight:800,color:'var(--ink)'}}>Overtime by pay month</span>
-          <span style={{display:'flex',flexWrap:'wrap',gap:'4px 10px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
-            {[[GRN,'Submitted'],[RED,'To submit'],['var(--exp)','Planned']].map(([c,t])=>key(<i style={{width:'9px',height:'9px',borderRadius:'3px',background:c}}/>,t))}
-            {key(<svg width="18" height="9" aria-hidden="true"><line x1="1" y1="4.5" x2="17" y2="4.5" stroke={LINE} strokeWidth="2"/><circle cx="9" cy="4.5" r="3" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,'Net')}
+      <div style={{...S.card,padding:isWide?'18px 22px 16px':'14px 14px 12px'}}>
+        <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'flex-end',gap:'6px 16px',marginBottom:'14px'}}>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:isWide?'15px':'13.5px',fontWeight:800,color:'var(--ink)'}}>Monthly pay</div>
+            <div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Each bar is the month's gross pay: salary at the bottom, overtime on top. The line is what reaches your bank.</div>
+          </div>
+          <span style={{display:'flex',flexWrap:'wrap',gap:'5px 12px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
+            {key(sq(SAL),'Salary & allowances')}{key(sq(GRN),'Overtime submitted')}{key(sq(RED),'To submit')}{key(sq(STRIPE),'Planned')}
+            {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,'Take-home')}
           </span>
         </div>
-        {isWide&&<div style={{display:'flex',gap,marginBottom:'4px'}}>
-          {cols.map(c=><span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',lineHeight:1.25,visibility:c.tot>0.005?'visible':'hidden'}}>
-            <span style={{display:'block',fontFamily:MONO,fontSize:'10.5px',fontWeight:700,color:'var(--muted)'}}>{whole(c.tot)}</span>
-            <span style={{display:'block',fontFamily:MONO,fontSize:'10px',fontWeight:700,color:LINE}}>{whole(c.net)}</span>
+        {isWide&&<div style={{display:'flex',gap,marginBottom:'5px'}}>
+          {cols.map(c=><span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',lineHeight:1.3,visibility:c.tot>0.005?'visible':'hidden',opacity:c.future?0.7:1}}>
+            <span style={{display:'block',fontFamily:MONO,fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>{k(c.tot)}</span>
+            <span style={{display:'block',fontFamily:MONO,fontSize:'11px',fontWeight:800,color:LINE}}>{k(c.net)}</span>
           </span>)}
         </div>}
         <div style={{position:'relative'}}>
           <div style={{display:'flex',alignItems:'flex-end',gap}}>
             {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx;
-              const seg=(v,bg)=>v>0.005&&<i style={{display:'block',height:`${v/max*H}px`,background:bg}}/>;
+              const seg=(v,bg,op=1)=>v>0.005&&<i style={{display:'block',height:`${v/max*H}px`,background:bg,opacity:op}}/>;
               return (
-                <button key={c.p.month} type="button" onClick={open} aria-label={`${payLabel(c.p.month)}: ${fmtGBP(c.tot)} gross, ${fmtGBP(c.net)} net`} title={isWide?`${payLabel(c.p.month)}: ${fmtGBP(c.tot)} gross · ${fmtGBP(c.net)} net`:undefined}
+                <button key={c.p.month} type="button" onClick={open} aria-label={`${payLabel(c.p.month)}${c.future?' (forecast)':''}: ${fmtGBP(c.tot)} gross, ${fmtGBP(c.net)} take-home`} title={isWide?`${payLabel(c.p.month)}${c.future?' (forecast)':''}\nGross ${fmtGBP(c.tot)} · take-home ${fmtGBP(c.net)}\nSalary ${fmtGBP(c.sal)} · overtime ${fmtGBP(c.g+c.t+c.e)}`:undefined}
                   style={{flex:'1 1 0',minWidth:0,display:'flex',justifyContent:'center',background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
-                  <span style={{height:`${H}px`,width:isWide?'46%':'70%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:isCurr?`0 0 0 2px color-mix(in srgb, ${BRASS} 55%, transparent)`:'none'}}>
-                    {seg(c.g,GRN)}{seg(c.t,RED)}{seg(c.e,STRIPE)}
+                  <span style={{height:`${H}px`,width:isWide?'58%':'78%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:isCurr?`0 0 0 2px color-mix(in srgb, ${BRASS} 60%, transparent)`:'none'}}>
+                    {seg(c.sal,SAL,c.future?0.55:1)}{seg(c.g,GRN)}{seg(c.t,RED)}{seg(c.e,STRIPE)}
                   </span>
                 </button>);
             })}
           </div>
           {pts.length>0&&<div aria-hidden="true" style={{position:'absolute',inset:0,pointerEvents:'none'}}>
             <svg width="100%" height={H} viewBox={`0 0 100 ${H}`} preserveAspectRatio="none" style={{display:'block',overflow:'visible'}}>
-              <polyline points={pts.map(q=>`${q.x},${q.y}`).join(' ')} fill="none" stroke={LINE} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
+              <polyline points={pts.map(q=>`${q.x},${q.y}`).join(' ')} fill="none" stroke={LINE} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
             </svg>
-            {pts.map(q=><i key={q.c.p.month} style={{position:'absolute',left:`${q.x}%`,top:`${q.y}px`,width:isWide?'9px':'7px',height:isWide?'9px':'7px',margin:isWide?'-4.5px 0 0 -4.5px':'-3.5px 0 0 -3.5px',borderRadius:'50%',background:LINE,boxShadow:'0 0 0 2px var(--surface)'}}/>)}
+            {pts.map(q=><i key={q.c.p.month} style={{position:'absolute',left:`${q.x}%`,top:`${q.y}px`,width:isWide?'10px':'8px',height:isWide?'10px':'8px',margin:isWide?'-5px 0 0 -5px':'-4px 0 0 -4px',borderRadius:'50%',background:q.c.future?'var(--surface)':LINE,border:q.c.future?`2px solid ${LINE}`:'none',boxSizing:'border-box',boxShadow:'0 0 0 2px var(--surface)'}}/>)}
           </div>}
         </div>
-        <div style={{display:'flex',gap,marginTop:'5px'}}>
-          {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:isWide?'11px':'9.5px',fontWeight:isCurr?900:800,color:isCurr?BRASS:'var(--quiet)'}}>{short(c)}</span>; })}
+        <div style={{display:'flex',gap,marginTop:'6px'}}>
+          {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:isWide?'11.5px':'9.5px',fontWeight:isCurr?900:800,color:isCurr?BRASS:'var(--quiet)'}}>{short(c)}</span>; })}
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:'10px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'11px'}}>
-          {fig('Submitted',sum('g'),sum('gn'),GRN)}{fig('To submit',sum('t'),sum('tn'),'var(--text-red-deep)')}{fig('Planned',sum('e'),sum('en'),'var(--exp-ink)')}
+        <div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'6px',textAlign:'center'}}>Paler bars and hollow dots are months not paid yet (forecast). {isWide?'Click':'Tap'} a month to open it in Summary.</div>
+        <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',gap:isWide?'12px':'12px 10px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
+          {fig('Salary & allowances',sum('sal'),sum('salN'),'var(--ink)',SAL)}{fig('Overtime submitted',sum('g'),sum('gn'),GRN,GRN)}{fig('To submit',sum('t'),sum('tn'),'var(--text-red-deep)',RED)}{fig('Planned',sum('e'),sum('en'),'var(--exp-ink)','var(--exp)')}
         </div>
       </div>
     );
@@ -352,9 +361,10 @@ export function TabDashboard({
       </button>
 
       {salaryBreakdownExpanded&&(
-        <div className="accordion-in" style={{cursor:'default',...(isWide?{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',gap:'28px',alignItems:'start'}:{})}}>
-          {/* Desktop: figures and tax bars on the left, the monthly chart on
-              the right, so the whole card fits on screen. Phones stack them. */}
+        <div className="accordion-in" style={{cursor:'default',...(isWide?{display:'grid',gridTemplateColumns:'minmax(0,1.1fr) minmax(0,1fr)',gap:'40px',alignItems:'start'}:{})}}>
+          {/* Desktop: the year-to-date figures on the left, the gross salary
+              bars on the right, across the card's full width (the monthly
+              chart now has its own card above). Phones stack them. */}
           <div>
           {/* breakdown rows: paid so far this tax year, gross in one column
               and net in the next, so the figures line up down the card */}
@@ -412,6 +422,8 @@ export function TabDashboard({
             })()}
           </div>
 
+          </div>
+          <div>
           {/* ── Gross Salary (Actual) ──
                Deliberately plots RAW gross now (combinedGrossYTD), not the
                pension-adjusted taxable figure an earlier round switched
@@ -503,32 +515,6 @@ export function TabDashboard({
             );
           })()}
 
-          {/* ── Monthly Gross vs Net — expands and collapses
-               together with the rest of the card now, rather than
-               needing its own separate toggle. A clearly visible
-               divider (not just the usual faint hairline) marks
-               where the gauge bars end and the chart begins,
-               since on a wide desktop card the two sections sat
-               close enough to read as one continuous block. ── */}
-          </div>
-          <div style={isWide?{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}:{borderTop:'2px solid var(--border)',marginTop:'22px',paddingTop:'20px'}}>
-            <div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'12px'}}>Monthly overtime &amp; PA</div>
-            {/* Desktop passes wide=true so renderMonthlyChart
-                itself uses a wider internal coordinate system
-                (W=700 vs 330) — the box then just renders that
-                wider chart at 100% width with its normal (equal
-                X/Y scale) aspect-ratio sizing, so it spans the
-                full card width without stretching the line
-                weight or text the way forcing a mismatched
-                height did. */}
-            <div style={{maxWidth:'100%',margin:'0 auto'}}>
-              {renderMonthlyChart(false, false, false)}
-            </div>
-            <div style={{display:'flex',justifyContent:'center',gap:'18px',marginTop:'8px'}}>
-              <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#3b82f6',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</span></div>
-              <div style={{display:'flex',alignItems:'center',gap:'5px'}}><div style={{width:'13px',height:'2.5px',background:'#10b981',borderRadius:'2px'}}/><span style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</span></div>
-            </div>
-            <div style={{textAlign:'center',marginTop:'6px',fontSize:'9px',color:'var(--quiet)'}}>{isWide?'Click':'Tap'} any point for that pay month's figures</div>
           </div>
         </div>
       )}
