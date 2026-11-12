@@ -25,6 +25,8 @@ export function TabDashboard({
   const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
   // Pay month picked on the Monthly overtime chart (phones show its figures under it).
   const [chartPick, setChartPick] = useState(null);
+  // Phones open and close the Overview card like Salary breakdown; computers always show it.
+  const [overviewOpen, setOverviewOpen] = useState(false);
   const animatedNet = useCountUp(pb ? pb.combinedNet : 0);
   const animatedGrossYTD = useCountUp(settings.rank&&settings.service ? totals.combinedGrossYTD : 0);
 
@@ -302,12 +304,20 @@ export function TabDashboard({
     const line = (l,v,strong,col) => <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'3px 0',borderTop:strong?'1px solid var(--border-2)':'none',marginTop:strong?'3px':0,paddingTop:strong?'5px':'3px'}}>
       <span style={{fontSize:'12.5px',fontWeight:strong?800:700,color:strong?'var(--ink)':'var(--muted)'}}>{l}</span>{num(v,col,strong?800:600,'13px')}</div>;
     return (
-      <div style={{...S.card,padding:isWide?'18px 22px 16px':'14px 14px 12px'}}>
-        <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'flex-end',gap:'6px 16px',marginBottom:'14px'}}>
-          <div style={{minWidth:0}}>
-            <div style={{fontSize:isWide?'15px':'13.5px',fontWeight:800,color:'var(--ink)'}}>Monthly overtime &amp; pay</div>
-            <div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Bars are each pay month's overtime and PA; the line is what it adds to your take-home.</div>
+      <div style={S.card}>
+        <button disabled={isWide} onClick={()=>setOverviewOpen(v=>!v)} aria-expanded={isWide?undefined:overviewOpen} style={{touchAction:'manipulation',WebkitTapHighlightColor:'transparent',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:isWide?'default':'pointer'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'11px',minWidth:0}}>
+            <div style={{background:'var(--tint-green, color-mix(in srgb, #059669 14%, transparent))',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c={GRN}/></div>
+            <div style={{minWidth:0}}>
+              <div style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>Overview</div>
+              <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'1px'}}>Overtime, take-home and pay by month</div>
+            </div>
           </div>
+          {!isWide&&<span aria-hidden="true" style={{display:'flex',flexShrink:0,transform:overviewOpen?'rotate(-90deg)':'rotate(90deg)',transition:'transform 0.2s'}}><Ico n="cR" s={16} c="var(--quiet)" w={2.2}/></span>}
+        </button>
+        {(isWide||overviewOpen)&&<div className={isWide?undefined:'accordion-in'}>
+        <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'baseline',gap:'6px 16px',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',marginBottom:'14px'}}>
+          <div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',minWidth:0}}>Bars are each pay month's overtime and PA; the line is what it adds to your take-home.</div>
           <span style={{display:'flex',flexWrap:'wrap',gap:'5px 12px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
             {key(sq(GRN),'Submitted')}{key(sq(RED),'To submit')}{key(sq(STRIPE),'Planned')}
             {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,'Overtime take-home')}
@@ -365,6 +375,7 @@ export function TabDashboard({
         {!isWide&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'7px',textAlign:'center'}}>Tap a month to see its pay. Hollow dots are months not paid yet.</div>}
         {!isWide&&<div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:'10px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
           {TOT.map(([,l,v,col])=><div key={l} style={{minWidth:0}}><div style={lbl}>{l}</div><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:col,marginTop:'3px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
+        </div>}
         </div>}
       </div>
     );
