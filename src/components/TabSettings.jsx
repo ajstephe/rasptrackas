@@ -56,7 +56,8 @@ export function TabSettings({
   // Pay scales table in Config: just your own rank around your pay point
   // until "Show all pay scales" is tapped.
   const [showAllScales, setShowAllScales] = useState(false);
-  const [importExpanded, setImportExpanded] = useState(false);   // Import bulk overtime card
+  const [importExpanded, setImportExpanded] = useState(false);   // Bulk input overtime card
+  const [dedExpanded, setDedExpanded] = useState(false);         // Monthly deductions card
   // "Overtime already paid this tax year" form (Config card)
   const [impOpen, setImpOpen] = useState(false);
   const [impAmount, setImpAmount] = useState('');
@@ -135,14 +136,16 @@ export function TabSettings({
   const exportModalOpen = isWide && exportDataExpanded;
   const dataModalOpen = isWide && dataManagementExpanded;
   const importModalOpen = isWide && importExpanded;
+  const dedModalOpen = isWide && dedExpanded;
   const configModalMounted = useMountTransition(configModalOpen, 220);
   const taxModalMounted = useMountTransition(taxModalOpen, 220);
   const fyModalMounted = useMountTransition(fyModalOpen, 220);
   const exportModalMounted = useMountTransition(exportModalOpen, 220);
   const dataModalMounted = useMountTransition(dataModalOpen, 220);
   const importModalMounted = useMountTransition(importModalOpen, 220);
-  const anyModalOpen = configModalOpen || taxModalOpen || fyModalOpen || exportModalOpen || dataModalOpen || importModalOpen;
-  const anyModalMounted = configModalMounted || taxModalMounted || fyModalMounted || exportModalMounted || dataModalMounted || importModalMounted;
+  const dedModalMounted = useMountTransition(dedModalOpen, 220);
+  const anyModalOpen = configModalOpen || taxModalOpen || fyModalOpen || exportModalOpen || dataModalOpen || importModalOpen || dedModalOpen;
+  const anyModalMounted = configModalMounted || taxModalMounted || fyModalMounted || exportModalMounted || dataModalMounted || importModalMounted || dedModalMounted;
   // Focus management for the five popovers above (see useFocusTrap.js) —
   // the inline "are you sure" panels further down (Wipe Data, Delete
   // Account, Change Password) are deliberately left out of this: they're
@@ -156,6 +159,7 @@ export function TabSettings({
   const exportModalTrapRef = useRef(null); useFocusTrap(exportModalOpen, exportModalTrapRef);
   const dataModalTrapRef = useRef(null); useFocusTrap(dataModalOpen, dataModalTrapRef);
   const importModalTrapRef = useRef(null); useFocusTrap(importModalOpen, importModalTrapRef);
+  const dedModalTrapRef = useRef(null); useFocusTrap(dedModalOpen, dedModalTrapRef);
   // Each card's own cardHeader/cardBody depend on its *Expanded flag, which
   // flips false the instant the card closes — same render the mount stays
   // true for its 220ms exit tail. Without freezing the actual rendered
@@ -169,6 +173,7 @@ export function TabSettings({
   const exportModalContentRef = useRef(null);
   const dataModalContentRef = useRef(null);
   const importModalContentRef = useRef(null);
+  const dedModalContentRef = useRef(null);
 
   const themeIndicator = {background:BRASS,borderRadius:'9px',boxShadow:`0 4px 11px ${pillShadow}`};
   const themeOptions = THEME_OPTIONS.filter(([v])=>themeInSeason(v));
@@ -268,7 +273,7 @@ export function TabSettings({
            — that part was never meant to be hideable. ── */}
       {(()=>{
         const cardHeader = (
-          <button disabled={configSetupIncomplete} onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);setImportExpanded(false);} const wasOpen = configExpanded || justCompletedSetup; setJustCompletedSetup(false); setConfigExpanded(!wasOpen); }} className={configSetupIncomplete?'':'tap-row'} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete||justCompletedSetup))?'13px':0}}>
+          <button disabled={configSetupIncomplete} onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setDedExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);setImportExpanded(false);} const wasOpen = configExpanded || justCompletedSetup; setJustCompletedSetup(false); setConfigExpanded(!wasOpen); }} className={configSetupIncomplete?'':'tap-row'} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete||justCompletedSetup))?'13px':0}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="cog" s={isWide?21:17} c="#2563eb"/></div>
               <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Config, rates &amp; pay scales</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Rank, pay point, rates</div></div>
@@ -381,87 +386,6 @@ export function TabSettings({
             <button onClick={undoLastPayChange} style={{background:'none',border:'none',padding:'4px 0 0',fontSize:'11.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',cursor:'pointer',fontFamily:'inherit'}}>Undo the last change</button>
           </div>
         )}
-        {/* ── Monthly deductions ──
-            Things taken off every payslip that the app can't know about —
-            Federation subs, ATOC, regular savings — so take-home matches the
-            bank. Each is named, a monthly amount, and either after tax (most)
-            or before tax and NI (salary sacrifice). Kept in the encrypted
-            settings like everything else. */}
-        {(()=>{
-          const list = Array.isArray(settings.deductions) ? settings.deductions : [];
-          const save = l => saveSett({...settings, deductions:l});
-          const upd = (id,patch) => save(list.map(d=>d.id===id?{...d,...patch}:d));
-          const add = (name='') => save([...list,{id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,amount:'',when:PRE_TAX.includes(name)?'before':'after'}]);
-          const curIdx = PAY_PERIODS.findIndex(p=>p.start<=localDateStr() && localDateStr()<=p.end);
-          const curMonth = PAY_PERIODS[curIdx]?.month;
-          const total = list.reduce((a,d)=>a+deductionFor(d,curMonth),0);
-          // Presets, A–Z. Cycle2Work is salary sacrifice, so it starts before tax & NI.
-          const SUGG = ['ATOC','Cycle2Work','Federation subs','PFOA','Police Mutual','Regular savings','Sports & social'];
-          const PRE_TAX = ['Cycle2Work'];
-          const unused = SUGG.filter(n=>!list.some(d=>d.name.toLowerCase()===n.toLowerCase()));
-          return (
-            <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}}>
-              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                <div style={{background:'var(--tint-green, color-mix(in srgb, #059669 14%, transparent))',padding:'9px',borderRadius:'13px'}}><Ico n="cash" s={17} c="#059669"/></div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Monthly deductions</div>
-                  <div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>Taken off every payslip, so take-home matches your bank</div>
-                </div>
-                {list.length>0&&<div style={{textAlign:'right'}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:800,color:'var(--text-red-deep)'}}>{total>0.005?"−":""}£{total.toFixed(2)}</div><div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)'}}>{curMonth?`${PAY_PERIODS[curIdx].short.slice(0,3)} pay`:'a month'}</div></div>}
-              </div>
-              {list.length>0&&<div style={{display:'grid',gridTemplateColumns:isWide?'repeat(2,minmax(0,1fr))':'minmax(0,1fr)',gap:'8px',marginTop:'12px',alignItems:'start'}}>
-                {list.map(d=>(
-                  <div key={d.id} style={{background:'var(--surface-2)',borderRadius:'12px',padding:'10px'}}>
-                    <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
-                      <input aria-label="Deduction name" value={d.name} placeholder="Name, e.g. Federation subs" onChange={e=>upd(d.id,{name:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'9px 11px',fontSize:'14px'}}/>
-                      <div style={{position:'relative',flex:isWide?'0 0 86px':'0 0 104px'}}>
-                        <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
-                        <input aria-label={`${d.name||'Deduction'} monthly amount`} inputMode="decimal" value={d.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) upd(d.id,{amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'9px 10px 9px 22px',fontSize:'14px',textAlign:'right'}}/>
-                      </div>
-                      <button type="button" aria-label={`Remove ${d.name||'deduction'}`} onClick={()=>save(list.filter(x=>x.id!==d.id))} style={{background:'none',border:'none',padding:'6px',cursor:'pointer',display:'flex',flexShrink:0}}><Ico n="x" s={15} c="var(--quiet)"/></button>
-                    </div>
-                    {/* Pay months it's taken: tap a month to skip it (opted out
-                        of the insurance for a while, a savings holiday…). */}
-                    <div style={{display:'grid',gridTemplateColumns:'repeat(6,minmax(0,1fr))',gap:'4px',marginTop:'8px'}}>
-                      {PAY_PERIODS.map((p,pi)=>{ const off=(d.off||[]).includes(p.month); const past=pi<curIdx; return (
-                        <button key={p.month} type="button" aria-pressed={!off} aria-label={`${p.month} pay: ${off?'not taken':'taken'}`} onClick={()=>upd(d.id,{off: off ? (d.off||[]).filter(m=>m!==p.month) : [...(d.off||[]),p.month]})}
-                          style={{border:pi===curIdx?`1.5px solid ${BRASS}`:'1px solid var(--border-2)',borderRadius:'7px',padding:'5px 0',fontSize:'11px',fontWeight:800,cursor:'pointer',fontFamily:'inherit',background:off?'transparent':'var(--tint-green-2, var(--surface))',color:off?'var(--quiet)':'var(--text-green-deep)',textDecoration:off?'line-through':'none',opacity:past&&off?0.6:1}}>{p.short.slice(0,3)}</button>); })}
-                    </div>
-                    {(d.off||[]).length>0&&<div style={{fontSize:'10.5px',fontWeight:700,color:'var(--quiet)',marginTop:'5px'}}>Skipped: {PAY_PERIODS.filter(p=>(d.off||[]).includes(p.month)).map(p=>p.short.slice(0,3)).join(', ')}</div>}
-                    {/* Amount changes: "from January pay it's £25" — later
-                        months use the newest change on or before them. */}
-                    {(d.changes||[]).map((c,ci)=>{
-                      const setC = patch => upd(d.id,{changes:(d.changes||[]).map((x,k)=>k===ci?{...x,...patch}:x)});
-                      return (
-                        <div key={ci} style={{display:'flex',alignItems:'center',gap:'6px',marginTop:'8px'}}>
-                          <span style={{fontSize:'12px',fontWeight:800,color:'var(--muted)',flexShrink:0}}>From</span>
-                          <select aria-label="Change from pay month" value={c.from} onChange={e=>setC({from:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'8px 10px',fontSize:'14px'}}>
-                            {PAY_PERIODS.map(p=><option key={p.month} value={p.month}>{p.short.slice(0,3)} pay</option>)}
-                          </select>
-                          <div style={{position:'relative',flex:'0 0 96px'}}>
-                            <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
-                            <input aria-label="New monthly amount" inputMode="decimal" value={c.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) setC({amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'8px 10px 8px 22px',fontSize:'14px',textAlign:'right'}}/>
-                          </div>
-                          <button type="button" aria-label="Remove amount change" onClick={()=>upd(d.id,{changes:(d.changes||[]).filter((_,k)=>k!==ci)})} style={{background:'none',border:'none',padding:'6px',cursor:'pointer',display:'flex',flexShrink:0}}><Ico n="x" s={14} c="var(--quiet)"/></button>
-                        </div>);
-                    })}
-                    <button type="button" onClick={()=>upd(d.id,{changes:[...(d.changes||[]),{from:PAY_PERIODS[Math.min(11,Math.max(0,curIdx+1))].month,amount:d.amount||''}]})} style={{background:'none',border:'none',padding:'8px 0 0',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>+ Change the amount from a month</button>
-                    <div style={{display:'flex',gap:'4px',marginTop:'8px',background:'var(--surface)',borderRadius:'9px',padding:'3px'}}>
-                      {[['after','After tax'],['before','Before tax & NI']].map(([k,l])=>(
-                        <button key={k} type="button" onClick={()=>upd(d.id,{when:k})} aria-pressed={d.when===k} style={{flex:1,border:'none',borderRadius:'7px',padding:'6px 4px',fontSize:'11.5px',fontWeight:800,cursor:'pointer',fontFamily:'inherit',background:d.when===k?BRASS:'transparent',color:d.when===k?'#fff':'var(--muted)'}}>{l}</button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>}
-              <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginTop:'10px'}}>
-                {unused.map(n=><button key={n} type="button" onClick={()=>add(n)} style={{background:'var(--chip-bg)',border:'none',borderRadius:'999px',padding:'6px 11px',fontSize:'11.5px',fontWeight:800,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit'}}>+ {n}</button>)}
-                <button type="button" onClick={()=>add('')} style={{background:'none',border:`1.5px dashed ${BRASS}`,borderRadius:'999px',padding:'5px 11px',fontSize:'11.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>+ Add your own</button>
-              </div>
-              {list.length>0&&<div style={{marginTop:'9px',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Most deductions come off after tax. Choose "Before tax &amp; NI" for salary sacrifice schemes (e.g. Cycle2Work), which also lower your tax and NI.</div>}
-            </div>
-          );
-        })()}
         <div style={{display:'flex',alignItems:'center',gap:'8px',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}}>
           <div style={{background:'var(--tint-blue)',padding:'9px',borderRadius:'13px'}}><Ico n="clock" s={17} c="#2563eb"/></div>
           <span style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Hourly rates &amp; pay scales</span>
@@ -562,6 +486,202 @@ export function TabSettings({
         );
       })()}
 
+      {/* ── Monthly deductions (its own card) ──
+          Things taken off every payslip that the app can't know about —
+          Federation subs, ATOC, regular savings — so take-home matches the
+          bank. Each is named, a monthly amount, and either after tax (most)
+          or before tax and NI (salary sacrifice). Kept in the encrypted
+          settings like everything else. Sits beside Config on desktop. */}
+      {(()=>{
+        const list = Array.isArray(settings.deductions) ? settings.deductions : [];
+        const save = l => saveSett({...settings, deductions:l});
+        const upd = (id,patch) => save(list.map(d=>d.id===id?{...d,...patch}:d));
+        const add = (name='') => save([...list,{id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,amount:'',when:PRE_TAX.includes(name)?'before':'after'}]);
+        const curIdx = PAY_PERIODS.findIndex(p=>p.start<=localDateStr() && localDateStr()<=p.end);
+        const curMonth = PAY_PERIODS[curIdx]?.month;
+        const total = list.reduce((a,d)=>a+deductionFor(d,curMonth),0);
+        // Presets, A–Z. Cycle2Work is salary sacrifice, so it starts before tax & NI.
+        const SUGG = ['ATOC','Cycle2Work','Federation subs','PFOA','Police Mutual','Regular savings','Sports & social'];
+        const PRE_TAX = ['Cycle2Work'];
+        const unused = SUGG.filter(n=>!list.some(d=>d.name.toLowerCase()===n.toLowerCase()));
+        return (
+          <>
+            {(()=>{ const cardHeader = (
+            <button onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);setImportExpanded(false);} setDedExpanded(v=>!v); }} aria-expanded={dedExpanded} style={{display:'flex',alignItems:'center',gap:'8px',width:'100%',background:'none',border:'none',padding:0,cursor:'pointer',textAlign:'left',fontFamily:'inherit'}}>
+              <div style={{background:'var(--tint-green)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="cash" s={isWide?21:17} c="#059669"/></div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Monthly deductions</div>
+                <div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>{list.length?`${list.length} set up · taken off your take-home`:'Fed subs, ATOC, savings…'}</div>
+              </div>
+              {list.length>0&&<div style={{textAlign:'right',flexShrink:0}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:800,color:'var(--text-red-deep)'}}>{total>0.005?"−":""}£{total.toFixed(2)}</div><div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)'}}>{curMonth?`${PAY_PERIODS[curIdx].short.slice(0,3)} pay`:'a month'}</div></div>}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:dedExpanded?'rotate(180deg)':'none'}}><polyline points="6 9 12 15 18 9"/></svg>
+            </button>);
+            const cardBody = dedExpanded && (<>
+            {list.length>0&&<div style={{display:'grid',gridTemplateColumns:isWide?'repeat(2,minmax(0,1fr))':'minmax(0,1fr)',gap:'8px',alignItems:'start'}}>
+              {list.map(d=>(
+                <div key={d.id} style={{background:'var(--surface-2)',borderRadius:'12px',padding:'10px'}}>
+                  <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+                    <input aria-label="Deduction name" value={d.name} placeholder="Name, e.g. Federation subs" onChange={e=>upd(d.id,{name:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'9px 11px',fontSize:'14px'}}/>
+                    <div style={{position:'relative',flex:isWide?'0 0 86px':'0 0 104px'}}>
+                      <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
+                      <input aria-label={`${d.name||'Deduction'} monthly amount`} inputMode="decimal" value={d.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) upd(d.id,{amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'9px 10px 9px 22px',fontSize:'14px',textAlign:'right'}}/>
+                    </div>
+                    <button type="button" aria-label={`Remove ${d.name||'deduction'}`} onClick={()=>save(list.filter(x=>x.id!==d.id))} style={{background:'none',border:'none',padding:'6px',cursor:'pointer',display:'flex',flexShrink:0}}><Ico n="x" s={15} c="var(--quiet)"/></button>
+                  </div>
+                  {/* Pay months it's taken: tap a month to skip it (opted out
+                      of the insurance for a while, a savings holiday…). */}
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(6,minmax(0,1fr))',gap:'4px',marginTop:'8px'}}>
+                    {PAY_PERIODS.map((p,pi)=>{ const off=(d.off||[]).includes(p.month); const past=pi<curIdx; return (
+                      <button key={p.month} type="button" aria-pressed={!off} aria-label={`${p.month} pay: ${off?'not taken':'taken'}`} onClick={()=>upd(d.id,{off: off ? (d.off||[]).filter(m=>m!==p.month) : [...(d.off||[]),p.month]})}
+                        style={{border:pi===curIdx?`1.5px solid ${BRASS}`:'1px solid var(--border-2)',borderRadius:'7px',padding:'5px 0',fontSize:'11px',fontWeight:800,cursor:'pointer',fontFamily:'inherit',background:off?'transparent':'var(--tint-green-2, var(--surface))',color:off?'var(--quiet)':'var(--text-green-deep)',textDecoration:off?'line-through':'none',opacity:past&&off?0.6:1}}>{p.short.slice(0,3)}</button>); })}
+                  </div>
+                  {(d.off||[]).length>0&&<div style={{fontSize:'10.5px',fontWeight:700,color:'var(--quiet)',marginTop:'5px'}}>Skipped: {PAY_PERIODS.filter(p=>(d.off||[]).includes(p.month)).map(p=>p.short.slice(0,3)).join(', ')}</div>}
+                  {/* Amount changes: "from January pay it's £25" — later
+                      months use the newest change on or before them. */}
+                  {(d.changes||[]).map((c,ci)=>{
+                    const setC = patch => upd(d.id,{changes:(d.changes||[]).map((x,k)=>k===ci?{...x,...patch}:x)});
+                    return (
+                      <div key={ci} style={{display:'flex',alignItems:'center',gap:'6px',marginTop:'8px'}}>
+                        <span style={{fontSize:'12px',fontWeight:800,color:'var(--muted)',flexShrink:0}}>From</span>
+                        <select aria-label="Change from pay month" value={c.from} onChange={e=>setC({from:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'8px 10px',fontSize:'14px'}}>
+                          {PAY_PERIODS.map(p=><option key={p.month} value={p.month}>{p.short.slice(0,3)} pay</option>)}
+                        </select>
+                        <div style={{position:'relative',flex:'0 0 96px'}}>
+                          <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
+                          <input aria-label="New monthly amount" inputMode="decimal" value={c.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) setC({amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'8px 10px 8px 22px',fontSize:'14px',textAlign:'right'}}/>
+                        </div>
+                        <button type="button" aria-label="Remove amount change" onClick={()=>upd(d.id,{changes:(d.changes||[]).filter((_,k)=>k!==ci)})} style={{background:'none',border:'none',padding:'6px',cursor:'pointer',display:'flex',flexShrink:0}}><Ico n="x" s={14} c="var(--quiet)"/></button>
+                      </div>);
+                  })}
+                  <button type="button" onClick={()=>upd(d.id,{changes:[...(d.changes||[]),{from:PAY_PERIODS[Math.min(11,Math.max(0,curIdx+1))].month,amount:d.amount||''}]})} style={{background:'none',border:'none',padding:'8px 0 0',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>+ Change the amount from a month</button>
+                  <div style={{display:'flex',gap:'4px',marginTop:'8px',background:'var(--surface)',borderRadius:'9px',padding:'3px'}}>
+                    {[['after','After tax'],['before','Before tax & NI']].map(([k,l])=>(
+                      <button key={k} type="button" onClick={()=>upd(d.id,{when:k})} aria-pressed={d.when===k} style={{flex:1,border:'none',borderRadius:'7px',padding:'6px 4px',fontSize:'11.5px',fontWeight:800,cursor:'pointer',fontFamily:'inherit',background:d.when===k?BRASS:'transparent',color:d.when===k?'#fff':'var(--muted)'}}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>}
+            <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginTop:'10px'}}>
+              {unused.map(n=><button key={n} type="button" onClick={()=>add(n)} style={{background:'var(--chip-bg)',border:'none',borderRadius:'999px',padding:'6px 11px',fontSize:'11.5px',fontWeight:800,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit'}}>+ {n}</button>)}
+              <button type="button" onClick={()=>add('')} style={{background:'none',border:`1.5px dashed ${BRASS}`,borderRadius:'999px',padding:'5px 11px',fontSize:'11.5px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>+ Add your own</button>
+            </div>
+            {list.length>0&&<div style={{marginTop:'9px',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Most deductions come off after tax. Choose "Before tax &amp; NI" for salary sacrifice schemes (e.g. Cycle2Work), which also lower your tax and NI.</div>}
+            </>);
+            if (dedModalOpen) dedModalContentRef.current = <>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></>;
+            return (<>
+              <div style={S.card}>{cardHeader}{!isWide && cardBody ? <div className="accordion-in" style={{marginTop:'12px'}}>{cardBody}</div> : null}</div>
+              {dedModalMounted && contentWrapRef.current && createPortal(
+                <div ref={dedModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Monthly deductions" className={'modal-pop'+(dedModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{dedModalContentRef.current}</div>,
+                contentWrapRef.current)}
+            </>); })()}
+          </>
+        );
+      })()}
+
+      {/* ── Bulk input overtime ── for someone starting part-way through
+           the year: one figure for overtime already paid instead of
+           backdating every claim. Spread across the paydays it covers (see
+           importedShares in lib/payroll.js). */}
+      {(()=>{
+          const today = localDateStr();
+          const taxYear = Number(getUKTaxYearStart(today).slice(0,4));
+          const periods = generateFYPeriods(taxYear);
+          const paydays = periods.map(p=>({ month:p.month, payDate:payDateOf(p) })).filter(p=>p.payDate<=today);
+          const imp = settings.paidImport && Number(settings.paidImport.taxYear)===taxYear ? settings.paidImport : null;
+          const dd = x => new Date(x+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+          const monthOnly = m => m.split(' ')[0];
+          const covered = upTo => paydays.filter(p=>p.payDate<=upTo);
+          const field = {width:'100%',boxSizing:'border-box',padding:'11px 12px',borderRadius:'11px',border:'1px solid var(--border)',background:'var(--surface-2)',color:'var(--ink)',fontFamily:'inherit',fontWeight:700,fontSize:'16px'};
+          const startEdit = () => { setImpAmount(imp ? String(imp.amount) : ''); setImpBasis(imp ? imp.basis : 'gross'); setImpUpTo(imp ? imp.upTo : (paydays[paydays.length-1]?.payDate || '')); setImpOpen(true); };
+          const amt = parseFloat(String(impAmount).replace(/[£,\s]/g,''));
+          const valid = amt > 0 && impUpTo;
+          const save = () => {
+            if (!valid) return;
+            const gross = impBasis==='gross' ? Math.round(amt*100)/100 : grossForImportedNet({ periods, entries, settings, net: amt, upTo: impUpTo, taxYear });
+            saveSett({ ...settings, paidImport: { taxYear, amount: Math.round(amt*100)/100, basis: impBasis, gross, upTo: impUpTo } });
+            setImpOpen(false);
+          };
+          const hasPayPoint = !!(settings.rank && settings.service);
+          const cardHeader = (
+            <button onClick={()=>{ if(isWide){setDedExpanded(false);setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setImportExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(importExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                <div style={{background:'var(--tint-green)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="dl" s={isWide?21:17} c="#059669"/></div>
+                <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Bulk input overtime</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>{imp ? `${fmtGBP(imp.amount)} ${imp.basis} already paid this tax year` : 'Overtime already paid this tax year, in one go'}</div></div>
+              </div>
+              <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:importExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
+          );
+          const cardBody = importExpanded && (
+            <>
+              <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',lineHeight:1.55}}>Starting part-way through the year? Enter the overtime and PA you've already been paid as one total, instead of backdating every claim.</div>
+              {!hasPayPoint ? (
+                <div style={{marginTop:'10px',fontSize:'12px',fontWeight:700,color:'var(--text-red-deep)'}}>Set your rank and pay point first (Config, rates &amp; pay scales), so tax can be worked out.</div>
+              ) : !paydays.length ? (
+                <div style={{marginTop:'10px',fontSize:'12px',fontWeight:700,color:'var(--muted)'}}>No paydays have passed yet this tax year.</div>
+              ) : (<>
+              {!impOpen && imp && (
+                <div style={{marginTop:'10px',background:'var(--surface-2)',borderRadius:'11px',padding:'11px 12px'}}>
+                  <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>{fmtGBP(imp.amount)} {imp.basis}{imp.basis==='net'?<span style={{fontWeight:600,color:'var(--muted)'}}> (≈ {fmtGBP(imp.gross)} gross)</span>:null}</div>
+                  <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'3px'}}>Spread across {covered(imp.upTo).length} payday{covered(imp.upTo).length!==1?'s':''}: April to {monthOnly(covered(imp.upTo).slice(-1)[0]?.month||'')} pay</div>
+                  <div style={{display:'flex',gap:'14px',marginTop:'8px'}}>
+                    <button onClick={startEdit} style={{background:'none',border:'none',padding:0,fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>Edit</button>
+                    <button onClick={()=>{ const { paidImport, ...rest } = settings; saveSett(rest); }} style={{background:'none',border:'none',padding:0,fontSize:'12px',fontWeight:800,color:'var(--text-red-deep)',cursor:'pointer',fontFamily:'inherit'}}>Remove</button>
+                  </div>
+                </div>
+              )}
+              {!impOpen && !imp && (
+                <button onClick={startEdit} style={{marginTop:'10px',width:'100%',background:'var(--surface-2)',color:'var(--ink)',border:'1px dashed var(--border)',borderRadius:'11px',padding:'11px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Add overtime already paid</button>
+              )}
+              {impOpen && (
+                <div style={{marginTop:'10px',display:'flex',flexDirection:'column',gap:'10px'}}>
+                  <div>
+                    <div style={{fontSize:'11px',fontWeight:800,color:'var(--muted)',marginBottom:'5px'}}>Overtime &amp; PA paid so far this tax year</div>
+                    <div style={{display:'flex',gap:'8px'}}>
+                      <input inputMode="decimal" aria-label="Amount already paid" placeholder="£0.00" value={impAmount} onChange={e=>setImpAmount(e.target.value)} style={{...field,flex:1,minWidth:0,fontFamily:MONO}}/>
+                      <div role="group" aria-label="Gross or net" style={{display:'flex',background:'var(--chip-bg)',borderRadius:'11px',padding:'3px',flexShrink:0}}>
+                        {['gross','net'].map(b=>(
+                          <button key={b} type="button" aria-pressed={impBasis===b} onClick={()=>setImpBasis(b)} style={{border:'none',borderRadius:'9px',padding:'0 14px',fontFamily:'inherit',fontWeight:800,fontSize:'13px',cursor:'pointer',background:impBasis===b?BRASS:'transparent',color:impBasis===b?'#fff':'var(--muted)',textTransform:'capitalize'}}>{b}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:'11px',fontWeight:800,color:'var(--muted)',marginBottom:'5px'}}>Covers April pay up to</div>
+                    <AppSelect aria-label="Covers April pay up to" value={impUpTo} onChange={e=>setImpUpTo(e.target.value)} style={{...field,appearance:'auto'}}>
+                      {paydays.map(p=><option key={p.payDate} value={p.payDate}>{p.month} pay ({dd(p.payDate)})</option>)}
+                    </AppSelect>
+                  </div>
+                  <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>
+                    {impBasis==='net' ? 'Take-home from your bank statements; the app works out the gross. ' : 'The gross figure from your payslips. '}
+                    It's spread evenly across those paydays and counts towards your totals and tax. Don't include anything you've also logged as shifts.
+                  </div>
+                  <div style={{display:'flex',gap:'8px'}}>
+                    <button disabled={!valid} onClick={save} style={{flex:1,background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'11px',fontWeight:800,fontSize:'13px',cursor:valid?'pointer':'default',opacity:valid?1:0.5,fontFamily:'inherit'}}>Save</button>
+                    <button onClick={()=>setImpOpen(false)} style={{background:'var(--surface)',color:'var(--muted)',border:'1px solid var(--border)',borderRadius:'11px',padding:'11px 16px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
+                  </div>
+                </div>
+              )}
+              </>)}
+            </>
+          );
+          if (importModalOpen) importModalContentRef.current = <>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></>;
+          return (
+            <>
+              <div style={S.card}>
+                {cardHeader}
+                {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
+              </div>
+              {importModalMounted && contentWrapRef.current && createPortal(
+                <div ref={importModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Bulk input overtime" className={'modal-pop'+(importModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{importModalContentRef.current}</div>,
+                contentWrapRef.current
+              )}
+            </>
+          );
+      })()}
+
       {/* ── Tax & 100K+ Calculator — Actual (YTD) and Forecast (full year), side by side ── */}
       {settings.rank&&settings.service&&taxView&&(()=>{
         // Both columns come straight from the monthly payslips (see taxView
@@ -592,7 +712,7 @@ export function TabSettings({
         );
 
         const cardHeader = (
-          <button onClick={()=>{ if(isWide){setConfigExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);setImportExpanded(false);} setTaxImpactExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(taxImpactExpanded&&!isWide)?'12px':0,cursor:'pointer'}}>
+          <button onClick={()=>{ if(isWide){setDedExpanded(false);setConfigExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);setImportExpanded(false);} setTaxImpactExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(taxImpactExpanded&&!isWide)?'12px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:over?'var(--tint-red)':'var(--tint-green)',padding:isWide?'11px':'9px',borderRadius:'11px'}}><Ico n="calc" s={isWide?21:17} c={over?'#dc2626':'#059669'}/></div>
               <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Tax &amp; £100k+ calculator</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Your tax band and the £100k taper</div></div>
@@ -809,115 +929,12 @@ export function TabSettings({
         );
       })()}
 
-      {/* ── Import bulk overtime ── for someone starting part-way through
-           the year: one figure for overtime already paid instead of
-           backdating every claim. Spread across the paydays it covers (see
-           importedShares in lib/payroll.js). */}
-      {(()=>{
-          const today = localDateStr();
-          const taxYear = Number(getUKTaxYearStart(today).slice(0,4));
-          const periods = generateFYPeriods(taxYear);
-          const paydays = periods.map(p=>({ month:p.month, payDate:payDateOf(p) })).filter(p=>p.payDate<=today);
-          const imp = settings.paidImport && Number(settings.paidImport.taxYear)===taxYear ? settings.paidImport : null;
-          const dd = x => new Date(x+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-          const monthOnly = m => m.split(' ')[0];
-          const covered = upTo => paydays.filter(p=>p.payDate<=upTo);
-          const field = {width:'100%',boxSizing:'border-box',padding:'11px 12px',borderRadius:'11px',border:'1px solid var(--border)',background:'var(--surface-2)',color:'var(--ink)',fontFamily:'inherit',fontWeight:700,fontSize:'16px'};
-          const startEdit = () => { setImpAmount(imp ? String(imp.amount) : ''); setImpBasis(imp ? imp.basis : 'gross'); setImpUpTo(imp ? imp.upTo : (paydays[paydays.length-1]?.payDate || '')); setImpOpen(true); };
-          const amt = parseFloat(String(impAmount).replace(/[£,\s]/g,''));
-          const valid = amt > 0 && impUpTo;
-          const save = () => {
-            if (!valid) return;
-            const gross = impBasis==='gross' ? Math.round(amt*100)/100 : grossForImportedNet({ periods, entries, settings, net: amt, upTo: impUpTo, taxYear });
-            saveSett({ ...settings, paidImport: { taxYear, amount: Math.round(amt*100)/100, basis: impBasis, gross, upTo: impUpTo } });
-            setImpOpen(false);
-          };
-          const hasPayPoint = !!(settings.rank && settings.service);
-          const cardHeader = (
-            <button onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);} setImportExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(importExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
-              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                <div style={{background:'var(--tint-green)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="dl" s={isWide?21:17} c="#059669"/></div>
-                <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Import bulk overtime</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>{imp ? `${fmtGBP(imp.amount)} ${imp.basis} already paid this tax year` : 'Overtime already paid this tax year, in one go'}</div></div>
-              </div>
-              <span style={{display:'flex',alignItems:'center',gap:'3px',flexShrink:0}}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:importExpanded?'rotate(180deg)':'rotate(0deg)'}}><polyline points="6 9 12 15 18 9"/></svg>
-              </span>
-            </button>
-          );
-          const cardBody = importExpanded && (
-            <>
-              <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',lineHeight:1.55}}>Starting part-way through the year? Enter the overtime and PA you've already been paid as one total, instead of backdating every claim.</div>
-              {!hasPayPoint ? (
-                <div style={{marginTop:'10px',fontSize:'12px',fontWeight:700,color:'var(--text-red-deep)'}}>Set your rank and pay point first (Config, rates &amp; pay scales), so tax can be worked out.</div>
-              ) : !paydays.length ? (
-                <div style={{marginTop:'10px',fontSize:'12px',fontWeight:700,color:'var(--muted)'}}>No paydays have passed yet this tax year.</div>
-              ) : (<>
-              {!impOpen && imp && (
-                <div style={{marginTop:'10px',background:'var(--surface-2)',borderRadius:'11px',padding:'11px 12px'}}>
-                  <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>{fmtGBP(imp.amount)} {imp.basis}{imp.basis==='net'?<span style={{fontWeight:600,color:'var(--muted)'}}> (≈ {fmtGBP(imp.gross)} gross)</span>:null}</div>
-                  <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',marginTop:'3px'}}>Spread across {covered(imp.upTo).length} payday{covered(imp.upTo).length!==1?'s':''}: April to {monthOnly(covered(imp.upTo).slice(-1)[0]?.month||'')} pay</div>
-                  <div style={{display:'flex',gap:'14px',marginTop:'8px'}}>
-                    <button onClick={startEdit} style={{background:'none',border:'none',padding:0,fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>Edit</button>
-                    <button onClick={()=>{ const { paidImport, ...rest } = settings; saveSett(rest); }} style={{background:'none',border:'none',padding:0,fontSize:'12px',fontWeight:800,color:'var(--text-red-deep)',cursor:'pointer',fontFamily:'inherit'}}>Remove</button>
-                  </div>
-                </div>
-              )}
-              {!impOpen && !imp && (
-                <button onClick={startEdit} style={{marginTop:'10px',width:'100%',background:'var(--surface-2)',color:'var(--ink)',border:'1px dashed var(--border)',borderRadius:'11px',padding:'11px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Add overtime already paid</button>
-              )}
-              {impOpen && (
-                <div style={{marginTop:'10px',display:'flex',flexDirection:'column',gap:'10px'}}>
-                  <div>
-                    <div style={{fontSize:'11px',fontWeight:800,color:'var(--muted)',marginBottom:'5px'}}>Overtime &amp; PA paid so far this tax year</div>
-                    <div style={{display:'flex',gap:'8px'}}>
-                      <input inputMode="decimal" aria-label="Amount already paid" placeholder="£0.00" value={impAmount} onChange={e=>setImpAmount(e.target.value)} style={{...field,flex:1,minWidth:0,fontFamily:MONO}}/>
-                      <div role="group" aria-label="Gross or net" style={{display:'flex',background:'var(--chip-bg)',borderRadius:'11px',padding:'3px',flexShrink:0}}>
-                        {['gross','net'].map(b=>(
-                          <button key={b} type="button" aria-pressed={impBasis===b} onClick={()=>setImpBasis(b)} style={{border:'none',borderRadius:'9px',padding:'0 14px',fontFamily:'inherit',fontWeight:800,fontSize:'13px',cursor:'pointer',background:impBasis===b?BRASS:'transparent',color:impBasis===b?'#fff':'var(--muted)',textTransform:'capitalize'}}>{b}</button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{fontSize:'11px',fontWeight:800,color:'var(--muted)',marginBottom:'5px'}}>Covers April pay up to</div>
-                    <AppSelect aria-label="Covers April pay up to" value={impUpTo} onChange={e=>setImpUpTo(e.target.value)} style={{...field,appearance:'auto'}}>
-                      {paydays.map(p=><option key={p.payDate} value={p.payDate}>{p.month} pay ({dd(p.payDate)})</option>)}
-                    </AppSelect>
-                  </div>
-                  <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--muted)',lineHeight:1.5}}>
-                    {impBasis==='net' ? 'Take-home from your bank statements; the app works out the gross. ' : 'The gross figure from your payslips. '}
-                    It's spread evenly across those paydays and counts towards your totals and tax. Don't include anything you've also logged as shifts.
-                  </div>
-                  <div style={{display:'flex',gap:'8px'}}>
-                    <button disabled={!valid} onClick={save} style={{flex:1,background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'11px',fontWeight:800,fontSize:'13px',cursor:valid?'pointer':'default',opacity:valid?1:0.5,fontFamily:'inherit'}}>Save</button>
-                    <button onClick={()=>setImpOpen(false)} style={{background:'var(--surface)',color:'var(--muted)',border:'1px solid var(--border)',borderRadius:'11px',padding:'11px 16px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>
-                  </div>
-                </div>
-              )}
-              </>)}
-            </>
-          );
-          if (importModalOpen) importModalContentRef.current = <>{cardHeader}<div style={{marginTop:'11px'}}>{cardBody}</div></>;
-          return (
-            <>
-              <div style={S.card}>
-                {cardHeader}
-                {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
-              </div>
-              {importModalMounted && contentWrapRef.current && createPortal(
-                <div ref={importModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Import bulk overtime" className={'modal-pop'+(importModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{importModalContentRef.current}</div>,
-                contentWrapRef.current
-              )}
-            </>
-          );
-      })()}
-
       <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',padding:isWide?'6px 4px 0':'8px 4px 6px',...(isWide?{gridColumn:'1 / -1'}:{})}}>Data</div>
 
       {/* ── Financial Years — generated calendar, every past year with data is browsable ── */}
       {(()=>{
         const cardHeader = (
-          <button onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);setImportExpanded(false);} setFinancialYearsExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(financialYearsExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
+          <button onClick={()=>{ if(isWide){setDedExpanded(false);setConfigExpanded(false);setTaxImpactExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);setImportExpanded(false);} setFinancialYearsExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(financialYearsExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="cal" s={isWide?21:17} c="#2563eb"/></div>
               <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Archived tax years</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Past tax years</div></div>
@@ -969,7 +986,7 @@ export function TabSettings({
       {/* ── Export to spreadsheet — separate from backup ── */}
       {(()=>{
         const cardHeader = (
-          <button onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setDataManagementExpanded(false);setImportExpanded(false);} setExportDataExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(exportDataExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
+          <button onClick={()=>{ if(isWide){setDedExpanded(false);setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setDataManagementExpanded(false);setImportExpanded(false);} setExportDataExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(exportDataExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-amber)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="share" s={isWide?21:17} c="#d97706"/></div>
               <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Reports &amp; export</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Payslip, year summary, PDF or spreadsheet</div></div>
@@ -1010,7 +1027,7 @@ export function TabSettings({
       {(()=>{
         const acctBase = {background:'var(--surface)',borderRadius:'18px',padding:S.card.padding,boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid var(--border-2)',marginBottom:'10px',position:'relative',overflow:'hidden'};
         const cardHeader = (
-          <button onClick={()=>{ if(isWide){setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setImportExpanded(false);} setDataManagementExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer',marginBottom:(dataManagementExpanded&&!isWide)?'13px':0}}>
+          <button onClick={()=>{ if(isWide){setDedExpanded(false);setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setImportExpanded(false);} setDataManagementExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer',marginBottom:(dataManagementExpanded&&!isWide)?'13px':0}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px'}}><Ico n="user" s={isWide?21:17} c="#2563eb"/></div>
               <div><div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Account &amp; data</div><div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Sign-in, backup, restore, wipe data</div></div>
@@ -1165,7 +1182,7 @@ export function TabSettings({
            Portalled to contentWrapRef, same reasoning as the popup
            cards themselves (see modalBoxStyle above). ── */}
       {anyModalMounted && contentWrapRef.current && createPortal(
-        <div onClick={()=>{ setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); setImportExpanded(false); }} className={anyModalOpen?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',zIndex:55}}/>,
+        <div onClick={()=>{ setConfigExpanded(false); setTaxImpactExpanded(false); setFinancialYearsExpanded(false); setExportDataExpanded(false); setDataManagementExpanded(false); setImportExpanded(false); setDedExpanded(false); }} className={anyModalOpen?'ov-in':'ov-out'} style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.4)',backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)',zIndex:55}}/>,
         contentWrapRef.current
       )}
     </div>
