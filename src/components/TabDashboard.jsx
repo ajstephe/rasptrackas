@@ -284,17 +284,16 @@ export function TabDashboard({
     const line = (l,v,strong,col) => <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'2px 0',borderTop:strong?'1px solid var(--border-2)':'none',marginTop:strong?'3px':0,paddingTop:strong?'4px':'2px'}}>
       <span style={{fontSize:'12.5px',fontWeight:strong?800:700,color:strong?'var(--ink)':'var(--muted)'}}>{l}</span>{num(v,col,strong?800:600,'13px')}</div>;
     return (
-      <div style={S.card}>
-        <button disabled={isWide} onClick={()=>setOverviewOpen(v=>!v)} aria-expanded={isWide?undefined:overviewOpen} style={{touchAction:'manipulation',WebkitTapHighlightColor:'transparent',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:isWide?'default':'pointer'}}>
+      <div style={isWide?S.card:undefined}>
+        {isWide&&<button disabled onClick={()=>setOverviewOpen(v=>!v)} aria-expanded={isWide?undefined:overviewOpen} style={{touchAction:'manipulation',WebkitTapHighlightColor:'transparent',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:isWide?'default':'pointer'}}>
           <div style={{display:'flex',alignItems:'center',gap:'11px',minWidth:0}}>
             <div style={{background:'var(--tint-green, color-mix(in srgb, #059669 14%, transparent))',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c={GRN}/></div>
             <div style={{minWidth:0}}>
               <div style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>Overview</div>
             </div>
           </div>
-          {!isWide&&<span aria-hidden="true" style={{display:'flex',flexShrink:0,transform:overviewOpen?'rotate(-90deg)':'rotate(90deg)',transition:'transform 0.2s'}}><Ico n="cR" s={16} c="var(--quiet)" w={2.2}/></span>}
-        </button>
-        {(isWide||overviewOpen)&&<div className={isWide?undefined:'accordion-in'}>
+        </button>}
+        {(isWide||overviewOpen)&&<div>
         <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'baseline',gap:'6px 16px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'10px',marginBottom:'10px'}}>
           <span style={{display:'flex',flexWrap:'wrap',gap:'5px 12px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
             {key(sq(GRN),'Submitted')}{key(sq(RED),'To submit')}{key(sq(STRIPE),'Planned')}
@@ -360,7 +359,7 @@ export function TabDashboard({
   })();
 
   const salaryBreakdownCard = (
-    <div style={S.card}>
+    <div style={isWide?S.card:undefined}>
       {/* Desktop starts (and stays) expanded — there's nothing to toggle
           there, so disabled rather than a plain div: same look, but
           genuinely inert (out of tab order, no click handler at all)
@@ -370,7 +369,7 @@ export function TabDashboard({
           this row's own toggle; now that the toggle lives on this button
           alone (a sibling of the body, not an ancestor of it), a click
           inside the body was never going to reach it in the first place. */}
-      <button disabled={isWide} onClick={()=>setSalaryBreakdownExpanded(v=>!v)} aria-expanded={isWide?undefined:salaryBreakdownExpanded} style={{touchAction:'manipulation',WebkitTapHighlightColor:'transparent',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:isWide?'default':'pointer'}}>
+      {isWide&&<button disabled onClick={()=>setSalaryBreakdownExpanded(v=>!v)} aria-expanded={isWide?undefined:salaryBreakdownExpanded} style={{touchAction:'manipulation',WebkitTapHighlightColor:'transparent',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:isWide?'default':'pointer'}}>
         <div style={{display:'flex',alignItems:'center',gap:'11px'}}>
           <div style={{background:'var(--tint-brass)',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c={BRASS}/></div>
           <div>
@@ -378,11 +377,11 @@ export function TabDashboard({
             <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'1px'}}>Base, allowances, overtime, full-year projection</div>
           </div>
         </div>
-        {!isWide&&<span aria-hidden="true" style={{display:'flex',flexShrink:0,transform:salaryBreakdownExpanded?'rotate(-90deg)':'rotate(90deg)',transition:'transform 0.2s'}}><Ico n="cR" s={16} c="var(--quiet)" w={2.2}/></span>}
-      </button>
+      </button>}
+      {!isWide&&<div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em',borderTop:'2px solid var(--border)',marginTop:'16px',paddingTop:'14px'}}>Salary breakdown &amp; forecast</div>}
 
-      {salaryBreakdownExpanded&&(
-        <div className="accordion-in" style={{cursor:'default',...(isWide?{display:'grid',gridTemplateColumns:'minmax(0,1.1fr) minmax(0,1fr)',gap:'40px',alignItems:'start'}:{})}}>
+      {(salaryBreakdownExpanded||!isWide)&&(
+        <div style={{cursor:'default',...(isWide?{display:'grid',gridTemplateColumns:'minmax(0,1.1fr) minmax(0,1fr)',gap:'40px',alignItems:'start'}:{})}}>
           {/* Desktop: the year-to-date figures on the left, the gross salary
               bars on the right, across the card's full width (the monthly
               chart now has its own card above). Phones stack them. */}
@@ -665,8 +664,26 @@ export function TabDashboard({
       </div>
     </div>
 
-    {monthChartCard}
-    {settings.rank&&settings.service&&salaryBreakdownCard}
+    {/* Phones: Overview and Salary breakdown & forecast open and close
+        together as one card. */}
+    {(monthChartCard||(settings.rank&&settings.service))&&(
+      <div style={S.card}>
+        <button onClick={()=>{ const v=!overviewOpen; setOverviewOpen(v); setSalaryBreakdownExpanded(v); }} aria-expanded={overviewOpen} style={{touchAction:'manipulation',WebkitTapHighlightColor:'transparent',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'11px',minWidth:0}}>
+            <div style={{background:'var(--tint-green, color-mix(in srgb, #059669 14%, transparent))',padding:'8.5px',borderRadius:'13px',flexShrink:0}}><Ico n="bar" s={24} c="#059669"/></div>
+            <div style={{minWidth:0}}>
+              <div style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>Overview &amp; salary breakdown</div>
+              <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'1px'}}>Monthly overtime, pay and full-year forecast</div>
+            </div>
+          </div>
+          <span aria-hidden="true" style={{display:'flex',flexShrink:0,transform:overviewOpen?'rotate(-90deg)':'rotate(90deg)',transition:'transform 0.2s'}}><Ico n="cR" s={16} c="var(--quiet)" w={2.2}/></span>
+        </button>
+        {overviewOpen&&<div className="accordion-in">
+          {monthChartCard}
+          {settings.rank&&settings.service&&salaryBreakdownCard}
+        </div>}
+      </div>
+    )}
 
     {/* Mobile-only — a low-key way to sign out from Home itself, instead
         of only reachable from the bottom of More... Deliberately a small
