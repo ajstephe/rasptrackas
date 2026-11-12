@@ -310,14 +310,12 @@ export function TabDashboard({
             <div style={{background:'var(--tint-green, color-mix(in srgb, #059669 14%, transparent))',padding:isWide?'10px':'8.5px',borderRadius:isWide?'12px':'13px',flexShrink:0}}><Ico n="bar" s={isWide?17:24} c={GRN}/></div>
             <div style={{minWidth:0}}>
               <div style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>Overview</div>
-              <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'1px'}}>Overtime, take-home and pay by month</div>
             </div>
           </div>
           {!isWide&&<span aria-hidden="true" style={{display:'flex',flexShrink:0,transform:overviewOpen?'rotate(-90deg)':'rotate(90deg)',transition:'transform 0.2s'}}><Ico n="cR" s={16} c="var(--quiet)" w={2.2}/></span>}
         </button>
         {(isWide||overviewOpen)&&<div className={isWide?undefined:'accordion-in'}>
         <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'baseline',gap:'6px 16px',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',marginBottom:'14px'}}>
-          <div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',minWidth:0}}>Bars are each pay month's overtime and PA; the line is what it adds to your take-home.</div>
           <span style={{display:'flex',flexWrap:'wrap',gap:'5px 12px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
             {key(sq(GRN),'Submitted')}{key(sq(RED),'To submit')}{key(sq(STRIPE),'Planned')}
             {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,'Overtime take-home')}
