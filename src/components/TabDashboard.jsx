@@ -277,7 +277,7 @@ export function TabDashboard({
     const sum = k => cols.reduce((a,c)=>a+c[k],0);
     const GRN='#059669', RED='#dc2626', LINE='var(--text-navy)';
     const STRIPE='repeating-linear-gradient(135deg, var(--exp) 0 4px, color-mix(in srgb, var(--exp) 50%, white) 4px 8px)';
-    const H = isWide ? 110 : 96;
+    const H = isWide ? 100 : 84;
     const gap = isWide ? '8px' : '3px';
     const short = c => String(c.p.short||c.p.month).slice(0,3);
     const pickIdx = chartPick ?? (currPeriodIdx>=0 ? currPeriodIdx : 0);
@@ -301,7 +301,7 @@ export function TabDashboard({
     const gridCols = `152px repeat(${cols.length},minmax(0,1fr))`;
     const TOT = [['Overtime submitted','Submitted',sum('g'),'var(--text-green-deep)'],['To submit','To submit',sum('t'),'var(--text-red-deep)'],['Planned','Planned',sum('e'),'var(--exp-ink)']];
     const pick = cols[pickIdx];
-    const line = (l,v,strong,col) => <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'3px 0',borderTop:strong?'1px solid var(--border-2)':'none',marginTop:strong?'3px':0,paddingTop:strong?'5px':'3px'}}>
+    const line = (l,v,strong,col) => <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'2px 0',borderTop:strong?'1px solid var(--border-2)':'none',marginTop:strong?'3px':0,paddingTop:strong?'4px':'2px'}}>
       <span style={{fontSize:'12.5px',fontWeight:strong?800:700,color:strong?'var(--ink)':'var(--muted)'}}>{l}</span>{num(v,col,strong?800:600,'13px')}</div>;
     return (
       <div style={S.card}>
@@ -315,16 +315,16 @@ export function TabDashboard({
           {!isWide&&<span aria-hidden="true" style={{display:'flex',flexShrink:0,transform:overviewOpen?'rotate(-90deg)':'rotate(90deg)',transition:'transform 0.2s'}}><Ico n="cR" s={16} c="var(--quiet)" w={2.2}/></span>}
         </button>
         {(isWide||overviewOpen)&&<div className={isWide?undefined:'accordion-in'}>
-        <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'baseline',gap:'6px 16px',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px',marginBottom:'14px'}}>
+        <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'baseline',gap:'6px 16px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'10px',marginBottom:'10px'}}>
           <span style={{display:'flex',flexWrap:'wrap',gap:'5px 12px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
             {key(sq(GRN),'Submitted')}{key(sq(RED),'To submit')}{key(sq(STRIPE),'Planned')}
-            {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,'Overtime take-home')}
+            {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,isWide?'Overtime take-home':'Take-home')}
           </span>
         </div>
         <div style={isWide?{display:'grid',gridTemplateColumns:gridCols,columnGap:gap}:undefined}>
           {/* Computers: the year's overtime totals stand in the space left of the bars. */}
-          {isWide&&<div style={{gridRow:'span 2',display:'flex',flexDirection:'column',justifyContent:'space-between',gap:'8px',paddingRight:'10px'}}>
-            {TOT.map(([l,,v,col])=><div key={l} style={{minWidth:0}}><div style={{...lbl,whiteSpace:'nowrap'}}>{l}</div><div style={{fontFamily:MONO,fontSize:'16px',fontWeight:700,color:col,marginTop:'2px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
+          {isWide&&<div style={{gridRow:'span 2',display:'flex',flexDirection:'column',justifyContent:'space-between',gap:'4px',paddingRight:'10px'}}>
+            {TOT.map(([l,,v,col])=><div key={l} style={{minWidth:0}}><div style={{...lbl,whiteSpace:'nowrap'}}>{l}</div><div style={{fontFamily:MONO,fontSize:'15px',fontWeight:700,color:col,marginTop:'1px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
           </div>}
           <div style={{position:'relative',...(isWide?{gridColumn:'2 / -1'}:{})}}>
             <div style={{display:'flex',alignItems:'flex-end',gap}}>
@@ -347,17 +347,17 @@ export function TabDashboard({
               {pts.map(q=><i key={q.c.p.month} style={{position:'absolute',left:`${q.x}%`,top:`${q.y}px`,width:isWide?'10px':'8px',height:isWide?'10px':'8px',margin:isWide?'-5px 0 0 -5px':'-4px 0 0 -4px',borderRadius:'50%',background:q.c.future?'var(--surface)':LINE,border:q.c.future?`2px solid ${LINE}`:'none',boxSizing:'border-box',boxShadow:'0 0 0 2px var(--surface)'}}/>)}
             </div>}
           </div>
-          <div style={{display:'flex',gap,marginTop:'6px',...(isWide?{gridColumn:'2 / -1'}:{})}}>
-            {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!isWide&&c.idx===pickIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:isWide?'11.5px':'9.5px',fontWeight:isCurr||on?900:800,color:isCurr||on?BRASS:'var(--quiet)'}}>{short(c)}{isWide&&c.future&&<span style={{display:'block',fontSize:'9px',fontWeight:700,color:'var(--quiet)'}}>forecast</span>}</span>; })}
+          <div style={{display:'flex',gap,marginTop:'4px',...(isWide?{gridColumn:'2 / -1'}:{})}}>
+            {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!isWide&&c.idx===pickIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:isWide?'11.5px':'9.5px',fontWeight:isCurr||on?900:800,color:isCurr||on?BRASS:'var(--quiet)'}}>{short(c)}{isWide&&c.future&&<span style={{display:'block',fontSize:'9px',fontWeight:700,color:'var(--quiet)',lineHeight:1.1}}>forecast</span>}</span>; })}
           </div>
           {isWide&&ROWS.map(([l,f],ri)=><Fragment key={l}>
-            <span style={{...lbl,whiteSpace:'nowrap',alignSelf:'stretch',display:'flex',alignItems:'center',padding:'4px 0',borderTop:ri===2?'1px solid var(--border)':ri===0?'1px solid var(--border-2)':'none',marginTop:ri===0?'8px':0,color:ri>=2?'var(--ink)':'var(--quiet)'}}>{l}</span>
-            {cols.map(c=><span key={c.p.month} style={{textAlign:'center',padding:'4px 0',borderTop:ri===2?'1px solid var(--border)':ri===0?'1px solid var(--border-2)':'none',marginTop:ri===0?'8px':0,opacity:c.future?0.75:1,background:c.idx===currPeriodIdx?'color-mix(in srgb, var(--tint-brass) 70%, transparent)':'transparent'}}>{f(c)}</span>)}
+            <span style={{...lbl,whiteSpace:'nowrap',alignSelf:'stretch',display:'flex',alignItems:'center',padding:'2px 0',borderTop:ri===2?'1px solid var(--border)':ri===0?'1px solid var(--border-2)':'none',marginTop:ri===0?'6px':0,paddingTop:ri===0||ri===2?'4px':'2px',color:ri>=2?'var(--ink)':'var(--quiet)'}}>{l}</span>
+            {cols.map(c=><span key={c.p.month} style={{textAlign:'center',padding:'2px 0',borderTop:ri===2?'1px solid var(--border)':ri===0?'1px solid var(--border-2)':'none',marginTop:ri===0?'6px':0,paddingTop:ri===0||ri===2?'4px':'2px',opacity:c.future?0.75:1,background:c.idx===currPeriodIdx?'color-mix(in srgb, var(--tint-brass) 70%, transparent)':'transparent'}}>{f(c)}</span>)}
           </Fragment>)}
         </div>
         {!isWide&&pick&&(
-          <div style={{marginTop:'12px',padding:'10px 12px 8px',borderRadius:'12px',background:'var(--surface-2)'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',marginBottom:'4px'}}>
+          <div style={{marginTop:'8px',padding:'8px 12px 6px',borderRadius:'12px',background:'var(--surface-2)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',marginBottom:'2px'}}>
               <span style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{payLabel(pick.p.month)}{pick.future&&<span style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)'}}> · forecast</span>}</span>
               <button type="button" onClick={openSummary} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'3px'}}>Details<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>
             </div>
@@ -370,9 +370,9 @@ export function TabDashboard({
             {line('Take-home',pick.takeHome,false,'var(--text-green-deep)')}
           </div>
         )}
-        {!isWide&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'7px',textAlign:'center'}}>Tap a month to see its pay. Hollow dots are months not paid yet.</div>}
-        {!isWide&&<div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:'10px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
-          {TOT.map(([,l,v,col])=><div key={l} style={{minWidth:0}}><div style={lbl}>{l}</div><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:col,marginTop:'3px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
+        {!isWide&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'5px',textAlign:'center'}}>Tap a month for its pay · hollow dots = not paid yet</div>}
+        {!isWide&&<div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:'10px',borderTop:'1px solid var(--border-2)',marginTop:'8px',paddingTop:'8px'}}>
+          {TOT.map(([,l,v,col])=><div key={l} style={{minWidth:0}}><div style={lbl}>{l}</div><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:col,marginTop:'1px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
         </div>}
         </div>}
       </div>
