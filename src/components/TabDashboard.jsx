@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
@@ -23,6 +23,8 @@ export function TabDashboard({
   // or a settings change that shifts the tax calc all land as a felt
   // change in the number, not a silent swap.
   const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
+  // Pay month picked on the Monthly overtime chart (phones show its figures under it).
+  const [chartPick, setChartPick] = useState(null);
   const animatedNet = useCountUp(pb ? pb.combinedNet : 0);
   const animatedGrossYTD = useCountUp(settings.rank&&settings.service ? totals.combinedGrossYTD : 0);
 
@@ -253,86 +255,116 @@ export function TabDashboard({
     );
   };
 
-  // Monthly pay, a column per pay month: salary and allowances at the
-  // bottom, then overtime and PA stacked on top (submitted green, still to
-  // submit red, planned striped blue), so each column is that month's whole
-  // gross pay. The line is the month's take-home after tax, NI and pension.
-  // Months whose payday hasn't come yet are forecasts and show lighter.
-  // A column opens Summary.
+  // Monthly overtime, a column per pay month stacked submitted (green),
+  // still to submit (red) and planned (striped blue), with a line for the
+  // overtime's take-home. Under it, each month's pay in full: salary and
+  // allowances, overtime, the total and what reaches the bank. Computers
+  // show every month at once in a grid lined up with the columns; phones
+  // show the picked month (this one to start). Months not paid yet are
+  // forecasts and say so.
   const monthChartCard = (()=>{
     const pbs = totals.periodBreakdown || [];
+    const today = localDateStr();
     const cols = PAY_PERIODS.map((p,idx)=>{
       const pb = pbs[idx] || {};
-      const sal = pb.baseAmt || 0, salN = (pb.salaryNet||0)+(pb.lwNet||0)+(pb.laNet||0);
+      const sal = pb.baseAmt || 0;
       const g = pb.combinedGross || 0, gn = pb.combinedNet || 0;
       const ts = totals.toSubmit?.[idx]; const tOn = ts && ts.gross>0.005;
       const ex = totals.expected?.[idx]; const eOn = ex && ex.n>0;
       const t = tOn ? ts.gross : 0, tn = tOn ? (ts.net||0) : 0, e = eOn ? ex.gross : 0, en = eOn ? (ex.net||0) : 0;
-      const future = !!pb.payDate && pb.payDate > localDateStr();
-      return { p, idx, sal, salN, g, t, e, gn, tn, en, future, tot:sal+g+t+e, net:(pb.monthNet||0)+tn+en };
+      const ot = g+t+e, otN = gn+tn+en;
+      return { p, idx, sal, g, t, e, ot, otN, future: !!pb.payDate && pb.payDate > today, payDate: pb.payDate,
+        gross: sal+ot, takeHome: (pb.monthNet||0)+tn+en };
     });
-    if (!cols.some(c=>c.tot>0.005)) return null;
-    const max = Math.max(1, ...cols.map(c=>c.tot));
+    if (!cols.some(c=>c.ot>0.005)) return null;
+    const max = Math.max(1, ...cols.map(c=>c.ot));
     const sum = k => cols.reduce((a,c)=>a+c[k],0);
-    const GRN='#059669', RED='#dc2626', LINE='var(--text-navy)', SAL='color-mix(in srgb, var(--muted) 45%, var(--surface-2))';
+    const GRN='#059669', RED='#dc2626', LINE='var(--text-navy)';
     const STRIPE='repeating-linear-gradient(135deg, var(--exp) 0 4px, color-mix(in srgb, var(--exp) 50%, white) 4px 8px)';
-    const H = isWide ? 170 : 120;
-    const open = () => { skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); };
+    const H = isWide ? 150 : 110;
     const gap = isWide ? '8px' : '3px';
     const short = c => String(c.p.short||c.p.month).slice(0,3);
-    const k = v => v>=1000 ? `£${(v/1000).toFixed(1)}k` : `£${Math.round(v)}`;
-    const pts = cols.map((c,i)=>c.tot>0.005?{x:(i+0.5)/cols.length*100, y:H - c.net/max*H, c}:null).filter(Boolean);
-    const fig = (lbl,g,n,col,sw) => <div style={{minWidth:0}}>
-      <div style={{display:'flex',alignItems:'center',gap:'5px',fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}><i style={{width:'8px',height:'8px',borderRadius:'2px',background:sw,flexShrink:0}}/>{lbl}</div>
-      <div style={{fontFamily:MONO,fontSize:isWide?'16px':'14px',fontWeight:700,color:col,marginTop:'3px',whiteSpace:'nowrap'}}>{fmtGBP(g)}</div>
-      <div style={{fontFamily:MONO,fontSize:isWide?'12px':'11px',fontWeight:600,color:'var(--muted)',marginTop:'1px',whiteSpace:'nowrap'}}>{fmtGBP(n)} take-home</div>
-    </div>;
+    const pickIdx = chartPick ?? (currPeriodIdx>=0 ? currPeriodIdx : 0);
+    const openSummary = () => { skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); };
+    const pts = cols.map((c,i)=>c.ot>0.005?{x:(i+0.5)/cols.length*100, y:H - c.otN/max*H, c}:null).filter(Boolean);
     const key = (sw,t) => <span key={t} style={{display:'inline-flex',alignItems:'center',gap:'5px'}}>{sw}{t}</span>;
     const sq = c => <i style={{width:'10px',height:'10px',borderRadius:'3px',background:c}}/>;
+    const lbl = {fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'};
+    const num = (v,col,w=600,fs) => <span style={{fontFamily:MONO,fontSize:fs||(isWide?'11px':'13px'),fontWeight:w,color:col,whiteSpace:'nowrap'}}>{fmtGBP(v)}</span>;
+    // Computers: one row per figure, a cell per month under its column.
+    const ROWS = [
+      ['Salary & allowances', c=>num(c.sal,'var(--muted)')],
+      ['Overtime & PA', c=>num(c.ot, c.ot>0.005?'var(--ink)':'var(--quiet)')],
+      ['Total gross', c=>num(c.gross,'var(--ink)',800)],
+      ['Take-home', c=>num(c.takeHome,GRN,800)],
+    ];
+    const gridCols = `118px repeat(${cols.length},minmax(0,1fr))`;
+    const pick = cols[pickIdx];
+    const line = (l,v,strong,col) => <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'5px 0',borderTop:strong?'1px solid var(--border-2)':'none',marginTop:strong?'3px':0}}>
+      <span style={{fontSize:'13px',fontWeight:strong?800:700,color:strong?'var(--ink)':'var(--muted)'}}>{l}</span>{num(v,col,strong?800:600,'13.5px')}</div>;
     return (
       <div style={{...S.card,padding:isWide?'18px 22px 16px':'14px 14px 12px'}}>
         <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'flex-end',gap:'6px 16px',marginBottom:'14px'}}>
           <div style={{minWidth:0}}>
-            <div style={{fontSize:isWide?'15px':'13.5px',fontWeight:800,color:'var(--ink)'}}>Monthly pay</div>
-            <div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Each bar is the month's gross pay: salary at the bottom, overtime on top. The line is what reaches your bank.</div>
+            <div style={{fontSize:isWide?'15px':'13.5px',fontWeight:800,color:'var(--ink)'}}>Monthly overtime &amp; pay</div>
+            <div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'2px'}}>Bars are each pay month's overtime and PA; the line is what it adds to your take-home.</div>
           </div>
           <span style={{display:'flex',flexWrap:'wrap',gap:'5px 12px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
-            {key(sq(SAL),'Salary & allowances')}{key(sq(GRN),'Overtime submitted')}{key(sq(RED),'To submit')}{key(sq(STRIPE),'Planned')}
-            {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,'Take-home')}
+            {key(sq(GRN),'Submitted')}{key(sq(RED),'To submit')}{key(sq(STRIPE),'Planned')}
+            {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,'Overtime take-home')}
           </span>
         </div>
-        {isWide&&<div style={{display:'flex',gap,marginBottom:'5px'}}>
-          {cols.map(c=><span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',lineHeight:1.3,visibility:c.tot>0.005?'visible':'hidden',opacity:c.future?0.7:1}}>
-            <span style={{display:'block',fontFamily:MONO,fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>{k(c.tot)}</span>
-            <span style={{display:'block',fontFamily:MONO,fontSize:'11px',fontWeight:800,color:LINE}}>{k(c.net)}</span>
-          </span>)}
-        </div>}
-        <div style={{position:'relative'}}>
-          <div style={{display:'flex',alignItems:'flex-end',gap}}>
-            {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx;
-              const seg=(v,bg,op=1)=>v>0.005&&<i style={{display:'block',height:`${v/max*H}px`,background:bg,opacity:op}}/>;
-              return (
-                <button key={c.p.month} type="button" onClick={open} aria-label={`${payLabel(c.p.month)}${c.future?' (forecast)':''}: ${fmtGBP(c.tot)} gross, ${fmtGBP(c.net)} take-home`} title={isWide?`${payLabel(c.p.month)}${c.future?' (forecast)':''}\nGross ${fmtGBP(c.tot)} · take-home ${fmtGBP(c.net)}\nSalary ${fmtGBP(c.sal)} · overtime ${fmtGBP(c.g+c.t+c.e)}`:undefined}
-                  style={{flex:'1 1 0',minWidth:0,display:'flex',justifyContent:'center',background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
-                  <span style={{height:`${H}px`,width:isWide?'58%':'78%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:isCurr?`0 0 0 2px color-mix(in srgb, ${BRASS} 60%, transparent)`:'none'}}>
-                    {seg(c.sal,SAL,c.future?0.55:1)}{seg(c.g,GRN)}{seg(c.t,RED)}{seg(c.e,STRIPE)}
-                  </span>
-                </button>);
-            })}
+        <div style={isWide?{display:'grid',gridTemplateColumns:gridCols,columnGap:gap}:undefined}>
+          {isWide&&<div/>}
+          <div style={{position:'relative',...(isWide?{gridColumn:'2 / -1'}:{})}}>
+            <div style={{display:'flex',alignItems:'flex-end',gap}}>
+              {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!isWide&&c.idx===pickIdx;
+                const seg=(v,bg)=>v>0.005&&<i style={{display:'block',height:`${v/max*H}px`,background:bg}}/>;
+                return (
+                  <button key={c.p.month} type="button" onClick={isWide?openSummary:()=>setChartPick(c.idx)} aria-pressed={isWide?undefined:on}
+                    aria-label={`${payLabel(c.p.month)}${c.future?' (forecast)':''}: overtime ${fmtGBP(c.ot)}, total pay ${fmtGBP(c.gross)}, take-home ${fmtGBP(c.takeHome)}`}
+                    style={{flex:'1 1 0',minWidth:0,display:'flex',justifyContent:'center',background:on?'var(--tint-brass)':'none',borderRadius:'7px',border:'none',padding:isWide?0:'3px 0',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
+                    <span style={{height:`${H}px`,width:isWide?'56%':'74%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:isCurr?`0 0 0 2px color-mix(in srgb, ${BRASS} 60%, transparent)`:'none'}}>
+                      {seg(c.g,GRN)}{seg(c.t,RED)}{seg(c.e,STRIPE)}
+                    </span>
+                  </button>);
+              })}
+            </div>
+            {pts.length>0&&<div aria-hidden="true" style={{position:'absolute',inset:isWide?0:'3px 0',pointerEvents:'none'}}>
+              <svg width="100%" height={H} viewBox={`0 0 100 ${H}`} preserveAspectRatio="none" style={{display:'block',overflow:'visible'}}>
+                <polyline points={pts.map(q=>`${q.x},${q.y}`).join(' ')} fill="none" stroke={LINE} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
+              </svg>
+              {pts.map(q=><i key={q.c.p.month} style={{position:'absolute',left:`${q.x}%`,top:`${q.y}px`,width:isWide?'10px':'8px',height:isWide?'10px':'8px',margin:isWide?'-5px 0 0 -5px':'-4px 0 0 -4px',borderRadius:'50%',background:q.c.future?'var(--surface)':LINE,border:q.c.future?`2px solid ${LINE}`:'none',boxSizing:'border-box',boxShadow:'0 0 0 2px var(--surface)'}}/>)}
+            </div>}
           </div>
-          {pts.length>0&&<div aria-hidden="true" style={{position:'absolute',inset:0,pointerEvents:'none'}}>
-            <svg width="100%" height={H} viewBox={`0 0 100 ${H}`} preserveAspectRatio="none" style={{display:'block',overflow:'visible'}}>
-              <polyline points={pts.map(q=>`${q.x},${q.y}`).join(' ')} fill="none" stroke={LINE} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
-            </svg>
-            {pts.map(q=><i key={q.c.p.month} style={{position:'absolute',left:`${q.x}%`,top:`${q.y}px`,width:isWide?'10px':'8px',height:isWide?'10px':'8px',margin:isWide?'-5px 0 0 -5px':'-4px 0 0 -4px',borderRadius:'50%',background:q.c.future?'var(--surface)':LINE,border:q.c.future?`2px solid ${LINE}`:'none',boxSizing:'border-box',boxShadow:'0 0 0 2px var(--surface)'}}/>)}
-          </div>}
+          {isWide&&<div/>}
+          <div style={{display:'flex',gap,marginTop:'6px',...(isWide?{gridColumn:'2 / -1'}:{})}}>
+            {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!isWide&&c.idx===pickIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:isWide?'11.5px':'9.5px',fontWeight:isCurr||on?900:800,color:isCurr||on?BRASS:'var(--quiet)'}}>{short(c)}{isWide&&c.future&&<span style={{display:'block',fontSize:'9px',fontWeight:700,color:'var(--quiet)'}}>forecast</span>}</span>; })}
+          </div>
+          {isWide&&ROWS.map(([l,f],ri)=><Fragment key={l}>
+            <span style={{...lbl,alignSelf:'center',padding:'7px 0',borderTop:'1px solid var(--border-2)',marginTop:ri===0?'10px':0,color:ri>=2?'var(--ink)':'var(--quiet)'}}>{l}</span>
+            {cols.map(c=><span key={c.p.month} style={{textAlign:'center',padding:'7px 0',borderTop:'1px solid var(--border-2)',marginTop:ri===0?'10px':0,opacity:c.future?0.75:1,background:c.idx===currPeriodIdx?'color-mix(in srgb, var(--tint-brass) 70%, transparent)':'transparent'}}>{f(c)}</span>)}
+          </Fragment>)}
         </div>
-        <div style={{display:'flex',gap,marginTop:'6px'}}>
-          {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:isWide?'11.5px':'9.5px',fontWeight:isCurr?900:800,color:isCurr?BRASS:'var(--quiet)'}}>{short(c)}</span>; })}
-        </div>
-        <div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'6px',textAlign:'center'}}>Paler bars and hollow dots are months not paid yet (forecast). {isWide?'Click':'Tap'} a month to open it in Summary.</div>
-        <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',gap:isWide?'12px':'12px 10px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
-          {fig('Salary & allowances',sum('sal'),sum('salN'),'var(--ink)',SAL)}{fig('Overtime submitted',sum('g'),sum('gn'),GRN,GRN)}{fig('To submit',sum('t'),sum('tn'),'var(--text-red-deep)',RED)}{fig('Planned',sum('e'),sum('en'),'var(--exp-ink)','var(--exp)')}
+        {!isWide&&pick&&(
+          <div style={{marginTop:'12px',padding:'10px 12px 8px',borderRadius:'12px',background:'var(--surface-2)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',marginBottom:'4px'}}>
+              <span style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{payLabel(pick.p.month)}{pick.future&&<span style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)'}}> · forecast</span>}</span>
+              <button type="button" onClick={openSummary} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'3px'}}>Details<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>
+            </div>
+            {line('Salary & allowances',pick.sal,false,'var(--muted)')}
+            {pick.g>0.005&&line('Overtime submitted',pick.g,false,GRN)}
+            {pick.t>0.005&&line('Overtime to submit',pick.t,false,'var(--text-red-deep)')}
+            {pick.e>0.005&&line('Overtime planned',pick.e,false,'var(--exp-ink)')}
+            {pick.ot<=0.005&&line('Overtime & PA',0,false,'var(--quiet)')}
+            {line('Total gross',pick.gross,true,'var(--ink)')}
+            {line('Take-home',pick.takeHome,false,GRN)}
+          </div>
+        )}
+        {!isWide&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'7px',textAlign:'center'}}>Tap a month to see its pay. Hollow dots are months not paid yet.</div>}
+        <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',gap:'12px 10px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
+          {[['Overtime submitted',sum('g'),GRN],['To submit',sum('t'),'var(--text-red-deep)'],['Planned',sum('e'),'var(--exp-ink)'],['Year’s pay incl. forecast',sum('gross'),'var(--ink)']].map(([l,v,col])=>
+            <div key={l} style={{minWidth:0}}><div style={lbl}>{l}</div><div style={{fontFamily:MONO,fontSize:isWide?'16px':'14px',fontWeight:700,color:col,marginTop:'3px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
         </div>
       </div>
     );
