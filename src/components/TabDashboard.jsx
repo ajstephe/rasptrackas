@@ -275,7 +275,7 @@ export function TabDashboard({
     const sum = k => cols.reduce((a,c)=>a+c[k],0);
     const GRN='#059669', RED='#dc2626', LINE='var(--text-navy)';
     const STRIPE='repeating-linear-gradient(135deg, var(--exp) 0 4px, color-mix(in srgb, var(--exp) 50%, white) 4px 8px)';
-    const H = isWide ? 150 : 110;
+    const H = isWide ? 110 : 96;
     const gap = isWide ? '8px' : '3px';
     const short = c => String(c.p.short||c.p.month).slice(0,3);
     const pickIdx = chartPick ?? (currPeriodIdx>=0 ? currPeriodIdx : 0);
@@ -297,6 +297,7 @@ export function TabDashboard({
       ['Take-home', c=>cell(c.takeHome,GRN,800)],
     ];
     const gridCols = `152px repeat(${cols.length},minmax(0,1fr))`;
+    const TOT = [['Overtime submitted','Submitted',sum('g'),GRN],['To submit','To submit',sum('t'),'var(--text-red-deep)'],['Planned','Planned',sum('e'),'var(--exp-ink)']];
     const pick = cols[pickIdx];
     const line = (l,v,strong,col) => <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'3px 0',borderTop:strong?'1px solid var(--border-2)':'none',marginTop:strong?'3px':0,paddingTop:strong?'5px':'3px'}}>
       <span style={{fontSize:'12.5px',fontWeight:strong?800:700,color:strong?'var(--ink)':'var(--muted)'}}>{l}</span>{num(v,col,strong?800:600,'13px')}</div>;
@@ -313,7 +314,10 @@ export function TabDashboard({
           </span>
         </div>
         <div style={isWide?{display:'grid',gridTemplateColumns:gridCols,columnGap:gap}:undefined}>
-          {isWide&&<div/>}
+          {/* Computers: the year's overtime totals stand in the space left of the bars. */}
+          {isWide&&<div style={{gridRow:'span 2',display:'flex',flexDirection:'column',justifyContent:'space-between',gap:'8px',paddingRight:'10px'}}>
+            {TOT.map(([l,,v,col])=><div key={l} style={{minWidth:0}}><div style={{...lbl,whiteSpace:'nowrap'}}>{l}</div><div style={{fontFamily:MONO,fontSize:'16px',fontWeight:700,color:col,marginTop:'2px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
+          </div>}
           <div style={{position:'relative',...(isWide?{gridColumn:'2 / -1'}:{})}}>
             <div style={{display:'flex',alignItems:'flex-end',gap}}>
               {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!isWide&&c.idx===pickIdx;
@@ -335,7 +339,6 @@ export function TabDashboard({
               {pts.map(q=><i key={q.c.p.month} style={{position:'absolute',left:`${q.x}%`,top:`${q.y}px`,width:isWide?'10px':'8px',height:isWide?'10px':'8px',margin:isWide?'-5px 0 0 -5px':'-4px 0 0 -4px',borderRadius:'50%',background:q.c.future?'var(--surface)':LINE,border:q.c.future?`2px solid ${LINE}`:'none',boxSizing:'border-box',boxShadow:'0 0 0 2px var(--surface)'}}/>)}
             </div>}
           </div>
-          {isWide&&<div/>}
           <div style={{display:'flex',gap,marginTop:'6px',...(isWide?{gridColumn:'2 / -1'}:{})}}>
             {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!isWide&&c.idx===pickIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:isWide?'11.5px':'9.5px',fontWeight:isCurr||on?900:800,color:isCurr||on?BRASS:'var(--quiet)'}}>{short(c)}{isWide&&c.future&&<span style={{display:'block',fontSize:'9px',fontWeight:700,color:'var(--quiet)'}}>forecast</span>}</span>; })}
           </div>
@@ -360,10 +363,9 @@ export function TabDashboard({
           </div>
         )}
         {!isWide&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'7px',textAlign:'center'}}>Tap a month to see its pay. Hollow dots are months not paid yet.</div>}
-        <div style={{display:'grid',gridTemplateColumns:isWide?'repeat(4,minmax(0,1fr))':'repeat(2,minmax(0,1fr))',gap:'12px 10px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
-          {[['Overtime submitted',sum('g'),GRN],['To submit',sum('t'),'var(--text-red-deep)'],['Planned',sum('e'),'var(--exp-ink)'],['Year’s pay incl. forecast',sum('gross'),'var(--ink)']].map(([l,v,col])=>
-            <div key={l} style={{minWidth:0}}><div style={lbl}>{l}</div><div style={{fontFamily:MONO,fontSize:isWide?'16px':'14px',fontWeight:700,color:col,marginTop:'3px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
-        </div>
+        {!isWide&&<div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:'10px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
+          {TOT.map(([,l,v,col])=><div key={l} style={{minWidth:0}}><div style={lbl}>{l}</div><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:col,marginTop:'3px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
+        </div>}
       </div>
     );
   })();
