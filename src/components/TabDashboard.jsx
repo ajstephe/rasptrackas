@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
@@ -10,6 +10,8 @@ import { submitWindow } from '../lib/deadline.js';
 // change. renderMonthlyChart, S and the various setters/refs all come in as
 // props rather than being closed over directly.
 import { SetupCard } from './SetupCard.jsx';
+const NARROW_W = 1080;
+
 export function TabDashboard({
   isWide, settings, setTab, totals, currPeriodIdx, toilLedger, carmsOutstanding,
   salaryBreakdownExpanded, setSalaryBreakdownExpanded,
@@ -27,6 +29,11 @@ export function TabDashboard({
   const [chartPick, setChartPick] = useState(null);
   // Phones open and close the Overview card like Salary breakdown; computers always show it.
   const [overviewOpen, setOverviewOpen] = useState(false);
+  // Screen width, so the Overview can switch layout on narrow computers.
+  const [vw, setVw] = useState(()=>typeof window!=='undefined'?window.innerWidth:1440);
+  useEffect(()=>{ const on=()=>setVw(window.innerWidth); window.addEventListener('resize',on); return ()=>window.removeEventListener('resize',on); },[]);
+  // First pay month shown when the Overview can't fit all twelve.
+  const [winStart, setWinStart] = useState(null);
   const animatedNet = useCountUp(pb ? pb.combinedNet : 0);
   const animatedGrossYTD = useCountUp(settings.rank&&settings.service ? totals.combinedGrossYTD : 0);
 
@@ -239,9 +246,16 @@ export function TabDashboard({
   // show the picked month (this one to start). Months not paid yet are
   // forecasts and say so.
   const monthChartCard = (()=>{
+    // Computers narrower than this (a folding phone opened out, a small
+    // tablet in landscape) can't fit twelve months of figures side by side.
+    const narrow = isWide && vw < NARROW_W;
+    const wc = isWide;
+    // As many months as fit at about 54px each beside the 152px labels
+    // (the sidebar and card padding take roughly 300px of the screen).
+    const fit = narrow ? Math.max(6, Math.min(12, Math.floor((vw - 300 - 152) / 54))) : 12;
     const pbs = totals.periodBreakdown || [];
     const today = localDateStr();
-    const cols = PAY_PERIODS.map((p,idx)=>{
+    const allCols = PAY_PERIODS.map((p,idx)=>{
       const pb = pbs[idx] || {};
       const sal = pb.baseAmt || 0;
       const g = pb.combinedGross || 0, gn = pb.combinedNet || 0;
@@ -252,13 +266,16 @@ export function TabDashboard({
       return { p, idx, sal, g, t, e, ot, otN, future: !!pb.payDate && pb.payDate > today, payDate: pb.payDate,
         gross: sal+ot, takeHome: (pb.monthNet||0)+tn+en };
     });
-    if (!cols.some(c=>c.ot>0.005)) return null;
-    const max = Math.max(1, ...cols.map(c=>c.ot));
-    const sum = k => cols.reduce((a,c)=>a+c[k],0);
+    if (!allCols.some(c=>c.ot>0.005)) return null;
+    const maxStart = 12 - fit;
+    const start = fit>=12 ? 0 : Math.max(0, Math.min(maxStart, winStart ?? ((currPeriodIdx>=0?currPeriodIdx:0) - (fit-3))));
+    const cols = fit>=12 ? allCols : allCols.slice(start, start+fit);
+    const max = Math.max(1, ...allCols.map(c=>c.ot));
+    const sum = k => allCols.reduce((a,c)=>a+c[k],0);
     const GRN='#059669', RED='#dc2626', LINE='var(--text-navy)';
     const STRIPE='repeating-linear-gradient(135deg, var(--exp) 0 4px, color-mix(in srgb, var(--exp) 50%, white) 4px 8px)';
-    const H = isWide ? 76 : 84;
-    const gap = isWide ? '8px' : '3px';
+    const H = wc ? 76 : 84;
+    const gap = wc ? '8px' : '3px';
     const short = c => String(c.p.short||c.p.month).slice(0,3);
     const pickIdx = chartPick ?? (currPeriodIdx>=0 ? currPeriodIdx : 0);
     const openSummary = () => { skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); };
@@ -266,7 +283,7 @@ export function TabDashboard({
     const key = (sw,t) => <span key={t} style={{display:'inline-flex',alignItems:'center',gap:'5px'}}>{sw}{t}</span>;
     const sq = c => <i style={{width:'10px',height:'10px',borderRadius:'3px',background:c}}/>;
     const lbl = {fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'};
-    const num = (v,col,w=600,fs) => <span style={{fontFamily:MONO,fontSize:fs||(isWide?'11px':'13px'),fontWeight:w,color:col,whiteSpace:'nowrap'}}>{fmtGBP(v)}</span>;
+    const num = (v,col,w=600,fs) => <span style={{fontFamily:MONO,fontSize:fs||(wc?'11px':'13px'),fontWeight:w,color:col,whiteSpace:'nowrap'}}>{fmtGBP(v)}</span>;
     // The grid under the columns rounds to the pound so twelve months sit
     // comfortably side by side; the phone panel keeps the pence.
     const pound = v => '£'+Math.round(v).toLocaleString('en-GB');
@@ -280,7 +297,7 @@ export function TabDashboard({
     ];
     const gridCols = `152px repeat(${cols.length},minmax(0,1fr))`;
     const TOT = [['Overtime submitted','Submitted',sum('g'),'var(--text-green-deep)'],['To submit','To submit',sum('t'),'var(--text-red-deep)'],['Planned','Planned',sum('e'),'var(--exp-ink)']];
-    const pick = cols[pickIdx];
+    const pick = allCols[pickIdx];
     const line = (l,v,strong,col) => <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'2px 0',borderTop:strong?'1px solid var(--border-2)':'none',marginTop:strong?'3px':0,paddingTop:strong?'4px':'2px'}}>
       <span style={{fontSize:'12.5px',fontWeight:strong?800:700,color:strong?'var(--ink)':'var(--muted)'}}>{l}</span>{num(v,col,strong?800:600,'13px')}</div>;
     return (
@@ -297,44 +314,53 @@ export function TabDashboard({
         <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'baseline',gap:'6px 16px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'10px',marginBottom:'10px'}}>
           <span style={{display:'flex',flexWrap:'wrap',gap:'5px 12px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
             {key(sq(GRN),'Submitted')}{key(sq(RED),'To submit')}{key(sq(STRIPE),'Planned')}
-            {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,isWide?'Overtime take-home':'Take-home')}
+            {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,wc?'Overtime take-home':'Take-home')}
           </span>
         </div>
-        <div style={isWide?{display:'grid',gridTemplateColumns:gridCols,columnGap:gap}:undefined}>
+        {fit<12&&(()=>{
+          const step = n => setWinStart(Math.max(0, Math.min(maxStart, start + n)));
+          const nb = (dis, lbl, n) => <button type="button" disabled={dis} onClick={()=>step(n)} aria-label={lbl} style={{border:'none',background:dis?'transparent':'var(--surface)',borderRadius:'8px',width:'30px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',cursor:dis?'default':'pointer',opacity:dis?0.35:1,boxShadow:dis?'none':'0 1px 3px rgba(15,23,42,0.12)',transform:n<0?'scaleX(-1)':'none'}}><Ico n="cR" s={14} c="var(--ink)" w={2.6}/></button>;
+          return <div style={{display:'inline-flex',alignItems:'center',gap:'6px',background:'var(--chip-bg)',borderRadius:'10px',padding:'3px',marginBottom:'10px'}}>
+            {nb(start===0,'Earlier months',-4)}
+            <span style={{fontSize:'12px',fontWeight:800,color:'var(--ink)',minWidth:'92px',textAlign:'center'}}>{short(cols[0])} – {short(cols[cols.length-1])}</span>
+            {nb(start>=maxStart,'Later months',4)}
+          </div>;
+        })()}
+        <div style={wc?{display:'grid',gridTemplateColumns:gridCols,columnGap:gap}:undefined}>
           {/* Computers: the year's overtime totals stand in the space left of the bars. */}
-          {isWide&&<div style={{gridRow:'span 2',display:'flex',flexDirection:'column',justifyContent:'center',gap:'6px',paddingRight:'10px'}}>
+          {wc&&<div style={{gridRow:'span 2',display:'flex',flexDirection:'column',justifyContent:'center',gap:'6px',paddingRight:'10px'}}>
             {TOT.map(([l,,v,col])=><div key={l} style={{minWidth:0}}><div style={{...lbl,whiteSpace:'nowrap'}}>{l}</div><div style={{fontFamily:MONO,fontSize:'15px',fontWeight:700,color:col,marginTop:'1px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
           </div>}
-          <div style={{position:'relative',...(isWide?{gridColumn:'2 / -1'}:{})}}>
+          <div style={{position:'relative',...(wc?{gridColumn:'2 / -1'}:{})}}>
             <div style={{display:'flex',alignItems:'flex-end',gap}}>
-              {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!isWide&&c.idx===pickIdx;
+              {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!wc&&c.idx===pickIdx;
                 const seg=(v,bg)=>v>0.005&&<i style={{display:'block',height:`${v/max*H}px`,background:bg}}/>;
                 return (
-                  <button key={c.p.month} type="button" onClick={isWide?openSummary:()=>setChartPick(c.idx)} aria-pressed={isWide?undefined:on}
+                  <button key={c.p.month} type="button" onClick={wc?openSummary:()=>setChartPick(c.idx)} aria-pressed={wc?undefined:on}
                     aria-label={`${payLabel(c.p.month)}${c.future?' (forecast)':''}: overtime ${fmtGBP(c.ot)}, total pay ${fmtGBP(c.gross)}, take-home ${fmtGBP(c.takeHome)}`}
-                    style={{flex:'1 1 0',minWidth:0,display:'flex',justifyContent:'center',background:on?'var(--tint-brass)':'none',borderRadius:'7px',border:'none',padding:isWide?0:'3px 0',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
-                    <span style={{height:`${H}px`,width:isWide?'40%':'58%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:isCurr?`0 0 0 2px color-mix(in srgb, ${BRASS} 60%, transparent)`:'none'}}>
+                    style={{flex:'1 1 0',minWidth:0,display:'flex',justifyContent:'center',background:on?'var(--tint-brass)':'none',borderRadius:'7px',border:'none',padding:wc?0:'3px 0',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
+                    <span style={{height:`${H}px`,width:wc?'40%':'58%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:isCurr?`0 0 0 2px color-mix(in srgb, ${BRASS} 60%, transparent)`:'none'}}>
                       {seg(c.g,GRN)}{seg(c.t,RED)}{seg(c.e,STRIPE)}
                     </span>
                   </button>);
               })}
             </div>
-            {pts.length>0&&<div aria-hidden="true" style={{position:'absolute',inset:isWide?0:'3px 0',pointerEvents:'none'}}>
+            {pts.length>0&&<div aria-hidden="true" style={{position:'absolute',inset:wc?0:'3px 0',pointerEvents:'none'}}>
               <svg width="100%" height={H} viewBox={`0 0 100 ${H}`} preserveAspectRatio="none" style={{display:'block',overflow:'visible'}}>
                 <polyline points={pts.map(q=>`${q.x},${q.y}`).join(' ')} fill="none" stroke={LINE} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
               </svg>
-              {pts.map(q=><i key={q.c.p.month} style={{position:'absolute',left:`${q.x}%`,top:`${q.y}px`,width:isWide?'10px':'8px',height:isWide?'10px':'8px',margin:isWide?'-5px 0 0 -5px':'-4px 0 0 -4px',borderRadius:'50%',background:q.c.future?'var(--surface)':LINE,border:q.c.future?`2px solid ${LINE}`:'none',boxSizing:'border-box',boxShadow:'0 0 0 2px var(--surface)'}}/>)}
+              {pts.map(q=><i key={q.c.p.month} style={{position:'absolute',left:`${q.x}%`,top:`${q.y}px`,width:wc?'10px':'8px',height:wc?'10px':'8px',margin:wc?'-5px 0 0 -5px':'-4px 0 0 -4px',borderRadius:'50%',background:q.c.future?'var(--surface)':LINE,border:q.c.future?`2px solid ${LINE}`:'none',boxSizing:'border-box',boxShadow:'0 0 0 2px var(--surface)'}}/>)}
             </div>}
           </div>
-          <div style={{display:'flex',gap,marginTop:'4px',...(isWide?{gridColumn:'2 / -1'}:{})}}>
-            {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!isWide&&c.idx===pickIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:isWide?'11.5px':'9.5px',fontWeight:isCurr||on?900:800,color:isCurr||on?BRASS:'var(--quiet)'}}>{short(c)}{isWide&&c.future&&<span style={{display:'block',fontSize:'9px',fontWeight:700,color:'var(--quiet)',lineHeight:1.1}}>forecast</span>}</span>; })}
+          <div style={{display:'flex',gap,marginTop:'4px',...(wc?{gridColumn:'2 / -1'}:{})}}>
+            {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!wc&&c.idx===pickIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:wc?'11.5px':'9.5px',fontWeight:isCurr||on?900:800,color:isCurr||on?BRASS:'var(--quiet)'}}>{short(c)}{wc&&c.future&&<span style={{display:'block',fontSize:'9px',fontWeight:700,color:'var(--quiet)',lineHeight:1.1}}>forecast</span>}</span>; })}
           </div>
-          {isWide&&ROWS.map(([l,f],ri)=><Fragment key={l}>
+          {wc&&ROWS.map(([l,f],ri)=><Fragment key={l}>
             <span style={{...lbl,whiteSpace:'nowrap',alignSelf:'stretch',display:'flex',alignItems:'center',padding:'2px 0',borderTop:ri===2?'1px solid var(--border)':ri===0?'1px solid var(--border-2)':'none',marginTop:ri===0?'6px':0,paddingTop:ri===0||ri===2?'4px':'2px',color:ri>=2?'var(--ink)':'var(--quiet)'}}>{l}</span>
             {cols.map(c=><span key={c.p.month} style={{textAlign:'center',padding:'2px 0',borderTop:ri===2?'1px solid var(--border)':ri===0?'1px solid var(--border-2)':'none',marginTop:ri===0?'6px':0,paddingTop:ri===0||ri===2?'4px':'2px',opacity:c.future?0.75:1,background:c.idx===currPeriodIdx?'color-mix(in srgb, var(--tint-brass) 70%, transparent)':'transparent'}}>{f(c)}</span>)}
           </Fragment>)}
         </div>
-        {!isWide&&pick&&(
+        {!wc&&pick&&(
           <div style={{marginTop:'8px',padding:'8px 12px 6px',borderRadius:'12px',background:'var(--surface-2)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',marginBottom:'2px'}}>
               <span style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{payLabel(pick.p.month)}{pick.future&&<span style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)'}}> · forecast</span>}</span>
@@ -349,8 +375,8 @@ export function TabDashboard({
             {line('Take-home',pick.takeHome,false,'var(--text-green-deep)')}
           </div>
         )}
-        {!isWide&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'5px',textAlign:'center'}}>Tap a month for its pay · hollow dots = not paid yet</div>}
-        {!isWide&&<div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:'10px',borderTop:'1px solid var(--border-2)',marginTop:'8px',paddingTop:'8px'}}>
+        {!wc&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'5px',textAlign:'center'}}>Tap a month for its pay · hollow dots = not paid yet</div>}
+        {!wc&&<div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:'10px',borderTop:'1px solid var(--border-2)',marginTop:'8px',paddingTop:'8px'}}>
           {TOT.map(([,l,v,col])=><div key={l} style={{minWidth:0}}><div style={lbl}>{l}</div><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:700,color:col,marginTop:'1px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div></div>)}
         </div>}
         </div>}
@@ -381,7 +407,7 @@ export function TabDashboard({
       {!isWide&&<div style={{fontSize:'10px',fontWeight:900,color:'var(--muted)',textTransform:'uppercase',letterSpacing:'0.06em',borderTop:'2px solid var(--border)',marginTop:'16px',paddingTop:'14px'}}>Salary breakdown &amp; forecast</div>}
 
       {(salaryBreakdownExpanded||!isWide)&&(
-        <div style={{cursor:'default',...(isWide?{display:'grid',gridTemplateColumns:'minmax(0,1.1fr) minmax(0,1fr)',gap:'40px',alignItems:'start'}:{})}}>
+        <div style={{cursor:'default',...(isWide&&vw>=NARROW_W?{display:'grid',gridTemplateColumns:'minmax(0,1.1fr) minmax(0,1fr)',gap:'40px',alignItems:'start'}:{})}}>
           {/* Desktop: the year-to-date figures on the left, the gross salary
               bars on the right, across the card's full width (the monthly
               chart now has its own card above). Phones stack them. */}
@@ -566,7 +592,7 @@ export function TabDashboard({
       {/* Desktop: the four rows sit in a 2 × 2 grid (pay month | net pay,
           TOIL | CARMS & PSOP) so each label stays close to its figure
           instead of stretching across the full width. */}
-      <div style={{padding:'4px 26px',display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',columnGap:'44px',alignItems:'stretch'}}>
+      <div style={{padding:'4px 26px',display:'grid',gridTemplateColumns:vw<NARROW_W?'minmax(0,1fr)':'minmax(0,1fr) minmax(0,1fr)',columnGap:'44px',alignItems:'stretch'}}>
         {totals.curr&&(
           <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
@@ -583,7 +609,7 @@ export function TabDashboard({
           </button>
         )}
         {netHeroRow(false)}
-        <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
+        <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:vw<NARROW_W&&carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
           <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
             <div>
