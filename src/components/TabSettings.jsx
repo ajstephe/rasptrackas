@@ -409,12 +409,12 @@ export function TabSettings({
                 </div>
                 {list.length>0&&<div style={{textAlign:'right'}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:800,color:'var(--text-red-deep)'}}>{total>0.005?"−":""}£{total.toFixed(2)}</div><div style={{fontSize:'10px',fontWeight:700,color:'var(--quiet)'}}>{curMonth?`${PAY_PERIODS[curIdx].short.slice(0,3)} pay`:'a month'}</div></div>}
               </div>
-              {list.length>0&&<div style={{display:'flex',flexDirection:'column',gap:'8px',marginTop:'12px'}}>
+              {list.length>0&&<div style={{display:'grid',gridTemplateColumns:isWide?'repeat(2,minmax(0,1fr))':'minmax(0,1fr)',gap:'8px',marginTop:'12px',alignItems:'start'}}>
                 {list.map(d=>(
                   <div key={d.id} style={{background:'var(--surface-2)',borderRadius:'12px',padding:'10px'}}>
                     <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
                       <input aria-label="Deduction name" value={d.name} placeholder="Name, e.g. Federation subs" onChange={e=>upd(d.id,{name:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'9px 11px',fontSize:'14px'}}/>
-                      <div style={{position:'relative',flex:'0 0 104px'}}>
+                      <div style={{position:'relative',flex:isWide?'0 0 86px':'0 0 104px'}}>
                         <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
                         <input aria-label={`${d.name||'Deduction'} monthly amount`} inputMode="decimal" value={d.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) upd(d.id,{amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'9px 10px 9px 22px',fontSize:'14px',textAlign:'right'}}/>
                       </div>
