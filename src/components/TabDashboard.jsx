@@ -143,8 +143,12 @@ export function TabDashboard({
           </g>
         </g>
       </svg>
-      <div>
-        <div style={{fontSize:compact?'14px':'15px',fontWeight:800,color:'#fff',letterSpacing:'-0.01em',marginBottom:compact?'6px':'8px'}}>Gross pay this tax year</div>
+      <div style={{flex:1,minWidth:0,position:'relative'}}>
+        {/* The tax-year progress sits on the heading's line, at the right. */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',marginBottom:compact?'6px':'8px'}}>
+          <span style={{fontSize:compact?'14px':'15px',fontWeight:800,color:'#fff',letterSpacing:'-0.01em'}}>Gross pay this tax year</span>
+          <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'#94a3b8',whiteSpace:'nowrap'}}>{taxYearLine}</span>
+        </div>
         {(()=>{
           const hasPay = !!(settings.rank&&settings.service);
           const due = hasPay ? (totals.onItsWayGross||0) : 0;
@@ -175,7 +179,6 @@ export function TabDashboard({
             </div>
           );
         })()}
-        <div style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'#7c93b3'}}>{taxYearLine}</div>
       </div>
     </div>
   );
