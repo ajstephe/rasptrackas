@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
-import { localDateStr } from '../lib/payPeriods.js';
+import { localDateStr, PAY_PERIODS } from '../lib/payPeriods.js';
 import { submitWindow } from '../lib/deadline.js';
 
 // ─── Home (dashboard) tab ────────────────────────────────────────────────────
@@ -252,6 +252,57 @@ export function TabDashboard({
       </div>
     );
   };
+
+  // The Summary tab's year chart, brought to Home: a column per pay month,
+  // stacked submitted (green), still to submit (red) and planned (striped
+  // blue), with the year's totals under it. A column opens Summary.
+  const monthChartCard = (()=>{
+    const pbs = totals.periodBreakdown || [];
+    const cols = PAY_PERIODS.map((p,idx)=>{
+      const g = pbs[idx]?.combinedGross || 0;
+      const ts = totals.toSubmit?.[idx]; const t = ts && ts.gross>0.005 ? ts.gross : 0;
+      const ex = totals.expected?.[idx]; const e = ex && ex.n>0 ? ex.gross : 0;
+      return { p, idx, g, t, e, tot:g+t+e };
+    });
+    if (!cols.some(c=>c.tot>0.005)) return null;
+    const max = Math.max(1, ...cols.map(c=>c.tot));
+    const sum = k => cols.reduce((a,c)=>a+c[k],0);
+    const GRN='#059669', RED='#dc2626';
+    const STRIPE='repeating-linear-gradient(135deg, var(--exp) 0 4px, color-mix(in srgb, var(--exp) 50%, white) 4px 8px)';
+    const H = isWide ? 110 : 76;
+    const open = () => { skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); };
+    const fig = (lbl,v,col) => <div style={{minWidth:0}}>
+      <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em'}}>{lbl}</div>
+      <div style={{fontFamily:MONO,fontSize:isWide?'16px':'14px',fontWeight:700,color:col,marginTop:'2px',whiteSpace:'nowrap'}}>{fmtGBP(v)}</div>
+    </div>;
+    return (
+      <div style={{...S.card,padding:isWide?'16px 20px 14px':'14px 14px 12px'}}>
+        <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'baseline',gap:'4px 12px',marginBottom:'12px'}}>
+          <span style={{fontSize:'13.5px',fontWeight:800,color:'var(--ink)'}}>Overtime by pay month</span>
+          <span style={{display:'flex',flexWrap:'wrap',gap:'4px 10px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
+            {[[GRN,'Submitted'],[RED,'To submit'],['var(--exp)','Planned']].map(([c,t])=><span key={t} style={{display:'inline-flex',alignItems:'center',gap:'4px'}}><i style={{width:'9px',height:'9px',borderRadius:'3px',background:c}}/>{t}</span>)}
+          </span>
+        </div>
+        <div style={{display:'flex',alignItems:'flex-end',gap:isWide?'6px':'3px'}}>
+          {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx;
+            const seg=(v,bg)=>v>0.005&&<i style={{display:'block',height:`${v/max*H}px`,background:bg}}/>;
+            return (
+              <button key={c.p.month} type="button" onClick={open} aria-label={`${payLabel(c.p.month)}: ${fmtGBP(c.tot)}`} title={isWide?`${payLabel(c.p.month)}: ${fmtGBP(c.tot)}`:undefined}
+                style={{flex:'1 1 0',minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',gap:'4px',background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
+                {isWide&&<span style={{fontFamily:MONO,fontSize:'10.5px',fontWeight:700,color:'var(--muted)',visibility:c.tot>0.005?'visible':'hidden'}}>{fmtGBP(Math.round(c.tot)).replace('.00','')}</span>}
+                <span style={{height:`${H}px`,width:isWide?'46%':'70%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:isCurr?`0 0 0 2px color-mix(in srgb, ${BRASS} 55%, transparent)`:'none'}}>
+                  {seg(c.g,GRN)}{seg(c.t,RED)}{seg(c.e,STRIPE)}
+                </span>
+                <span style={{fontSize:isWide?'11px':'9.5px',fontWeight:isCurr?900:800,color:isCurr?BRASS:'var(--quiet)'}}>{String(c.p.short||c.p.month).slice(0,3)}</span>
+              </button>);
+          })}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:'10px',borderTop:'1px solid var(--border-2)',marginTop:'12px',paddingTop:'11px'}}>
+          {fig('Submitted',sum('g'),GRN)}{fig('To submit',sum('t'),'var(--text-red-deep)')}{fig('Planned',sum('e'),'var(--exp-ink)')}
+        </div>
+      </div>
+    );
+  })();
 
   const salaryBreakdownCard = (
     <div style={S.card}>
@@ -532,6 +583,7 @@ export function TabDashboard({
       </div>
     </div>
 
+    {monthChartCard}
     {settings.rank&&settings.service&&salaryBreakdownCard}
     </>) : (<>
     {/* ── Mobile "one statement" layout — same idea as desktop: a
@@ -584,6 +636,7 @@ export function TabDashboard({
       </div>
     </div>
 
+    {monthChartCard}
     {settings.rank&&settings.service&&salaryBreakdownCard}
 
     {/* Mobile-only — a low-key way to sign out from Home itself, instead
