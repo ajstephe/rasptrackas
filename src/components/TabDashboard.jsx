@@ -296,10 +296,10 @@ export function TabDashboard({
       ['Salary & allowances', c=>cell(c.sal,'var(--muted)')],
       ['Overtime & PA', c=>c.ot>0.005?cell(c.ot,'var(--ink)',700):<span style={{color:'var(--quiet)'}}>–</span>],
       ['Total gross', c=>cell(c.gross,'var(--ink)',800)],
-      ['Take-home', c=>cell(c.takeHome,GRN,800)],
+      ['Take-home', c=>cell(c.takeHome,'var(--text-green-deep)',800)],
     ];
     const gridCols = `152px repeat(${cols.length},minmax(0,1fr))`;
-    const TOT = [['Overtime submitted','Submitted',sum('g'),GRN],['To submit','To submit',sum('t'),'var(--text-red-deep)'],['Planned','Planned',sum('e'),'var(--exp-ink)']];
+    const TOT = [['Overtime submitted','Submitted',sum('g'),'var(--text-green-deep)'],['To submit','To submit',sum('t'),'var(--text-red-deep)'],['Planned','Planned',sum('e'),'var(--exp-ink)']];
     const pick = cols[pickIdx];
     const line = (l,v,strong,col) => <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'3px 0',borderTop:strong?'1px solid var(--border-2)':'none',marginTop:strong?'3px':0,paddingTop:strong?'5px':'3px'}}>
       <span style={{fontSize:'12.5px',fontWeight:strong?800:700,color:strong?'var(--ink)':'var(--muted)'}}>{l}</span>{num(v,col,strong?800:600,'13px')}</div>;
@@ -364,12 +364,12 @@ export function TabDashboard({
               <button type="button" onClick={openSummary} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'3px'}}>Details<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>
             </div>
             {line('Salary & allowances',pick.sal,false,'var(--muted)')}
-            {pick.g>0.005&&line('Overtime submitted',pick.g,false,GRN)}
+            {pick.g>0.005&&line('Overtime submitted',pick.g,false,'var(--text-green-deep)')}
             {pick.t>0.005&&line('Overtime to submit',pick.t,false,'var(--text-red-deep)')}
             {pick.e>0.005&&line('Overtime planned',pick.e,false,'var(--exp-ink)')}
             {pick.ot<=0.005&&line('Overtime & PA',0,false,'var(--quiet)')}
             {line('Total gross',pick.gross,true,'var(--ink)')}
-            {line('Take-home',pick.takeHome,false,GRN)}
+            {line('Take-home',pick.takeHome,false,'var(--text-green-deep)')}
           </div>
         )}
         {!isWide&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'7px',textAlign:'center'}}>Tap a month to see its pay. Hollow dots are months not paid yet.</div>}
