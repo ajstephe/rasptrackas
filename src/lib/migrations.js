@@ -13,11 +13,12 @@ export const migrateSettings = s => {
   // When it was picked (ms), so the newest pick wins between devices.
   const themeAt = theme && Number.isFinite(Number(s.themeAt)) && Number(s.themeAt) > 0 ? Number(s.themeAt) : null;
   const withTheme = o => { if (theme) { o.theme = theme; if (themeAt) o.themeAt = themeAt; } return o; };
-  if (!validPayPoint(s.rank, s.service)) return withTheme({ ...def });
-  const out = { rank:s.rank, service:s.service };
+  // Rank and pay point are kept only as a valid pair; everything else below
+  // is kept either way, so nothing set up part-way through setup is lost.
+  const out = validPayPoint(s.rank, s.service) ? { rank:s.rank, service:s.service } : { ...def };
   // Dated pay point changes (see payPointOn in payRates.js), kept only if
   // every step is a real pay point with a sensible date.
-  if (Array.isArray(s.payHistory)) {
+  if (out.rank && Array.isArray(s.payHistory)) {
     const h = s.payHistory.filter(x => x && typeof x === 'object' && validPayPoint(x.rank, x.service) && (x.from === '' || validDate(x.from)));
     if (h.length) out.payHistory = h.map(x => ({ from:x.from, rank:x.rank, service:x.service }));
   }
@@ -34,13 +35,13 @@ export const migrateSettings = s => {
     const d = s.deductions.filter(x => x && typeof x === 'object' && typeof x.id === 'string' && x.id.length <= 40)
       .slice(0, 30)
       .map(x => ({ id:x.id, name: typeof x.name === 'string' ? x.name.slice(0, 40) : '',
-        amount: typeof x.amount === 'string' && /^\d{0,6}(\.\d{0,2})?$/.test(x.amount) ? x.amount : '',
+        amount: (a => /^\d{0,6}(\.\d{0,2})?$/.test(a) ? a : '')(typeof x.amount === 'number' && Number.isFinite(x.amount) ? String(Math.round(x.amount*100)/100) : typeof x.amount === 'string' ? x.amount : ''),
         when: x.when === 'before' ? 'before' : 'after',
         // Pay months it's skipped, by their label ("January 2027").
         off: Array.isArray(x.off) ? x.off.filter(m => typeof m === 'string' && /^[A-Za-z]+ \d{4}$/.test(m)).slice(0, 60) : [],
         // Amount changes from a given pay month onwards.
         changes: Array.isArray(x.changes) ? x.changes.filter(c => c && typeof c.from === 'string' && /^[A-Za-z]+ \d{4}$/.test(c.from)
-          && typeof c.amount === 'string' && /^\d{0,6}(\.\d{0,2})?$/.test(c.amount)).slice(0, 24).map(c => ({ from:c.from, amount:c.amount })) : [] }));
+          && /^\d{0,6}(\.\d{0,2})?$/.test(String(c.amount))).slice(0, 24).map(c => ({ from:c.from, amount:String(c.amount) })) : [] }));
     if (d.length) out.deductions = d;
   }
   return withTheme(out);
@@ -49,10 +50,27 @@ export const migrateSettings = s => {
 // Records that could crash the app (not an object, no id, or no proper
 // date) are dropped rather than trusted — whether they come from this
 // device's storage, a backup file or the cloud.
-const isRecord = x => x && typeof x === 'object' && x.id != null && validDate(x.date);
-export const cleanToilTaken = list => (Array.isArray(list) ? list : [])
+const isRecord = x => x && typeof x === 'object' && !Array.isArray(x)
+  && ((typeof x.id === 'string' && x.id.length > 0 && x.id.length <= 64) || Number.isFinite(x.id))
+  && validDate(x.date);
+// Shifts and TOIL are flat records of text, numbers and true/false. Anything
+// else (an object where text belongs, a huge string) would crash a screen
+// that renders it — and once synced, crash every device — so it's dropped.
+const MAX_ROWS = 20000;
+const flatten = x => {
+  const out = {};
+  for (const [k, v] of Object.entries(x)) {
+    if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
+    if (typeof v === 'string') out[k] = v.slice(0, 2000);
+    else if (typeof v === 'number' ? Number.isFinite(v) : typeof v === 'boolean' || v === null || v === undefined) out[k] = v;
+  }
+  return out;
+};
+// One record per id (the last wins, as the newest copy), capped in number.
+const dedupe = list => { const m = new Map(); for (const x of list) m.set(String(x.id), x); return [...m.values()].slice(-MAX_ROWS); };
+export const cleanToilTaken = list => dedupe((Array.isArray(list) ? list : [])
   .filter(t => isRecord(t) && Number.isFinite(Number(t.hours)))
-  .map(t => ({ ...t, hours: Number(t.hours), note: typeof t.note === 'string' ? t.note : '' }));
+  .map(t => ({ ...flatten(t), hours: Number(t.hours), note: typeof t.note === 'string' ? t.note.slice(0, 2000) : '' })));
 
 // CARMS submission tracking predates this migration for any entry already
 // on the device — defaulting those to "submitted" rather than suddenly
@@ -62,13 +80,13 @@ export const cleanToilTaken = list => (Array.isArray(list) ? list : [])
 // record of when a pre-existing entry was actually submitted, and falling
 // back to the shift date keeps historical period attribution exactly where
 // it already was rather than silently reshuffling old pay periods.
-export const migrateEntries = list => (Array.isArray(list) ? list : []).filter(isRecord).map(e => ({
+export const migrateEntries = list => dedupe((Array.isArray(list) ? list : []).filter(isRecord).map(flatten).map(e => ({
   ...e,
   otSubmitted: e.otSubmitted===undefined ? true : e.otSubmitted,
   paSubmitted: e.paSubmitted===undefined ? true : e.paSubmitted,
   otSubmittedDate: validDate(e.otSubmittedDate) ? e.otSubmittedDate : e.date,
   paSubmittedDate: validDate(e.paSubmittedDate) ? e.paSubmittedDate : e.date,
-}));
+})));
 
 // Parses and validates an uploaded backup file before any of it reaches
 // state — handleImport in App.jsx used to hand d.entries straight to

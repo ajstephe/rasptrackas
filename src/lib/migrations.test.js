@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { migrateSettings, migrateEntries, parseBackupFile } from './migrations.js';
+import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './migrations.js';
 import { mergeRemoteRows } from './sync.js';
 import { PAY_RATES } from './payRates.js';
 
@@ -165,5 +165,25 @@ describe('migrateSettings themeAt', () => {
   it('drops a stamp with no theme or a junk stamp', () => {
     expect(migrateSettings({ rank:'', service:'', themeAt:123 })).toEqual({ rank:'', service:'' });
     expect(migrateSettings({ rank:'', service:'', theme:'ocean', themeAt:'x' })).toEqual({ rank:'', service:'', theme:'ocean' });
+  });
+});
+
+describe('malformed records are dropped or cleaned, not trusted', () => {
+  it('drops object/array values that would crash a screen, keeps the rest', () => {
+    const [e] = migrateEntries([{ id:'z1', date:'2026-05-01', reason:{ evil:true }, comments:'ok', hours150:'4' }]);
+    expect(e.reason).toBeUndefined();
+    expect(e.comments).toBe('ok');
+    expect(e.hours150).toBe('4');
+  });
+  it('rejects ids that are not short text or numbers', () => {
+    expect(migrateEntries([{ id:{}, date:'2026-05-01' }, { id:'x'.repeat(80), date:'2026-05-01' }])).toEqual([]);
+  });
+  it('keeps one record per id, the last one', () => {
+    const out = migrateEntries([{ id:'d', date:'2026-05-01', reason:'old' }, { id:'d', date:'2026-05-01', reason:'new' }]);
+    expect(out).toHaveLength(1);
+    expect(out[0].reason).toBe('new');
+  });
+  it('cleans TOIL the same way', () => {
+    expect(cleanToilTaken([{ id:'t', date:'2026-05-01', hours:'2', note:{} }])[0].note).toBe('');
   });
 });

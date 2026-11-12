@@ -24,6 +24,15 @@ export default defineConfig({
       includeAssets: ['apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-512x512.png', 'manifest.json'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        // The spreadsheet library is ~40% of the app's size but only used for
+        // Excel export, so it isn't downloaded with every install/update; it's
+        // fetched the first time someone exports, then kept for offline use.
+        globIgnores: ['**/exceljs*'],
+        runtimeCaching: [{
+          urlPattern: ({ url }) => /\/assets\/exceljs[^/]*\.js$/.test(url.pathname),
+          handler: 'CacheFirst',
+          options: { cacheName: 'exceljs', expiration: { maxEntries: 2 } },
+        }],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
       },

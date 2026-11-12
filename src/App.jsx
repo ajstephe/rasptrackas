@@ -27,6 +27,7 @@ import {
   calcAutoOTHours, syncShiftTimesIntoForm, shiftDurationMinutes,
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
+import { TabErrorBoundary } from './ErrorBoundary.jsx';
 import { mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
@@ -37,13 +38,12 @@ import {
   crossPeriodInfo as crossPeriodInfoPure,
   isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate,
 } from './lib/calc.js';
-import { buildPayYear, runPayYear, entryNet as entryNetPure, partNets, claimedParts, payDateOf, grossForImportedNet } from './lib/payroll.js';
+import { buildPayYear, runPayYear, entryNet as entryNetPure, partNets, claimedParts, payDateOf } from './lib/payroll.js';
 import { Ico, ClockCashIcon, FireExitIcon } from './components/Icons.jsx';
 import { PrivacyNotice } from './components/PrivacyNotice.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
 import { SegSlider } from './components/SegSlider.jsx';
 import { Tooltip } from './components/Tooltip.jsx';
-import { MonthlyChart } from './components/MonthlyChart.jsx';
 import { useEscapeToClose } from './lib/useEscapeToClose.js';
 import { useBackButtonCloses } from './lib/useBackButtonCloses.js';
 import { useMountTransition, useLastTruthy } from './lib/useMountTransition.js';
@@ -436,6 +436,15 @@ const RECOVERY_KDF_ITERATIONS = 600000; // used maybe once ever, so it can affor
 // local-only escape hatch. Recovery-secret setup and real cloud sync of
 // entries/toilTaken/settings are phase 2, once the data-key wrap/unwrap
 // functions exist — signing up here does not yet mean data is backed up.
+// "4 minutes ago" that keeps counting on its own. It used to be a
+// once-a-minute tick on the whole app, which redrew every screen just to
+// move this one label along.
+function RelTime({ ts }) {
+  const [, tick] = useState(0);
+  useEffect(() => { const id = setInterval(() => tick(t => t + 1), 60000); return () => clearInterval(id); }, []);
+  return fmtRelTime(ts);
+}
+
 function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy, onUnlocked, startInPasswordRecovery, onRecoveryComplete, isWide }) {
   const [screen, setScreen]         = useState(startInPasswordRecovery ? 'set-new-password' : 'signin'); // 'signin' | 'signup' | 'forgot' | 'recovery-setup' | 'set-new-password' | 'recovery-unlock'
   const [email, setEmail]           = useState('');
@@ -954,7 +963,6 @@ export default function App() {
   const [toilTaken,    setToilTaken]    = useState(()=>cleanToilTaken(dualRead(KEYS.toilTaken,[])));
   const [settings,     setSettings]     = useState(()=>migrateSettings(dualRead(KEYS.settings,null)));
   const [expanded,     setExpanded]     = useState(null);
-  const [chartTap, setChartTap] = useState(null);     // {chart:'cum'|'mon', i, big}
   const [payslipModalOpen, setPayslipModalOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState(null); // null (choosing) | 'pdf' | 'csv'
   const [payslipMode, setPayslipMode] = useState('period'); // 'period' | 'custom' | 'financialYear'
@@ -1028,11 +1036,13 @@ export default function App() {
       document.querySelectorAll('[data-station]').forEach(el => { if (el !== pick) el.removeAttribute('data-station'); });
       if (pick) { const kind = pick===hero ? 'hero' : 'card'; if (pick.getAttribute('data-station')!==kind) pick.setAttribute('data-station',kind); }
     };
-    const schedule = () => { if (!raf) raf = requestAnimationFrame(tag); };
+    // Settles for a moment after the page stops changing rather than
+    // re-scanning on every frame of every change (typing, ticking timers).
+    const schedule = () => { if (raf) clearTimeout(raf); raf = setTimeout(tag, 120); };
     schedule();
     const mo = new MutationObserver(schedule);
     mo.observe(document.body, { childList:true, subtree:true });
-    return () => { mo.disconnect(); if (raf) cancelAnimationFrame(raf); clear(); };
+    return () => { mo.disconnect(); if (raf) clearTimeout(raf); clear(); };
   },[themeMode]);
   const THEME = THEME_PALETTES[themeMode] || THEME_PALETTES.classic;
   const BRASS = THEME.brass;
@@ -1124,19 +1134,6 @@ export default function App() {
     setLastSyncedAt(now);
     dualWrite(KEYS.lastSyncedAt, now);
   }, []);
-  // Ticks once a minute purely so "4 minutes ago" keeps counting up on
-  // screen without needing anything else to re-render this component in
-  // the meantime — a plain setInterval rather than piggybacking on
-  // whatever else happens to trigger a render, which could otherwise leave
-  // the label stuck reading "1 minute ago" for far longer than a minute on
-  // a quiet screen. Only runs while actually signed in; nothing reads it
-  // otherwise.
-  const [, setSyncClockTick] = useState(0);
-  useEffect(() => {
-    if (!session) return;
-    const id = setInterval(()=>setSyncClockTick(t=>t+1), 60000);
-    return () => clearInterval(id);
-  }, [session]);
   // Briefly shows the Save button as a checkmark before handing off to
   // handleSave's own navigation (which switches tabs immediately) — the
   // navigation is delayed by the same amount so the confirmation is
@@ -1362,15 +1359,27 @@ export default function App() {
   // Mirrors each overlay's own backdrop-click behaviour exactly, including
   // the Settings popovers closing all five expand flags at once.
   useEscapeToClose(signOutConfirmOpen, () => setSignOutConfirmOpen(false));
+  // Sends anything still waiting. Called after the first sync, when the
+  // device comes back online and when the app returns to the front, so an
+  // edit whose push failed doesn't sit unsent until the next edit.
+  const pushAllPending = () => Promise.all([
+    pushRowChanges('entries', entriesRef.current, lastSyncedEntriesRef, persistLastSyncedEntries),
+    pushRowChanges('toil_taken', toilTakenRef.current, lastSyncedToilRef, persistLastSyncedToil),
+    settingsRef.current ? pushSettingsChange(settingsRef.current) : 0,
+  ]).catch(()=>{}).finally(refreshUnsynced);
+  const pushAllPendingRef = useRef(pushAllPending);
+  pushAllPendingRef.current = pushAllPending;
+  useEffect(()=>{
+    const go = () => { if (document.visibilityState === 'visible') pushAllPendingRef.current(); };
+    window.addEventListener('online', go);
+    document.addEventListener('visibilitychange', go);
+    return ()=>{ window.removeEventListener('online', go); document.removeEventListener('visibilitychange', go); };
+  },[]);
   // Opening Sign out tries to send anything still waiting, so the box can
   // say plainly whether signing out would lose anything.
   useEffect(()=>{
     if (!signOutConfirmOpen) return;
-    Promise.all([
-      pushRowChanges('entries', entriesRef.current, lastSyncedEntriesRef, persistLastSyncedEntries),
-      pushRowChanges('toil_taken', toilTakenRef.current, lastSyncedToilRef, persistLastSyncedToil),
-      settingsRef.current ? pushSettingsChange(settingsRef.current) : 0,
-    ]).catch(()=>{}).finally(refreshUnsynced);
+    pushAllPending();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[signOutConfirmOpen]);
   useEscapeToClose(restoreConfirmOpen, () => setRestoreConfirmOpen(false));
@@ -1589,7 +1598,11 @@ export default function App() {
       // unsynced either way. That distinction can only be made by NOT
       // calling this function until the initial pull has finished, which
       // is exactly what initialSyncDoneRef above guards.
-      const diff = computeRowPushDiff(items, lastSyncedRef.current);
+      // The latest items, not the snapshot taken when this was queued: a row
+      // that arrived from another device while this waited its turn would
+      // otherwise look locally deleted and be soft-deleted on the server.
+      const live = table === 'entries' ? entriesRef.current : table === 'toil_taken' ? toilTakenRef.current : items;
+      const diff = computeRowPushDiff(live || items, lastSyncedRef.current);
       const { toUpsert } = diff;
       const seen = seenIdsRef.current[table] || new Set();
       const toDelete = diff.toDelete.filter(id => seen.has(id));
@@ -1901,6 +1914,9 @@ export default function App() {
     ]).then(res=>{
       initialSyncDoneRef.current = true;
       if (res.some(r=>r.status==='rejected')) addToast("Couldn't reach the cloud. Your changes are saved on this device and will sync when you're back online.",'warn',null,6000);
+      // Anything edited offline (or whose push failed) goes up now rather
+      // than waiting for the next edit.
+      pushAllPendingRef.current();
       // the pushes that ran (or were skipped) while this was in flight
       setTimeout(refreshUnsynced, 1500);
     });
@@ -1931,6 +1947,10 @@ export default function App() {
       const row = payload.new;
       if (!row) return;
       if (row.deleted_at) {
+        // Only drop it if this device has seen it synced: the echo of a
+        // delete that was then undone can arrive after the undo, and the
+        // pull path already makes the same check (applyRemoteDelta).
+        if (!lastSyncedRef.current.has(row.id) && itemsRef.current.some(it => it.id === row.id)) return;
         setLocalItems(prev => prev.filter(it => it.id !== row.id));
         lastSyncedRef.current.delete(row.id);
         persistFn();
@@ -1949,10 +1969,12 @@ export default function App() {
         // sibling effect) rather than a stale closed-over value.
         const current = itemsRef.current.find(it => it.id === row.id);
         if (!hasNoPendingLocalEdit(current, lastSyncedRef.current.get(row.id))) return;
+        // Same checks the pull paths run: a row that fails them would
+        // otherwise go in as `undefined` (or malformed) and crash the app.
+        const toApply = table === 'entries' ? migrateEntries([decrypted])[0] : cleanToilTaken([decrypted])[0];
+        if (!toApply || String(toApply.id) !== String(row.id)) return;
         lastSyncedRef.current.set(row.id, JSON.stringify(decrypted));
         persistFn();
-        // entries only — see pullAndMergeRows' matching comment for why.
-        const toApply = table === 'entries' ? migrateEntries([decrypted])[0] : decrypted;
         setLocalItems(prev => {
           const idx = prev.findIndex(it => it.id === row.id);
           if (idx === -1) return [...prev, toApply];
@@ -2135,6 +2157,16 @@ export default function App() {
       if (!newSession) {
         if (!justDeletedAccountRef.current) clearLocalAccountData();
         justDeletedAccountRef.current = false;
+      } else {
+        // A different person signing in on this device (from the unlock
+        // screen, say) never produces a null session in between, so the
+        // previous person's shifts used to stay on screen and anything not
+        // yet synced got uploaded into the new account. The device remembers
+        // whose data it holds and wipes it when someone else signs in.
+        const uid = newSession.user?.id;
+        const owner = dualRead(KEYS.owner, null);
+        if (uid && owner && owner !== uid) { setDataKey(null); clearLocalAccountData(); }
+        if (uid && owner !== uid) dualWrite(KEYS.owner, uid);
       }
       setSession(newSession);
     });
@@ -2345,7 +2377,18 @@ export default function App() {
   // over component state. These are thin wrappers supplying that state, so
   // every existing call site below (`calcEntry(e)`, …)
   // is unaffected.
-  const calcEntry = useCallback((e)=>calcEntryPure(e, settings), [settings]);
+  // Summary and the totals ask for the same shift's figures many times per
+  // render; each shift object is worked out once per settings and reused
+  // (an edited shift is a new object, so it's recalculated).
+  const calcEntry = useMemo(()=>{
+    const cache = new WeakMap();
+    return (e)=>{
+      if (!e || typeof e !== 'object') return calcEntryPure(e, settings);
+      let r = cache.get(e);
+      if (!r) { r = calcEntryPure(e, settings); cache.set(e, r); }
+      return { ...r };   // a copy, so a caller changing it can't alter the cache
+    };
+  }, [settings]);
   const crossPeriodInfo = useCallback((e)=>crossPeriodInfoPure(e, settings), [settings]);
 
   // Renders a tier's date list. Green means the shift was worked AND its
@@ -2578,7 +2621,8 @@ export default function App() {
     const importedYTD = sum(paidMonths, pb=>pb.imported||0);
     const combinedGrossYTD = sum(paidMonths, pb=>pb.monthGross);
     const pensionYTD = sum(paidMonths, pb=>pb.periodPension);
-    const taxableGrossYTD = Math.max(0, combinedGrossYTD - pensionYTD);
+    // Salary sacrifice lowers taxable pay too (and so the £100k taper).
+    const taxableGrossYTD = Math.max(0, combinedGrossYTD - pensionYTD - sum(paidMonths, pb=>pb.sacrifice||0));
     const ytdTax = sum(paidMonths, pb=>pb.monthTax);
     const ytdNI  = sum(paidMonths, pb=>pb.monthNI);
     const combinedNetYTD = sum(paidMonths, pb=>pb.monthNet);
@@ -2681,7 +2725,7 @@ export default function App() {
       const add = f => months.reduce((s,pb)=>s+f(pb),0);
       const last = months[months.length-1];
       const gross = add(pb=>pb.monthGross), pension = add(pb=>pb.periodPension);
-      const taxable = Math.max(0, gross - pension);
+      const taxable = Math.max(0, gross - pension - add(pb=>pb.sacrifice||0));
       return {
         gross, pension, pensionable: add(pb=>pb.pensionablePayThisPeriod), pensionRate: last ? last.pensionRate : 0,
         taxable, tax: add(pb=>pb.monthTax), ni: add(pb=>pb.monthNI), net: add(pb=>pb.monthNet),
@@ -3817,6 +3861,7 @@ export default function App() {
     dualWrite(KEYS.lastCloudPruneCheck, null);
     dualWrite(KEYS.pullStateEntries, null);
     dualWrite(KEYS.pullStateToilTaken, null);
+    dualWrite(KEYS.owner, null);
     setLastSyncedAt(null);
   };
 
@@ -4354,22 +4399,6 @@ export default function App() {
         <span style={{fontFamily:MONO,color:'var(--ink)'}}>{fmtGBP(totals.totalGross)}</span> gross · <span style={{fontFamily:MONO,color:'#059669'}}>{fmtGBP(totals.totalNet)}</span> net · <span style={{fontFamily:MONO,color:'var(--ink)'}}>{fmtHrs(totals.totalHrs)}</span>
       </span>
     </div>
-  );
-
-  // `wide` widens the coordinate system itself (not just the rendered
-  // box) for the Home desktop chart — it needs to fill a much wider
-  // card than the small variant was designed for, and stretching a
-  // narrow viewBox to fit via preserveAspectRatio="none" distorted the
-  // line weight and text into an obviously non-uniform squash/stretch.
-  // Widening W instead keeps the X:Y scale factor equal (no distortion)
-  // while still spreading the same content across the full card width.
-  // Actual rendering (and its point-tweening hook) lives in MonthlyChart.jsx
-  // now — a plain closure redefined fresh on every App render can't safely
-  // call a hook, only a real, stable component can. This wrapper just keeps
-  // every existing call site (`renderMonthlyChart(big, dark, wide)`, and the
-  // renderMonthlyChart prop handed to TabDashboard) unchanged.
-  const renderMonthlyChart = (big, dark=false, wide=false) => (
-    <MonthlyChart totals={totals} PAY_PERIODS={PAY_PERIODS} MONO={MONO} chartTap={chartTap} setChartTap={setChartTap} big={big} dark={dark} wide={wide} currIdx={currPeriodIdx}/>
   );
 
   // Payslip data for an arbitrary date range. Reuses the same tax/NI approach
@@ -5188,6 +5217,7 @@ export default function App() {
         </div>
       )}
       <main ref={mainRef} className="no-print" style={{...S.main, paddingTop:pullY||undefined}}>
+      <TabErrorBoundary key={tab}>
       <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'50vh'}}><div className="tab-spinner"/></div>}>
 
         {/* ══════════════════════════════════════════ DASHBOARD */}
@@ -5199,7 +5229,7 @@ export default function App() {
             salaryBreakdownExpanded={salaryBreakdownExpanded} setSalaryBreakdownExpanded={setSalaryBreakdownExpanded}
             scrollToTaxImpact={scrollToTaxImpact} setTaxImpactExpanded={setTaxImpactExpanded}
             skipBreakdownReset={skipBreakdownReset} setBreakdownView={setBreakdownView} setCalPeriodIdx={setCalPeriodIdx}
-            renderMonthlyChart={renderMonthlyChart} S={S} MONO={MONO} BRASS={BRASS} saveSett={saveSett}
+            S={S} MONO={MONO} BRASS={BRASS} saveSett={saveSett}
             session={session} setSignOutConfirmOpen={setSignOutConfirmOpen}
           />
         )}
@@ -5230,7 +5260,7 @@ export default function App() {
             focusEntryId={focusEntryId} confirmDel={confirmDel} setConfirmDel={setConfirmDel} setPulsePeriodIdx={setPulsePeriodIdx}
             setSelectedCalDay={setSelectedCalDay} setConfirmCreateDay={setConfirmCreateDay}
             PAY_PERIODS={PAY_PERIODS} fyEntries={fyEntries} totals={totals} carmsOutstanding={carmsOutstanding} todayStr={todayStr} entryNet={entryNet}
-            calcEntry={calcEntry} crossPeriodInfo={crossPeriodInfo} carmsBadge={carmsBadge} renderDatePills={renderDatePills} renderFYTotalsCard={renderFYTotalsCard}
+            calcEntry={calcEntry} crossPeriodInfo={crossPeriodInfo} renderDatePills={renderDatePills} renderFYTotalsCard={renderFYTotalsCard}
             openQuickSubmit={openQuickSubmit} jumpTo={jumpTo} snapToActiveMonth={snapToActiveMonth} startEdit={startEdit} delEntry={delEntry} setTab={setTab}
           />
         )}
@@ -5272,6 +5302,7 @@ export default function App() {
           />
         )}
       </Suspense>
+      </TabErrorBoundary>
       </main>
 
       </div>
@@ -5351,11 +5382,11 @@ export default function App() {
                   <div style={{display:'flex',gap:'10px',marginBottom:'6px'}}>
                     <div style={{flex:1}}>
                       <label style={{display:'block',fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>Start</label>
-                      <button type="button" onClick={()=>openCustomDatePicker(payslipStart||todayStr, v=>setPayslipStart(v), 'Select the start date')} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1.5px solid var(--border)',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer',color:'var(--ink)'}}>{payslipStart ? new Date(payslipStart+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Choose'}</button>
+                      <button type="button" onClick={()=>openCustomDatePicker(payslipStart||todayStr, v=>setPayslipStart(v), 'Select the start date')} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1.5px solid var(--border)',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer'}}>{payslipStart ? new Date(payslipStart+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Choose'}</button>
                     </div>
                     <div style={{flex:1}}>
                       <label style={{display:'block',fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'6px'}}>End</label>
-                      <button type="button" onClick={()=>openCustomDatePicker(payslipEnd||todayStr, v=>setPayslipEnd(v), 'Select the end date')} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1.5px solid var(--border)',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer',color:'var(--ink)'}}>{payslipEnd ? new Date(payslipEnd+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Choose'}</button>
+                      <button type="button" onClick={()=>openCustomDatePicker(payslipEnd||todayStr, v=>setPayslipEnd(v), 'Select the end date')} style={{width:'100%',boxSizing:'border-box',background:'var(--surface-2)',border:'1.5px solid var(--border)',borderRadius:'11px',padding:'11px 12px',fontWeight:700,fontSize:'16px',fontFamily:'inherit',color:'var(--ink)',textAlign:'left',cursor:'pointer'}}>{payslipEnd ? new Date(payslipEnd+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'Choose'}</button>
                     </div>
                   </div>
                   {payslipStart&&payslipEnd&&!rangeValid&&<div style={{fontSize:'10.5px',color:'var(--text-red-deep)',fontWeight:700,marginTop:'6px'}}>End date must be on or after the start date.</div>}
@@ -5905,7 +5936,7 @@ export default function App() {
               </span>
               {!syncJustSucceeded&&!manualSyncing&&unsynced.length>0
                 ? <span style={{fontSize:'10px',fontWeight:800,color:'#fbbf24'}}>{unsynced.length} change{unsynced.length!==1?'s':''} not synced</span>
-                : lastSyncedAt&&<span style={{fontSize:'10px',fontWeight:600,color:syncJustSucceeded?'rgba(255,255,255,0.7)':THEME.sidebarBtnSubtext}}>Synced {fmtRelTime(lastSyncedAt)}</span>}
+                : lastSyncedAt&&<span style={{fontSize:'10px',fontWeight:600,color:syncJustSucceeded?'rgba(255,255,255,0.7)':THEME.sidebarBtnSubtext}}>Synced <RelTime ts={lastSyncedAt}/></span>}
             </button>
           )}
           {session&&(

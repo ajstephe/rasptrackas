@@ -86,3 +86,43 @@ export class ErrorBoundary extends Component {
     );
   }
 }
+
+// One screen's safety net. A crash inside one tab (or that tab's code failing
+// to download, e.g. offline right after an update) used to take the whole app
+// down to the reload page. Now only that screen shows this card; the rest of
+// the app, and the navigation, keep working. Keyed by tab in App.jsx, so
+// moving to another tab and back starts it fresh.
+export class TabErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  componentDidCatch(error, info) {
+    console.error('Error in screen:', error, info?.componentStack);
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children;
+    const chunk = /dynamically imported module|Loading chunk|Importing a module script failed/i.test(String(this.state.error?.message || ''));
+    const btn = { border:'none', borderRadius:'11px', padding:'11px 16px', fontWeight:800, fontSize:'13px', cursor:'pointer', fontFamily:'inherit' };
+    return (
+      <div role="alert" style={{ margin:'16px', background:'var(--surface)', border:'1px solid var(--border-2)', borderRadius:'18px', padding:'20px', textAlign:'center' }}>
+        <div style={{ fontWeight:900, fontSize:'15px', color:'var(--ink)', marginBottom:'6px' }}>
+          {chunk ? "This screen couldn't load" : 'This screen hit a problem'}
+        </div>
+        <div style={{ fontSize:'12.5px', fontWeight:600, color:'var(--muted)', lineHeight:1.5, marginBottom:'14px' }}>
+          {chunk ? 'Check your connection, or reload to get the latest version.' : 'Your shifts are safe. Try again, or reload the app.'}
+        </div>
+        <div style={{ display:'flex', gap:'8px', justifyContent:'center', flexWrap:'wrap' }}>
+          <button type="button" onClick={() => this.setState({ error: null })} style={{ ...btn, background:'var(--surface-2)', color:'var(--ink)' }}>Try again</button>
+          <button type="button" onClick={() => window.location.reload()} style={{ ...btn, background:'#b8823f', color:'#fff' }}>Reload app</button>
+        </div>
+      </div>
+    );
+  }
+}

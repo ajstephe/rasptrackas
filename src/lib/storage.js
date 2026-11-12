@@ -21,6 +21,9 @@ export const KEYS = {
   // is just a plain timestamp of the last successful sync of any kind, for
   // the "Synced 4 minutes ago" display under the Sync button.
   lastSyncedAt:'ajs_ot_lastSyncedAt',
+  // The account the data on this device belongs to, so a different person
+  // signing in here starts from a clean slate (see onAuthStateChange).
+  owner:'ajs_ot_owner',
 };
 
 // Every value is wrapped with a write timestamp (__t) before being

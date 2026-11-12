@@ -8,7 +8,7 @@ import { submitWindow } from '../lib/deadline.js';
 
 // ─── Home (dashboard) tab ────────────────────────────────────────────────────
 // Extracted verbatim from App.jsx's tab==='dashboard' IIFE — no behaviour
-// change. renderMonthlyChart, S and the various setters/refs all come in as
+// change. S and the various setters/refs all come in as
 // props rather than being closed over directly.
 import { SetupCard } from './SetupCard.jsx';
 const NARROW_W = 1080;
@@ -18,7 +18,7 @@ export function TabDashboard({
   salaryBreakdownExpanded, setSalaryBreakdownExpanded,
   scrollToTaxImpact, setTaxImpactExpanded,
   skipBreakdownReset, setBreakdownView, setCalPeriodIdx,
-  renderMonthlyChart, S, MONO, BRASS, animClass='fi',
+  S, MONO, BRASS, animClass='fi',
   session, setSignOutConfirmOpen, saveSett,
 }) {
   // The two headline mono figures count up/down when they change instead
@@ -32,13 +32,14 @@ export function TabDashboard({
   const [overviewOpen, setOverviewOpen] = useState(false);
   // Screen width, so the Overview can switch layout on narrow computers.
   const [vw, setVw] = useState(()=>typeof window!=='undefined'?window.innerWidth:1440);
-  useEffect(()=>{ const on=()=>setVw(window.innerWidth); window.addEventListener('resize',on); return ()=>window.removeEventListener('resize',on); },[]);
+  useEffect(()=>{ let f=0; const on=()=>{ if(!f) f=requestAnimationFrame(()=>{ f=0; setVw(window.innerWidth); }); }; window.addEventListener('resize',on); return ()=>{ window.removeEventListener('resize',on); if(f) cancelAnimationFrame(f); }; },[]);
   // Narrow computers scroll the Overview sideways; it opens on the current month.
-  // Monthly deductions from Config (Federation subs, ATOC, savings…): each
-  // month's are taken off that month's take-home so it matches what lands in
-  // the bank. Salary sacrifice ones have already lowered the tax and NI in
-  // the payroll run; here the amount itself comes off.
-  const dedFor = month => deductionsFor(settings, month).total;
+  // Monthly deductions from Config (Federation subs, ATOC, savings…). Salary
+  // sacrifice is already off the payroll run's monthNet (with the tax and NI
+  // it saves), so only after-tax deductions come off here; the payslip's own
+  // sacrifice figure (capped at what the month can bear) is added back in
+  // for the "Less deductions" line.
+  const afterFor = month => deductionsFor(settings, month).after;
   // What should land in the bank on the current pay month's payday: pay,
   // overtime paid, claimed or planned for it, less tax, NI, pension and the
   // deductions taken that month.
@@ -46,8 +47,8 @@ export function TabDashboard({
     if (currPeriodIdx<0 || !settings.rank) return null;
     const pb = totals.periodBreakdown?.[currPeriodIdx]; if (!pb || !(pb.baseAmt>0)) return null;
     const ts = totals.toSubmit?.[currPeriodIdx], ex = totals.expected?.[currPeriodIdx];
-    const ded = dedFor(PAY_PERIODS[currPeriodIdx].month);
-    return { net:(pb.monthNet||0)+(ts&&ts.gross>0.005?(ts.net||0):0)+(ex&&ex.n>0?(ex.net||0):0)-ded, ded };
+    const after = afterFor(PAY_PERIODS[currPeriodIdx].month);
+    return { net:(pb.monthNet||0)+(ts&&ts.gross>0.005?(ts.net||0):0)+(ex&&ex.n>0?(ex.net||0):0)-after, ded: after+(pb.sacrifice||0) };
   })();
   const takeHomeTag = big => currTakeHome && <div style={{textAlign:'right',lineHeight:1.2}}>
     <div style={{fontFamily:MONO,fontSize:big?'15px':'14px',fontWeight:700,color:'var(--text-green-deep)'}}>{fmtGBP(currTakeHome.net)}</div>
@@ -302,7 +303,7 @@ export function TabDashboard({
       const t = tOn ? ts.gross : 0, tn = tOn ? (ts.net||0) : 0, e = eOn ? ex.gross : 0, en = eOn ? (ex.net||0) : 0;
       const ot = g+t+e, otN = gn+tn+en;
       return { p, idx, sal, g, t, e, ot, otN, future: !!pb.payDate && pb.payDate > today, payDate: pb.payDate,
-        gross: sal+ot, ded: sal>0.005?dedFor(p.month):0, takeHome: (pb.monthNet||0)+tn+en-(sal>0.005?dedFor(p.month):0) };
+        gross: sal+ot, ded: sal>0.005?afterFor(p.month)+(pb.sacrifice||0):0, takeHome: (pb.monthNet||0)+tn+en-(sal>0.005?afterFor(p.month):0) };
     });
     if (!allCols.some(c=>c.ot>0.005)) return null;
     const cols = allCols;

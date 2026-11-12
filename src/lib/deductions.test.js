@@ -29,8 +29,9 @@ describe('salary sacrifice in the payroll run', () => {
   it('lowers tax by 20% and NI by 8% of the sacrifice for a basic rate PC', () => {
     expect(plain[0].monthTax - sac[0].monthTax).toBeCloseTo(10, 1);
     expect(plain[0].monthNI - sac[0].monthNI).toBeCloseTo(4, 1);
-    // so £50 sacrificed costs £36 of take-home
-    expect((sac[0].monthNet - 50) - plain[0].monthNet).toBeCloseTo(-36, 0);
+    // so £50 sacrificed costs £36 of take-home, and monthNet already has it off
+    expect(sac[0].sacrifice).toBe(50);
+    expect(sac[0].monthNet - plain[0].monthNet).toBeCloseTo(-36, 0);
   });
   it('leaves pension and a skipped month alone', () => {
     expect(sac[0].periodPension).toBe(plain[0].periodPension);
@@ -48,5 +49,23 @@ describe('migrateSettings keeps deductions', () => {
       { id:'a', name:'Fed', amount:'23.94', when:'after', off:['May 2026','bad'], changes:[{ from:'June 2026', amount:'25' }, { from:'x', amount:'1' }] },
       { id:5, name:'no id' }, 'junk' ] });
     expect(out.deductions).toEqual([{ id:'a', name:'Fed', amount:'23.94', when:'after', off:['May 2026'], changes:[{ from:'June 2026', amount:'25' }] }]);
+  });
+});
+
+describe('audit fixes', () => {
+  it('keeps deductions saved before rank and pay point are set', () => {
+    const out = migrateSettings({ rank:'', service:'', deductions:[{ id:'a', name:'Fed', amount:23.94, when:'after' }] });
+    expect(out.rank).toBe('');
+    expect(out.deductions[0].amount).toBe('23.94');
+  });
+  it('caps a sacrifice larger than the pay can bear and never goes below zero take-home from it', () => {
+    const y = buildPayYear({ periods: PERIODS, entries: [], settings: { ...BASE, deductions:[{ id:'x', name:'Big', amount:'9000', when:'before' }] } });
+    expect(y[0].sacrifice).toBeLessThan(9000);
+    expect(y[0].monthNet).toBeGreaterThanOrEqual(-0.01);
+  });
+  it('salary, LW and LA nets plus overtime add up to the month net with a sacrifice', () => {
+    const y = buildPayYear({ periods: PERIODS, entries: [], settings: { ...BASE, deductions:[{ id:'c', name:'Cycle', amount:'50', when:'before' }] } });
+    const pb = y[0];
+    expect(pb.salaryNet + pb.lwNet + pb.laNet + pb.otResult.net + pb.paResult.net).toBeCloseTo(pb.monthNet, 2);
   });
 });

@@ -82,10 +82,10 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const pensionRate = svc ? pensionTierRate(m.annualPensionable) : 0;
     const periodPension = Math.round((m.pensionable * pensionRate + Number.EPSILON)*100)/100;
     // Salary sacrifice (deductions set to come off before tax and NI) lowers
-    // the pay both are worked out on. Pension stays on the full pensionable
-    // pay. The sacrificed amount itself is taken off with the other
-    // deductions where take-home is shown, so monthNet here is the payslip
-    // before any of the person's own deductions.
+    // the pay both are worked out on, and the amount itself comes off the
+    // payslip, so monthNet (and every net figure built from it) is what
+    // actually reaches the bank before the person's after-tax deductions.
+    // Pension stays on the full pensionable pay.
     const sacrifice = m.base > 0 ? Math.min(deductionsFor(settings, p.month).before, m.base - periodPension) : 0;
     const niBase = m.base - sacrifice;
     const cumBase = cum + m.base - periodPension - sacrifice;   // salary is taxed first, net of pension
@@ -121,7 +121,7 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     taxToDate = newTaxToDate;
     const monthGross = m.base + ot + pa;
     const monthNI = payeNI(monthGross - sacrifice);
-    const monthNet = monthGross - periodPension - monthTax - monthNI;
+    const monthNet = monthGross - periodPension - monthTax - monthNI - sacrifice;
     // The month's take-home that isn't overtime or PA, shared between the
     // salary, London Weighting and London Allowance in proportion to the
     // above. With no overtime that's exactly their own figures; with heavy

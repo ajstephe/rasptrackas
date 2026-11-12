@@ -290,7 +290,7 @@ export function advanceCursor(cursor, rows) {
 // A full pull every so often anyway: it's the only thing that notices a
 // row hard-deleted from the server, and it repairs any drift the deltas
 // can't see. Weekly keeps that to a handful of full downloads a month.
-export const FULL_PULL_EVERY_DAYS = 7;
+const FULL_PULL_EVERY_DAYS = 7;
 export function needsFullPull(state, todayISO) {
   if (!state || !state.cursor || !state.fullAt) return true;
   return (Date.parse(todayISO) - Date.parse(state.fullAt)) / 86400000 >= FULL_PULL_EVERY_DAYS;
