@@ -53,7 +53,7 @@ export function TabDashboard({
   // tax year, and — when there's anything unclaimed — a pill that says
   // where tapping it goes.
   const masthead = (compact) => (
-    <div style={{background:'var(--navy)',padding:compact?'14px 16px':'16px 26px 14px',position:'relative',overflow:'hidden',display:compact?'block':'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'16px',flexWrap:'wrap'}}>
+    <div style={{background:'var(--navy)',padding:compact?'12px 16px':'12px 26px',position:'relative',overflow:'hidden',display:compact?'block':'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'16px',flexWrap:'wrap'}}>
       <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
       {/* Festive only (hidden by CSS in every other theme): Santa's sack of
           presents in the corner, with an elf who pops out now and then. */}
@@ -144,13 +144,13 @@ export function TabDashboard({
         </g>
       </svg>
       <div>
-        <div style={{fontSize:compact?'14px':'15px',fontWeight:800,color:'#fff',letterSpacing:'-0.01em',marginBottom:compact?'8px':'10px'}}>Gross pay this tax year</div>
+        <div style={{fontSize:compact?'14px':'15px',fontWeight:800,color:'#fff',letterSpacing:'-0.01em',marginBottom:compact?'6px':'8px'}}>Gross pay this tax year</div>
         {(()=>{
           const hasPay = !!(settings.rank&&settings.service);
           const due = hasPay ? (totals.onItsWayGross||0) : 0;
           // Nothing submitted and waiting for a payday: one figure, as before.
           if (due < 0.005) return (
-            <div style={{fontFamily:MONO,fontSize:compact?'26px':'28px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'4px'}}>
+            <div style={{fontFamily:MONO,fontSize:compact?'24px':'26px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'4px'}}>
               {hasPay ? fmtGBP(animatedGrossYTD) : '—'}
             </div>
           );
@@ -160,7 +160,7 @@ export function TabDashboard({
           // payslips.
           const paydays = (totals.onItsWayByPayday||[]).map(p=>new Date(p.payDate+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}));
           const lbl = {fontSize:'9.5px',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'3px'};
-          const fig = {fontFamily:MONO,fontSize:compact?'21px':'28px',fontWeight:600,letterSpacing:'-0.5px',lineHeight:1.15};
+          const fig = {fontFamily:MONO,fontSize:compact?'21px':'26px',fontWeight:600,letterSpacing:'-0.5px',lineHeight:1.15};
           return (
             <div style={{display:'flex',alignItems:'flex-start',gap:compact?'14px':'24px',marginBottom:'4px',flexWrap:'wrap'}}>
               <div>
@@ -177,11 +177,6 @@ export function TabDashboard({
         })()}
         <div style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'#7c93b3'}}>{taxYearLine}</div>
       </div>
-      {(carmsOutstanding.totalAmount>0||carmsOutstanding.totalClaims>0)&&(
-        <button onClick={()=>setTab('carms')} title="Open Awaits Submission" className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'6px',marginTop:compact?'10px':0,fontSize:'11.5px',fontWeight:800,color:'#fbbf24',background:'rgba(251,191,36,0.14)',border:'none',borderRadius:'20px',padding:'6px 12px',cursor:'pointer',fontFamily:'inherit',position:'relative',whiteSpace:'nowrap'}}>
-          {fmtGBP(carmsOutstanding.totalAmount)} to submit · {carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} <Ico n="cR" s={11} c="#fbbf24" w={2.5}/>
-        </button>
-      )}
     </div>
   );
 
@@ -316,7 +311,7 @@ export function TabDashboard({
                   <button key={c.p.month} type="button" onClick={isWide?openSummary:()=>setChartPick(c.idx)} aria-pressed={isWide?undefined:on}
                     aria-label={`${payLabel(c.p.month)}${c.future?' (forecast)':''}: overtime ${fmtGBP(c.ot)}, total pay ${fmtGBP(c.gross)}, take-home ${fmtGBP(c.takeHome)}`}
                     style={{flex:'1 1 0',minWidth:0,display:'flex',justifyContent:'center',background:on?'var(--tint-brass)':'none',borderRadius:'7px',border:'none',padding:isWide?0:'3px 0',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
-                    <span style={{height:`${H}px`,width:isWide?'56%':'74%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:isCurr?`0 0 0 2px color-mix(in srgb, ${BRASS} 60%, transparent)`:'none'}}>
+                    <span style={{height:`${H}px`,width:isWide?'40%':'58%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:isCurr?`0 0 0 2px color-mix(in srgb, ${BRASS} 60%, transparent)`:'none'}}>
                       {seg(c.g,GRN)}{seg(c.t,RED)}{seg(c.e,STRIPE)}
                     </span>
                   </button>);
@@ -605,10 +600,10 @@ export function TabDashboard({
               <div style={{background:'var(--tint-amber)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={17} c={BRASS}/></div>
               <div>
                 <div style={{fontSize:'14px',fontWeight:800,color:'var(--ink)'}}>Overtime &amp; PA to submit</div>
-                <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · submit by {submitWindow(localDateStr())?.byShort} for {submitWindow(localDateStr())?.month}</div>
+                <div style={{fontSize:'10.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>Submit by {submitWindow(localDateStr())?.byShort} for {submitWindow(localDateStr())?.month}</div>
               </div>
             </div>
-            <div style={{display:'flex',alignItems:'center',gap:'10px'}}><div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>
+            <div style={{display:'flex',alignItems:'center',gap:'10px'}}><div style={{fontFamily:MONO,fontSize:'15px',fontWeight:600,color:'var(--text-red-deep)',textAlign:'right',lineHeight:1.2}}>{fmtGBP(carmsOutstanding.totalAmount)}<span style={{display:'block',fontFamily:'inherit',fontSize:'10.5px',fontWeight:700,color:'var(--quiet)',textAlign:'right'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''}</span></div>{chev}</div>
           </button>
         )}
       </div>
@@ -658,10 +653,10 @@ export function TabDashboard({
               <div style={{background:'var(--tint-amber)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="checklist" s={16} c={BRASS}/></div>
               <div>
                 <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>Overtime &amp; PA to submit</div>
-                <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''} · submit by {submitWindow(localDateStr())?.byShort} for {submitWindow(localDateStr())?.month}</div>
+                <div style={{fontSize:'9.5px',color:'var(--quiet)',fontWeight:600,marginTop:'1px'}}>Submit by {submitWindow(localDateStr())?.byShort} for {submitWindow(localDateStr())?.month}</div>
               </div>
             </div>
-            <div style={{display:'flex',alignItems:'center',gap:'8px',flexShrink:0,marginLeft:'10px'}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(carmsOutstanding.totalAmount)}</div>{chev}</div>
+            <div style={{display:'flex',alignItems:'center',gap:'8px',flexShrink:0,marginLeft:'10px'}}><div style={{fontFamily:MONO,fontSize:'14px',fontWeight:600,color:'var(--text-red-deep)',textAlign:'right',lineHeight:1.2}}>{fmtGBP(carmsOutstanding.totalAmount)}<span style={{display:'block',fontFamily:'inherit',fontSize:'10.5px',fontWeight:700,color:'var(--quiet)',textAlign:'right'}}>{carmsOutstanding.totalClaims} claim{carmsOutstanding.totalClaims!==1?'s':''}</span></div>{chev}</div>
           </button>
         )}
       </div>
