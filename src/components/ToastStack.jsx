@@ -39,9 +39,27 @@ export function ToastStack({ toasts, onDismiss, isWide }) {
   const posStyle = isWide
     ? {position:'fixed',top:'20px',right:'20px',left:'auto',transform:'none'}
     : {position:'absolute',top:'calc(72px + env(safe-area-inset-top))',left:'50%',transform:'translateX(-50%)'};
-  return (
+  const upd = items.filter(t=>t.type==='update');
+  const rest = items.filter(t=>t.type!=='update');
+  // "A new version is ready" used to be the same small frosted toast as
+  // "Shift saved" and blended into busy screens, so people missed it and
+  // stayed on old code. It's now a solid navy bar with a pulsing bell and a
+  // big Reload button: just above the bottom tabs on phones (where the thumb
+  // already is, clear of the pay figures up top), bottom-right on computers
+  // so it never sits on top of the ordinary toasts in the top-right.
+  const reload = t => { t.action?.fn(); onDismiss&&onDismiss(t.id); };
+  const updCard = t => (
+    <div key={t.id} className={t.leaving?'toast-leave':'toast-up'} role="alert" style={{background:'var(--navy)',color:'#fff',borderRadius:'18px',display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px 12px 14px',boxShadow:'0 14px 40px rgba(0,0,0,0.35), 0 0 0 2px #b8823f',pointerEvents:'all'}}>
+      <div className="upd-pulse" style={{width:'36px',height:'36px',borderRadius:'50%',background:'#b8823f',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="bell" s={17} c="#fff"/></div>
+      <div style={{flex:1,minWidth:0}}><div style={{fontSize:'14.5px',fontWeight:900}}>{t.message}</div><div style={{fontSize:'12px',fontWeight:600,color:'rgba(255,255,255,0.75)'}}>Takes a second, nothing is lost</div></div>
+      <button onClick={()=>reload(t)} style={{background:'#b8823f',border:'none',borderRadius:'12px',padding:'12px 18px',color:'#fff',fontWeight:900,fontSize:'14px',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>{t.action?.label||'Reload'}</button>
+    </div>);
+  const updPos = isWide ? {position:'fixed',bottom:'20px',right:'20px'}
+    : {position:'absolute',bottom:'calc(84px + env(safe-area-inset-bottom))',left:'50%',transform:'translateX(-50%)'};
+  return (<>
+    {upd.length>0&&<div style={{zIndex:1000,display:'flex',flexDirection:'column',gap:'7px',width:'calc(100% - 24px)',maxWidth:'390px',pointerEvents:'none',...updPos}}>{upd.map(updCard)}</div>}
     <div style={{...posStyle,zIndex:999,display:'flex',flexDirection:'column',gap:'7px',width:'calc(100% - 24px)',maxWidth:'390px',pointerEvents:'none'}}>
-      {items.map(t=>{
+      {rest.map(t=>{
         // 'alert' gets an enlarged layout — charcoal with a red accent bar, a
         // bold title, an explanatory line and a full-width action button.
         // Used where the app is redirecting the person rather than just
@@ -94,5 +112,5 @@ export function ToastStack({ toasts, onDismiss, isWide }) {
         );
       })}
     </div>
-  );
+  </>);
 }

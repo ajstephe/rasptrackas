@@ -2322,7 +2322,7 @@ export default function App() {
           if (performance.now() < 20000) { updateSW(true); return; }
           // Stays put until Reload is tapped: a 30-second window was easy to
           // miss, leaving people on the old version until the next prompt.
-          addToast('A new version is ready', 'warn', { label: 'Reload', fn: () => updateSW(true) }, null);
+          addToast('A new version is ready', 'update', { label: 'Reload', fn: () => updateSW(true) }, null);
         },
       });
     }).catch(() => { /* dev server / unsupported browser — app works exactly as before, just without offline caching */ });
@@ -4742,6 +4742,10 @@ export default function App() {
            is shared by unrelated fades all over the app. */
         @keyframes toastIn{from{opacity:0;transform:translateY(-22px) scale(0.96)}60%{transform:translateY(3px) scale(1.005)}to{opacity:1;transform:translateY(0) scale(1)}}
         .toast-enter{animation:toastIn 0.42s cubic-bezier(.32,1.1,.4,1)}
+        @keyframes toastUp{from{opacity:0;transform:translateY(26px) scale(0.96)}60%{transform:translateY(-3px)}to{opacity:1;transform:none}}
+        .toast-up{animation:toastUp 0.42s cubic-bezier(.32,1.1,.4,1)}
+        @keyframes updPulse{0%,100%{box-shadow:0 0 0 0 rgba(184,130,63,0.55)}50%{box-shadow:0 0 0 8px rgba(184,130,63,0)}}
+        .upd-pulse{animation:updPulse 2.2s ease-in-out infinite}
         @keyframes toastOut{to{opacity:0;transform:translateY(-14px) scale(0.97)}}
         .toast-leave{animation:toastOut 0.24s ease forwards}
         /* ── actionable-toast countdown — ToastStack draws this only under
@@ -4858,6 +4862,7 @@ export default function App() {
           .badge-pop{animation-duration:0.001ms}
           .tap-row{transition-duration:0.001ms}
           .toast-enter{animation-duration:0.001ms}
+          .upd-pulse,.toast-up{animation:none}
           .toast-leave{animation-duration:0.001ms}
           .toast-bar{animation-duration:0.001ms}
           .alert-pop{animation-duration:0.001ms}
