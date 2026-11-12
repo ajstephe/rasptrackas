@@ -313,7 +313,10 @@ export function TabDashboard({
     ];
     // Narrow: as many months as fit fill the visible width; the rest scroll sideways.
     const gridCols = narrow && ovFit<12 ? `152px repeat(12, calc((100cqw - 152px - ${ovFit*8}px) / ${ovFit}))` : `152px repeat(${cols.length},minmax(0,1fr))`;
-    const stick = narrow ? {position:'sticky',left:0,zIndex:2,background:'var(--surface)'} : {};
+    // Pinned labels need a solid fill so swiped months slide under them. Some
+    // themes have a see-through card colour and outline anything painted
+    // plain var(--surface), so paint the card colour over the page colour.
+    const stick = narrow ? {position:'sticky',left:0,zIndex:2,background:'linear-gradient(var(--surface), var(--surface)), var(--page-bg)'} : {};
     const TOT = [['Overtime submitted','Submitted',sum('g'),'var(--text-green-deep)'],['To submit','To submit',sum('t'),'var(--text-red-deep)'],['Planned','Planned',sum('e'),'var(--exp-ink)']];
     const pick = allCols[pickIdx];
     const line = (l,v,strong,col) => <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',padding:'2px 0',borderTop:strong?'1px solid var(--border-2)':'none',marginTop:strong?'3px':0,paddingTop:strong?'4px':'2px'}}>
