@@ -2313,13 +2313,19 @@ export default function App() {
           const check = () => { if (document.visibilityState !== 'visible' || Date.now() - last < 60000) return; last = Date.now(); reg.update().catch(()=>{}); };
           document.addEventListener('visibilitychange', check);
           window.addEventListener('focus', check);
+          // A computer often keeps the tab in front all day without it ever
+          // regaining focus, so also look every 15 minutes while it's showing.
+          setInterval(check, 15*60000);
         },
         onNeedRefresh() {
           // Found while the app is only just opening: nothing's been typed
           // yet, so switch straight over rather than leave this device on
           // old code (an old copy is what kept undoing theme changes made on
           // other devices).
-          if (performance.now() < 20000) { updateSW(true); return; }
+          // Computers always ask instead: people there tend to have the app
+          // open in a tab for long stretches and should choose the moment.
+          const computer = window.innerWidth >= 960 || window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
+          if (!computer && performance.now() < 20000) { updateSW(true); return; }
           // Stays put until Reload is tapped: a 30-second window was easy to
           // miss, leaving people on the old version until the next prompt.
           addToast('A new version is ready', 'update', { label: 'Reload', fn: () => updateSW(true) }, null);
