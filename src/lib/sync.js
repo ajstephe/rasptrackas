@@ -295,3 +295,29 @@ export function needsFullPull(state, todayISO) {
   if (!state || !state.cursor || !state.fullAt) return true;
   return (Date.parse(todayISO) - Date.parse(state.fullAt)) / 86400000 >= FULL_PULL_EVERY_DAYS;
 }
+
+// Two devices editing settings at once used to be "last whole object wins":
+// adding a deduction on one phone while changing the pay point on another
+// lost one of the two. This merges field by field against the last copy both
+// sides agreed on (`base`): anything this device changed since then is kept,
+// anything it didn't touch takes the other device's value. Rank, pay point
+// and their history move together as one field. The theme follows the most
+// recent pick (newestTheme).
+const SETTINGS_GROUPS = [['rank', 'service', 'payHistory']];
+export function mergeSettings3(base, local, remote) {
+  if (!remote) return local;
+  if (!local) return remote;
+  const b = base || {};
+  const grouped = new Set(SETTINGS_GROUPS.flat());
+  const units = [...SETTINGS_GROUPS, ...[...new Set([...Object.keys(local), ...Object.keys(remote), ...Object.keys(b)])]
+    .filter(k => !grouped.has(k) && k !== 'theme' && k !== 'themeAt').map(k => [k])];
+  const out = {};
+  for (const keys of units) {
+    const pick = obj => keys.map(k => obj?.[k]);
+    const localChanged = stableJSON(pick(local)) !== stableJSON(pick(b));
+    const src = localChanged ? local : remote;
+    for (const k of keys) if (src[k] !== undefined) out[k] = src[k];
+  }
+  if (local.theme !== undefined) { out.theme = local.theme; if (local.themeAt !== undefined) out.themeAt = local.themeAt; }
+  return newestTheme(out, remote);
+}

@@ -58,8 +58,6 @@
     <link rel="apple-touch-startup-image" href="/splash/promax-dark.png" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)"/>
 
     <title>Overtime &amp; Shift Tracker by Adam Stephens</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
     <!-- DM Sans now includes 800 alongside the weights already here —
          fontWeight:800 is used on buttons/labels throughout the app, but that
          cut was never actually being requested, so browsers were silently
@@ -73,7 +71,9 @@
          Web (Heritage) Barlow Semi Condensed (Energy), Zen Kaku Gothic New (Goji) and Arimo (Luftplane) added alongside the rest for the same reason Inter was —
          so all Appearance options load their type up front instead of on
          first pick. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&family=IBM+Plex+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Ysabeau+Office:wght@400;500;600;700;800;900&family=Titillium+Web:wght@400;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Arimo:wght@400;500;600;700&family=Cabin:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=Lora:ital,wght@0,600;0,700;1,700&family=Mountains+of+Christmas:wght@700&family=Lato:wght@400;700;900&family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800;1,900&family=Cabin:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=Lora:ital,wght@0,600;0,700;1,700&family=Mountains+of+Christmas:wght@700&family=Lato:wght@400;700;900&family=Press+Start+2P&family=Jersey+10&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <!-- Fonts are served from this app (public/fonts), not Google, so opening
+         the app never sends anyone's IP address to a third party. -->
+    <link href="/fonts/fonts.css" rel="stylesheet"/>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       html,body,#root{height:100%;width:100%}

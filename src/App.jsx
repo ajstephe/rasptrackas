@@ -28,7 +28,7 @@ import {
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { TabErrorBoundary } from './ErrorBoundary.jsx';
-import { mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
+import { mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, mergeSettings3, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -1677,19 +1677,25 @@ export default function App() {
             }
           }
         }
-        // Never send an older theme over a newer pick made elsewhere.
+        // If another device changed settings since this one last synced, merge
+        // field by field rather than sending this whole copy over theirs (and
+        // never send an older theme over a newer pick made elsewhere).
         else {
           const { data: cur } = await supabase.from('settings').select('ciphertext').eq('user_id', session.user.id).maybeSingle();
           const remote = cur ? await decryptWithDataKey(dataKey, cur.ciphertext).catch(()=>null) : null;
-          const fixed = remote ? newestTheme(settingsObj, remote) : settingsObj;
-          if (fixed !== settingsObj) { settingsObj = fixed; json = JSON.stringify(fixed); setSettings(fixed); }
+          let base = null; try { base = lastSyncedSettingsRef.current ? JSON.parse(lastSyncedSettingsRef.current) : null; } catch { base = null; }
+          const fixed = remote ? mergeSettings3(base, settingsObj, migrateSettings(remote)) : settingsObj;
+          if (remote && remoteSettingsChanged(fixed, settingsObj)) { settingsObj = fixed; json = JSON.stringify(fixed); setSettings(fixed); }
         }
         const ciphertext = await encryptWithDataKey(dataKey, settingsObj);
         const now = new Date().toISOString();
-        const { error } = await supabase.from('settings').upsert({ user_id: session.user.id, ciphertext, updated_at: now });
+        // The server stamps updated_at with its own clock (migration 08) and
+        // that value is kept, so devices whose clocks disagree still agree
+        // on which settings copy is newer.
+        const { data: saved, error } = await supabase.from('settings').upsert({ user_id: session.user.id, ciphertext, updated_at: now }).select('updated_at').maybeSingle();
         if (!error) {
           lastSyncedSettingsRef.current = json; persistLastSyncedSettings();
-          lastSettingsUpdatedAtRef.current = now; persistLastSettingsUpdatedAt();
+          lastSettingsUpdatedAtRef.current = saved?.updated_at || now; persistLastSettingsUpdatedAt();
           markSynced();
           refreshUnsynced();
           return 0;
@@ -1889,9 +1895,12 @@ export default function App() {
         lastSettingsUpdatedAtRef.current = row.updated_at;
         persistLastSettingsUpdatedAt();
       } else if (!stale) {
-        // Keeping this device's own edits still takes a newer theme picked elsewhere.
-        const withTheme = newestTheme(settingsRef.current, remoteSettings);
-        if (withTheme !== settingsRef.current) setSettings(withTheme);
+        // This device has unsent edits: keep them, but take the fields it
+        // didn't touch from the other device (and a newer theme pick). The
+        // merged copy then goes up with the next push.
+        let base = null; try { base = lastSyncedSettingsRef.current ? JSON.parse(lastSyncedSettingsRef.current) : null; } catch { base = null; }
+        const merged = mergeSettings3(base, settingsRef.current, migrateSettings(remoteSettings));
+        if (remoteSettingsChanged(merged, settingsRef.current)) setSettings(merged);
       }
       markSynced();
     } catch (e) { /* undecryptable — skip */ }
@@ -1995,8 +2004,11 @@ export default function App() {
           // settings had the identical unconditional-overwrite gap.
           const blankHere = !(settingsRef.current && settingsRef.current.rank) && !!(decrypted && decrypted.rank);
           if (!blankHere && !hasNoPendingLocalEdit(settingsRef.current, lastSyncedSettingsRef.current ?? undefined)) {
-            const withTheme = newestTheme(settingsRef.current, decrypted);
-            if (withTheme !== settingsRef.current) setSettings(withTheme);
+            // Unsent edits here: merge field by field (see pullAndMergeSettings).
+            if (isStaleSettingsUpdate(row.updated_at, lastSettingsUpdatedAtRef.current)) return;
+            let base = null; try { base = lastSyncedSettingsRef.current ? JSON.parse(lastSyncedSettingsRef.current) : null; } catch { base = null; }
+            const merged = mergeSettings3(base, settingsRef.current, migrateSettings(decrypted));
+            if (remoteSettingsChanged(merged, settingsRef.current)) setSettings(merged);
             return;
           }
           // See isStaleSettingsUpdate in sync.js — the realtime channel

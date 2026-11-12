@@ -494,3 +494,29 @@ describe('newestTheme', () => {
     expect(newestTheme(base, null)).toBe(base);
   });
 });
+
+describe('mergeSettings3 (field-by-field settings merge)', async () => {
+  const { mergeSettings3 } = await import('./sync.js');
+  const base = { rank:'Constable', service:'PC 4', deductions:[] };
+  it('keeps both sides\' changes to different fields', () => {
+    const local = { ...base, deductions:[{ id:'a', name:'Fed', amount:'23.94', when:'after' }] };
+    const remote = { ...base, service:'PC 5', payHistory:[{ from:'2026-11-01', rank:'Constable', service:'PC 5' }] };
+    const m = mergeSettings3(base, local, remote);
+    expect(m.service).toBe('PC 5');
+    expect(m.payHistory).toHaveLength(1);
+    expect(m.deductions[0].name).toBe('Fed');
+  });
+  it('a field this device changed wins over the other device', () => {
+    const m = mergeSettings3(base, { ...base, service:'PC 6' }, { ...base, service:'PC 5' });
+    expect(m.service).toBe('PC 6');
+  });
+  it('takes a field the other device removed when this device left it alone', () => {
+    const b = { ...base, paidImport:{ taxYear:2026 } };
+    const m = mergeSettings3(b, { ...b }, { ...base });
+    expect(m.paidImport).toBeUndefined();
+  });
+  it('the newest theme pick wins', () => {
+    const m = mergeSettings3(base, { ...base, theme:'tube', themeAt:1 }, { ...base, theme:'miami', themeAt:2 });
+    expect(m.theme).toBe('miami');
+  });
+});

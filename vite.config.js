@@ -29,6 +29,12 @@ export default defineConfig({
         // fetched the first time someone exports, then kept for offline use.
         globIgnores: ['**/exceljs*'],
         runtimeCaching: [{
+          // Self-hosted fonts: each one downloads the first time a theme uses
+          // it, then stays cached for offline use.
+          urlPattern: ({ url }) => url.pathname.startsWith('/fonts/') && url.pathname.endsWith('.woff2'),
+          handler: 'CacheFirst',
+          options: { cacheName: 'fonts', expiration: { maxEntries: 120 } },
+        }, {
           urlPattern: ({ url }) => /\/assets\/exceljs[^/]*\.js$/.test(url.pathname),
           handler: 'CacheFirst',
           options: { cacheName: 'exceljs', expiration: { maxEntries: 2 } },
