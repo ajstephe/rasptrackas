@@ -14,6 +14,7 @@ import { SetupCard } from './SetupCard.jsx';
 const NARROW_W = 1080;
 
 export function TabDashboard({
+  setupFlow,
   isWide, settings, setTab, totals, currPeriodIdx, toilLedger, carmsOutstanding,
   salaryBreakdownExpanded, setSalaryBreakdownExpanded,
   scrollToTaxImpact, setTaxImpactExpanded,
@@ -614,7 +615,7 @@ export function TabDashboard({
 
   return (
   <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
-    <SetupCard where="home" settings={settings} saveSett={saveSett} S={S} BRASS={BRASS}/>
+    <SetupCard where="home" settings={settings} saveSett={saveSett} S={S} BRASS={BRASS} setupFlow={setupFlow}/>
 
     {isWide ? (<>
     {/* ── "One statement" layout (ledger redesign) — the hero,

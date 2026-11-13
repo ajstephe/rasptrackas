@@ -19,6 +19,7 @@ const hm = mins => { const h = Math.floor(mins/60), m = Math.round(mins%60); ret
 // screen. Same fields and behaviour as before — only the arrangement changed.
 import { SetupCard, isSetUp } from './SetupCard.jsx';
 export function TabLogOvertime({
+  setupFlow,
   editing, onCancelEdit, onDeleteEditing, saveSett, settings, isWide, S, MONO, BRASS,
   form, setForm, todayStr, notesRef, effectiveTier, preview, handleSave, justSaved,
   carmsToggleRef, focusCarmsToggle, setDatePickerMonth, setDatePickerFor,
@@ -381,7 +382,7 @@ export function TabLogOvertime({
       )}
 
       {!isSetUp(settings) ? (
-        <SetupCard where="log" settings={settings} saveSett={saveSett} S={S} BRASS={BRASS}/>
+        <SetupCard where="log" settings={settings} saveSett={saveSett} S={S} BRASS={BRASS} setupFlow={setupFlow}/>
       ) : (
       <>
         {/* A computer has room for the form in two columns: when and the

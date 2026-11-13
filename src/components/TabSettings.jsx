@@ -32,7 +32,7 @@ const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['her
 export function TabSettings({
   isWide, S, MONO, BRASS,
   savedBadge, themeMode, setTheme, pillShadow,
-  openCustomDatePicker,
+  openCustomDatePicker, openDedRequest, setOpenDedRequest,
   configExpanded, setConfigExpanded, configShown, configSetupIncomplete,
   justCompletedSetup, setJustCompletedSetup,
   taxImpactExpanded, setTaxImpactExpanded, taxImpactCardRef,
@@ -60,6 +60,16 @@ export function TabSettings({
   const [dedExpanded, setDedExpanded] = useState(false);         // Monthly deductions card
   const [dedDraft, setDedDraft] = useState(null);                // unsaved deduction edits
   const [dedSavedAt, setDedSavedAt] = useState(0);
+  // Arriving from setup's "Yes, add them": open Monthly deductions and
+  // bring it into view.
+  const dedCardRef = useRef(null);
+  useEffect(()=>{
+    if (!openDedRequest) return;
+    setOpenDedRequest(false);
+    setDedExpanded(true);
+    const t = setTimeout(()=>dedCardRef.current?.scrollIntoView({ behavior:'smooth', block:'start' }), 250);
+    return ()=>clearTimeout(t);
+  }, [openDedRequest]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{ if (!dedSavedAt) return; const t=setTimeout(()=>setDedSavedAt(0),3000); return ()=>clearTimeout(t); },[dedSavedAt]);
   // "Overtime already paid this tax year" form (Config card)
   const [impOpen, setImpOpen] = useState(false);
@@ -588,7 +598,7 @@ export function TabSettings({
             </>);
             if (dedModalOpen) dedModalContentRef.current = <>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></>;
             return (<>
-              <div style={S.card}>{cardHeader}{!isWide && cardBody ? <div className="accordion-in" style={{marginTop:'12px'}}>{cardBody}</div> : null}</div>
+              <div ref={dedCardRef} style={{...S.card,scrollMarginTop:'12px'}}>{cardHeader}{!isWide && cardBody ? <div className="accordion-in" style={{marginTop:'12px'}}>{cardBody}</div> : null}</div>
               {dedModalMounted && contentWrapRef.current && createPortal(
                 <div ref={dedModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Monthly deductions" className={'modal-pop'+(dedModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{dedModalContentRef.current}</div>,
                 contentWrapRef.current)}

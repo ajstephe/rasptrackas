@@ -1285,6 +1285,13 @@ export default function App() {
     if (prevConfigSetupIncomplete && !configSetupIncomplete) setJustCompletedSetup(true);
   }
   const configShown = configExpanded || configSetupIncomplete || justCompletedSetup;
+  // First-time setup: once the pay point is picked on the setup card, ask
+  // about monthly deductions. Yes opens the Monthly deductions card in
+  // More..; No (or later) goes to Home.
+  const [askDeductions, setAskDeductions] = useState(false);
+  const [openDedRequest, setOpenDedRequest] = useState(false);
+  const setupFlow = { ask: askDeductions, done: () => setAskDeductions(true),
+    answer: yes => { setAskDeductions(false); if (yes) { setOpenDedRequest(true); setTab('settings'); } else setTab('dashboard'); } };
   // Leaving More.. right after finishing setup ends the keep-it-open
   // grace too, so the card is back to its normal collapsed state next visit.
   // Tracked during render (like prevConfigSetupIncomplete above) rather than
@@ -5235,6 +5242,7 @@ export default function App() {
         {/* ══════════════════════════════════════════ DASHBOARD */}
         {tab==='dashboard'&&(
           <TabDashboard
+            setupFlow={setupFlow}
             animClass={tabAnimClass}
             isWide={isWide||tabletP} settings={settings} setTab={setTab} totals={totals}
             currPeriodIdx={currPeriodIdx} toilLedger={toilLedger} carmsOutstanding={carmsOutstanding}
@@ -5249,6 +5257,7 @@ export default function App() {
         {/* ══════════════════════════════════════════ LOG SHIFT */}
         {tab==='add'&&(
           <TabLogOvertime
+            setupFlow={setupFlow}
             animClass={tabAnimClass}
             editing={editing} onCancelEdit={()=>leaveEditThen(()=>setTab('months'))}
             onDeleteEditing={()=>{ const id = editing.id; endEdit(); delEntry(id); setTab('months'); }} saveSett={saveSett} settings={settings} isWide={isWide}
@@ -5290,7 +5299,7 @@ export default function App() {
 
         {/* ══════════════════════════════════════════ SETTINGS */}
         {tab==='settings'&&(
-          <TabSettings openCustomDatePicker={openCustomDatePicker}
+          <TabSettings openCustomDatePicker={openCustomDatePicker} openDedRequest={openDedRequest} setOpenDedRequest={setOpenDedRequest}
             animClass={tabAnimClass}
             isWide={isWide} S={S} MONO={MONO} BRASS={BRASS}
             savedBadge={savedBadge} themeMode={themeMode} setTheme={setTheme} pillShadow={THEME.pillShadow}
