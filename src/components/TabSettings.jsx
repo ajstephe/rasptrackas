@@ -32,7 +32,7 @@ const THEME_OPTIONS = [['system','Auto'],['light','Light'],['dark','Dark'],['her
 export function TabSettings({
   isWide, S, MONO, BRASS,
   savedBadge, themeMode, setTheme, pillShadow,
-  openCustomDatePicker, openDedRequest, setOpenDedRequest,
+  openCustomDatePicker, openDedRequest, setOpenDedRequest, setTab, addToast,
   configExpanded, setConfigExpanded, configShown, configSetupIncomplete,
   justCompletedSetup, setJustCompletedSetup,
   taxImpactExpanded, setTaxImpactExpanded, taxImpactCardRef,
@@ -514,7 +514,11 @@ export function TabSettings({
         const dirty = dedDraft!==null && JSON.stringify(dedDraft)!==JSON.stringify(saved);
         const commit = () => {
           const clean = list.filter(d=>d.name.trim() || parseFloat(d.amount)>0).map(d=>({...d,name:d.name.trim()||'Deduction'}));
-          saveSett({...settings, deductions:clean}); setDedDraft(null); setDedSavedAt(Date.now());
+          saveSett({...settings, deductions:clean}); setDedDraft(null);
+          // Saved: close the card and go to Home, where the new net take-home shows.
+          setDedExpanded(false);
+          if (addToast) addToast('Deductions saved. Take-home updated', 'success');
+          if (setTab) setTab('dashboard'); else setDedSavedAt(Date.now());
         };
         const upd = (id,patch) => save(list.map(d=>d.id===id?{...d,...patch}:d));
         const add = (name='') => save([...list,{id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,amount:'',when:PRE_TAX.includes(name)?'before':'after'}]);

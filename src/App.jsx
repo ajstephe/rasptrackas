@@ -5299,7 +5299,7 @@ export default function App() {
 
         {/* ══════════════════════════════════════════ SETTINGS */}
         {tab==='settings'&&(
-          <TabSettings openCustomDatePicker={openCustomDatePicker} openDedRequest={openDedRequest} setOpenDedRequest={setOpenDedRequest}
+          <TabSettings openCustomDatePicker={openCustomDatePicker} openDedRequest={openDedRequest} setOpenDedRequest={setOpenDedRequest} setTab={setTab} addToast={addToast}
             animClass={tabAnimClass}
             isWide={isWide} S={S} MONO={MONO} BRASS={BRASS}
             savedBadge={savedBadge} themeMode={themeMode} setTheme={setTheme} pillShadow={THEME.pillShadow}
