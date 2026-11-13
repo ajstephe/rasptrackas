@@ -306,7 +306,9 @@ export function TabDashboard({
       return { p, idx, sal, g, t, e, ot, otN, future: !!pb.payDate && pb.payDate > today, payDate: pb.payDate,
         gross: sal+ot, ded: sal>0.005?afterFor(p.month)+(pb.sacrifice||0):0, takeHome: (pb.monthNet||0)+tn+en-(sal>0.005?afterFor(p.month):0) };
     });
-    if (!allCols.some(c=>c.ot>0.005)) return null;
+    // Shown as soon as pay is set up, even before any overtime or PA: the
+    // salary, net and take-home rows are useful on their own.
+    if (!allCols.some(c=>c.ot>0.005 || c.sal>0.005)) return null;
     const cols = allCols;
     const max = Math.max(1, ...allCols.map(c=>c.ot));
     const anyDed = allCols.some(c=>c.ded>0.005);
