@@ -1,3 +1,4 @@
+import { isSetUp } from './components/SetupCard.jsx';
 import { themeInSeason, SEASONAL_THEMES, seasonKey, rememberPreSeasonTheme, preSeasonTheme, seasonNoticeSeen, markSeasonNoticeSeen } from './seasonal.js';
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
@@ -1290,7 +1291,12 @@ export default function App() {
   // More..; No (or later) goes to Home.
   const [askDeductions, setAskDeductions] = useState(false);
   const [openDedRequest, setOpenDedRequest] = useState(false);
-  const setupFlow = { ask: askDeductions, done: () => setAskDeductions(true),
+  // Until setup is finished (rank, pay point, then the deductions step),
+  // the rest of the app is locked. MOCK: window.__gate picks the style.
+  const setupGated = !isSetUp(settings) || askDeductions;
+  const gateStyle = setupGated ? ((typeof window!=='undefined' && window.__gate) || 'full') : null;
+  useEffect(()=>{ if (setupGated && tab!=='dashboard') setTab('dashboard'); }, [setupGated, tab]);
+  const setupFlow = { gate: gateStyle, ask: askDeductions, done: () => setAskDeductions(true),
     answer: yes => { setAskDeductions(false); if (yes) { setOpenDedRequest(true); setTab('settings'); } else setTab('dashboard'); } };
   // Leaving More.. right after finishing setup ends the keep-it-open
   // grace too, so the card is back to its normal collapsed state next visit.
@@ -5835,10 +5841,10 @@ export default function App() {
            empty rather than pulsing on every visit to every other tab for
            the life of the app. */}
       {(()=>{ const showAddNudge = entries.length===0; return (
-      <nav ref={setNavEl} className="no-print app-nav" style={{...S.nav, display:isWide?'none':'flex'}}>
+      <nav ref={setNavEl} className="no-print app-nav" style={{...S.nav, display:(isWide||gateStyle==='full')?'none':'flex'}}>
         <div className="nav-pill" style={{left:navPillRect.left+'px', width:navPillRect.width+'px'}}/>
         {NAV_TABS.map(t=>(
-          <button key={t.id} ref={el=>navBtnRefs.current[t.id]=el} onClick={()=>leaveEditThen(()=>{ setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add' && formIsBlank(form) && !editing) { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); })} aria-current={tab===t.id?'page':undefined} style={{...S.nBtn(tab===t.id,t.id==='add'),position:'relative'}}>
+          <button key={t.id} ref={el=>navBtnRefs.current[t.id]=el} onClick={gateStyle && t.id!=='dashboard' ? ()=>addToast('Finish setting up first: rank, pay point and deductions','warn') : ()=>leaveEditThen(()=>{ setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add' && formIsBlank(form) && !editing) { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); })} aria-current={tab===t.id?'page':undefined} style={{...S.nBtn(tab===t.id,t.id==='add'),position:'relative',...(gateStyle && t.id!=='dashboard' ? {opacity:0.3,filter:'grayscale(1)'} : null)}}>
             {t.id==='carms'&&carmsOutstanding.totalClaims>0&&(
               // zIndex: the active tab's icon is scaled (.nav-ico.active), and
               // that transform paints it over this earlier sibling otherwise.
@@ -5907,12 +5913,12 @@ export default function App() {
               (opacity:0), which used to leave "selected" and "always
               highlighted" looking identical in this sidebar. Every other
               tab keeps the brass wash it always had. */}
-          <SegSlider activeKey={tab} orientation="vertical" trackStyle={{display:'flex',flexDirection:'column'}} indicatorStyle={{background:tab==='add'?'rgba(16,185,129,0.16)':THEME.sidebarPill,borderRadius:'11px'}}>
+          <SegSlider activeKey={tab} orientation="vertical" trackStyle={{display:gateStyle==='full'?'none':'flex',flexDirection:'column'}} indicatorStyle={{background:tab==='add'?'rgba(16,185,129,0.16)':THEME.sidebarPill,borderRadius:'11px'}}>
           {NAV_TABS.map(t=>{
             const isAdd = t.id==='add';
             const isActive = tab===t.id;
             return (
-              <button key={t.id} data-seg-key={t.id} className="sidebar-nav-btn" aria-current={tab===t.id?'page':undefined} onClick={()=>leaveEditThen(()=>{ setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add' && formIsBlank(form) && !editing) { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); })} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'var(--sidebar-hover-bg, transparent)',color:isAdd?'#10b981':(isActive?THEME.sidebarTextActive:THEME.sidebarText),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left'}}>
+              <button key={t.id} data-seg-key={t.id} className="sidebar-nav-btn" aria-current={tab===t.id?'page':undefined} onClick={gateStyle && t.id!=='dashboard' ? ()=>addToast('Finish setting up first: rank, pay point and deductions','warn') : ()=>leaveEditThen(()=>{ setPayslipPreview(null); setFySummaryYear(null); setFySummaryPrintMode(false); if(t.id==='add' && formIsBlank(form) && !editing) { setForm({...blankForm,date:todayStr}); } if(t.id==='months'&&defaultBreakdownView==='list') snapToActiveMonth(false,140); setTab(t.id); })} style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px',borderRadius:'11px',background:'var(--sidebar-hover-bg, transparent)',color:isAdd?'#10b981':(isActive?THEME.sidebarTextActive:THEME.sidebarText),fontWeight:700,fontSize:'14.5px',fontFamily:'inherit',border:'none',cursor:'pointer',marginBottom:'3px',textAlign:'left',...(gateStyle && !isActive ? {opacity:0.35} : null)}}>
                 {isAdd ? (
                   <span className={(entries.length===0&&!isActive)?'nav-add-pulse':''} style={{display:'flex'}}><Ico n={t.n} s={20} c="#10b981" w={2.5}/></span>
                 ) : (

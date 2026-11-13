@@ -75,7 +75,7 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupF
                 <span style={{flex:1,minWidth:0,fontSize:'14px',fontWeight:800,color:'var(--ink)'}}>{d.name}</span>
                 <div style={{position:'relative',flex:'0 0 110px'}}>
                   <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
-                  <input aria-label={`${d.name} monthly amount`} inputMode="decimal" autoFocus value={d.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) setDraft(l=>l.map(x=>x.id===d.id?{...x,amount:v}:x)); }} style={{...S.inp,background:'var(--surface)',padding:'9px 10px 9px 22px',fontSize:'14px',textAlign:'right'}}/>
+                  <input aria-label={`${d.name} monthly amount`} inputMode="decimal" autoFocus value={d.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) setDraft(l=>l.map(x=>x.id===d.id?{...x,amount:v}:x)); }} style={{...S.inp,background:'var(--surface)',padding:'9px 10px 9px 22px',fontSize:'16px',textAlign:'right'}}/>
                 </div>
                 <button type="button" aria-label={`Remove ${d.name}`} onClick={()=>setDraft(l=>l.filter(x=>x.id!==d.id))} style={{background:'none',border:'none',padding:'6px',cursor:'pointer',display:'flex'}}><Ico n="x" s={14} c="var(--quiet)"/></button>
               </div>

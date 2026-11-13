@@ -619,6 +619,7 @@ export function TabDashboard({
   <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
     <SetupCard where="home" settings={settings} saveSett={saveSett} S={S} BRASS={BRASS} setupFlow={setupFlow}/>
 
+    {setupFlow?.gate === 'full' ? null : <div aria-hidden={setupFlow?.gate ? true : undefined} style={setupFlow?.gate ? {opacity:0.35,filter:'grayscale(0.6)',pointerEvents:'none',userSelect:'none'} : undefined}>
     {isWide ? (<>
     {/* ── "One statement" layout (ledger redesign) — the hero,
          Current Period, Gross & Net, TOIL Balance and CARMS teaser
@@ -775,6 +776,7 @@ export function TabDashboard({
     </>)}
 
     <div style={{fontSize:'10.5px',color:'var(--text-red-deep)',textAlign:'center',lineHeight:1.5,padding:'8px 12px 0'}}>For guidance only. Always verify amounts against your payslip.</div>
+    </div>}
   </div>
   );
 }

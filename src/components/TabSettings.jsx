@@ -546,10 +546,10 @@ export function TabSettings({
               {list.map(d=>(
                 <div key={d.id} style={{background:'var(--surface-2)',borderRadius:'12px',padding:'10px'}}>
                   <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
-                    <input aria-label="Deduction name" value={d.name} placeholder="Name, e.g. Federation subs" onChange={e=>upd(d.id,{name:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'9px 11px',fontSize:'14px'}}/>
+                    <input aria-label="Deduction name" value={d.name} placeholder="Name, e.g. Federation subs" onChange={e=>upd(d.id,{name:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'9px 11px',fontSize:'16px'}}/>
                     <div style={{position:'relative',flex:isWide?'0 0 86px':'0 0 104px'}}>
                       <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
-                      <input aria-label={`${d.name||'Deduction'} monthly amount`} inputMode="decimal" value={d.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) upd(d.id,{amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'9px 10px 9px 22px',fontSize:'14px',textAlign:'right'}}/>
+                      <input aria-label={`${d.name||'Deduction'} monthly amount`} inputMode="decimal" value={d.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) upd(d.id,{amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'9px 10px 9px 22px',fontSize:'16px',textAlign:'right'}}/>
                     </div>
                     <button type="button" aria-label={`Remove ${d.name||'deduction'}`} onClick={()=>save(list.filter(x=>x.id!==d.id))} style={{background:'none',border:'none',padding:'6px',cursor:'pointer',display:'flex',flexShrink:0}}><Ico n="x" s={15} c="var(--quiet)"/></button>
                   </div>
@@ -573,7 +573,7 @@ export function TabSettings({
                         </select>
                         <div style={{position:'relative',flex:'0 0 96px'}}>
                           <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
-                          <input aria-label="New monthly amount" inputMode="decimal" value={c.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) setC({amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'8px 10px 8px 22px',fontSize:'14px',textAlign:'right'}}/>
+                          <input aria-label="New monthly amount" inputMode="decimal" value={c.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) setC({amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'8px 10px 8px 22px',fontSize:'16px',textAlign:'right'}}/>
                         </div>
                         <button type="button" aria-label="Remove amount change" onClick={()=>upd(d.id,{changes:(d.changes||[]).filter((_,k)=>k!==ci)})} style={{background:'none',border:'none',padding:'6px',cursor:'pointer',display:'flex',flexShrink:0}}><Ico n="x" s={14} c="var(--quiet)"/></button>
                       </div>);
