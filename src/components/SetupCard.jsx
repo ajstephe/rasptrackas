@@ -70,13 +70,21 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupF
         {done && <>
           {draft.length>0 && <div style={{display:'flex',flexDirection:'column',gap:'6px',marginBottom:'10px'}}>
             {draft.map(d=>(
-              <div key={d.id} style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                <span style={{flex:1,minWidth:0,fontSize:'14px',fontWeight:800,color:'var(--ink)'}}>{d.name}{d.when==='before'&&<span style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)'}}> · before tax</span>}</span>
+              <div key={d.id} style={{background:'var(--surface-2)',borderRadius:'12px',padding:'8px 8px 8px 12px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                <span style={{flex:1,minWidth:0,fontSize:'14px',fontWeight:800,color:'var(--ink)'}}>{d.name}</span>
                 <div style={{position:'relative',flex:'0 0 110px'}}>
                   <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
-                  <input aria-label={`${d.name} monthly amount`} inputMode="decimal" autoFocus value={d.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) setDraft(l=>l.map(x=>x.id===d.id?{...x,amount:v}:x)); }} style={{...S.inp,padding:'9px 10px 9px 22px',fontSize:'14px',textAlign:'right'}}/>
+                  <input aria-label={`${d.name} monthly amount`} inputMode="decimal" autoFocus value={d.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) setDraft(l=>l.map(x=>x.id===d.id?{...x,amount:v}:x)); }} style={{...S.inp,background:'var(--surface)',padding:'9px 10px 9px 22px',fontSize:'14px',textAlign:'right'}}/>
                 </div>
                 <button type="button" aria-label={`Remove ${d.name}`} onClick={()=>setDraft(l=>l.filter(x=>x.id!==d.id))} style={{background:'none',border:'none',padding:'6px',cursor:'pointer',display:'flex'}}><Ico n="x" s={14} c="var(--quiet)"/></button>
+              </div>
+              {/* Before tax & NI is for salary sacrifice (Cycle2Work starts there). */}
+              <div role="group" aria-label={`${d.name}: when it comes off`} style={{display:'flex',gap:'4px',marginTop:'6px',marginRight:'34px',background:'var(--surface)',borderRadius:'9px',padding:'3px'}}>
+                {[['after','After tax'],['before','Before tax & NI']].map(([k,l])=>(
+                  <button key={k} type="button" aria-pressed={d.when===k} onClick={()=>setDraft(list=>list.map(x=>x.id===d.id?{...x,when:k}:x))} style={{flex:1,border:'none',borderRadius:'7px',padding:'5px 4px',fontSize:'11.5px',fontWeight:800,cursor:'pointer',fontFamily:'inherit',background:d.when===k?BRASS:'transparent',color:d.when===k?'#fff':'var(--muted)'}}>{l}</button>
+                ))}
+              </div>
               </div>
             ))}
           </div>}
@@ -87,7 +95,7 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupF
             <button type="button" onClick={()=>setupFlow?.answer(false)} style={{...btn,background:'var(--surface-2)',color:'var(--ink)'}}>{draft.length?'Skip for now':'No thanks'}</button>
             <button type="button" onClick={finish} style={{...btn,background:BRASS,color:'#fff'}}>Finish setup</button>
           </div>
-          <div style={{fontSize:'11px',color:'var(--quiet)',marginTop:'8px'}}>Skipped months, amount changes and your own deductions can be set in More › Monthly deductions.</div>
+          <div style={{fontSize:'11px',color:'var(--quiet)',marginTop:'8px'}}>Choose "Before tax &amp; NI" for salary sacrifice, like Cycle2Work. Skipped months, amount changes and your own deductions can be set in More › Monthly deductions.</div>
         </>}
       </div>
     </div>
