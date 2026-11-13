@@ -36,3 +36,12 @@ export const deductionsFor = (settings, month) => {
   const r = x => Math.round(x*100)/100;
   return { before: r(before), after: r(after), total: r(before+after) };
 };
+
+// The quick-add presets, A–Z, used in setup and in More › Monthly deductions.
+// Cycle2Work is salary sacrifice, so it starts before tax & NI.
+export const DEDUCTION_PRESETS = ['ATOC','Cycle2Work','Federation subs','PFOA','Police Mutual','Regular savings','Sports & social'];
+export const PRE_TAX_PRESETS = ['Cycle2Work'];
+export const newDeduction = (name = '') => ({
+  id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+  name, amount: '', when: PRE_TAX_PRESETS.includes(name) ? 'before' : 'after',
+});

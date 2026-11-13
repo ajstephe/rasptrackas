@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { CURRENT_FY_YEAR, PAY_PERIODS, generateFYPeriods, localDateStr, getUKTaxYearStart } from '../lib/payPeriods.js';
 import { payDateOf, grossForImportedNet } from '../lib/payroll.js';
 import { PAY_RATES } from '../lib/payRates.js';
-import { deductionFor } from '../lib/deductions.js';
+import { deductionFor, DEDUCTION_PRESETS, PRE_TAX_PRESETS } from '../lib/deductions.js';
 import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { PrivacyNotice } from './PrivacyNotice.jsx';
@@ -526,8 +526,8 @@ export function TabSettings({
         const curMonth = PAY_PERIODS[curIdx]?.month;
         const total = list.reduce((a,d)=>a+deductionFor(d,curMonth),0);
         // Presets, A–Z. Cycle2Work is salary sacrifice, so it starts before tax & NI.
-        const SUGG = ['ATOC','Cycle2Work','Federation subs','PFOA','Police Mutual','Regular savings','Sports & social'];
-        const PRE_TAX = ['Cycle2Work'];
+        const SUGG = DEDUCTION_PRESETS;
+        const PRE_TAX = PRE_TAX_PRESETS;
         const unused = SUGG.filter(n=>!list.some(d=>d.name.toLowerCase()===n.toLowerCase()));
         return (
           <>
