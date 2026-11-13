@@ -20,10 +20,10 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupF
           <div style={{fontSize:'15px',fontWeight:900,color:'var(--ink)'}}>Do you have monthly deductions?</div>
         </div>
         <div style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,marginBottom:'14px'}}>
-          Things like ATOC, Federation subs, Police Mutual or regular savings. Adding them makes your take-home match your bank. You can always add these at a later date.
+          Things like ATOC, Federation subs, Police Mutual or regular savings. Adding them makes your take-home pay more accurate. You can always add these at a later date.
         </div>
         <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
-          <button type="button" onClick={()=>setupFlow.answer(false)} style={{...btn,background:'var(--surface-2)',color:'var(--ink)'}}>No, take me home</button>
+          <button type="button" onClick={()=>setupFlow.answer(false)} style={{...btn,background:'var(--surface-2)',color:'var(--ink)'}}>No thanks</button>
           <button type="button" onClick={()=>setupFlow.answer(true)} style={{...btn,background:BRASS,color:'#fff'}}>Yes, add them</button>
         </div>
       </div>
