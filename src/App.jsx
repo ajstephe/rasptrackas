@@ -5477,7 +5477,7 @@ export default function App() {
         );
       })()}
 
-      {statement&&<AnnualStatement {...statement} settings={settings} calcEntry={calcEntry} todayStr={todayStr} onPrint={()=>window.print()} onClose={()=>setStatement(null)}/>}
+      {statement&&<AnnualStatement {...statement} settings={settings} calcEntry={calcEntry} todayStr={todayStr} addToast={addToast} onClose={()=>setStatement(null)}/>}
 
       {/* Payslip preview / print document */}
       {payslipPreview&&(()=>{
