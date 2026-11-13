@@ -63,7 +63,7 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupF
       </div>
       {/* Step 3, optional: monthly deductions, right here in the same box. */}
       <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'14px',maxWidth:'720px',opacity:done?1:0.5}}>
-        <div style={lbl}>{step(3, done && draft.some(d=>parseFloat(d.amount)>0))}Monthly deductions <span style={{fontWeight:700,textTransform:'none',letterSpacing:0}}>· optional</span></div>
+        <div style={lbl}>{step(3, done)}Monthly deductions <span style={{fontWeight:700,textTransform:'none',letterSpacing:0}}>· optional</span></div>
         <div style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,marginBottom:'10px'}}>
           Things like ATOC, Federation subs, Police Mutual or regular savings. Adding them makes your take-home pay more accurate. You can always add these at a later date.
         </div>
