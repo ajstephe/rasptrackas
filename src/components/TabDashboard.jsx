@@ -619,7 +619,7 @@ export function TabDashboard({
   <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
     <SetupCard where="home" settings={settings} saveSett={saveSett} S={S} BRASS={BRASS} setupFlow={setupFlow}/>
 
-    {setupFlow?.gate === 'full' ? null : <div aria-hidden={setupFlow?.gate ? true : undefined} style={setupFlow?.gate ? {opacity:0.35,filter:'grayscale(0.6)',pointerEvents:'none',userSelect:'none'} : undefined}>
+    {setupFlow?.gate ? null : <div>
     {isWide ? (<>
     {/* ── "One statement" layout (ledger redesign) — the hero,
          Current Period, Gross & Net, TOIL Balance and CARMS teaser
