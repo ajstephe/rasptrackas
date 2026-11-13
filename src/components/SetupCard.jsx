@@ -92,7 +92,7 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupF
             {unused.map(n=><button key={n} type="button" onClick={()=>setDraft(l=>[...l,newDeduction(n)])} style={{background:'var(--chip-bg)',border:'none',borderRadius:'999px',padding:'6px 11px',fontSize:'11.5px',fontWeight:800,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit'}}>+ {n}</button>)}
           </div>
           <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
-            <button type="button" onClick={()=>setupFlow?.answer(false)} style={{...btn,background:'var(--surface-2)',color:'var(--ink)'}}>{draft.length?'Skip for now':'No thanks'}</button>
+            <button type="button" onClick={()=>setupFlow?.answer(false)} style={{...btn,background:'var(--surface-2)',color:'var(--ink)'}}>{draft.length?'Skip for now':'Not right now'}</button>
             <button type="button" onClick={finish} style={{...btn,background:BRASS,color:'#fff'}}>Finish setup</button>
           </div>
           <div style={{fontSize:'11px',color:'var(--quiet)',marginTop:'8px'}}>Choose "Before tax &amp; NI" for salary sacrifice, like Cycle2Work. Skipped months, amount changes and your own deductions can be set in More › Monthly deductions.</div>
