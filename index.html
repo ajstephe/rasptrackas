@@ -1074,6 +1074,15 @@
          and never touch background/color, so they'd otherwise stay a
          bright native-white box in dark mode. */
       input, select, textarea{background:var(--surface);color:var(--ink)}
+      /* Printed documents and the pay statement are always plain paper: no
+         theme backgrounds, scanlines or other overlays, whichever theme is on.
+         :root[data-theme] matches the specificity of the theme rules above. */
+      :root body:has(> .print-root)::after,:root[data-theme] body:has(> .print-root)::after,
+      :root body:has(> .print-root)::before,:root[data-theme] body:has(> .print-root)::before{display:none!important}
+      @media print{
+        html:root,html:root[data-theme],:root body,:root[data-theme] body{background:#fff!important;color-scheme:light}
+        :root body::after,:root[data-theme] body::after,:root body::before,:root[data-theme] body::before{display:none!important}
+      }
     </style>
   </head>
   <body>

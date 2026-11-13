@@ -1,4 +1,5 @@
 import { isSetUp } from './components/SetupCard.jsx';
+import AnnualStatement from './components/AnnualStatement.jsx';
 import { themeInSeason, SEASONAL_THEMES, seasonKey, rememberPreSeasonTheme, preSeasonTheme, seasonNoticeSeen, markSeasonNoticeSeen } from './seasonal.js';
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
@@ -103,6 +104,11 @@ idle(() => {
 // Figures font, set per theme in index.html (--num-font): IBM Plex Sans in
 // Light, Dark and System; the other themes set their own.
 const MONO  = 'var(--num-font)';
+// Printed documents (payslip preview, archived year in print mode) never take
+// the theme's fonts: the themes restyle anything set in var(--num-font), and
+// pixel or display faces are hard to read on paper. Literal stacks here.
+const PRINT_BODY = "'Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif";
+const PRINT_NUM  = "'Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif";
 // One accent + desktop-sidebar palette per Appearance option beyond the
 // default light/dark pair — Corporate and Professional Light are
 // fixed looks (see the :not([data-theme=...]) guards in index.html), each
@@ -1216,6 +1222,7 @@ export default function App() {
   // snapping away the instant connectivity returns.
   const offlineMounted = useMountTransition(isOffline, 340);
   const [fySummaryYear, setFySummaryYear] = useState(null); // calendar FY-start-year of the archived year being viewed, or null
+  const [statement, setStatement] = useState(null); // Export › PDF pay statement: { months, yearLabel, rangeLabel }
   const [fySummaryPrintMode, setFySummaryPrintMode] = useState(false); // true when opened via Financial Year export (all periods expanded, Print button shown)
   const [archiveExpandedPeriod, setArchiveExpandedPeriod] = useState(null); // short label of the expanded period within that year, or null
   const [taxImpactExpanded, setTaxImpactExpanded] = useState(false);
@@ -4507,20 +4514,23 @@ export default function App() {
       const yPeriods = generateFYPeriods(payslipFYYear);
       const start = yPeriods[0].start, end = yPeriods[11].end;
       if (exportFormat==='csv') { handleExportSpreadsheet(start, end, sanitiseNotes); setPayslipModalOpen(false); return; }
-      // PDF: the current year's tax/NI figures are accurate (same context the
-      // rest of the app uses), so it gets the normal payslip-style report.
-      // A past year's cumulative context is stale, so — same reasoning as
-      // Archived Financial Years — it opens that gross-only, period-grouped
-      // view instead, now with a Print button for exactly this purpose.
-      if (payslipFYYear===CURRENT_FY_YEAR) {
-        setPayslipPreview({ start, end, rangeLabel: `${yPeriods[0].month} – ${yPeriods[11].month}`, label: `FY ${payslipFYYear}/${(payslipFYYear+1).toString().slice(-2)}`, data: computePayslipData(start, end) });
-      } else {
-        setArchiveExpandedPeriod(null);
-        setFySummaryPrintMode(true);
-        setFySummaryYear(payslipFYYear);
-      }
+      // PDF: the pay statement — every payday of the tax year with salary,
+      // allowances, overtime, PA and deductions, for an accountant.
+      const yl = `${payslipFYYear}/${(payslipFYYear+1).toString().slice(-2)}`;
+      setStatement({ months: payYearFor(payslipFYYear), yearLabel: yl, rangeLabel: `Tax year 6 April ${payslipFYYear} to 5 April ${payslipFYYear+1} · paydays April ${payslipFYYear} to March ${payslipFYYear+1}` });
       setPayslipModalOpen(false);
       return;
+    }
+    // A single pay month as PDF gets the same statement, for that payday.
+    if (payslipMode==='period' && payslipPeriodIdx!=null && exportFormat!=='csv') {
+      const p = PAY_PERIODS[payslipPeriodIdx];
+      const fy = getFYStartYearFor(p.end);
+      const pb = payYearFor(fy).find(m=>m.month===p.month);
+      if (pb) {
+        setStatement({ months: [pb], yearLabel: `${fy}/${(fy+1).toString().slice(-2)}`, rangeLabel: `Paid ${new Date(pb.payDate+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})} · shifts ${fmtD(p.start)} – ${fmtD(p.end)}` });
+        setPayslipModalOpen(false);
+        return;
+      }
     }
     let start, end, label;
     if (payslipMode==='period' && payslipPeriodIdx!=null) {
@@ -5015,11 +5025,17 @@ export default function App() {
         input[type=date]::-webkit-date-and-time-value{text-align:left}
         input[type=date]::-webkit-datetime-edit{padding:0}
         input[type=date]::-webkit-calendar-picker-indicator{background:transparent;cursor:pointer;opacity:0.55;padding:0;margin:0}
+        .payslip-print-area{font-size-adjust:none;font-variant-numeric:tabular-nums;text-shadow:none}
         @media print{
+          @page{size:A4;margin:12mm}
           .no-print{display:none !important}
           .payslip-print-area{position:static !important;inset:auto !important;width:100% !important;max-width:none !important;max-height:none !important;overflow:visible !important;background:#fff !important;padding:0 !important}
           .payslip-print-doc{box-shadow:none !important;border-radius:0 !important}
           body,html{background:#fff !important}
+          body:has(> .print-root) > :not(.print-root){display:none !important}
+          html:has(.print-root),body:has(> .print-root){height:auto !important;overflow:visible !important}
+          .print-root{position:static !important}
+          .print-root .payslip-print-doc{max-width:none !important;padding:0 !important}
         }
       `}</style>
 
@@ -5461,6 +5477,8 @@ export default function App() {
         );
       })()}
 
+      {statement&&<AnnualStatement {...statement} settings={settings} calcEntry={calcEntry} todayStr={todayStr} onPrint={()=>window.print()} onClose={()=>setStatement(null)}/>}
+
       {/* Payslip preview / print document */}
       {payslipPreview&&(()=>{
         const d = payslipPreview.data;
@@ -5477,13 +5495,13 @@ export default function App() {
         const thStyle = {textAlign:'left',fontSize:'9px',fontWeight:900,color:'#78849b',textTransform:'uppercase',letterSpacing:'0.8px',padding:'4px 0',borderBottom:'1px solid #f1f5f9'};
         const sectionTitle = {fontSize:'10.5px',fontWeight:900,color:'#64748b',textTransform:'uppercase',letterSpacing:'1.2px',margin:'20px 0 8px',paddingTop:'14px',borderTop:'1px solid #f1f5f9'};
         return (
-          <div className="payslip-print-area" style={{position:'absolute',inset:0,background:'#e2e8f0',zIndex:70,overflowY:'auto',overscrollBehavior:'contain',padding:'16px',paddingTop:'calc(16px + env(safe-area-inset-top))'}}>
+          createPortal(<div className="payslip-print-area print-root" style={{position:'fixed',inset:0,background:'#e2e8f0',zIndex:70,overflowY:'auto',overscrollBehavior:'contain',padding:'16px',paddingTop:'calc(16px + env(safe-area-inset-top))'}}>
             <div className="no-print" style={{display:'flex',gap:'8px',marginBottom:'14px',maxWidth:'560px',margin:'0 auto 14px'}}>
               <button onClick={()=>window.print()} style={{flex:1,background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'12px',fontWeight:800,fontSize:'13px',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}><Ico n="dl" s={14} c="#fff"/> Print or save as PDF</button>
               <button onClick={()=>setPayslipPreview(null)} style={{background:'#ffffff',color:'#64748b',border:'1px solid #e2e8f0',borderRadius:'11px',padding:'12px 18px',fontWeight:900,fontSize:'12px',cursor:'pointer',fontFamily:'inherit'}}>Close</button>
             </div>
 
-            <div className="payslip-print-doc" style={{maxWidth:'560px',margin:'0 auto',background:'#ffffff',borderRadius:'6px',boxShadow:'0 4px 24px rgba(0,0,0,0.12)',overflow:'hidden'}}>
+            <div className="payslip-print-doc" style={{fontFamily:PRINT_BODY,letterSpacing:'normal',maxWidth:'560px',margin:'0 auto',background:'#ffffff',borderRadius:'6px',boxShadow:'0 4px 24px rgba(0,0,0,0.12)',overflow:'hidden'}}>
               <div style={{background:'#0f2744',color:'#fff',padding:'26px 26px 20px'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'18px'}}>
                   <div>
@@ -5502,7 +5520,7 @@ export default function App() {
                   </div>
                   <div>
                     <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'3px'}}>Period</div>
-                    <div style={{fontFamily:MONO,fontWeight:600,fontSize:'12.5px'}}>{payslipPreview.rangeLabel || `${fmtD(payslipPreview.start)} – ${fmtD(payslipPreview.end)}`}</div>
+                    <div style={{fontFamily:PRINT_NUM,fontWeight:600,fontSize:'12.5px'}}>{payslipPreview.rangeLabel || `${fmtD(payslipPreview.start)} – ${fmtD(payslipPreview.end)}`}</div>
                   </div>
                 </div>
               </div>
@@ -5519,9 +5537,9 @@ export default function App() {
                         <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12.5px'}}>
                           <thead><tr><th style={thStyle}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Hours</th><th style={{...thStyle,textAlign:'right'}}>Rate/hr</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
                           <tbody>
-                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>1.33×</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtHrs(d.rateHrs.hours133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours133/d.rateHrs.hours133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours133)}</td></tr>}
-                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>1.5×</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtHrs(d.rateHrs.hours150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours150/d.rateHrs.hours150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours150)}</td></tr>}
-                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>2×</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtHrs(d.rateHrs.hours200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours200/d.rateHrs.hours200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(d.rateAmt.hours200)}</td></tr>}
+                            {d.rateHrs.hours133>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>1.33×</td><td style={{...rowStyle,textAlign:'right',fontFamily:PRINT_NUM}}>{fmtHrs(d.rateHrs.hours133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:PRINT_NUM}}>{fmtGBP(d.rateAmt.hours133/d.rateHrs.hours133)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:PRINT_NUM}}>{fmtGBP(d.rateAmt.hours133)}</td></tr>}
+                            {d.rateHrs.hours150>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>1.5×</td><td style={{...rowStyle,textAlign:'right',fontFamily:PRINT_NUM}}>{fmtHrs(d.rateHrs.hours150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:PRINT_NUM}}>{fmtGBP(d.rateAmt.hours150/d.rateHrs.hours150)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:PRINT_NUM}}>{fmtGBP(d.rateAmt.hours150)}</td></tr>}
+                            {d.rateHrs.hours200>0&&<tr><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>2×</td><td style={{...rowStyle,textAlign:'right',fontFamily:PRINT_NUM}}>{fmtHrs(d.rateHrs.hours200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:PRINT_NUM}}>{fmtGBP(d.rateAmt.hours200/d.rateHrs.hours200)}</td><td style={{...rowStyle,textAlign:'right',fontFamily:PRINT_NUM}}>{fmtGBP(d.rateAmt.hours200)}</td></tr>}
                           </tbody>
                         </table>
                       </>
@@ -5534,7 +5552,7 @@ export default function App() {
                           <thead><tr><th style={thStyle}>Type</th><th style={{...thStyle,textAlign:'right'}}>Count</th><th style={{...thStyle,textAlign:'right'}}>Rate</th><th style={{...thStyle,textAlign:'right'}}>Amount</th></tr></thead>
                           <tbody>
                             {['PA1','PA2','PA3'].filter(k=>d.paCounts[k]>0).map(k=>(
-                              <tr key={k}><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>{k}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{d.paCounts[k]}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(PA_RATES[k])}</td><td style={{...rowStyle,textAlign:'right',fontFamily:MONO}}>{fmtGBP(PA_RATES[k]*d.paCounts[k])}</td></tr>
+                              <tr key={k}><td style={{...rowStyle,fontWeight:700,color:'#64748b'}}>{k}</td><td style={{...rowStyle,textAlign:'right',fontFamily:PRINT_NUM}}>{d.paCounts[k]}</td><td style={{...rowStyle,textAlign:'right',fontFamily:PRINT_NUM}}>{fmtGBP(PA_RATES[k])}</td><td style={{...rowStyle,textAlign:'right',fontFamily:PRINT_NUM}}>{fmtGBP(PA_RATES[k]*d.paCounts[k])}</td></tr>
                             ))}
                           </tbody>
                         </table>
@@ -5546,7 +5564,7 @@ export default function App() {
                         <div style={sectionTitle}>TOIL banked</div>
                         <div style={{background:'#f5f3ff',border:'1px solid #f1f5f9',borderRadius:'13px',padding:'11px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#6d28d9'}}>
                           <span>Not included in the totals below</span>
-                          <strong style={{fontFamily:MONO,fontWeight:600}}>+{fmtHrs(d.toilBanked)}</strong>
+                          <strong style={{fontFamily:PRINT_NUM,fontWeight:600}}>+{fmtHrs(d.toilBanked)}</strong>
                         </div>
                       </>
                     )}
@@ -5557,7 +5575,7 @@ export default function App() {
                         <div style={{background:'#eff6ff',border:'1px solid #f1f5f9',borderRadius:'13px',padding:'11px 14px',marginBottom:'8px'}}>
                           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'11.5px',color:'#1e40af'}}>
                             <span>{(d.pensionRate*100).toFixed(2)}% of {fmtGBP(d.pensionablePayForRange)} pensionable pay</span>
-                            <strong style={{fontFamily:MONO,fontWeight:600}}>−{fmtGBP(d.pensionForRange)}</strong>
+                            <strong style={{fontFamily:PRINT_NUM,fontWeight:600}}>−{fmtGBP(d.pensionForRange)}</strong>
                           </div>
                           <div style={{fontSize:'9.5px',color:'#3b82f6',marginTop:'4px',lineHeight:1.5}}>Deducted from salary before tax — already reflected in the rate below. Not shown in the overtime total, since pension is never taken from overtime pay itself.</div>
                         </div>
@@ -5565,10 +5583,10 @@ export default function App() {
                     )}
 
                     <div style={{background:'#f8fafc',borderRadius:'12px',padding:'16px 18px',margin:'22px 0'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',fontWeight:800,color:'#0f172a'}}><span>Gross Overtime &amp; PA</span><span style={{fontFamily:MONO,fontWeight:600}}>{fmtGBP(d.gross)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. Income Tax{d.bandName?` (${d.bandName})`:''}</span><span style={{fontFamily:MONO}}>−{fmtGBP(d.tax)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. National Insurance</span><span style={{fontFamily:MONO}}>−{fmtGBP(d.ni)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0 0',marginTop:'6px',borderTop:'1px solid #f1f5f9',fontSize:'16px',fontWeight:600,color:'#059669'}}><span>Estimated Net</span><span style={{fontFamily:MONO}}>{fmtGBP(d.net)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',fontWeight:800,color:'#0f172a'}}><span>Gross Overtime &amp; PA</span><span style={{fontFamily:PRINT_NUM,fontWeight:600}}>{fmtGBP(d.gross)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. Income Tax{d.bandName?` (${d.bandName})`:''}</span><span style={{fontFamily:PRINT_NUM}}>−{fmtGBP(d.tax)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'5px 0',fontSize:'12.5px',color:'#dc2626'}}><span>Est. National Insurance</span><span style={{fontFamily:PRINT_NUM}}>−{fmtGBP(d.ni)}</span></div>
+                      <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0 0',marginTop:'6px',borderTop:'1px solid #f1f5f9',fontSize:'16px',fontWeight:600,color:'#059669'}}><span>Estimated Net</span><span style={{fontFamily:PRINT_NUM}}>{fmtGBP(d.net)}</span></div>
                     </div>
                   </>
                 )}
@@ -5578,7 +5596,7 @@ export default function App() {
                 <strong style={{color:'#64748b'}}>A note on these figures.</strong> This summary is generated from what you've logged in the app, for your own reference — it isn't an official payslip. Tax and National Insurance are worked out the way payroll does: tax code 1257L month by month, and NI on each month's pay. A different tax code or other deductions on your payslip will make a difference, so check against it if the figures matter to you.
               </div>
             </div>
-          </div>
+          </div>, document.body)
         );
       })()}
 
@@ -5595,7 +5613,7 @@ export default function App() {
         // browsing keeps the app's own theme untouched.
         const c = (light, themed) => fySummaryPrintMode ? light : themed;
         return (
-          <div className={fySummaryPrintMode?'payslip-print-area':''} style={{position:'absolute',inset:0,background:c('#f8fafc','var(--surface-2)'),zIndex:65,overflowY:'auto',overscrollBehavior:'contain',paddingTop:'env(safe-area-inset-top)'}}>
+          <div className={fySummaryPrintMode?'payslip-print-area':''} style={{...(fySummaryPrintMode?{fontFamily:PRINT_BODY,letterSpacing:'normal'}:null),position:'absolute',inset:0,background:c('#f8fafc','var(--surface-2)'),zIndex:65,overflowY:'auto',overscrollBehavior:'contain',paddingTop:'env(safe-area-inset-top)'}}>
             <div className="no-print" style={{background:'var(--tint-amber-2)',padding:'8px',fontSize:'10px',fontWeight:800,color:'var(--text-amber-deep)',textAlign:'center'}}>Archived — {label} is read-only</div>
             {!fySummaryPrintMode&&(
               <div className="no-print" style={{display:'flex',gap:'8px',padding:'12px 12px 0'}}>
@@ -5612,7 +5630,7 @@ export default function App() {
               <button className="no-print" onClick={()=>{ if(fySummaryPrintMode){ setFySummaryPrintMode(false); } else { setFySummaryYear(null); } }} aria-label="Back" style={{background:'rgba(255,255,255,0.12)',border:'none',borderRadius:'9px',width:'32px',height:'32px',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',cursor:'pointer',marginBottom:'12px'}}><Ico n="back" s={16} c="#fff"/></button>
               <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Tax year</div>
               <div style={{fontSize:'19px',fontWeight:900}}>{label}</div>
-              <div style={{fontFamily:MONO,fontSize:'9.5px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
+              <div style={{fontFamily:c(PRINT_NUM,MONO),fontSize:'9.5px',color:'#93c5fd',marginTop:'2px'}}>{fmtD(y.start)} – {fmtD(y.end)}</div>
               <div style={{background:c('#1e3a5f','rgba(255,255,255,0.08)'),borderRadius:'14px',padding:'14px',display:'flex',marginTop:'12px'}}>
                 <div style={{flex:1,textAlign:'center'}}>
                   <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Shifts Logged</div>
@@ -5621,12 +5639,12 @@ export default function App() {
                 <div style={{width:'1px',background:'rgba(255,255,255,0.15)'}}/>
                 <div style={{flex:1,textAlign:'center'}}>
                   <div style={{fontSize:'10px',fontWeight:900,color:'#93c5fd',textTransform:'uppercase',letterSpacing:'0.06em'}}>Gross</div>
-                  <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600}}>{fmtGBP(y.totalGross)}</div>
+                  <div style={{fontFamily:c(PRINT_NUM,MONO),fontSize:'18px',fontWeight:600}}>{fmtGBP(y.totalGross)}</div>
                 </div>
                 <div style={{width:'1px',background:'rgba(255,255,255,0.15)'}}/>
                 <div style={{flex:1,textAlign:'center'}}>
                   <div style={{fontSize:'10px',fontWeight:900,color:'#86efac',textTransform:'uppercase',letterSpacing:'0.06em'}}>Net</div>
-                  <div style={{fontFamily:MONO,fontSize:'18px',fontWeight:600,color:'#86efac'}}>{fmtGBP(y.totalNet)}</div>
+                  <div style={{fontFamily:c(PRINT_NUM,MONO),fontSize:'18px',fontWeight:600,color:'#86efac'}}>{fmtGBP(y.totalNet)}</div>
                 </div>
               </div>
             </div>
@@ -5643,12 +5661,12 @@ export default function App() {
                     <button disabled={fySummaryPrintMode} onClick={()=>setArchiveExpandedPeriod(expanded?null:p.short+fySummaryYear)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:fySummaryPrintMode?'default':'pointer'}}>
                       <div>
                         <div style={{fontWeight:900,fontSize:'13px',color:c('#0f172a','var(--ink)')}}>{payLabel(p.month)}</div>
-                        <div style={{fontFamily:MONO,fontSize:'9.5px',color:c('#78849b','var(--quiet)'),marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)} · {p.entries.length} shift{p.entries.length===1?'':'s'}</div>
+                        <div style={{fontFamily:c(PRINT_NUM,MONO),fontSize:'9.5px',color:c('#78849b','var(--quiet)'),marginTop:'1px'}}>{fmtD(p.start)} – {fmtD(p.end)} · {p.entries.length} shift{p.entries.length===1?'':'s'}</div>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                         <div style={{textAlign:'right'}}>
-                          <div style={{fontFamily:MONO,fontWeight:600,fontSize:'12.5px',color:c('#1e3a5f','var(--text-navy)')}}>{fmtGBP(p.gross)}</div>
-                          <div style={{fontFamily:MONO,fontWeight:600,fontSize:'10.5px',color:c('#059669','#059669')}}>{fmtGBP(p.net)} net</div>
+                          <div style={{fontFamily:c(PRINT_NUM,MONO),fontWeight:600,fontSize:'12.5px',color:c('#1e3a5f','var(--text-navy)')}}>{fmtGBP(p.gross)}</div>
+                          <div style={{fontFamily:c(PRINT_NUM,MONO),fontWeight:600,fontSize:'10.5px',color:c('#059669','#059669')}}>{fmtGBP(p.net)} net</div>
                         </div>
                         {!fySummaryPrintMode&&<Ico n={expanded?'cU':'cD'} s={14} c="#94a3b8"/>}
                       </div>
@@ -5661,7 +5679,7 @@ export default function App() {
                               <div style={{fontWeight:800,fontSize:'11.5px',color:c('#0f172a','var(--ink)')}}>{longDay(e.date)}</div>
                               <div style={{fontSize:'10px',color:c('#78849b','var(--quiet)'),marginTop:'1px',textTransform:'uppercase'}}>{e.reason||'—'}</div>
                             </div>
-                            <div style={{fontFamily:MONO,fontWeight:600,fontSize:'11px',color:c('#1e3a5f','var(--text-navy)'),textAlign:'right'}}>{fmtGBP(e.gross)}{e.gross>0&&<div style={{fontSize:'9.5px',color:'#059669'}}>{fmtGBP(e.net)} net</div>}</div>
+                            <div style={{fontFamily:c(PRINT_NUM,MONO),fontWeight:600,fontSize:'11px',color:c('#1e3a5f','var(--text-navy)'),textAlign:'right'}}>{fmtGBP(e.gross)}{e.gross>0&&<div style={{fontSize:'9.5px',color:'#059669'}}>{fmtGBP(e.net)} net</div>}</div>
                           </div>
                         ))}
                       </div>
