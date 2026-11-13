@@ -63,9 +63,12 @@ export function TabSettings({
   // Arriving from setup's "Yes, add them": open Monthly deductions and
   // bring it into view.
   const dedCardRef = useRef(null);
+  // Remembers the card was opened by first-time setup, so Save heads Home.
+  const dedFromSetup = useRef(false);
   useEffect(()=>{
     if (!openDedRequest) return;
     setOpenDedRequest(false);
+    dedFromSetup.current = true;
     setDedExpanded(true);
     const t = setTimeout(()=>dedCardRef.current?.scrollIntoView({ behavior:'smooth', block:'start' }), 250);
     return ()=>clearTimeout(t);
@@ -515,10 +518,18 @@ export function TabSettings({
         const commit = () => {
           const clean = list.filter(d=>d.name.trim() || parseFloat(d.amount)>0).map(d=>({...d,name:d.name.trim()||'Deduction'}));
           saveSett({...settings, deductions:clean}); setDedDraft(null);
-          // Saved: close the card and go to Home, where the new net take-home shows.
+          // Saved: close the card. Straight after first-time setup that goes
+          // on to Home; otherwise stay on More, back at the top.
           setDedExpanded(false);
           if (addToast) addToast('Deductions saved. Take-home updated', 'success');
-          if (setTab) setTab('dashboard'); else setDedSavedAt(Date.now());
+          else setDedSavedAt(Date.now());
+          if (dedFromSetup.current && setTab) { dedFromSetup.current = false; setTab('dashboard'); }
+          else {
+            // The app scrolls inside its main panel, not the window.
+            let el = dedCardRef.current?.parentElement;
+            while (el && !(el.scrollHeight > el.clientHeight && /auto|scroll/.test(getComputedStyle(el).overflowY))) el = el.parentElement;
+            (el || window).scrollTo({ top: 0, behavior: 'smooth' });
+          }
         };
         const upd = (id,patch) => save(list.map(d=>d.id===id?{...d,...patch}:d));
         const add = (name='') => save([...list,{id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,amount:'',when:PRE_TAX.includes(name)?'before':'after'}]);
