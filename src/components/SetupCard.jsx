@@ -76,7 +76,7 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupF
               <div key={d.id} style={{background:'var(--surface-2)',borderRadius:'12px',padding:'8px 8px 8px 12px'}}>
               <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                 {customIds.includes(d.id)
-                  ? <input aria-label="Deduction name" autoFocus maxLength={40} value={d.name} placeholder="Name, e.g. Gym" onChange={e=>{ const v=e.target.value; setDraft(l=>l.map(x=>x.id===d.id?{...x,name:v}:x)); }} style={{...S.inp,flex:1,minWidth:0,background:'var(--surface)',padding:'9px 10px',fontSize:'16px',fontWeight:700}}/>
+                  ? <input aria-label="Deduction name" autoFocus maxLength={40} value={d.name} placeholder="Deduction name" onChange={e=>{ const v=e.target.value; setDraft(l=>l.map(x=>x.id===d.id?{...x,name:v}:x)); }} style={{...S.inp,flex:1,minWidth:0,background:'var(--surface)',padding:'9px 10px',fontSize:'16px',fontWeight:700}}/>
                   : <span style={{flex:1,minWidth:0,fontSize:'14px',fontWeight:800,color:'var(--ink)'}}>{d.name}</span>}
                 <div style={{position:'relative',flex:'0 0 110px'}}>
                   <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
