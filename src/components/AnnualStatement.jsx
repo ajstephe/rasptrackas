@@ -97,7 +97,7 @@ export default function AnnualStatement({ months, settings, calcEntry, todayStr,
   return createPortal(
     <div className="payslip-print-area print-root" style={{ position: 'fixed', inset: 0, background: '#cbd5e1', zIndex: 70, overflowY: 'auto', overscrollBehavior: 'contain', padding: '12px', paddingTop: 'calc(12px + env(safe-area-inset-top))', fontFamily: BODY }}>
       <div className="no-print" style={{ position: 'sticky', top: 0, zIndex: 2, display: 'flex', gap: '8px', maxWidth: `${PAGE_W * scale}px`, margin: '0 auto 12px' }}>
-        <button onClick={save} disabled={busy} style={{ flex: 1, background: '#0f2744', color: '#fff', border: 'none', borderRadius: '11px', padding: '12px', fontWeight: 800, fontSize: '13px', cursor: 'pointer', fontFamily: BODY, opacity: busy ? 0.6 : 1, boxShadow: '0 4px 14px rgba(15,39,68,0.3)' }}>{busy ? 'Making PDF…' : 'Save A4 PDF'}</button>
+        <button onClick={save} disabled={busy} style={{ flex: 1, background: '#0f2744', color: '#fff', border: 'none', borderRadius: '11px', padding: '12px', fontWeight: 800, fontSize: '13px', cursor: 'pointer', fontFamily: BODY, opacity: busy ? 0.6 : 1, boxShadow: '0 4px 14px rgba(15,39,68,0.3)' }}>{busy ? 'Making PDF…' : 'Save as PDF'}</button>
         <button onClick={onClose} style={{ background: '#fff', color: MUTED, border: `1px solid ${RULE}`, borderRadius: '11px', padding: '12px 18px', fontWeight: 800, fontSize: '12px', cursor: 'pointer', fontFamily: BODY }}>Close</button>
       </div>
 
@@ -146,6 +146,29 @@ export default function AnnualStatement({ months, settings, calcEntry, todayStr,
             <Ledger title="Earnings" cols={s.cols} rows={s.earnings}/>
             <Ledger title="Deductions" cols={s.cols} rows={s.deductions}/>
           </div>
+
+          {s.taper100k && (
+            <>
+              <H sub="An illustration of what crossing £100,000 means for this year. Talk to an accountant or financial adviser before acting on it.">£100k+ calculator</H>
+              <div style={{ border: `1px solid ${RULE}` }}>
+                {s.taper100k.rows.map(([k, v, note], i) => (
+                  <div key={k} style={{ padding: '6px 9px', borderTop: i ? `1px solid ${HAIR}` : 'none' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '11.5px' }}><span>{k}</span><strong style={NUMS}>{v}</strong></div>
+                    {note && <div style={{ fontSize: '9.5px', color: FAINT, marginTop: '2px' }}>{note}</div>}
+                  </div>
+                ))}
+              </div>
+              <div style={{ border: `1px solid ${RULE}`, marginTop: '10px' }}>
+                <div style={{ background: BAND, padding: '6px 9px', fontSize: '9.5px', fontWeight: 800, color: MUTED, letterSpacing: '0.4px', textTransform: 'uppercase' }}>Illustration: bringing taxable pay back to £100,000</div>
+                {s.taper100k.illustration.map(([k, v], i, a) => (
+                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '5px 9px', borderTop: i === a.length - 1 ? `1.5px solid ${INK}` : `1px solid ${HAIR}`, fontSize: '11.5px', fontWeight: i === a.length - 1 ? 800 : 400 }}>
+                    <span>{k}</span><strong style={NUMS}>{v}</strong>
+                  </div>
+                ))}
+              </div>
+              <p style={{ ...p, fontSize: '9.5px', color: FAINT, marginTop: '6px' }}>Rough figures: a personal pension (relief at source) or Gift Aid gift grosses up by 20%, with the rest of the relief claimed through Self Assessment. Annual allowance and other limits apply.</p>
+            </>
+          )}
 
           <H>Notes for a tax return</H>
           <div style={{ display: 'grid', gap: '8px' }}>

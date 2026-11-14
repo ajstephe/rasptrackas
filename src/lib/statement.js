@@ -91,7 +91,7 @@ export function buildStatement({ months, settings, calcEntry, todayStr, yearLabe
   if (!single) {
     const band = ani <= 50270 ? `All in the basic rate, ${whole(50270 - ani)} below the 40% threshold.`
       : ani <= 100000 ? `About ${whole(Math.min(ani, 125140) - 50270)} is in the 40% band. Personal pension contributions or Gift Aid in that band get 40% relief through Self Assessment. ${whole(100000 - ani)} below £100,000.`
-      : (() => { const tp = taperExtra(ani, 1); return `${whole(ani - 100000)} over £100,000, so about ${whole(12570 - tp.allowanceLeft)} of personal allowance is lost. Payroll doesn't collect this during the year: roughly ${whole(tp.extraTax)} more tax is likely via a code change or Self Assessment.`; })();
+      : `${whole(ani - 100000)} over £100,000. See the £100k+ calculator above.`;
     notes.push(['Tax position', `Taxable pay of ${fmtGBP(ani)}${hasForecast ? ' (full year, forecast months included)' : ''}. ${band}`]);
     if (ani > 60000) notes.push(['Child Benefit', `Over £60,000: if you or a partner claim Child Benefit and you're the higher earner, ${ani < 80000 ? 'part of it (1% for every £200 over)' : 'all of it'} is repaid through Self Assessment.`]);
   }
@@ -100,7 +100,40 @@ export function buildStatement({ months, settings, calcEntry, todayStr, yearLabe
   notes.push(['Uniform', 'Police officers up to and including chief inspector can usually claim a £140 a year flat-rate expense for uniform upkeep (gov.uk/guidance/job-expenses-for-uniforms-work-clothing-and-tools), backdated up to four years, if it isn’t already in the tax code.']);
   if (show.other) notes.push(['Subscriptions', 'Professional subscriptions get tax relief only if the body is on HMRC’s approved list (List 3). Check each one listed before claiming.']);
 
+  // Over £100,000: the personal allowance tapers away (£1 for every £2
+  // over), which payroll doesn't collect in the month. Worked out on the
+  // full year's taxable pay, as an illustration.
+  let taper100k = null;
+  if (!single && ani > 100000) {
+    const tp = taperExtra(ani, 1);
+    const over = ani - 100000;
+    const lost = 12570 - tp.allowanceLeft;
+    // Overtime is the top slice of pay, so it's what lands in the band.
+    const otOver = Math.min(tAll.ot + tAll.pa, over);
+    // To bring adjusted net income back to £100,000: a gross personal
+    // pension contribution (or Gift Aid) of the amount over. The tax it
+    // saves: 60% across the taper band, 45% on anything above £125,140.
+    const g = over;
+    const saved = 0.6 * Math.min(g, 25140) + 0.45 * Math.max(0, ani - 125140);
+    taper100k = {
+      ani, over, lost, allowanceLeft: tp.allowanceLeft, extraTax: tp.extraTax, otOver,
+      rows: [
+        ['Taxable pay (full year)', fmtGBP(ani), hasForecast ? 'forecast months included' : null],
+        ['Over £100,000 by', fmtGBP(over), null],
+        ['Personal allowance', `${fmtGBP(tp.allowanceLeft)} of £12,570`, `${fmtGBP(lost)} lost: £1 for every £2 over £100,000`],
+        ['Extra income tax from the lost allowance', fmtGBP(tp.extraTax), 'not taken by payroll in the month; usually collected by a tax code change or Self Assessment'],
+        ['Overtime and PA in the £100k+ band', fmtGBP(otOver), `taxed at about 60%, plus 2% NI, so roughly ${fmtGBP(otOver * 0.62)} of it goes in tax and NI`],
+      ],
+      illustration: [
+        ['Gross pension contribution or Gift Aid to get back to £100,000', fmtGBP(g)],
+        ['Tax it would save (approx.)', fmtGBP(saved)],
+        ['Cost after tax relief (approx.)', fmtGBP(g - saved)],
+      ],
+    };
+  }
+
   return {
+    taper100k,
     rows, paidRows, single, hasForecast, split, tPaid, tAll, show, cols, foot, dedList, earnings, deductions,
     overview, overviewLabel, notes, yearLabel, rangeLabel, todayStr,
     rank: settings.rank || '–', service: settings.service || '–',
@@ -255,6 +288,35 @@ export function statementPdf(s) {
   const yA = ledger(M, half, 'Earnings', s.cols, s.earnings);
   const yB = ledger(M + half + 12, half, 'Deductions', s.cols, s.deductions);
   y = Math.max(yA, yB);
+
+  if (s.taper100k) {
+    const t = s.taper100k;
+    heading('£100k+ calculator', 'An illustration of what crossing £100,000 means for this year. Talk to an accountant or financial adviser before acting on it.');
+    room(16 * (t.rows.length + 1));
+    t.rows.forEach(([k, v, note], i) => {
+      const noteLines = note ? wrap(note, CW - 200, 7.5) : [];
+      const h = 16 + noteLines.length * 9;
+      room(h);
+      if (i) pdf.line(M, y, A4.w - M, y, { color: HAIR });
+      pdf.text(M, y + 11, k, { size: 8.5 });
+      pdf.text(A4.w - M, y + 11, v, { size: 8.5, bold: true, align: 'right' });
+      noteLines.forEach((ln, j) => pdf.text(M, y + 21 + j * 9, ln, { size: 7.5, color: FAINT }));
+      y += h;
+    });
+    y += 8; room(16 * 4);
+    pdf.rect(M, y, CW, 16, { fill: BAND });
+    pdf.text(M + 7, y + 11, 'ILLUSTRATION: BRINGING TAXABLE PAY BACK TO £100,000', { size: 7, bold: true, color: MUTED });
+    y += 16;
+    t.illustration.forEach(([k, v], i) => {
+      pdf.line(M, y, A4.w - M, y, { color: i === t.illustration.length - 1 ? INK : HAIR, width: i === t.illustration.length - 1 ? 1 : 0.5 });
+      pdf.text(M + 7, y + 11, k, { size: 8.5, bold: i === t.illustration.length - 1 });
+      pdf.text(A4.w - M - 7, y + 11, v, { size: 8.5, bold: true, align: 'right' });
+      y += 16;
+    });
+    pdf.rect(M, y - 16 * (t.illustration.length + 1), CW, 16 * (t.illustration.length + 1), { stroke: RULE });
+    y += 4;
+    para('Rough figures: a personal pension (relief at source) or Gift Aid gift grosses up by 20%, with the rest of the relief claimed through Self Assessment. Annual allowance and other limits apply.', M, CW, { size: 7.5, color: FAINT });
+  }
 
   heading('Notes for a tax return');
   s.notes.forEach(([k, v]) => {
