@@ -3221,6 +3221,23 @@ export default function App() {
     }
     setTab('months');
   };
+  // Opens Summary on one pay month, in whichever Breakdown view is the
+  // default: that month on the calendar, compact or Old School view, or
+  // opened and scrolled to in the list. Used by Home's Overview columns.
+  const showMonthInSummary = month => {
+    const idx = PAY_PERIODS.findIndex(p=>p.month===month);
+    if (idx<0) return;
+    skipBreakdownReset.current = true;
+    setBreakdownView(defaultBreakdownView);
+    if (defaultBreakdownView==='list') {
+      setExpanded(month);
+      setTimeout(()=>scrollToMonth(month, false), 140);
+    } else {
+      setCalPeriodIdx(idx);
+      if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'});
+    }
+    setTab('months');
+  };
   const showEntryById = id => { const e = entries.find(x=>x.id===id); if (e) showEntryInSummary(e.date, e.id); };
 
   // A part-filled new shift is kept while you look elsewhere; opening a
@@ -5264,7 +5281,7 @@ export default function App() {
         {/* ══════════════════════════════════════════ DASHBOARD */}
         {tab==='dashboard'&&(
           <TabDashboard
-            setupFlow={setupFlow}
+            setupFlow={setupFlow} showMonthInSummary={showMonthInSummary}
             animClass={tabAnimClass}
             isWide={isWide||tabletP} settings={settings} setTab={setTab} totals={totals}
             currPeriodIdx={currPeriodIdx} toilLedger={toilLedger} carmsOutstanding={carmsOutstanding}
