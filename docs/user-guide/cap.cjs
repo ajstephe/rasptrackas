@@ -1,5 +1,5 @@
 const { chromium } = require('playwright'); const seed = require('./seed.cjs');
-const out = __dirname + '/shots';
+const out = __dirname + '/shots/phone'; require('fs').mkdirSync(out, { recursive: true });
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport:{width:390,height:844}, isMobile:true, hasTouch:true, deviceScaleFactor:2 });
