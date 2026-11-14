@@ -1,0 +1,37 @@
+const { chromium } = require('playwright'); const seed = require('./seed.cjs');
+const out = __dirname + '/shots';
+(async () => {
+  const b = await chromium.launch();
+  const ctx = await b.newContext({ viewport:{width:390,height:844}, isMobile:true, hasTouch:true, deviceScaleFactor:2 });
+  const p = await ctx.newPage();
+  await p.addInitScript(`(${seed.toString()})('light')`);
+  await p.goto('http://localhost:4332/'); await p.waitForTimeout(1800);
+  const nav = i => p.locator('.app-nav button').nth(i).click().then(()=>p.waitForTimeout(900));
+  const shot = n => p.screenshot({path:`${out}/${n}.png`});
+  await shot('home');
+  await p.getByText('Overview & salary breakdown').first().click(); await p.waitForTimeout(800);
+  await p.getByText('Overview',{exact:true}).first().scrollIntoViewIfNeeded().catch(()=>{}); await p.evaluate(()=>document.querySelector('main')?.scrollBy(0,330)); await p.waitForTimeout(400); await shot('overview');
+  await nav(1); await shot('log');
+  await nav(2); await p.getByText('Aug',{exact:true}).first().click(); await p.waitForTimeout(700); await shot('summary');
+  await nav(3); await shot('awaits');
+  await nav(4); await shot('toil');
+  await nav(5); await shot('more');
+  await p.getByText('Monthly deductions',{exact:true}).first().click(); await p.waitForTimeout(800); await shot('deductions');
+  await p.getByText('Monthly deductions',{exact:true}).first().click(); await p.waitForTimeout(500);
+  await p.getByText('Tax & £100k+ calculator').first().click(); await p.waitForTimeout(800); await p.getByText('Tax & £100k+ calculator').first().evaluate(e=>e.scrollIntoView({block:'start'})); await p.evaluate(()=>document.querySelector('main')?.scrollBy(0,-70)); await p.waitForTimeout(400); await shot('taxcalc');
+  await p.getByText('Tax & £100k+ calculator').first().click(); await p.waitForTimeout(500);
+  await p.getByText('Reports & export').first().click(); await p.waitForTimeout(600);
+  await p.getByText('Export to PDF or spreadsheet').first().click(); await p.waitForTimeout(600); await shot('export1');
+  await p.getByText('PDF',{exact:true}).first().click(); await p.waitForTimeout(400); await p.getByText('Tax year',{exact:true}).first().click(); await p.waitForTimeout(400); await shot('export2');
+  await p.getByRole('button',{name:/Generate|Create|Preview|PDF/}).last().click(); await p.waitForTimeout(1500); await shot('statement');
+  await b.close();
+  // fresh user for setup
+  const b2 = await chromium.launch(); const c2 = await b2.newContext({ viewport:{width:390,height:844}, isMobile:true, hasTouch:true, deviceScaleFactor:2 }); const q = await c2.newPage();
+  await q.addInitScript(()=>localStorage.setItem('ajs_ot_themeMode', JSON.stringify('light')));
+  await q.goto('http://localhost:4332/'); await q.waitForTimeout(1500);
+  await q.locator('#setup-rank-home').click(); await q.waitForTimeout(300); await q.getByRole('option',{name:'Constable'}).first().click(); await q.waitForTimeout(300);
+  await q.locator('#setup-pp-home').click(); await q.waitForTimeout(300); await q.getByRole('option',{name:'PC 4',exact:true}).first().click(); await q.waitForTimeout(900);
+  await q.getByText('+ ATOC').click(); await q.getByLabel('ATOC monthly amount').fill('41.67'); await q.getByText('+ Cycle2Work').click(); await q.getByLabel('Cycle2Work monthly amount').fill('50'); await q.waitForTimeout(300);
+  await q.screenshot({path:`${out}/setup.png`});
+  await b2.close();
+})().catch(e=>{console.error(e.message);process.exit(1)});
