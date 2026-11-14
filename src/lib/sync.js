@@ -60,6 +60,16 @@ export function isStaleSettingsUpdate(incomingUpdatedAt, lastKnownUpdatedAt) {
 // and a copy with no stamp (an older version of the app, which copied a
 // device's own theme in on open) never beats a stamped one. Returns
 // `base` with the winning theme, or `base` itself when it already has it.
+// How far this device's clock is from the server's, in ms (add it to
+// Date.now() to get server time). `serverIso` is the server's time read
+// between `sentAt` and `receivedAt` (this device's clock), so it's compared
+// with the midpoint. A slow round trip makes the reading unreliable: null.
+export function clockOffsetFrom(serverIso, sentAt, receivedAt) {
+  const server = Date.parse(serverIso);
+  if (!Number.isFinite(server) || !(receivedAt >= sentAt) || receivedAt - sentAt > 10000) return null;
+  return Math.round(server - (sentAt + receivedAt) / 2);
+}
+
 export function newestTheme(base, other) {
   if (!base || !other) return base;
   const a = Number(base.themeAt) || 0, b = Number(other.themeAt) || 0;

@@ -30,7 +30,7 @@ import {
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { TabErrorBoundary } from './ErrorBoundary.jsx';
-import { mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, mergeSettings3, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
+import { clockOffsetFrom, mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, mergeSettings3, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -997,7 +997,12 @@ export default function App() {
     if(themeMode==='system') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', themeMode);
   },[themeMode]);
-  const setTheme = v => { if (SEASONAL_THEMES[v] && !SEASONAL_THEMES[themeMode]) rememberPreSeasonTheme(themeMode); setThemeMode(v); dualWrite(KEYS.themeMode, v); setSettings(s => ({ ...s, theme:v, themeAt:Date.now() })); };
+  // Theme picks are stamped in server time (this device's clock plus its
+  // measured offset), so a phone or PC whose clock is out can't make an old
+  // pick look newer than one made since on another device.
+  const clockOffsetRef = useRef(Number(dualRead(KEYS.clockOffset,0)) || 0);
+  const serverNowMs = () => Date.now() + clockOffsetRef.current;
+  const setTheme = v => { if (SEASONAL_THEMES[v] && !SEASONAL_THEMES[themeMode]) rememberPreSeasonTheme(themeMode); setThemeMode(v); dualWrite(KEYS.themeMode, v); setSettings(s => ({ ...s, theme:v, themeAt:serverNowMs() })); };
   // The theme travels with the (synced) settings: a sign-in on another
   // device brings the last theme picked. A seasonal theme out of season is
   // left alone, as on this device.
@@ -1856,6 +1861,23 @@ export default function App() {
     markSynced();
   }
 
+  // Reads the server's time to learn this device's clock offset (see
+  // clockOffsetFrom). A theme stamp from a device whose clock ran fast can
+  // sit in the future and outrank every real pick until that time passes,
+  // so one is brought back to now (and that goes up with the next push).
+  async function measureClock() {
+    if (!supabase || !session) return;
+    try {
+      const sentAt = Date.now();
+      const { data, error } = await supabase.rpc('server_now');
+      const off = error ? null : clockOffsetFrom(data, sentAt, Date.now());
+      if (off == null) return;
+      clockOffsetRef.current = off; dualWrite(KEYS.clockOffset, off);
+      const serverNow = Date.now() + off;
+      setSettings(s => (Number(s?.themeAt) > serverNow + 60000 ? { ...s, themeAt: serverNow } : s));
+    } catch { /* offline: keep the last offset */ }
+  }
+
   async function pullAndMergeSettings() {
     if (!supabase || !session || !dataKey) return;
     const { data: row, error } = await supabase.from('settings').select('ciphertext, updated_at').eq('user_id', session.user.id).maybeSingle();
@@ -1936,6 +1958,7 @@ export default function App() {
   useEffect(()=>{
     if (!dataKey) { initialSyncDoneRef.current = false; return; }
     initialSyncDoneRef.current = false;
+    measureClock();
     Promise.allSettled([
       pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries),
       pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil),
@@ -2127,6 +2150,7 @@ export default function App() {
       if (document.visibilityState !== 'visible' || !initialSyncDoneRef.current) return;
       const now = Date.now(); if (now - lastFgPullRef.current < 5000) return;
       lastFgPullRef.current = now;
+      measureClock();
       pullAndMergeSettings().catch(()=>{});
     };
     document.addEventListener('visibilitychange', onFg);

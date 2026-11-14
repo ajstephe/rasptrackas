@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { newestTheme, mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS } from './sync.js';
+import { clockOffsetFrom, newestTheme, mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS } from './sync.js';
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -518,5 +518,29 @@ describe('mergeSettings3 (field-by-field settings merge)', async () => {
   it('the newest theme pick wins', () => {
     const m = mergeSettings3(base, { ...base, theme:'tube', themeAt:1 }, { ...base, theme:'miami', themeAt:2 });
     expect(m.theme).toBe('miami');
+  });
+});
+
+describe('clockOffsetFrom and theme picks across skewed clocks', () => {
+  it('measures the offset against the round-trip midpoint', () => {
+    const sent = Date.parse('2026-11-14T10:00:00.000Z');
+    expect(clockOffsetFrom('2026-11-14T10:05:00.100Z', sent, sent + 200)).toBe(5 * 60000);
+    expect(clockOffsetFrom('2026-11-14T09:59:00.100Z', sent, sent + 200)).toBe(-60000);
+  });
+  it('ignores slow or broken readings', () => {
+    expect(clockOffsetFrom('2026-11-14T10:00:00Z', 0, 20000)).toBeNull();
+    expect(clockOffsetFrom('not a date', 0, 100)).toBeNull();
+    expect(clockOffsetFrom('2026-11-14T10:00:00Z', 100, 50)).toBeNull();
+  });
+  it('the later pick wins once both devices stamp in server time', () => {
+    const server = Date.parse('2026-11-14T10:00:00Z');
+    const pcOffset = -60 * 60000, phoneOffset = 0;          // the PC's clock is an hour fast
+    const pcClock = server + 60 * 60000, phoneClock = server + 30000;
+    const pc = { rank: 'Constable', service: 'PC 4', theme: 'miami', themeAt: pcClock + pcOffset };
+    const phone = { ...pc, theme: 'barista', themeAt: phoneClock + phoneOffset }; // picked 30s later
+    expect(newestTheme(pc, phone).theme).toBe('barista');
+    expect(newestTheme(phone, pc).theme).toBe('barista');
+    // Without the offset, the PC's fast clock would have won.
+    expect(newestTheme({ ...pc, themeAt: pcClock }, phone).theme).toBe('miami');
   });
 });

@@ -24,6 +24,9 @@ export const KEYS = {
   // The account the data on this device belongs to, so a different person
   // signing in here starts from a clean slate (see onAuthStateChange).
   owner:'ajs_ot_owner',
+  // How far this device's clock is from the server's (ms), so theme picks
+  // are stamped in server time and the newest pick wins across devices.
+  clockOffset:'ajs_ot_clockOffset',
 };
 
 // Every value is wrapped with a write timestamp (__t) before being
