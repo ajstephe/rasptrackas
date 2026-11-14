@@ -48,6 +48,11 @@ describe('buildStatement', () => {
     expect(s.dedList.map(d => d.total)).toEqual([72, 150]);
   });
   it('makes a PDF', () => {
-    expect(statementPdf(s).size).toBeGreaterThan(2000);
+    const pdf = statementPdf(s);
+    expect(pdf.toBlob().size).toBeGreaterThan(2000);
+    const svgs = pdf.toSVGs();
+    expect(svgs.length).toBe(pdf.pageCount);
+    expect(svgs[0]).toContain('viewBox="0 0 595.28 841.89"');
+    expect(svgs[0]).toContain('Earnings and deductions 2026/27');
   });
 });

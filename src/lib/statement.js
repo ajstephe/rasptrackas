@@ -334,5 +334,5 @@ export function statementPdf(s) {
     pdf.text(M, A4.h - 24, s.title, { size: 7, color: FAINT });
     pdf.text(A4.w - M, A4.h - 24, `Page ${i + 1} of ${count}`, { size: 7, color: FAINT, align: 'right' });
   });
-  return pdf.toBlob();
+  return pdf;   // .toBlob() for the file, .toSVGs() for the on-screen pages
 }

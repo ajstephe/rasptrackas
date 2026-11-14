@@ -53,10 +53,15 @@ const esc = bytes => bytes.map(b => (b === 40 || b === 41 || b === 92) ? '\\' + 
 const n = x => (Math.round(x * 100) / 100).toString();
 const rgb = hex => { const h = hex.replace('#', ''); return [0, 2, 4].map(i => n(parseInt(h.slice(i, i + 2), 16) / 255)).join(' '); };
 
+// The same drawing as SVG, one per page, for an on-screen preview that is
+// exactly the PDF: an A4 sheet that scales to any screen.
+const xml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const SVG_FONT = "Helvetica, Arial, 'Liberation Sans', sans-serif";
+
 export function createPdf({ title = '', author = '' } = {}) {
   const pages = [];
-  let ops = null;
-  const page = { add() { ops = []; pages.push(ops); } };
+  let ops = null, svg = null;
+  const page = { add() { ops = []; svg = []; pages.push({ ops, svg }); } };
   page.add();
 
   const api = {
@@ -69,18 +74,25 @@ export function createPdf({ title = '', author = '' } = {}) {
       const x0 = align === 'right' ? x - w : align === 'center' ? x - w / 2 : x;
       const font = bold ? (italic ? 'F4' : 'F2') : (italic ? 'F3' : 'F1');
       ops.push(`BT /${font} ${n(size)} Tf ${rgb(color)} rg ${n(x0)} ${n(A4.h - y)} Td (${esc(bytesOf(str))}) Tj ET`);
+      svg.push(`<text x="${n(x0)}" y="${n(y)}" font-size="${n(size)}"${bold ? ' font-weight="700"' : ''}${italic ? ' font-style="italic"' : ''} fill="${color}">${xml(String(str).replace(/\u2212/g, '-'))}</text>`);
     },
     line(x1, y1, x2, y2, { width = 0.5, color = '#cbd5e1' } = {}) {
       ops.push(`${n(width)} w ${rgb(color)} RG ${n(x1)} ${n(A4.h - y1)} m ${n(x2)} ${n(A4.h - y2)} l S`);
+      svg.push(`<line x1="${n(x1)}" y1="${n(y1)}" x2="${n(x2)}" y2="${n(y2)}" stroke="${color}" stroke-width="${n(width)}"/>`);
     },
     rect(x, y, w, h, { fill = null, stroke = null, width = 0.5 } = {}) {
       const r = `${n(x)} ${n(A4.h - y - h)} ${n(w)} ${n(h)} re`;
       if (fill && stroke) ops.push(`${rgb(fill)} rg ${n(width)} w ${rgb(stroke)} RG ${r} B`);
       else if (fill) ops.push(`${rgb(fill)} rg ${r} f`);
       else if (stroke) ops.push(`${n(width)} w ${rgb(stroke)} RG ${r} S`);
+      if (fill || stroke) svg.push(`<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" fill="${fill || 'none'}"${stroke ? ` stroke="${stroke}" stroke-width="${n(width)}"` : ''}/>`);
     },
     // Runs `fn(pageIndex, pageCount)` on every page, e.g. for page numbers.
-    eachPage(fn) { const keep = ops; pages.forEach((p, i) => { ops = p; fn(i, pages.length); }); ops = keep; },
+    eachPage(fn) { const keep = [ops, svg]; pages.forEach((p, i) => { ops = p.ops; svg = p.svg; fn(i, pages.length); }); [ops, svg] = keep; },
+    // One SVG per page, in PDF points, for showing on screen.
+    toSVGs() {
+      return pages.map(p => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${A4.w} ${A4.h}" font-family="${SVG_FONT}"><rect width="${A4.w}" height="${A4.h}" fill="#fff"/>${p.svg.join('')}</svg>`);
+    },
     toBlob() {
       const objs = [];
       const add = s => { objs.push(s); return objs.length; };
@@ -89,7 +101,7 @@ export function createPdf({ title = '', author = '' } = {}) {
         .map(f => add(`<< /Type /Font /Subtype /Type1 /BaseFont /${f} /Encoding /WinAnsiEncoding >>`));
       const res = `<< /Font << /F1 ${fonts[0]} 0 R /F2 ${fonts[1]} 0 R /F3 ${fonts[2]} 0 R /F4 ${fonts[3]} 0 R >> >>`;
       const kids = pages.map(p => {
-        const body = p.join('\n');
+        const body = p.ops.join('\n');
         const content = add(`<< /Length ${body.length} >>\nstream\n${body}\nendstream`);
         return add(`<< /Type /Page /Parent ${pagesObj} 0 R /MediaBox [0 0 ${A4.w} ${A4.h}] /Resources ${res} /Contents ${content} 0 R >>`);
       });
