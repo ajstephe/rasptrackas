@@ -11,6 +11,9 @@ export const isSetUp = settings => !!(settings?.rank && settings?.service && PAY
 export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupFlow }) {
   // Deductions typed in during setup, saved only when Finish is tapped.
   const [draft, setDraft] = useState([]);
+  // Rows added with "+ Custom" get a name box instead of a fixed label.
+  // (Every hook stays above the early return below.)
+  const [customIds, setCustomIds] = useState([]);
   const card = { background:'var(--surface)', border:'1px solid var(--border-2)', borderRadius:'16px', padding:'16px', marginBottom:'12px', boxShadow:`inset 3px 0 0 ${BRASS}` };
   const done = isSetUp(settings);
   // Once the pay point is in, the same card carries on to an optional third
@@ -23,8 +26,6 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupF
   const chevron = <div style={{position:'absolute',right:'13px',top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex'}}><Ico n="cD" s={13} c="var(--quiet)" w={2.5}/></div>;
   const step = (n, on) => <span style={{width:'18px',height:'18px',borderRadius:'50%',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:'10.5px',fontWeight:900,background:on?BRASS:'var(--surface-2)',color:on?'#fff':'var(--quiet)'}}>{n}</span>;
   const btn = { border:'none', borderRadius:'12px', padding:'12px 16px', fontWeight:800, fontSize:'14px', cursor:'pointer', fontFamily:'inherit', flex:'1 1 140px' };
-  // Rows added with "+ Custom" get a name box instead of a fixed label.
-  const [customIds, setCustomIds] = useState([]);
   const unused = DEDUCTION_PRESETS.filter(n => !draft.some(d => d.name === n && !customIds.includes(d.id)));
   const addCustom = () => { const d = newDeduction(''); setCustomIds(ids => [...ids, d.id]); setDraft(l => [...l, d]); };
   const finish = () => {
