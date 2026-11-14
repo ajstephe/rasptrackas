@@ -30,7 +30,8 @@ export function TabDashboard({
   // Pay month picked on the Monthly overtime chart (phones show its figures under it).
   const [chartPick, setChartPick] = useState(null);
   // Phones open and close the Overview card like Salary breakdown; computers always show it.
-  const [overviewOpen, setOverviewOpen] = useState(false);
+  // Open by default; the header collapses it (and opens it again).
+  const [overviewOpen, setOverviewOpen] = useState(true);
   // Screen width, so the Overview can switch layout on narrow computers.
   const [vw, setVw] = useState(()=>typeof window!=='undefined'?window.innerWidth:1440);
   useEffect(()=>{ let f=0; const on=()=>{ if(!f) f=requestAnimationFrame(()=>{ f=0; setVw(window.innerWidth); }); }; window.addEventListener('resize',on); return ()=>{ window.removeEventListener('resize',on); if(f) cancelAnimationFrame(f); }; },[]);
@@ -742,10 +743,12 @@ export function TabDashboard({
     </div>
 
     {/* Phones: Overview and Salary breakdown & forecast open and close
-        together as one card. */}
+        together as one card, open to start with. The header is tappable
+        right to the card's edges (the card's own padding moves inside
+        the button), so a tap near the arrow or the corner always lands. */}
     {(monthChartCard||(settings.rank&&settings.service))&&(
-      <div style={S.card}>
-        <button onClick={()=>{ const v=!overviewOpen; setOverviewOpen(v); setSalaryBreakdownExpanded(v); }} aria-expanded={overviewOpen} style={{touchAction:'manipulation',WebkitTapHighlightColor:'transparent',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
+      <div style={{...S.card, padding:0, overflow:'hidden'}}>
+        <button onClick={()=>{ const v=!overviewOpen; setOverviewOpen(v); setSalaryBreakdownExpanded(v); }} aria-expanded={overviewOpen} aria-label={overviewOpen?'Collapse Overview & salary breakdown':'Expand Overview & salary breakdown'} className="tap-row" style={{touchAction:'manipulation',WebkitTapHighlightColor:'transparent',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',minHeight:'64px',background:'none',border:'none',padding:'18px',textAlign:'left',fontFamily:'inherit',cursor:'pointer',boxSizing:'border-box'}}>
           <div style={{display:'flex',alignItems:'center',gap:'11px',minWidth:0}}>
             <div style={{background:'var(--tint-green, color-mix(in srgb, #059669 14%, transparent))',padding:'8.5px',borderRadius:'13px',flexShrink:0}}><Ico n="bar" s={24} c="#059669"/></div>
             <div style={{minWidth:0}}>
@@ -753,9 +756,9 @@ export function TabDashboard({
               <div style={{fontSize:'10.5px',color:'var(--quiet)',marginTop:'1px'}}>Monthly overtime, pay and full-year forecast</div>
             </div>
           </div>
-          <span aria-hidden="true" style={{display:'flex',flexShrink:0,transform:overviewOpen?'rotate(-90deg)':'rotate(90deg)',transition:'transform 0.2s'}}><Ico n="cR" s={16} c="var(--quiet)" w={2.2}/></span>
+          <span aria-hidden="true" style={{display:'flex',alignItems:'center',justifyContent:'center',width:'32px',height:'32px',borderRadius:'50%',background:'var(--surface-2)',flexShrink:0}}><span style={{display:'flex',transform:overviewOpen?'rotate(-90deg)':'rotate(90deg)',transition:'transform 0.2s'}}><Ico n="cR" s={16} c="var(--muted)" w={2.4}/></span></span>
         </button>
-        {overviewOpen&&<div className="accordion-in">
+        {overviewOpen&&<div className="accordion-in" style={{padding:'0 18px 18px'}}>
           {monthChartCard}
           {settings.rank&&settings.service&&salaryBreakdownCard}
         </div>}

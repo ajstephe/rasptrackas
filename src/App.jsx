@@ -1235,7 +1235,7 @@ export default function App() {
   const [dataManagementExpanded, setDataManagementExpanded] = useState(false);
   // Starts open on desktop (there's room), collapsed on mobile — matches
   // the same isWide-only default the redesigned Home tile row assumes.
-  const [salaryBreakdownExpanded, setSalaryBreakdownExpanded] = useState(isWide);
+  const [salaryBreakdownExpanded, setSalaryBreakdownExpanded] = useState(true);
   // Navigating away from Home resets this back to its starting state —
   // collapsed on mobile, open on desktop — so returning to Home later
   // doesn't leave something open from a previous visit that's easy to
