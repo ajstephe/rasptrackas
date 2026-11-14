@@ -8,6 +8,7 @@ import { deductionFor, DEDUCTION_PRESETS, PRE_TAX_PRESETS } from '../lib/deducti
 import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { PrivacyNotice } from './PrivacyNotice.jsx';
+import TaxWorkings from './TaxWorkings.jsx';
 import { SegSlider } from './SegSlider.jsx';
 import { AppSelect } from './AppSelect.jsx';
 import { useMountTransition } from '../lib/useMountTransition.js';
@@ -840,67 +841,8 @@ export function TabSettings({
                   </button>
                 </div>
 
-                {taxCalcActualDetailOpen&&(
-                  <div style={{borderTop:'2px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
-                      <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full Calculation — Actual (YTD)</div>
-                      <span onClick={()=>setTaxCalcActualDetailOpen(false)} style={{fontSize:'11px',fontWeight:800,color:BRASS,cursor:'pointer'}}>Show less</span>
-                    </div>
-                    <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(ytd)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionA.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayA)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionA.amount)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable Gross (YTD)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableYTD)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Tax-free pay <span style={{color:'var(--quiet)',fontWeight:600}}>(1257L, {A.months} month{A.months!==1?'s':''})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownA.freePay)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownA.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.basicTax)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownA.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.higherTax)}</span></div>
-                      {breakdownA.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownA.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownA.additionalTax)}</span></div>}
-                    </div>
-                    <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',marginBottom:'8px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)'}}>Total Income Tax (YTD)</span>
-                      <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(breakdownA.totalTax)}</span>
-                    </div>
-                    <div style={{display:'flex',justifyContent:'space-between',background:'var(--surface-2)',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>National Insurance (YTD) <span style={{color:'var(--quiet)',fontWeight:600}}>(each month's pay)</span></span>
-                      <span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(niA)}</span>
-                    </div>
-                    <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-green-deep)'}}>Net pay (YTD)</span>
-                      <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-green-deep)'}}>{fmtGBP(netA)}</span>
-                    </div>
-                    <div style={{fontSize:'9px',color:'var(--quiet)',lineHeight:1.5,marginTop:'8px'}}>Your payslips so far this tax year — paydays already paid, not a projection. Pension tier comes from each month's pay rate.</div>
-                  </div>
-                )}
-
-                {taxCalcForecastDetailOpen&&(
-                  <div style={{borderTop:'2px solid var(--border-2)',marginTop:'12px',paddingTop:'12px'}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'10px'}}>
-                      <div style={{fontWeight:900,fontSize:'12px',color:'var(--ink)'}}>Full Calculation — Forecast</div>
-                      <span onClick={()=>setTaxCalcForecastDetailOpen(false)} style={{fontSize:'11px',fontWeight:800,color:BRASS,cursor:'pointer'}}>Show less</span>
-                    </div>
-                    <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'12px 14px',marginBottom:'10px'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Gross (full year)</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(proj)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)',background:'var(--tint-blue)',margin:'0 -14px',paddingLeft:'14px',paddingRight:'14px'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-blue-deep)'}}>Pension Contribution <span style={{color:'#3b82f6',fontWeight:600}}>({(pensionF.rate*100).toFixed(2)}% of {fmtGBP(pensionablePayF)} pensionable pay)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--text-blue-deep)'}}>−{fmtGBP(pensionF.amount)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>= Taxable Gross</span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(taxableGrossF)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Tax-free pay <span style={{color:'var(--quiet)',fontWeight:600}}>(1257L, 12 months)</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'#059669'}}>{fmtGBP(breakdownF.freePay)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid var(--border-2)'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Basic Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(20% on {fmtGBP(breakdownF.basicAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.basicTax)}</span></div>
-                      <div style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:breakdownF.additionalAmt>0?'1px solid var(--border-2)':'none'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Higher Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(40% on {fmtGBP(breakdownF.higherAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.higherTax)}</span></div>
-                      {breakdownF.additionalAmt>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'7px 0'}}><span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>Additional Rate <span style={{color:'var(--quiet)',fontWeight:600}}>(45% on {fmtGBP(breakdownF.additionalAmt)})</span></span><span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(breakdownF.additionalTax)}</span></div>}
-                    </div>
-                    <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-red)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px',marginBottom:'8px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-red-deep)'}}>Total Income Tax</span>
-                      <span style={{fontFamily:MONO,fontSize:'12px',fontWeight:600,color:'var(--text-red-deep)'}}>{fmtGBP(breakdownF.totalTax)}</span>
-                    </div>
-                    <div style={{display:'flex',justifyContent:'space-between',background:'var(--surface-2)',borderRadius:'11px',padding:'10px 14px',marginBottom:'8px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:700,color:'var(--muted)'}}>National Insurance <span style={{color:'var(--quiet)',fontWeight:600}}>(each month's pay)</span></span>
-                      <span style={{fontFamily:MONO,fontSize:'11.5px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(niF)}</span>
-                    </div>
-                    <div style={{display:'flex',justifyContent:'space-between',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'13px',padding:'11px 14px'}}>
-                      <span style={{fontSize:'11.5px',fontWeight:800,color:'var(--text-green-deep)'}}>Net pay (full year)</span>
-                      <span style={{fontFamily:MONO,fontSize:'13px',fontWeight:600,color:'var(--text-green-deep)'}}>{fmtGBP(netF)}</span>
-                    </div>
-                    <div style={{fontSize:'9px',color:'var(--quiet)',lineHeight:1.5,marginTop:'8px'}}>All twelve payslips: salary as known, overtime and PA at your pace so far. Pension tier comes from each month's pay rate.</div>
-                  </div>
-                )}
+                {taxCalcActualDetailOpen&&<TaxWorkings v={A} kind="ytd" BRASS={BRASS} onClose={()=>setTaxCalcActualDetailOpen(false)}/>}
+                {taxCalcForecastDetailOpen&&<TaxWorkings v={F} kind="year" BRASS={BRASS} onClose={()=>setTaxCalcForecastDetailOpen(false)}/>}
 
                 <div style={{fontSize:'9.5px',color:'var(--quiet)',lineHeight:1.5,marginTop:'10px'}}>Based on your pay rates for each payday this tax year. Pension figures follow the 2015 Police Pension Scheme (England & Wales) rates from 1 April 2026. Please check anything you rely on, and if need be, consult an accountant, HMRC or your pension provider.</div>
               </>

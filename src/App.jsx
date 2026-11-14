@@ -1,4 +1,5 @@
 import { isSetUp } from './components/SetupCard.jsx';
+import { deductionsFor } from './lib/deductions.js';
 import AnnualStatement from './components/AnnualStatement.jsx';
 import { themeInSeason, SEASONAL_THEMES, seasonKey, rememberPreSeasonTheme, preSeasonTheme, seasonNoticeSeen, markSeasonNoticeSeen } from './seasonal.js';
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback, lazy, Suspense } from "react";
@@ -2782,7 +2783,16 @@ export default function App() {
       const last = months[months.length-1];
       const gross = add(pb=>pb.monthGross), pension = add(pb=>pb.periodPension);
       const taxable = Math.max(0, gross - pension - add(pb=>pb.sacrifice||0));
+      // The pieces behind each figure, so Full breakdown can show its workings.
+      // NI is worked out on each month's pay: 8% on the part between £1,048
+      // and £4,189, then 2% on the rest. The 2% part takes whatever the
+      // month's rounded NI leaves, so the two always add up to it.
+      const niMain = add(pb=>Math.round(0.08*Math.max(0, Math.min((pb.monthGross-(pb.sacrifice||0)), 4189) - 1048)*100)/100);
+      const ni = add(pb=>pb.monthNI);
       return {
+        salary: add(pb=>pb.salary), lw: add(pb=>pb.lw), la: add(pb=>pb.la), ot: add(pb=>pb.ot), pa: add(pb=>pb.pa),
+        sacrifice: add(pb=>pb.sacrifice||0), niMain, niUpper: Math.max(0, ni - niMain),
+        other: add(pb=>deductionsFor(settings, pb.month).after), fraction,
         gross, pension, pensionable: add(pb=>pb.pensionablePayThisPeriod), pensionRate: last ? last.pensionRate : 0,
         taxable, tax: add(pb=>pb.monthTax), ni: add(pb=>pb.monthNI), net: add(pb=>pb.monthNet),
         months: months.length,
