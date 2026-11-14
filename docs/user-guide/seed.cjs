@@ -9,7 +9,7 @@ module.exports = (theme) => {
   // The last two still to submit, so Awaits Submission has something in it.
   list.slice(-2).forEach(e=>{ e.otSubmitted=false; e.otSubmittedDate=''; if (e.paRate!=='None') { e.paSubmitted=false; e.paSubmittedDate=''; } });
   // One shift taken as TOIL, and half a day of it used.
-  list.push({ ...E('e'+(n++), '2026-09-26', 6, 'hours150'), reason:'Football', takeAs:'toil' });
+  list.push({ ...E('e'+(n++), '2026-09-26', 6, 'hours150'), reason:'Football', takeAs:'toil', toilHours:'6' });
   localStorage.setItem('ajs_ot_entries', JSON.stringify(list));
   localStorage.setItem('ajs_ot_toilTaken', JSON.stringify([{ id:'t1', date:'2026-10-23', hours:4, note:'Half day' }]));
   localStorage.setItem('ajs_ot_themeMode', JSON.stringify(theme||'light'));

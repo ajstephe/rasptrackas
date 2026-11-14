@@ -6,49 +6,49 @@
 <link rel="stylesheet" href="fonts.css">
 <style>
   @page { size: A4; margin: 0; }
-  :root { --navy:#0f2744; --brass:#b8823f; --ink:#0f172a; --muted:#475569; --faint:#64748b; --rule:#e2e8f0; --band:#f4f1ea; --green:#047857; }
+  :root { --navy:#0f2744; --brass:#b8823f; --ink:#0f172a; --muted:#475569; --faint:#64748b; --rule:#e2e8f0; --band:#f4f1ea; }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: #fff; color: var(--ink); font-family: 'Inter', system-ui, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .page { width: 210mm; height: 297mm; padding: 16mm 16mm 14mm; position: relative; overflow: hidden; page-break-after: always; break-after: page; }
+  .page { width: 210mm; height: 297mm; padding: 15mm 16mm 14mm; position: relative; overflow: hidden; page-break-after: always; break-after: page; }
   .page:last-child { page-break-after: auto; break-after: auto; }
   .kicker { font-size: 8.5pt; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--brass); }
-  h1 { font-size: 23pt; line-height: 1.12; letter-spacing: -.02em; margin: 3mm 0 3mm; font-weight: 800; }
-  h2 { font-size: 11.5pt; margin: 5mm 0 1.5mm; font-weight: 800; }
-  p, li { font-size: 9.6pt; line-height: 1.55; color: #1e293b; margin: 0 0 2mm; }
+  h1 { font-size: 21pt; line-height: 1.12; letter-spacing: -.02em; margin: 2mm 0 4mm; font-weight: 800; }
+  h2 { font-size: 11pt; margin: 4mm 0 1.5mm; font-weight: 800; }
+  p, li { font-size: 9.4pt; line-height: 1.5; color: #1e293b; margin: 0 0 1.8mm; }
   ul, ol { padding-left: 5mm; margin: 0 0 2mm; }
-  li { margin-bottom: 1.2mm; }
-  .lead { font-size: 11pt; color: var(--muted); line-height: 1.5; }
+  li { margin-bottom: 1mm; }
   b, strong { font-weight: 700; color: var(--ink); }
-  .cols { display: grid; grid-template-columns: 1fr 62mm; gap: 9mm; align-items: start; }
-  .cols.two-shots { grid-template-columns: 1fr 1fr; }
-  .phone { width: 62mm; border-radius: 6mm; overflow: hidden; border: 1.6mm solid #0f172a; box-shadow: 0 2mm 6mm rgba(15,23,42,.18); background: #fff; }
+  /* desktop screenshot in a browser frame */
+  .screen { border-radius: 2.4mm; overflow: hidden; border: .35mm solid #cbd5e1; box-shadow: 0 1.5mm 5mm rgba(15,23,42,.14); background: #fff; }
+  .screen::before { content: ''; display: block; height: 4.2mm; background: #eef1f5 radial-gradient(circle at 3.2mm 2.1mm, #f87171 .8mm, transparent .9mm), #eef1f5; background-image: radial-gradient(circle at 3.4mm 2.1mm, #f87171 .75mm, transparent .85mm), radial-gradient(circle at 6.2mm 2.1mm, #fbbf24 .75mm, transparent .85mm), radial-gradient(circle at 9mm 2.1mm, #34d399 .75mm, transparent .85mm); border-bottom: .3mm solid #dfe4ea; }
+  .screen img { display: block; width: 100%; }
+  .screen.crop img { object-fit: cover; object-position: top; }
+  .row { display: grid; grid-template-columns: 1fr 36mm; gap: 7mm; align-items: start; margin-top: 5mm; }
+  .phone { width: 36mm; border-radius: 4.5mm; overflow: hidden; border: 1.1mm solid #0f172a; box-shadow: 0 1.5mm 4mm rgba(15,23,42,.18); background: #fff; }
   .phone img { display: block; width: 100%; }
-  .phone.crop { height: 118mm; }
-  .phone.crop img { object-fit: cover; object-position: top; height: 100%; }
-  .cap { font-size: 8pt; color: var(--faint); text-align: center; margin-top: 2mm; }
-  .tip { background: var(--band); border-left: 1.2mm solid var(--brass); padding: 3mm 4mm; margin: 4mm 0; }
-  .tip p { margin: 0; font-size: 9.2pt; }
-  .new { display: inline-block; background: var(--brass); color: #fff; font-size: 6.5pt; font-weight: 800; letter-spacing: .08em; padding: .6mm 1.6mm; border-radius: 1mm; vertical-align: 1px; margin-left: 1.5mm; }
+  .phone-cap { font-size: 7.5pt; color: var(--faint); text-align: center; margin-top: 1.5mm; line-height: 1.35; }
+  .tip { background: var(--band); border-left: 1.2mm solid var(--brass); padding: 2.6mm 4mm; margin: 3mm 0; }
+  .tip p { margin: 0; font-size: 9pt; }
+  .new { display: inline-block; background: var(--brass); color: #fff; font-size: 6.5pt; font-weight: 800; letter-spacing: .08em; padding: .6mm 1.6mm; border-radius: 1mm; vertical-align: 2px; margin-left: 1.5mm; }
   .foot { position: absolute; left: 16mm; right: 16mm; bottom: 8mm; display: flex; justify-content: space-between; font-size: 7.5pt; color: var(--faint); border-top: .3mm solid var(--rule); padding-top: 2mm; }
-  table { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; }
-  td { font-size: 9.2pt; padding: 1.8mm 2mm; border-bottom: .3mm solid var(--rule); vertical-align: top; line-height: 1.45; }
-  td:first-child { font-weight: 700; width: 34mm; white-space: nowrap; }
-  .doc { width: 100%; border: .3mm solid var(--rule); box-shadow: 0 1.5mm 5mm rgba(15,23,42,.12); }
+  table { width: 100%; border-collapse: collapse; margin: 1mm 0 2mm; }
+  td { font-size: 9pt; padding: 1.5mm 2mm; border-bottom: .3mm solid var(--rule); vertical-align: top; line-height: 1.42; }
+  td:first-child { font-weight: 700; width: 36mm; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .doc { width: 100%; border: .3mm solid var(--rule); box-shadow: 0 1.5mm 5mm rgba(15,23,42,.12); display: block; }
   /* cover */
   .cover { background: var(--navy); color: #fff; }
-  .cover h1 { color: #fff; font-size: 34pt; margin-top: 10mm; }
-  .cover .lead { color: #c7d2e3; font-size: 12.5pt; max-width: 112mm; }
+  .cover h1 { color: #fff; font-size: 32pt; margin-top: 6mm; }
+  .cover .lead { color: #c7d2e3; font-size: 12pt; line-height: 1.5; max-width: 150mm; margin: 0; }
   .cover .kicker { color: #e2b877; }
-  .cover .phone { position: absolute; right: 16mm; top: 58mm; width: 66mm; border-color: #000; }
-  .install { position: absolute; left: 16mm; right: 16mm; bottom: 16mm; background: #fff; color: var(--ink); border-radius: 3mm; padding: 6mm 7mm; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; }
-  .install h3 { margin: 0 0 1.5mm; font-size: 10pt; }
-  .install p { font-size: 8.8pt; margin: 0; }
+  .cover .screen { position: absolute; left: 16mm; right: 16mm; top: 86mm; border-color: #000; box-shadow: 0 3mm 9mm rgba(0,0,0,.45); }
+  .cover .phone { position: absolute; right: 10mm; top: 128mm; width: 40mm; border-color: #000; box-shadow: 0 3mm 9mm rgba(0,0,0,.45); }
+  .install { position: absolute; left: 16mm; right: 16mm; bottom: 14mm; background: #fff; color: var(--ink); border-radius: 3mm; padding: 5mm 7mm; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; }
+  .install h3 { margin: 0 0 1.2mm; font-size: 10pt; }
+  .install p { font-size: 8.6pt; margin: 0; }
   .install .ttl { grid-column: 1 / -1; font-size: 8.5pt; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--brass); margin-bottom: -3mm; }
-  .points { margin-top: 12mm; max-width: 108mm; }
-  .points p { color: #e2e8f0; font-size: 10pt; padding-left: 5mm; position: relative; margin-bottom: 2.6mm; }
-  .points p::before { content: ''; position: absolute; left: 0; top: 2.1mm; width: 2mm; height: 2mm; border-radius: 50%; background: var(--brass); }
-  .toc { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm 8mm; margin-top: 4mm; }
-  .toc div { font-size: 9.6pt; display: flex; justify-content: space-between; border-bottom: .3mm dotted #cbd5e1; padding: 1.4mm 0; }
+  .toc { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8mm; margin-top: 2mm; }
+  .toc div { font-size: 9.2pt; display: flex; justify-content: space-between; border-bottom: .3mm dotted #cbd5e1; padding: 1.3mm 0; }
 </style>
 </head>
 <body>
@@ -56,53 +56,44 @@
 <!-- 1 · Cover -->
 <section class="page cover">
   <div class="kicker">User guide · November 2026</div>
-  <h1>Overtime &amp;<br>Shift Tracker</h1>
-  <p class="lead">Log your overtime and Protection Allowance, see what it'll actually pay after tax, and keep track of what still needs submitting.</p>
-  <div class="points">
-    <p>Pay worked out the way payroll does it: tax code 1257L month by month, NI on each month's pay, police pension before tax.</p>
-    <p>Your salary, allowances, overtime and monthly deductions, so the take-home figure matches your payslip.</p>
-    <p>A tidy PDF pay statement for your accountant, with a £100k+ calculator if you cross £100,000.</p>
-    <p>End-to-end encrypted, and synced across your phone and computer.</p>
-  </div>
-  <div class="phone"><img src="shots/home.png" alt=""></div>
+  <h1>Overtime &amp; Shift Tracker</h1>
+  <p class="lead">Log your overtime and Protection Allowance, see what it'll actually pay after tax, and keep track of what still needs submitting. Works on your computer and your phone, kept in sync.</p>
+  <div class="screen"><img src="shots/desktop/home.png" alt=""></div>
+  <div class="phone"><img src="shots/phone/home.png" alt=""></div>
   <div class="install">
-    <div class="ttl">Put it on your home screen</div>
-    <div><h3>iPhone</h3><p>Open the app in <b>Safari</b>, tap the <b>Share</b> button, then <b>Add to Home Screen</b>.</p></div>
-    <div><h3>Android</h3><p>Open it in <b>Chrome</b>, tap the <b>⋮</b> menu, then <b>Install app</b> (or <b>Add to Home screen</b>).</p></div>
-    <div><h3>Computer</h3><p>In Chrome or Edge, click the <b>install</b> icon at the right of the address bar, or just bookmark it.</p></div>
+    <div class="ttl">Open it like an app</div>
+    <div><h3>Computer</h3><p>In <b>Chrome</b> or <b>Edge</b>, click the <b>install</b> icon at the right of the address bar to give it its own window. Or just bookmark it.</p></div>
+    <div><h3>iPhone</h3><p>Open it in <b>Safari</b>, tap <b>Share</b>, then <b>Add to Home Screen</b>.</p></div>
+    <div><h3>Android</h3><p>Open it in <b>Chrome</b>, tap the <b>⋮</b> menu, then <b>Install app</b>.</p></div>
   </div>
 </section>
 
-<!-- 2 · Contents & getting started -->
+<!-- 2 · Getting started -->
 <section class="page">
   <div class="kicker">Getting started</div>
   <h1>Set up in a minute</h1>
-  <div class="cols">
+  <div class="screen"><img src="shots/desktop/setup.png" alt=""></div>
+  <div class="row">
     <div>
       <h2>1. Create your account</h2>
-      <p>Sign up with your email and a password, then choose a <b>recovery word</b>. Your shifts are encrypted on your device before they're sent anywhere, so the recovery word is the only way back in if you ever forget your password. Write it down somewhere safe.</p>
+      <p>Sign up with your email and a password, then choose a <b>recovery word</b>. Your shifts are encrypted on your device before they go anywhere, so the recovery word is the only way back in if you forget your password. Write it down somewhere safe.</p>
       <h2>2. The Welcome card <span class="new">NEW</span></h2>
-      <p>Everything starts from one card on Home, in three steps:</p>
-      <ol>
-        <li><b>Rank</b>, then</li>
-        <li><b>Pay point</b> (it's on your payslip, e.g. "PC 4"), then</li>
-        <li><b>Monthly deductions</b>, optional. Tap the ones you pay, such as ATOC, Federation subs, Police Mutual or savings, or <b>+ Custom</b> for anything else, and enter the monthly amount. Choose <b>Before tax &amp; NI</b> for salary sacrifice, like Cycle2Work.</li>
-      </ol>
-      <p>Tap <b>Finish setup</b>, or <b>Not right now</b> to skip the deductions for later.</p>
-      <div class="tip"><p>The rest of the app opens once setup is finished, so every figure you see is worked out on your real pay.</p></div>
-      <h2>In this guide</h2>
-      <div class="toc">
-        <div><span>Home and the Overview</span><span>3</span></div>
-        <div><span>Logging overtime</span><span>4</span></div>
-        <div><span>Summary</span><span>5</span></div>
-        <div><span>Awaits Submission and TOIL</span><span>6</span></div>
-        <div><span>Monthly deductions</span><span>7</span></div>
-        <div><span>Tax &amp; £100k+ calculator</span><span>8</span></div>
-        <div><span>PDF pay statement</span><span>9</span></div>
-        <div><span>Sync, updates and privacy</span><span>10</span></div>
-      </div>
+      <p>Pick your <b>rank</b>, then your <b>pay point</b> (it's on your payslip, e.g. "PC 4"). Step 3, <b>monthly deductions</b>, is optional: tap the ones you pay (ATOC, Federation subs, Police Mutual…) or <b>+ Custom</b>, enter the monthly amount, and choose <b>Before tax &amp; NI</b> for salary sacrifice such as Cycle2Work. Then <b>Finish setup</b>, or <b>Not right now</b> to add deductions later.</p>
+      <div class="tip"><p>The rest of the app opens once setup is finished, so every figure is worked out on your real pay.</p></div>
     </div>
-    <div><div class="phone"><img src="shots/setup.png" alt=""></div><div class="cap">The Welcome card, with two deductions added</div></div>
+    <div><div class="phone"><img src="shots/phone/setup.png" alt=""></div><div class="phone-cap">The same card on a phone</div></div>
+  </div>
+  <h2>In this guide</h2>
+  <div class="toc">
+    <div><span>Home</span><span>3</span></div>
+    <div><span>The Overview</span><span>4</span></div>
+    <div><span>Logging overtime</span><span>5</span></div>
+    <div><span>Summary</span><span>6</span></div>
+    <div><span>Awaits Submission and TOIL</span><span>7</span></div>
+    <div><span>Monthly deductions and More</span><span>8</span></div>
+    <div><span>Tax &amp; £100k+ calculator</span><span>9</span></div>
+    <div><span>PDF pay statement</span><span>10</span></div>
+    <div><span>Sync, updates and privacy</span><span>11</span></div>
   </div>
   <div class="foot"><span>Overtime &amp; Shift Tracker · User guide</span><span>2</span></div>
 </section>
@@ -111,197 +102,197 @@
 <section class="page">
   <div class="kicker">Home</div>
   <h1>Your pay at a glance</h1>
-  <div class="cols two-shots">
+  <div class="screen"><img src="shots/desktop/home.png" alt=""></div>
+  <div class="row">
     <div>
-      <div class="phone" style="margin:0 auto"><img src="shots/home.png" alt=""></div>
-      <div class="cap">Home</div>
-      <h2>What's on Home</h2>
+      <p>On a computer the menu sits down the left: <b>Home</b>, <b>Log Overtime</b>, <b>Summary</b>, <b>Awaits Submission</b> (with a count of claims still to submit), <b>TOIL</b> and <b>More..</b>, with the date and your theme underneath. On a phone the same menu runs along the bottom.</p>
       <table>
-        <tr><td>Gross pay</td><td>This tax year, paid to date, and with overtime you've submitted but haven't been paid for yet.</td></tr>
-        <tr><td>Current pay month</td><td>This month's net take-home, after tax, NI, pension and your deductions. Tap it for the full payslip view.</td></tr>
-        <tr><td>Net overtime</td><td>This month's overtime after tax, with last month alongside.</td></tr>
+        <tr><td>Gross pay this tax year</td><td>Paid to date, and with overtime you've submitted but haven't been paid for yet.</td></tr>
+        <tr><td>Current pay month</td><td>This month's <b>net take-home</b>, after tax, NI, pension and your deductions. Click it for the full breakdown.</td></tr>
+        <tr><td>Net overtime this month</td><td>This month's overtime after tax, with last month alongside.</td></tr>
         <tr><td>TOIL balance</td><td>Hours banked and not yet taken.</td></tr>
       </table>
     </div>
-    <div>
-      <div class="phone" style="margin:0 auto"><img src="shots/overview.png" alt=""></div>
-      <div class="cap">Overview &amp; salary breakdown, opened</div>
-      <h2>The Overview <span class="new">NEW</span></h2>
-      <p>One column per pay month: green is submitted, red still to submit, striped planned. The line is your overtime take-home.</p>
-      <p>On a phone, tap a month to see its figures, then <b>Details</b>. On a computer, click the month. Either way you land on that month in <b>Summary</b>, in whichever view you've starred as your default.</p>
-      <p>Below it, the <b>salary breakdown</b> shows salary, London Weighting, London Allowance, overtime and PA for the year, gross and net.</p>
-    </div>
+    <div><div class="phone"><img src="shots/phone/home.png" alt=""></div><div class="phone-cap">Home on a phone</div></div>
   </div>
   <div class="foot"><span>Overtime &amp; Shift Tracker · User guide</span><span>3</span></div>
 </section>
 
-<!-- 4 · Log overtime -->
+<!-- 4 · Overview -->
 <section class="page">
-  <div class="kicker">Log Overtime</div>
-  <h1>Log a shift in five steps</h1>
-  <div class="cols">
+  <div class="kicker">Home · Overview</div>
+  <h1>The whole year in one chart</h1>
+  <div class="screen"><img src="shots/desktop/home-overview.png" alt=""></div>
+  <div class="row">
     <div>
-      <table>
-        <tr><td>1 · When and what</td><td>The date, and a reason if you like (Earlies, Lates, an event).</td></tr>
-        <tr><td>2 · Your hours</td><td><b>Shift time input</b>: enter your rostered and actually-worked times and the overtime is worked out for you. Or <b>Enter hours</b> to type the hours at each rate yourself. Pick <b>Normal duty</b> or <b>Rest day (RDW)</b>.</td></tr>
-        <tr><td>3 · How it's paid</td><td>The overtime rate (1.33×, 1.5× or 2×), whether to <b>take it as</b> pay, TOIL or a mix, and any <b>Protection Allowance</b> (PA1 £48, PA2 £98, PA3 £133).</td></tr>
-        <tr><td>4 · Claim submitted yet?</td><td>Tick when you've put the overtime on CARMS and the PA on PSOP. Each is paid in the pay month of the date you submit it.</td></tr>
-        <tr><td>5 · Notes</td><td>Optional.</td></tr>
-      </table>
-      <p>The bar at the bottom shows the shift's <b>gross</b> and <b>net</b> as you go, worked out on top of everything else you've earned this tax year. Tap <b>Save shift</b> when you're done.</p>
-      <div class="tip"><p>Planning ahead? Log future shifts too. They show as "planned" on the Overview and join Awaits Submission once their date arrives.</p></div>
-      <h2>Editing</h2>
-      <p>Tap any shift in Summary to change it or delete it. A half-filled new shift is kept while you look at something else.</p>
+      <h2>Overview <span class="new">NEW</span></h2>
+      <p>A column for every pay month: <b>green</b> submitted, <b>red</b> still to submit, <b>striped</b> planned. The line is your overtime take-home. Underneath, each month's salary and allowances, overtime and PA, total gross, total net and <b>net take-home</b>. Months still to come are marked forecast.</p>
+      <p><b>Click a month</b> to open it in <b>Summary</b>, in whichever view you've starred as your default. On a phone, tap a month to see its figures, then <b>Details</b>.</p>
+      <h2>Salary breakdown &amp; forecast</h2>
+      <p>The year to date, gross and net: base salary, London Weighting, London Allowance, overtime and Protection Allowance. Gauges show your gross pay so far and forecast for the year against the tax bands.</p>
     </div>
-    <div><div class="phone"><img src="shots/log.png" alt=""></div><div class="cap">Log Overtime, steps 1 and 2</div></div>
+    <div><div class="phone"><img src="shots/phone/overview.png" alt=""></div><div class="phone-cap">On a phone, tap a month for its figures</div></div>
   </div>
   <div class="foot"><span>Overtime &amp; Shift Tracker · User guide</span><span>4</span></div>
 </section>
 
-<!-- 5 · Summary -->
+<!-- 5 · Log overtime -->
 <section class="page">
-  <div class="kicker">Summary</div>
-  <h1>Every shift, four ways</h1>
-  <div class="cols">
+  <div class="kicker">Log Overtime</div>
+  <h1>Log a shift in five steps</h1>
+  <div class="screen"><img src="shots/desktop/log.png" alt=""></div>
+  <div class="row">
     <div>
-      <p>Summary shows the shifts paid in each pay month. Pick a month from the row of chips, or with the arrows.</p>
       <table>
-        <tr><td>Calendar</td><td>The pay month's shift dates as a calendar. Tap a day to see its shifts or log one; <b>What do the colours mean?</b> explains the shading.</td></tr>
-        <tr><td>Shifts</td><td>A compact list of the month's shifts with their gross and net.</td></tr>
-        <tr><td>Months</td><td>Every pay month in the year, each opening to its overtime, PA and shifts.</td></tr>
-        <tr><td>Old School</td><td>The month laid out like the paper overtime sheet.</td></tr>
+        <tr><td>1 · When and what</td><td>The date, and a reason if you like (Earlies, Lates, an event).</td></tr>
+        <tr><td>2 · Your hours</td><td><b>Shift time input</b>: enter rostered and actually-worked times and the overtime is worked out for you. Or <b>Enter hours</b> yourself. Pick <b>Normal duty</b> or <b>Rest day (RDW)</b>.</td></tr>
+        <tr><td>3 · How it's paid</td><td>The rate (1.33×, 1.5× or 2×), whether to <b>take it as</b> pay, TOIL or a mix, and any <b>Protection Allowance</b> (PA1 £48, PA2 £98, PA3 £133).</td></tr>
+        <tr><td>4 · Claim submitted yet?</td><td>Mark it once the overtime is on <b>CARMS</b> and the PA on <b>PSOP</b>. Each is paid in the pay month you submit it.</td></tr>
+        <tr><td>5 · Notes</td><td>Optional.</td></tr>
       </table>
-      <h2>Your default view</h2>
-      <p>Tap the <b>★</b> on a view to make it the one Summary always opens on. Links from Home and the Overview open in it too.</p>
-      <div class="tip"><p>Pay months run on shift dates, not calendar months: e.g. "August pay" covers shifts worked 8 June to 12 July. The dates are shown under each month's name.</p></div>
+      <p>The bar at the bottom shows the shift's <b>gross</b> and <b>net</b> as you go, worked out on top of everything else you've earned this tax year. <b>Save shift</b> when you're done.</p>
     </div>
-    <div><div class="phone"><img src="shots/summary.png" alt=""></div><div class="cap">Calendar view, August pay</div></div>
+    <div><div class="phone"><img src="shots/phone/log.png" alt=""></div><div class="phone-cap">On a phone the steps run down the page</div></div>
   </div>
   <div class="foot"><span>Overtime &amp; Shift Tracker · User guide</span><span>5</span></div>
 </section>
 
-<!-- 6 · Awaits & TOIL -->
+<!-- 6 · Summary -->
 <section class="page">
-  <div class="kicker">Awaits Submission · TOIL</div>
-  <h1>Nothing left unclaimed</h1>
-  <div class="cols two-shots">
+  <div class="kicker">Summary</div>
+  <h1>Every shift, four ways</h1>
+  <div class="screen"><img src="shots/desktop/summary.png" alt=""></div>
+  <div class="row">
     <div>
-      <div class="phone crop" style="margin:0 auto"><img src="shots/awaits.png" alt=""></div>
-      <h2>Awaits Submission</h2>
-      <p>Everything you've logged but not yet ticked as submitted: overtime to put on <b>CARMS</b> and Protection Allowance to put on <b>PSOP</b>, with the total still to claim. Mark them submitted from here as you go.</p>
-      <p>Future shifts join the list once their date arrives.</p>
+      <p>The shifts paid in each pay month. Pick a month from the row of months or with the arrows; on a computer its totals, overtime and PA sit alongside.</p>
+      <table>
+        <tr><td>Calendar</td><td>The month's shift dates as a calendar. Click a day to see its shifts or log one; the key underneath explains the colours.</td></tr>
+        <tr><td>Shifts</td><td>A compact list of the month's shifts with their gross and net.</td></tr>
+        <tr><td>Months</td><td>Every pay month in the year, each opening to its overtime, PA and shifts.</td></tr>
+        <tr><td>Old School</td><td>The month laid out like the paper overtime sheet.</td></tr>
+      </table>
+      <p>Click the <b>★</b> on a view to make it your default: Summary always opens on it, and so do links from Home.</p>
+      <div class="tip"><p>Pay months run on shift dates: "August pay" covers shifts worked 8 June to 12 July. The dates are shown under each month.</p></div>
     </div>
-    <div>
-      <div class="phone crop" style="margin:0 auto"><img src="shots/toil.png" alt=""></div>
-      <h2>TOIL</h2>
-      <p>Your balance, banked from shifts you took as TOIL or a mix. Record TOIL you've taken with the date and hours, or the <b>Half day</b> and <b>Full day</b> shortcuts.</p>
-      <p>The ledger lists everything banked and taken, newest first.</p>
-    </div>
+    <div><div class="phone"><img src="shots/phone/summary.png" alt=""></div><div class="phone-cap">Calendar view on a phone</div></div>
   </div>
   <div class="foot"><span>Overtime &amp; Shift Tracker · User guide</span><span>6</span></div>
 </section>
 
-<!-- 7 · Deductions & More -->
+<!-- 7 · Awaits & TOIL -->
 <section class="page">
-  <div class="kicker">More..</div>
-  <h1>Monthly deductions and settings</h1>
-  <div class="cols">
+  <div class="kicker">Awaits Submission · TOIL</div>
+  <h1>Nothing left unclaimed</h1>
+  <div class="screen crop"><img src="shots/desktop/awaits.png" alt="" style="height:72mm"></div>
+  <div class="row">
     <div>
-      <h2>Monthly deductions <span class="new">NEW</span></h2>
-      <p>Anything taken off your payslip every month, so the <b>net take-home</b> matches what reaches your bank.</p>
-      <ul>
-        <li><b>Add one:</b> tap a preset (ATOC, Cycle2Work, Federation subs, PFOA, Police Mutual, Regular savings, Sports &amp; social) or <b>+ Custom</b> and name it yourself.</li>
-        <li><b>After tax</b> for most things; <b>Before tax &amp; NI</b> for salary sacrifice, which also lowers your tax and NI.</li>
-        <li><b>Skip a month:</b> tap a month to switch it off, e.g. a break in your insurance.</li>
-        <li><b>Amount changes:</b> <b>+ Change the amount from a month</b> keeps the old amount for earlier months.</li>
-        <li>Tap <b>Save</b> to apply. The card closes and you stay on More.</li>
-      </ul>
-      <h2>Other cards on More</h2>
-      <table>
-        <tr><td>Config, rates &amp; pay scales</td><td>Rank, pay point and the rates behind every figure, plus pay point changes with the date they started.</td></tr>
-        <tr><td>Bulk input overtime</td><td>Overtime already paid this tax year, in one figure, if you've started part-way through.</td></tr>
-        <tr><td>Themes</td><td>Light, dark or a different look entirely. Your pick follows you to every signed-in device.</td></tr>
-        <tr><td>Account &amp; data</td><td>Sign in or out, back up, restore, or wipe your data.</td></tr>
-      </table>
+      <h2>Awaits Submission</h2>
+      <p>Every claim you've logged but not yet marked submitted: overtime for <b>CARMS</b>, PA for <b>PSOP</b>, grouped by the pay month they'll land in. The panel at the top shows the total, the <b>deadline</b> for the next payday, and what happens if you miss it. Filter by Overtime, PA or TOIL, and click <b>Submit</b> as you put each one in. Future shifts join once their date arrives.</p>
     </div>
-    <div><div class="phone"><img src="shots/deductions.png" alt=""></div><div class="cap">Monthly deductions, opened</div></div>
+    <div><div class="phone"><img src="shots/phone/awaits.png" alt=""></div></div>
   </div>
+  <div class="screen crop" style="margin-top:4mm"><img src="shots/desktop/toil.png" alt="" style="height:52mm"></div>
+  <h2>TOIL</h2>
+  <p>Your balance, banked from shifts taken as TOIL or a mix (6 hours at 1.5× banks 9). Record TOIL you've taken with the date and hours, or <b>Half day</b> and <b>Full day</b>. The ledger lists everything banked and taken; click a banked shift to see it.</p>
   <div class="foot"><span>Overtime &amp; Shift Tracker · User guide</span><span>7</span></div>
 </section>
 
-<!-- 8 · Tax & 100k -->
+<!-- 8 · Deductions & More -->
 <section class="page">
-  <div class="kicker">More.. · Tax &amp; £100k+ calculator</div>
-  <h1>Your tax band and the £100k taper</h1>
-  <div class="cols">
+  <div class="kicker">More..</div>
+  <h1>Monthly deductions and settings</h1>
+  <div class="screen"><img src="shots/desktop/deductions.png" alt=""></div>
+  <div class="row">
     <div>
-      <p>Two columns side by side: <b>Actual</b>, the paydays so far this tax year, and <b>Forecast</b>, the full year at your current pay and overtime.</p>
+      <h2>Monthly deductions <span class="new">NEW</span></h2>
+      <p>On a computer each card in <b>More..</b> opens as a pop-up. Deductions are anything taken off your payslip each month, so the <b>net take-home</b> matches your bank.</p>
+      <ul>
+        <li>Add a preset, or <b>+ Add your own</b> and name it.</li>
+        <li><b>After tax</b> for most things; <b>Before tax &amp; NI</b> for salary sacrifice, which also lowers your tax and NI.</li>
+        <li>Click a month to <b>skip</b> it, and <b>+ Change the amount from a month</b> when it changes.</li>
+        <li><b>Save</b> closes the card and keeps you on More.</li>
+      </ul>
       <table>
-        <tr><td>Gross</td><td>Salary, allowances, overtime and PA.</td></tr>
-        <tr><td>Pension</td><td>Police pension, taken before tax, at your tier's rate.</td></tr>
-        <tr><td>Personal allowance</td><td>Normally £12,570. Above £100,000 (after pension) you lose £1 of it for every £2 over.</td></tr>
-        <tr><td>Extra tax</td><td>The tax from that lost allowance. Payroll keeps giving you the full allowance during the year, so this usually arrives later as a tax code change or a Self Assessment bill.</td></tr>
+        <tr><td>Config, rates &amp; pay scales</td><td>Rank, pay point, rates, and pay point changes with their start date.</td></tr>
+        <tr><td>Bulk input overtime</td><td>Overtime already paid this tax year, as one figure.</td></tr>
+        <tr><td>Themes</td><td>The theme you pick follows you to every signed-in device.</td></tr>
+        <tr><td>Account &amp; data</td><td>Sign in or out, back up, restore or wipe your data.</td></tr>
       </table>
-      <p><b>Full breakdown</b> shows the tax band by band, NI and net pay.</p>
-      <div class="tip"><p><b>Why it matters:</b> between £100,000 and £125,140 each extra £1 of overtime costs about 60p in tax, plus 2p NI. Pension contributions or Gift Aid can bring it back under.</p></div>
-      <p style="font-size:8.6pt;color:var(--faint)">For guidance only. Check anything important against your payslip or with HMRC.</p>
     </div>
-    <div><div class="phone"><img src="shots/taxcalc.png" alt=""></div><div class="cap">Actual and Forecast</div></div>
+    <div><div class="phone"><img src="shots/phone/deductions.png" alt=""></div><div class="phone-cap">On a phone the card opens in place</div></div>
   </div>
   <div class="foot"><span>Overtime &amp; Shift Tracker · User guide</span><span>8</span></div>
 </section>
 
-<!-- 9 · PDF statement -->
+<!-- 9 · Tax & 100k -->
 <section class="page">
-  <div class="kicker">More.. · Reports &amp; export</div>
-  <h1>A pay statement for your accountant <span class="new">NEW</span></h1>
-  <div class="cols two-shots" style="grid-template-columns: 1fr 1fr">
+  <div class="kicker">More.. · Tax &amp; £100k+ calculator</div>
+  <h1>Your tax band and the £100k taper</h1>
+  <div class="screen"><img src="shots/desktop/taxcalc.png" alt=""></div>
+  <div class="row">
     <div>
-      <p><b>Reports &amp; export › Export to PDF or spreadsheet › PDF</b>, then choose a <b>Pay month</b>, a <b>Custom range</b> or a whole <b>Tax year</b>, and <b>Create PDF</b>. Tap <b>Save as PDF</b> to keep it: on a phone that opens the share sheet, so you can save it to Files or email it.</p>
-      <h2>What's in the tax year statement</h2>
-      <ul>
-        <li>An overview: gross, taxable pay, tax, NI and net pay.</li>
-        <li><b>Earnings by month:</b> basic salary, London Weighting and Allowance, overtime hours and pay, Protection Allowance, gross.</li>
-        <li><b>Deductions by month:</b> pension, salary sacrifice, taxable pay, tax, NI, your other deductions and net pay.</li>
-        <li>Overtime hours at each rate, your deductions listed, and the year's <b>totals</b>.</li>
-        <li><b>£100k+ calculator</b>, if taxable pay is over £100,000: the allowance lost, the extra tax, the overtime in the 60% band, and what a pension contribution or Gift Aid would take to get back to £100k.</li>
-        <li><b>Notes for a tax return</b>: pension relief, salary sacrifice, the £140 uniform allowance and professional subscriptions.</li>
-      </ul>
-      <div class="tip"><p>Taxable pay should match the "Pay" figure on your P60. Give your accountant the statement with your P60 and payslips; they're still the final word.</p></div>
-      <p style="font-size:8.6pt;color:var(--faint)">Leave <b>Sanitise notes</b> ticked when sharing: shift notes can hold operationally sensitive detail. <b>Spreadsheet</b> exports every shift as an Excel file instead.</p>
+      <p><b>Actual</b> (the paydays so far this tax year) beside <b>Forecast</b> (the full year at your current pay and overtime).</p>
+      <table>
+        <tr><td>Pension</td><td>Police pension, taken before tax, at your tier's rate.</td></tr>
+        <tr><td>Personal allowance</td><td>Normally £12,570. Above £100,000 (after pension) you lose £1 of it for every £2 over.</td></tr>
+        <tr><td>Extra tax</td><td>The tax on that lost allowance. Payroll doesn't take it during the year, so it usually arrives as a tax code change or a Self Assessment bill.</td></tr>
+      </table>
+      <p><b>Full breakdown</b> shows the tax band by band, NI and net pay. <b>Print or save as PDF</b> gives you a copy.</p>
+      <div class="tip"><p>Between £100,000 and £125,140 each extra £1 of overtime costs about 60p in tax plus 2p NI. Pension contributions or Gift Aid can bring you back under.</p></div>
     </div>
-    <div style="display:grid;gap:4mm">
-      <img class="doc" src="shots/stmt1-1.png" alt="">
-      <img class="doc" src="shots/stmt3-3.png" alt="" style="height:96mm;object-fit:cover;object-position:top">
-      <div class="cap" style="margin-top:-2mm">Page 1, and the £100k+ calculator (sample figures)</div>
-    </div>
+    <div><div class="phone"><img src="shots/phone/taxcalc.png" alt=""></div><div class="phone-cap">Actual and Forecast on a phone</div></div>
   </div>
   <div class="foot"><span>Overtime &amp; Shift Tracker · User guide</span><span>9</span></div>
 </section>
 
-<!-- 10 · Sync & privacy -->
+<!-- 10 · PDF statement -->
+<section class="page">
+  <div class="kicker">More.. · Reports &amp; export</div>
+  <h1>A pay statement for your accountant <span class="new">NEW</span></h1>
+  <div class="screen crop"><img src="shots/desktop/statement.png" alt="" style="height:84mm"></div>
+  <div class="two" style="margin-top:5mm">
+    <div>
+      <p><b>Reports &amp; export › Export to PDF or spreadsheet › PDF</b>, choose a <b>Pay month</b>, <b>Custom range</b> or whole <b>Tax year</b>, then <b>Create PDF</b>. You see the actual A4 pages; <b>Save as PDF</b> downloads the file on a computer, or opens the share sheet on a phone so you can save it to Files or email it.</p>
+      <ul>
+        <li><b>Earnings by month:</b> basic salary, London Weighting and Allowance, overtime hours and pay, PA, gross.</li>
+        <li><b>Deductions by month:</b> pension, salary sacrifice, taxable pay, tax, NI, other deductions, net pay.</li>
+        <li>Overtime hours at each rate, your deductions, and the year's <b>totals</b>.</li>
+        <li><b>£100k+ calculator</b> if taxable pay is over £100,000.</li>
+        <li><b>Notes for a tax return.</b></li>
+      </ul>
+      <div class="tip"><p>Taxable pay should match the "Pay" figure on your P60. Give your accountant the statement with your P60 and payslips; those are the final word.</p></div>
+    </div>
+    <div>
+      <img class="doc" src="shots/statement/stmt3-3.png" alt="" style="height:88mm;object-fit:cover;object-position:top">
+      <div class="phone-cap">The £100k+ calculator page (sample figures)</div>
+    </div>
+  </div>
+  <div class="foot"><span>Overtime &amp; Shift Tracker · User guide</span><span>10</span></div>
+</section>
+
+<!-- 11 · Sync & privacy -->
 <section class="page">
   <div class="kicker">Good to know</div>
   <h1>Sync, updates and privacy</h1>
-  <h2>Using more than one device</h2>
-  <p>Sign in with the same account on your phone and computer. Shifts, TOIL, settings, deductions and your theme sync automatically, usually within seconds, and as soon as you bring the app back to the front. No signal? Keep going: changes are saved on the device and sent up when you're back online. If the same thing is changed on two devices, the most recent change wins.</p>
+  <h2>Your computer and your phone</h2>
+  <p>Sign in with the same account on each. Shifts, TOIL, settings, deductions and your theme sync automatically, usually within seconds and as soon as you bring the app back to the front. No signal? Carry on: changes are saved on the device and sent up when you're back online. If the same thing is changed on two devices, the most recent change wins.</p>
   <h2>Updates</h2>
-  <p>When a new version is ready you'll see an <b>update</b> prompt. Tap it to load the latest version. On a computer it stays until you do, so if something looks out of date on one device, update that one first.</p>
+  <p>When a new version is ready you'll see an <b>update</b> prompt. Click it to load the latest. On a computer it stays until you do, so if something looks out of date on one device, update that one first.</p>
   <h2>Your data</h2>
   <ul>
     <li><b>Encrypted end to end.</b> Shifts and settings are encrypted on your device with a key only your password or recovery word can unlock. Nobody else, including the app's developer, can read them.</li>
-    <li><b>Back up</b> from More › Account &amp; data whenever you like; you'll get a gentle reminder now and then.</li>
+    <li><b>Back up</b> from More › Account &amp; data whenever you like, and <b>restore</b> from a backup file the same way.</li>
     <li>Three pay years are kept in the cloud; older years stay on your device and in your backups.</li>
   </ul>
   <h2>Quick answers</h2>
   <table>
-    <tr><td>My take-home doesn't match</td><td>Check your monthly deductions (More › Monthly deductions) and your pay point. Tax is worked out on code 1257L; a different tax code on your payslip will change it.</td></tr>
+    <tr><td>My take-home doesn't match</td><td>Check your monthly deductions and pay point. Tax is worked out on code 1257L; a different code on your payslip will change it.</td></tr>
     <tr><td>Overtime is in the wrong month</td><td>Overtime is paid in the pay month you submit it, not when you worked it. Check the submitted date on the shift.</td></tr>
-    <tr><td>A theme or setting isn't syncing</td><td>Update both devices (tap the update prompt, or close and reopen the app) and check they're signed into the same account.</td></tr>
-    <tr><td>Forgot my password</td><td>Use <b>Forgot password</b> on the sign-in screen, then your recovery word to unlock your data.</td></tr>
+    <tr><td>A theme or setting isn't syncing</td><td>Update both devices (the update prompt, or close and reopen the app) and check they're signed into the same account.</td></tr>
+    <tr><td>Forgot my password</td><td><b>Forgot password</b> on the sign-in screen, then your recovery word to unlock your data.</td></tr>
   </table>
   <div class="tip"><p>Questions or ideas? More › <b>Help &amp; suggestions</b>. Figures are for guidance only: always check against your payslip.</p></div>
-  <div class="foot"><span>Overtime &amp; Shift Tracker · User guide</span><span>10</span></div>
+  <div class="foot"><span>Overtime &amp; Shift Tracker · User guide</span><span>11</span></div>
 </section>
 
 </body>
