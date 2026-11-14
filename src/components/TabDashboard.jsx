@@ -14,7 +14,7 @@ import { SetupCard } from './SetupCard.jsx';
 const NARROW_W = 1080;
 
 export function TabDashboard({
-  setupFlow,
+  setupFlow, showMonthInSummary,
   isWide, settings, setTab, totals, currPeriodIdx, toilLedger, carmsOutstanding,
   salaryBreakdownExpanded, setSalaryBreakdownExpanded,
   scrollToTaxImpact, setTaxImpactExpanded,
@@ -319,7 +319,9 @@ export function TabDashboard({
     const gap = wc ? '8px' : '3px';
     const short = c => String(c.p.short||c.p.month).slice(0,3);
     const pickIdx = chartPick ?? (currPeriodIdx>=0 ? currPeriodIdx : 0);
-    const openSummary = () => { skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); };
+    // A month's column (or its Details link on a phone) opens Summary on that
+    // month, in the person's default Breakdown view.
+    const openSummary = month => showMonthInSummary(month);
     const pts = cols.map((c,i)=>c.ot>0.005?{x:(i+0.5)/cols.length*100, y:H - c.otN/max*H, c}:null).filter(Boolean);
     const key = (sw,t) => <span key={t} style={{display:'inline-flex',alignItems:'center',gap:'5px'}}>{sw}{t}</span>;
     const sq = c => <i style={{width:'10px',height:'10px',borderRadius:'3px',background:c}}/>;
@@ -376,7 +378,7 @@ export function TabDashboard({
               {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, on=!wc&&c.idx===pickIdx;
                 const seg=(v,bg)=>v>0.005&&<i style={{display:'block',height:`${v/max*H}px`,background:bg}}/>;
                 return (
-                  <button key={c.p.month} type="button" onClick={wc?openSummary:()=>setChartPick(c.idx)} aria-pressed={wc?undefined:on}
+                  <button key={c.p.month} type="button" onClick={wc?()=>openSummary(c.p.month):()=>setChartPick(c.idx)} aria-pressed={wc?undefined:on}
                     aria-label={`${payLabel(c.p.month)}${c.future?' (forecast)':''}: overtime ${fmtGBP(c.ot)}, total pay ${fmtGBP(c.gross)}, take-home ${fmtGBP(c.takeHome)}`}
                     style={{flex:'1 1 0',minWidth:0,display:'flex',justifyContent:'center',background:on?'var(--tint-brass)':'none',borderRadius:'7px',border:'none',padding:wc?0:'3px 0',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
                     <span style={{height:`${H}px`,width:wc?'40%':'58%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:isCurr?`0 0 0 2px color-mix(in srgb, ${BRASS} 60%, transparent)`:'none'}}>
@@ -410,7 +412,7 @@ export function TabDashboard({
           <div style={{marginTop:'8px',padding:'8px 12px 6px',borderRadius:'12px',background:'var(--surface-2)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px',marginBottom:'2px'}}>
               <span style={{fontSize:'14px',fontWeight:900,color:'var(--ink)'}}>{payLabel(pick.p.month)}{pick.future&&<span style={{fontSize:'11px',fontWeight:700,color:'var(--quiet)'}}> · forecast</span>}</span>
-              <button type="button" onClick={openSummary} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'3px'}}>Details<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>
+              <button type="button" onClick={()=>openSummary(pick.p.month)} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'3px'}}>Details<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>
             </div>
             {line('Salary & allowances',pick.sal,false,'var(--muted)')}
             {pick.g>0.005&&line('Overtime submitted',pick.g,false,'var(--text-green-deep)')}
