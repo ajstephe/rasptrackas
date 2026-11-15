@@ -554,6 +554,11 @@ export function TabSettings({
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,transition:'transform 0.35s cubic-bezier(.65,0,.35,1)',transform:dedExpanded?'rotate(180deg)':'none'}}><polyline points="6 9 12 15 18 9"/></svg>
             </button>);
             const cardBody = dedExpanded && (<>
+            {/* Same note as setup, so nobody adds what payroll already takes. */}
+            <div style={{display:'flex',alignItems:'flex-start',gap:'8px',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'9px 11px',marginBottom:'10px'}}>
+              <span style={{display:'flex',flexShrink:0,marginTop:'1px'}}><Ico n="check" s={14} c="#059669" w={2.6}/></span>
+              <span style={{fontSize:'12px',color:'var(--text-green-deep)',lineHeight:1.45,fontWeight:600}}>Your pension, income tax (PAYE) and National Insurance are worked out and taken off automatically, so there's no need to add them here.</span>
+            </div>
             {list.length>0&&<div style={{display:'grid',gridTemplateColumns:isWide?'repeat(2,minmax(0,1fr))':'minmax(0,1fr)',gap:'8px',alignItems:'start'}}>
               {list.map(d=>(
                 <div key={d.id} style={{background:'var(--surface-2)',borderRadius:'12px',padding:'10px'}}>
