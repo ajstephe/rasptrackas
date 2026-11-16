@@ -8,6 +8,7 @@ import { deductionFor, DEDUCTION_PRESETS, PRE_TAX_PRESETS } from '../lib/deducti
 import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { PrivacyNotice } from './PrivacyNotice.jsx';
+import { VersionLine } from './VersionLine.jsx';
 import TaxWorkings from './TaxWorkings.jsx';
 import { SegSlider } from './SegSlider.jsx';
 import { AppSelect } from './AppSelect.jsx';
@@ -1162,6 +1163,7 @@ export function TabSettings({
         </button>
       </div>
       {privacyNoticeOpen && <PrivacyNotice brass={BRASS} onClose={()=>setPrivacyNoticeOpen(false)}/>}
+      <VersionLine/>
       </div>
 
       {/* ── Backdrop for the desktop popup cards above — click
