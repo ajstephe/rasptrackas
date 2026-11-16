@@ -46,6 +46,7 @@ describe('folding iPhone', () => {
   it('unfolded on its side (about 845 x 595) goes desktop', () => {
     expect(layoutFor(845, 595).isWide).toBe(true);
     expect(layoutFor(869, 560).isWide).toBe(true);
+    expect(layoutFor(867, 587).isWide).toBe(true); // measured on the device
   });
   it('ordinary phones on their side still stay phone', () => {
     expect(layoutFor(844, 390).isWide).toBe(false);
