@@ -1193,7 +1193,7 @@ export default function App() {
       apply();
       requestAnimationFrame(apply);
       timers.forEach(clearTimeout);
-      timers = [120, 350, 700, 1200].map(ms => setTimeout(apply, ms));
+      timers = [120, 350, 700, 1200, 2000].map(ms => setTimeout(apply, ms));
     };
     const onVisible = () => { if (document.visibilityState === 'visible') check(); };
     window.addEventListener('resize', check);
