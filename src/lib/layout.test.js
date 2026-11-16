@@ -38,3 +38,17 @@ describe('fixStaleSize', () => {
     expect(fixStaleSize(830, 830, null, 750, 830)).toEqual({ w: 830, h: 830 });
   });
 });
+
+describe('folding iPhone', () => {
+  it('unfolded upright (669 x 869) keeps the phone layout', () => {
+    expect(layoutFor(669, 869).isWide).toBe(false);
+  });
+  it('unfolded on its side (about 845 x 595) goes desktop', () => {
+    expect(layoutFor(845, 595).isWide).toBe(true);
+    expect(layoutFor(869, 560).isWide).toBe(true);
+  });
+  it('ordinary phones on their side still stay phone', () => {
+    expect(layoutFor(844, 390).isWide).toBe(false);
+    expect(layoutFor(852, 393).isWide).toBe(false);
+  });
+});

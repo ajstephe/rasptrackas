@@ -1,12 +1,13 @@
 // Which layout fits a screen of w x h CSS pixels.
 // isWide: the computer layout (sidebar, wide cards). 960+ wide always; a
 //   screen on its side from 900 wide; and unfolded foldables on their side
-//   (roughly 830 x 750), from 720 wide when at least 600 tall. Ordinary
+//   (830 x 750, or about 845 x 595 on a folding iPhone once its status bar
+//   and home bar are taken off), from 720 wide when at least 540 tall. Ordinary
 //   phones on their side are far too short (about 390-430) to match.
 // tabletP: unfolded foldables held upright (about 720-760 wide) keep the
 //   phone shell and bottom bar with a wider column.
 export function layoutFor(w, h) {
-  const isWide = w >= 960 || (w > h && w >= 900) || (w > h && w >= 720 && h >= 600);
+  const isWide = w >= 960 || (w > h && w >= 900) || (w > h && w >= 720 && h >= 540);
   return { isWide, tabletP: !isWide && w >= 700 };
 }
 
