@@ -31,6 +31,7 @@ import {
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { TabErrorBoundary } from './ErrorBoundary.jsx';
+import { layoutFor, screenSize } from './lib/layout.js';
 import { clockOffsetFrom, mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, mergeSettings3, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, pushModeFor, wipeAction } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
@@ -1178,17 +1179,44 @@ export default function App() {
   // also at least 600 tall; checked clean at 832 x 750 on Home, Summary
   // (Shifts, Old School) and Log Overtime. Ordinary phones in landscape
   // are too short to match it, so nothing changes for them.
-  const computeIsWide = () => window.innerWidth>=960 || (window.innerWidth>window.innerHeight && window.innerWidth>=900) || (window.innerWidth>window.innerHeight && window.innerWidth>=720 && window.innerHeight>=600);
-  const [isWide, setIsWide] = useState(()=>typeof window!=='undefined' && computeIsWide());
-  // Unfolded foldables held portrait (Z Fold, Surface Duo: about 720-760
-  // wide) keep the phone shell and bottom bar, but the column widens to use
-  // the screen and Home lays its cards out as on a computer.
-  const computeTabletP = () => !computeIsWide() && window.innerWidth>=700;
-  const [tabletP, setTabletP] = useState(()=>typeof window!=='undefined' && computeTabletP());
+  const [layout, setLayout] = useState(()=>{ if (typeof window==='undefined') return { isWide:false, tabletP:false }; const { w, h } = screenSize(); return layoutFor(w, h); });
+  const { isWide, tabletP } = layout;
+  // Rotating or unfolding a phone doesn't always send a resize, and on
+  // iPhones the one it sends can arrive before the screen has its new size.
+  // So every sign of a change is listened for, and the size is read again
+  // over the next moment until it settles. The layout only changes state
+  // when it actually differs, so the extra checks cost nothing.
   useEffect(()=>{
-    const onResize = () => { setIsWide(computeIsWide()); setTabletP(computeTabletP()); };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    const apply = () => { const { w, h } = screenSize(); const next = layoutFor(w, h); setLayout(cur => cur.isWide===next.isWide && cur.tabletP===next.tabletP ? cur : next); };
+    let timers = [];
+    const check = () => {
+      apply();
+      requestAnimationFrame(apply);
+      timers.forEach(clearTimeout);
+      timers = [120, 350, 700, 1200].map(ms => setTimeout(apply, ms));
+    };
+    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
+    window.addEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
+    window.addEventListener('pageshow', check);
+    document.addEventListener('visibilitychange', onVisible);
+    window.visualViewport?.addEventListener('resize', check);
+    screen.orientation?.addEventListener?.('change', check);
+    const mq = window.matchMedia?.('(orientation: portrait)');
+    mq?.addEventListener?.('change', check);
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(apply) : null;
+    ro?.observe(document.documentElement);
+    return () => {
+      timers.forEach(clearTimeout);
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
+      window.removeEventListener('pageshow', check);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.visualViewport?.removeEventListener('resize', check);
+      screen.orientation?.removeEventListener?.('change', check);
+      mq?.removeEventListener?.('change', check);
+      ro?.disconnect();
+    };
   },[]);
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false);
   // Leaving an edit of a saved shift with changes asks first; holds where
