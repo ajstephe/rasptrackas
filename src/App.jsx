@@ -31,7 +31,7 @@ import {
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { TabErrorBoundary } from './ErrorBoundary.jsx';
-import { clockOffsetFrom, mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, mergeSettings3, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, pushModeFor } from './lib/sync.js';
+import { clockOffsetFrom, mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, mergeSettings3, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, pushModeFor, wipeAction } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -1599,6 +1599,52 @@ export default function App() {
     setUnsynced(u => (u.length === list.length && u.every((x,i)=>x.key===list[i].key && x.text===list[i].text)) ? u : list);
   }
 
+  // Wipe All Data on another device. Every device checks the account's wipe
+  // time before it syncs; one still holding data from before the wipe clears
+  // its copy here, rather than uploading it again as if it were new.
+  const wipeCheckRef = useRef({ at: 0, p: null });
+  function checkWipe() {
+    if (!supabase || !session) return Promise.resolve(false);
+    const c = wipeCheckRef.current;
+    if (c.p && Date.now() - c.at < 3000) return c.p;
+    const uid = session.user.id;
+    const p = (async () => {
+      const { data, error } = await supabase.from('user_keys').select('data_wiped_at').eq('user_id', uid).maybeSingle();
+      if (error) return false; // can't tell: carry on as before
+      const hasLocal = (entriesRef.current?.length || 0) + (toilTakenRef.current?.length || 0) > 0;
+      const r = wipeAction(data?.data_wiped_at ?? null, dualRead(KEYS.wipeSeen, null), dualRead(KEYS.lastSyncedAt, null), hasLocal);
+      if (r.clear) {
+        clearForWipe();
+        addToast('Your data was wiped on another device, so this one has been cleared to match.', 'warn', null, 6000);
+        // Then fetch whatever is in the cloud now (data added since the wipe).
+        setTimeout(() => {
+          pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries, true).catch(()=>{});
+          pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil, true).catch(()=>{});
+          pullAndMergeSettings().catch(()=>{});
+        }, 0);
+      }
+      dualWrite(KEYS.wipeSeen, r.seen);
+      return r.clear;
+    })().catch(() => false);
+    wipeCheckRef.current = { at: Date.now(), p };
+    return p;
+  }
+  function clearForWipe() {
+    syncGenRef.current++;
+    entriesRef.current = []; toilTakenRef.current = [];
+    setEntries([]); setToilTaken([]);
+    // Settings go blank too (keeping this device's theme), so the next push
+    // takes the cloud's settings instead of sending old ones back up.
+    const cur = settingsRef.current || {};
+    saveSett({ rank:'', service:'', ...(cur.theme !== undefined ? { theme: cur.theme, themeAt: cur.themeAt } : {}) });
+    lastSyncedEntriesRef.current = new Map(); persistLastSyncedEntries();
+    lastSyncedToilRef.current = new Map(); persistLastSyncedToil();
+    lastSyncedSettingsRef.current = null; persistLastSyncedSettings();
+    lastSettingsUpdatedAtRef.current = null; persistLastSettingsUpdatedAt();
+    dualWrite(KEYS.entries, []); dualWrite(KEYS.toilTaken, []);
+    dualWrite(KEYS.pullStateEntries, null); dualWrite(KEYS.pullStateToilTaken, null);
+  }
+
   async function pushRowChanges(table, items, lastSyncedRef, persistFn) {
     if (!supabase || !session || !dataKey || !initialSyncDoneRef.current) return;
     // Serialized per table via pushChainRef, rather than left free to race:
@@ -1629,6 +1675,8 @@ export default function App() {
       // otherwise look locally deleted and be soft-deleted on the server.
       const live = table === 'entries' ? entriesRef.current : table === 'toil_taken' ? toilTakenRef.current : items;
       const diff = computeRowPushDiff(live || items, lastSyncedRef.current);
+      // Anything going up is checked against a wipe on another device first.
+      if (diff.toUpsert.length && await checkWipe()) return 0;
       const { toUpsert } = diff;
       const seen = seenIdsRef.current[table] || new Set();
       const toDelete = diff.toDelete.filter(id => seen.has(id));
@@ -1712,6 +1760,7 @@ export default function App() {
     const run = async () => {
       let json = JSON.stringify(settingsObj);
       if (lastSyncedSettingsRef.current === json || hasNoPendingLocalEdit(settingsObj, lastSyncedSettingsRef.current ?? undefined) && lastSyncedSettingsRef.current != null) return 0;
+      if (await checkWipe()) return 0;
       try {
         // Blank rank/pay point here must never replace real ones in the
         // cloud (a device signed in moments ago, with a theme picked before
@@ -1987,11 +2036,12 @@ export default function App() {
     if (!dataKey) { initialSyncDoneRef.current = false; return; }
     initialSyncDoneRef.current = false;
     measureClock();
-    Promise.allSettled([
+    // A wipe on another device is dealt with before anything is pulled or pushed.
+    checkWipe().then(()=>Promise.allSettled([
       pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries),
       pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil),
       pullAndMergeSettings(),
-    ]).then(res=>{
+    ])).then(res=>{
       initialSyncDoneRef.current = true;
       if (res.some(r=>r.status==='rejected')) addToast("Couldn't reach the cloud. Your changes are saved on this device and will sync when you're back online.",'warn',null,6000);
       // Anything edited offline (or whose push failed) goes up now rather
@@ -2179,7 +2229,7 @@ export default function App() {
       const now = Date.now(); if (now - lastFgPullRef.current < 5000) return;
       lastFgPullRef.current = now;
       measureClock();
-      pullAndMergeSettings().catch(()=>{});
+      checkWipe().then(cleared => { if (!cleared) pullAndMergeSettings().catch(()=>{}); });
     };
     document.addEventListener('visibilitychange', onFg);
     window.addEventListener('focus', onFg);
@@ -3905,6 +3955,12 @@ export default function App() {
     if (supabase && session) {
       try {
         const uid = session.user.id;
+        // Stamp the wipe first, so another device that syncs in the middle
+        // of it already knows to clear its copy rather than send it back.
+        try {
+          const { data: wipedAt } = await supabase.rpc('mark_data_wiped');
+          if (wipedAt) { dualWrite(KEYS.wipeSeen, wipedAt); wipeCheckRef.current = { at: 0, p: null }; }
+        } catch (e) { /* older database: wipe as before */ }
         const results = await Promise.all([
           supabase.from('entries').delete().eq('user_id', uid),
           supabase.from('toil_taken').delete().eq('user_id', uid),
@@ -3972,6 +4028,7 @@ export default function App() {
     dualWrite(KEYS.pullStateEntries, null);
     dualWrite(KEYS.pullStateToilTaken, null);
     dualWrite(KEYS.owner, null);
+    dualWrite(KEYS.wipeSeen, null);
     setLastSyncedAt(null);
   };
 

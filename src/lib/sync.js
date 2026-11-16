@@ -341,3 +341,19 @@ export function pushModeFor(item, lastSyncedMap, isWithinCloudRetention) {
   if (!lastSyncedMap.has(item.id)) return 'upsert';
   return !item.date || isWithinCloudRetention(item.date) ? 'update' : 'upsert';
 }
+
+// What to do about Wipe All Data done on another device. serverWipedAt is
+// the account's wipe time (null if never wiped); seen is the wipe time this
+// device last acted on ('none' if it checked while there was none, null if
+// it has never checked). A device that already knew about an earlier state
+// and now sees a newer wipe clears its local copy rather than uploading it
+// again. One that has never checked (just signed in, or first run of this
+// check) clears only if it holds data and hasn't synced since the wipe.
+export function wipeAction(serverWipedAt, seen, lastSyncedAt, hasLocalData) {
+  if (!serverWipedAt) return { clear: false, seen: 'none' };
+  const w = Date.parse(serverWipedAt);
+  if (seen && seen !== 'none' && Date.parse(seen) === w) return { clear: false, seen };
+  if (seen) return { clear: true, seen: serverWipedAt };
+  const synced = typeof lastSyncedAt === 'number' ? lastSyncedAt : lastSyncedAt ? Date.parse(lastSyncedAt) : NaN;
+  return { clear: !!hasLocalData && !(synced > w), seen: serverWipedAt };
+}

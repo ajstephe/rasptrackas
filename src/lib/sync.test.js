@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clockOffsetFrom, newestTheme, mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS, pushModeFor } from './sync.js';
+import { clockOffsetFrom, newestTheme, mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS, pushModeFor, wipeAction } from './sync.js';
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -557,5 +557,29 @@ describe('pushModeFor', () => {
   });
   it('keeps the upsert for rows pruned from the cloud for age', () => {
     expect(pushModeFor({ id: 'old', date: '2023-05-01' }, synced, within)).toBe('upsert');
+  });
+});
+
+describe('wipeAction', () => {
+  const W = '2026-11-16T09:14:31.786+00:00';
+  it('does nothing when the account was never wiped', () => {
+    expect(wipeAction(null, null, null, true)).toEqual({ clear: false, seen: 'none' });
+  });
+  it('does nothing for a wipe this device already acted on (or did itself)', () => {
+    expect(wipeAction(W, '2026-11-16T09:14:31.786Z', null, true).clear).toBe(false);
+  });
+  it('clears a device that knew the account before a newer wipe', () => {
+    expect(wipeAction(W, 'none', '2026-11-16T09:20:00Z', true)).toEqual({ clear: true, seen: W });
+    expect(wipeAction(W, '2026-11-01T00:00:00Z', null, true).clear).toBe(true);
+  });
+  it('first check: clears old data not synced since the wipe', () => {
+    expect(wipeAction(W, null, '2026-11-16T09:00:00Z', true).clear).toBe(true);
+    expect(wipeAction(W, null, null, true).clear).toBe(true);
+  });
+  it('first check: keeps data synced after the wipe, and empty devices', () => {
+    expect(wipeAction(W, null, '2026-11-16T09:30:00Z', true).clear).toBe(false);
+    expect(wipeAction(W, null, Date.parse('2026-11-16T09:30:00Z'), true).clear).toBe(false);
+    expect(wipeAction(W, null, Date.parse('2026-11-16T09:00:00Z'), true).clear).toBe(true);
+    expect(wipeAction(W, null, null, false).clear).toBe(false);
   });
 });
