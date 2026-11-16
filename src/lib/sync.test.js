@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clockOffsetFrom, newestTheme, mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS } from './sync.js';
+import { clockOffsetFrom, newestTheme, mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS, pushModeFor } from './sync.js';
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -542,5 +542,20 @@ describe('clockOffsetFrom and theme picks across skewed clocks', () => {
     expect(newestTheme(phone, pc).theme).toBe('barista');
     // Without the offset, the PC's fast clock would have won.
     expect(newestTheme({ ...pc, themeAt: pcClock }, phone).theme).toBe('miami');
+  });
+});
+
+describe('pushModeFor', () => {
+  const within = d => d >= '2024-04-01';
+  const synced = new Map([['a', '{}'], ['old', '{}'], ['t', '{}']]);
+  it('inserts items this device has never synced', () => {
+    expect(pushModeFor({ id: 'new', date: '2026-11-01' }, synced, within)).toBe('upsert');
+  });
+  it('updates items synced before, so a wiped row is not recreated', () => {
+    expect(pushModeFor({ id: 'a', date: '2026-11-01' }, synced, within)).toBe('update');
+    expect(pushModeFor({ id: 't' }, synced, within)).toBe('update');
+  });
+  it('keeps the upsert for rows pruned from the cloud for age', () => {
+    expect(pushModeFor({ id: 'old', date: '2023-05-01' }, synced, within)).toBe('upsert');
   });
 });

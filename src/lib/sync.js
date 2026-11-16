@@ -331,3 +331,13 @@ export function mergeSettings3(base, local, remote) {
   if (local.theme !== undefined) { out.theme = local.theme; if (local.themeAt !== undefined) out.themeAt = local.themeAt; }
   return newestTheme(out, remote);
 }
+
+// How an item goes up. An item this device has synced before is an edit
+// and goes as an update, so a row removed outright on another device (Wipe
+// All Data) is found missing rather than recreated by an upsert. Rows past
+// the cloud retention window are pruned from the server on purpose, so an
+// edit to one of those goes back up as an upsert.
+export function pushModeFor(item, lastSyncedMap, isWithinCloudRetention) {
+  if (!lastSyncedMap.has(item.id)) return 'upsert';
+  return !item.date || isWithinCloudRetention(item.date) ? 'update' : 'upsert';
+}

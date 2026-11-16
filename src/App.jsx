@@ -31,7 +31,7 @@ import {
 } from './lib/shiftTimes.js';
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { TabErrorBoundary } from './ErrorBoundary.jsx';
-import { clockOffsetFrom, mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, mergeSettings3, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull } from './lib/sync.js';
+import { clockOffsetFrom, mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, mergeSettings3, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, pushModeFor } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -1640,13 +1640,40 @@ export default function App() {
       if (toUpsert.length === 0 && toDelete.length === 0) return 0;
       const now = new Date().toISOString();
       let failed = 0;
+      const gone = [];
       for (const item of toUpsert) {
         try {
           const ciphertext = await encryptWithDataKey(dataKey, item);
+          // An edit to a row this device has synced before goes up as an
+          // update, never an insert. If the row isn't on the server any more,
+          // another device removed it outright (Wipe All Data), and an upsert
+          // would bring this device's stale copy back as if it were new. So
+          // it's dropped here instead. Rows older than the cloud retention
+          // window are pruned from the server on purpose and keep the upsert.
+          if (pushModeFor(item, lastSyncedRef.current, isWithinCloudRetention) === 'update') {
+            const { data, error } = await supabase.from(table).update({ ciphertext, updated_at: now, deleted_at: null }).eq('id', item.id).eq('user_id', uid).select('id');
+            if (error) { failed++; console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error); continue; }
+            if (!data || !data.length) { gone.push(item.id); lastSyncedRef.current.delete(item.id); persistFn(); continue; }
+            lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); markSynced();
+            continue;
+          }
           const { error } = await supabase.from(table).upsert({ id: item.id, user_id: uid, ciphertext, updated_at: now, deleted_at: null });
           if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); markSynced(); }
           else { failed++; console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error); }
         } catch (e) { failed++; console.error(`[sync] push threw for ${table} id=${item.id}:`, e.message || e); }
+      }
+      if (gone.length) {
+        console.warn(`[sync] ${table}: ${gone.length} item(s) were removed on another device; dropping them here`);
+        const drop = new Set(gone);
+        (table === 'entries' ? setEntries : setToilTaken)(prev => prev.filter(it => !drop.has(it.id)));
+        // The rest of this device's copy is likely stale too: a full pull
+        // clears out everything else that went in the same wipe.
+        setTimeout(() => {
+          const p = table === 'entries'
+            ? pullAndMergeRows('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries, true)
+            : pullAndMergeRows('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil, true);
+          p.catch(() => {});
+        }, 0);
       }
       for (const id of toDelete) {
         try {
