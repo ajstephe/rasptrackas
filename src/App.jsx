@@ -2494,7 +2494,7 @@ export default function App() {
           if (!computer && performance.now() < 20000) { updateSW(true); return; }
           // Stays put until Reload is tapped: a 30-second window was easy to
           // miss, leaving people on the old version until the next prompt.
-          addToast('A new version is ready', 'update', { label: 'Reload', fn: () => updateSW(true) }, null);
+          addToast('New Update Available', 'update', { label: 'Reload', fn: () => updateSW(true) }, null);
         },
       });
     }).catch(() => { /* dev server / unsupported browser — app works exactly as before, just without offline caching */ });

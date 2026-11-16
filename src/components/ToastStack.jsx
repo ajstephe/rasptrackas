@@ -51,7 +51,7 @@ export function ToastStack({ toasts, onDismiss, isWide }) {
   const updCard = t => (
     <div key={t.id} className={t.leaving?'toast-leave':'toast-up'} role="alert" style={{background:'var(--navy)',color:'#fff',borderRadius:'18px',display:'flex',alignItems:'center',gap:'12px',padding:'12px 12px 12px 14px',boxShadow:'0 14px 40px rgba(0,0,0,0.35), 0 0 0 2px #b8823f',pointerEvents:'all'}}>
       <div className="upd-pulse" style={{width:'36px',height:'36px',borderRadius:'50%',background:'#b8823f',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="bell" s={17} c="#fff"/></div>
-      <div style={{flex:1,minWidth:0}}><div style={{fontSize:'14.5px',fontWeight:900}}>{t.message}</div><div style={{fontSize:'12px',fontWeight:600,color:'rgba(255,255,255,0.75)'}}>Takes a second, nothing is lost</div></div>
+      <div style={{flex:1,minWidth:0}}><div style={{fontSize:'14.5px',fontWeight:900}}>{t.message}</div><div style={{fontSize:'12px',fontWeight:600,color:'rgba(255,255,255,0.75)'}}>Latest version includes updates, bug fixes and new functionality</div></div>
       <button onClick={()=>reload(t)} style={{background:'#b8823f',border:'none',borderRadius:'12px',padding:'12px 18px',color:'#fff',fontWeight:900,fontSize:'14px',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>{t.action?.label||'Reload'}</button>
     </div>);
   const updPos = isWide ? {position:'fixed',bottom:'20px',right:'20px'}
