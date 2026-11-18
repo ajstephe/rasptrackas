@@ -4,11 +4,12 @@
 //   (830 x 750, or about 845 x 595 on a folding iPhone once its status bar
 //   and home bar are taken off), from 720 wide when at least 540 tall. Ordinary
 //   phones on their side are far too short (about 390-430) to match.
-// tabletP: unfolded foldables held upright (about 720-760 wide) keep the
+// tabletP: unfolded foldables held upright (Z Fold about 720-760 wide, a
+//   folding iPhone 669; ordinary phones upright are 440 at most) keep the
 //   phone shell and bottom bar with a wider column.
 export function layoutFor(w, h) {
   const isWide = w >= 960 || (w > h && w >= 900) || (w > h && w >= 720 && h >= 540);
-  return { isWide, tabletP: !isWide && w >= 700 };
+  return { isWide, tabletP: !isWide && w >= 600 };
 }
 
 // The size to lay out for. documentElement.client* is what CSS lays out
