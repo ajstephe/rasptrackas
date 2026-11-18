@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
@@ -35,6 +35,19 @@ export function TabDashboard({
   // Screen width, so the Overview can switch layout on narrow computers.
   const [vw, setVw] = useState(()=>typeof window!=='undefined'?window.innerWidth:1440);
   useEffect(()=>{ let f=0; const on=()=>{ if(!f) f=requestAnimationFrame(()=>{ f=0; setVw(window.innerWidth); }); }; window.addEventListener('resize',on); return ()=>{ window.removeEventListener('resize',on); if(f) cancelAnimationFrame(f); }; },[]);
+  // Width of Home's summary rows, so they can stack when the sidebar leaves
+  // too little room for two side by side (folding phones on their side).
+  const [rowsW, setRowsW] = useState(0);
+  const rowsObs = useRef(null);
+  const rowsRef = useCallback(el => {
+    rowsObs.current?.disconnect(); rowsObs.current = null;
+    if (!el || typeof ResizeObserver==='undefined') return;
+    rowsObs.current = new ResizeObserver(()=>setRowsW(el.clientWidth));
+    rowsObs.current.observe(el);
+  }, []);
+  // Stacked below 900: two side by side at that width squeezes the pay
+  // month row onto four lines (folding phones on their side, small laptops).
+  const rowsStack = vw<760 || (rowsW>0 && rowsW<900);
   // Narrow computers scroll the Overview sideways; it opens on the current month.
   // Monthly deductions from Config (Federation subs, ATOC, savings…). Salary
   // sacrifice is already off the payroll run's monthNet (with the tax and NI
@@ -644,9 +657,9 @@ export function TabDashboard({
       {/* Desktop: the four rows sit in a 2 × 2 grid (pay month | net pay,
           TOIL | CARMS & PSOP) so each label stays close to its figure
           instead of stretching across the full width. */}
-      {/* An unfolded phone held upright (a folding iPhone is 669 wide) is
-          too narrow for two side by side, so they stack there. */}
-      <div style={{padding:'4px 26px',display:'grid',gridTemplateColumns:vw<760?'minmax(0,1fr)':'minmax(0,1fr) minmax(0,1fr)',columnGap:'44px',alignItems:'stretch'}}>
+      {/* Where there isn't room for two side by side (an unfolded phone
+          upright or on its side, a small laptop) they stack. */}
+      <div ref={rowsRef} style={{padding:'4px 26px',display:'grid',gridTemplateColumns:rowsStack?'minmax(0,1fr)':'minmax(0,1fr) minmax(0,1fr)',columnGap:'44px',alignItems:'stretch'}}>
         {totals.curr&&(
           <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
@@ -663,7 +676,7 @@ export function TabDashboard({
           </button>
         )}
         {netHeroRow(false)}
-        <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:vw<760&&carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
+        <button onClick={()=>setTab('graph')} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:rowsStack&&carmsOutstanding.totalClaims>0?'1px':0,borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
           <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
             <div style={{background:toilLedger.balance<0?'var(--tint-red)':'var(--tint-purple)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="clock" s={17} c={toilLedger.balance<0?'var(--text-red-deep)':'#7c3aed'}/></div>
             <div>
