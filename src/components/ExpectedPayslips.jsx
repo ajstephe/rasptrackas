@@ -79,7 +79,7 @@ function PayslipPanel({ months, pick, setPick, settings, saveSett, S, MONO, BRAS
     const askCode = !!saveSett && !settings?.taxCode && !settings?.taxCodeChecked;
     const answered = s => saveSett({ ...s, taxCodeChecked: true });
     const codeNudge = askCode && (
-      <div style={{ background: 'var(--tint-amber)', borderRadius: '12px', padding: isWide ? '12px 16px' : '10px 12px', marginBottom: isWide ? '14px' : '10px' }}>
+      <div style={{ background: 'var(--tint-amber)', borderRadius: '12px', padding: isWide ? '12px 16px' : '10px 12px', marginTop: isWide ? '14px' : '10px' }}>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
           <Ico n="warn" s={16} c="var(--text-amber-deep)"/>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -102,7 +102,6 @@ function PayslipPanel({ months, pick, setPick, settings, saveSett, S, MONO, BRAS
     );
     const wideSlip = (
       <>
-        {codeNudge}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '12px', marginBottom: '16px' }}>
           {tile('Total payments', totalPay)}
           {tile('Total deductions', totalDed, 'var(--text-red-deep)')}
@@ -147,11 +146,11 @@ function PayslipPanel({ months, pick, setPick, settings, saveSett, S, MONO, BRAS
           {paid ? '' : 'Not paid yet: overtime and PA show what’s been claimed for this month so far. '}
           Worked out by the app from your rank, pay point, claims, tax code and deductions. A guide only: check it against your real payslip.
         </div>
+        {codeNudge}
       </>
     );
     slip = isWide ? wideSlip : (
       <>
-        {codeNudge}
         <div style={{ border: '1.5px solid var(--ink)', borderRadius: '8px', overflow: 'hidden', background: 'var(--surface)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px', padding: '10px 12px', borderBottom: '1.5px solid var(--ink)', background: 'var(--surface-2)' }}>
             {[['Date paid', fmtDay(pb.payDate)], ['Tax code', pb.taxCode || '1257L'], ['Pay month', payLabel(pb.month)], ['Shifts', shiftSpan(pb.start, pb.end).replace(/^Shifts /, '')]].map(([k, v]) => (
@@ -181,6 +180,7 @@ function PayslipPanel({ months, pick, setPick, settings, saveSett, S, MONO, BRAS
           {paid ? '' : 'Not paid yet: overtime and PA show what’s been claimed for this month so far. '}
           Worked out by the app from your rank, pay point, claims, tax code and deductions. A guide only: check it against your real payslip.
         </div>
+        {codeNudge}
       </>
     );
   }
