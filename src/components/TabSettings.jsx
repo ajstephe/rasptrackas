@@ -603,7 +603,7 @@ export function TabSettings({
                       {['post'].map(k=>(
                         <Fragment key={k}>
                           <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',padding:'0 4px 5px',borderBottom:'1px solid var(--border-2)',lineHeight:1.35,display:'flex',flexDirection:'column',justifyContent:'flex-end'}}><div>National</div></div>
-                          <div style={{fontSize:'8px',fontWeight:900,color:BRASS,textTransform:'uppercase',textAlign:'right',padding:'0 4px 5px',borderBottom:'1px solid var(--border-2)',lineHeight:1.35,display:'flex',flexDirection:'column',justifyContent:'flex-end'}}><div>With London</div></div>
+                          <div style={{fontSize:'8px',fontWeight:900,color:BRASS,textTransform:'uppercase',textAlign:'right',padding:'0 4px 5px',borderBottom:'1px solid var(--border-2)',lineHeight:1.35,display:'flex',flexDirection:'column',justifyContent:'flex-end'}}><div>Inc weighting</div></div>
                         </Fragment>
                       ))}
                       {visiblePoints(rank).map(point=>{
@@ -630,7 +630,7 @@ export function TabSettings({
                 )}
                   </>);
                 })()}
-                <div style={{marginTop:'12px',fontSize:'9px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Pay scales from 1 Sept 2026. National figures exclude London pay. With London adds London Weighting (£3,261) and London Allowance (£6,819): the Standard Rate on a Met payslip.</div>
+                <div style={{marginTop:'12px',fontSize:'9px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Pay scales from 1 Sept 2026. National figures exclude London pay. Inc weighting adds London Weighting (£3,261) and London Allowance (£6,819): the Standard Rate on a Met payslip.</div>
               </div>
             </div>
           );
