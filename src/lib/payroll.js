@@ -82,6 +82,14 @@ export const periodNet = (pb, ot, pa) =>
   paySlice(fnsOf(pb), pb.cumBase, ot, pb.niBase ?? pb.baseAmt).net +
   paySlice(fnsOf(pb), pb.cumBase+ot, pa, (pb.niBase ?? pb.baseAmt)+ot).net;
 
+// Taxable pay and tax to date from a real payslip (More › Config), as
+// settings.payslipYtd = { month:'November 2026', taxable, tax }, for the
+// pay month it came from.
+export const ytdFor = (settings, month) => {
+  const y = settings && settings.payslipYtd;
+  return y && y.month === month && Number.isFinite(y.taxable) && Number.isFinite(y.tax) ? y : null;
+};
+
 // Runs the twelve payslips of one pay year (= one tax year) given each
 // month's overtime and PA. `svcData` pins one pay point (tests); otherwise
 // each month uses the pay point in force on its pay date.
@@ -103,7 +111,8 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     // Pension stays on the full pensionable pay.
     const sacrifice = m.base > 0 ? Math.min(deductionsFor(settings, p.month).before, m.base - periodPension) : 0;
     const niBase = m.base - sacrifice;
-    const cumBase = cum + m.base - periodPension - sacrifice;   // salary is taxed first, net of pension
+    const monthBaseTaxable = m.base - periodPension - sacrifice;
+    let cumBase = cum + monthBaseTaxable;   // salary is taxed first, net of pension
     // How the salary, London Weighting and London Allowance would each take
     // home if they were the only pay this tax year: the salary first, then
     // London Weighting on top of it, then London Allowance. Each takes its own
@@ -129,7 +138,19 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const ot = claimedOt + imported;
     // The tax code for this pay month (More › Config; 1257L cumulative unless set).
     const tc = taxCodeOn(settings, p.month);
-    const cumPrev = cum, paidBefore = taxToDate;
+    // Figures to date copied from a real payslip (More › Config) replace the
+    // app's own assumption of this pay every month since April: taxable pay
+    // before this month is the payslip's to-date figure less this month's
+    // taxable pay, and the month's tax is worked out from there as payroll
+    // would. Every month after it carries on from the payslip's figures.
+    const ytd = ytdFor(settings, p.month);
+    if (ytd) {
+      cum = ytd.taxable - (monthBaseTaxable + ot + pa);
+      cumBase = cum + monthBaseTaxable;
+      taxToDate = tc.basis === 'month1' || taxMonth === 1 ? 0 : taxToDateFor(cum, taxMonth - 1, tc.info);
+    }
+    const cumPrev = cum;
+    let paidBefore = taxToDate;
     const fns = monthTaxFns({ taxMonth, cumPrev, paidBefore, taxInfo: tc.info, taxBasis: tc.basis });
     const otResult = paySlice(fns, cumBase, ot, niBase);
     const paResult = paySlice(fns, cumBase+ot, pa, niBase+ot);
@@ -139,6 +160,9 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     let monthTax = fns.tax(cum) - paidBefore;
     // K codes: tax in a month can't be more than half that month's pay.
     if (tc.info.type === 'K') monthTax = Math.min(monthTax, Math.floor((cum - cumPrev) * 0.5 * 100) / 100);
+    // The payslip's tax to date is what was really paid, whatever the
+    // app's estimate of the months before it.
+    if (ytd) paidBefore = ytd.tax - monthTax;
     taxToDate = paidBefore + monthTax;
     const monthNI = payeNI(monthGross - sacrifice);
     const monthNet = monthGross - periodPension - monthTax - monthNI - sacrifice;
