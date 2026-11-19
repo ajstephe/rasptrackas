@@ -58,7 +58,7 @@ export function ExpectedPayslips({ payYear, settings, currPeriodIdx, S, MONO, BR
       <>
         <div style={{ border: '1.5px solid var(--ink)', borderRadius: '8px', overflow: 'hidden', background: 'var(--surface)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px', padding: '10px 12px', borderBottom: '1.5px solid var(--ink)', background: 'var(--surface-2)' }}>
-            {[['Date paid', fmtDay(pb.payDate)], ['Tax code', pb.taxCode || '1257L Cumulative'], ['Pay month', payLabel(pb.month)], ['Shifts', shiftSpan(pb.start, pb.end).replace(/^Shifts /, '')]].map(([k, v]) => (
+            {[['Date paid', fmtDay(pb.payDate)], ['Tax code', pb.taxCode || '1257L'], ['Pay month', payLabel(pb.month)], ['Shifts', shiftSpan(pb.start, pb.end).replace(/^Shifts /, '')]].map(([k, v]) => (
               <div key={k} style={{ minWidth: 0 }}>
                 <div style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--quiet)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{k}</div>
                 <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--ink)' }}>{v}</div>

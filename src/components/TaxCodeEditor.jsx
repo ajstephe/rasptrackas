@@ -18,7 +18,7 @@ function CodeInput({ value, onValid, label, S, small }) {
     <div style={{ flex: small ? '0 0 92px' : '1 1 auto', minWidth: 0 }}>
       <input aria-label={label} value={text} autoCapitalize="characters" autoCorrect="off" spellCheck={false}
         onChange={e => { const t = e.target.value.toUpperCase().slice(0, 10); setText(t); const p = parseTaxCode(t); if (p.ok) onValid(p); }}
-        onBlur={() => { setTouched(true); if (parsed.ok) setText(parsed.code + (parsed.month1 ? ' M1' : '')); }}
+        onBlur={() => { setTouched(true); if (parsed.ok) setText(parsed.code); }}
         style={{ ...S.inp, width: '100%', fontWeight: 800, letterSpacing: '0.02em', ...(small ? { background: 'var(--surface)', padding: '8px 10px', fontSize: '16px' } : { fontSize: '16px' }), ...(touched && !parsed.ok ? { border: '1.5px solid #dc2626' } : null) }}/>
       {touched && !parsed.ok && <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-red-deep)', marginTop: '4px' }}>{parsed.error}</div>}
     </div>
@@ -31,8 +31,8 @@ function Basis({ value, onChange, BRASS, small }) {
       style={{ flex: 1, border: 'none', borderRadius: '8px', padding: small ? '7px 6px' : '9px 8px', fontFamily: 'inherit', fontWeight: 800, fontSize: small ? '11.5px' : '12.5px', cursor: 'pointer', whiteSpace: 'nowrap', background: value === v ? BRASS : 'transparent', color: value === v ? '#fff' : 'var(--quiet)' }}>{label}</button>
   );
   return (
-    <div role="group" aria-label="Tax basis" style={{ display: 'flex', gap: '3px', background: small ? 'var(--surface)' : 'var(--surface-2)', borderRadius: '11px', padding: '3px', flex: small ? '0 0 auto' : '1.3 1 0' }}>
-      {opt('cumulative', 'Cumulative')}{opt('month1', 'Month 1')}
+    <div role="group" aria-label="Normal or emergency tax code" style={{ display: 'flex', gap: '3px', background: small ? 'var(--surface)' : 'var(--surface-2)', borderRadius: '11px', padding: '3px', flex: small ? '0 0 auto' : '1.3 1 0' }}>
+      {opt('cumulative', 'Normal')}{opt('month1', 'Emergency')}
     </div>
   );
 }
@@ -53,7 +53,10 @@ export function TaxCodeEditor({ settings, saveSett, S, BRASS }) {
         <CodeInput key={code} value={code} label="Tax code" S={S} onValid={p => save({ code: p.code, ...(p.month1 ? { basis: 'month1' } : null) })}/>
         <Basis value={basis} onChange={v => save({ basis: v })} BRASS={BRASS}/>
       </div>
-      <div style={help}>On your payslip next to “Tax Code”. Most people are on <b>1257L Cumulative</b>. “Non Cumul.” or “M1” means Month 1.</div>
+      <div style={help}>Copy it from your payslip, next to “Tax Code”. Most people are on <b>1257L</b>.</div>
+      <div style={{ ...help, background: 'var(--surface-2)', borderRadius: '11px', padding: '9px 11px', marginTop: '9px' }}>
+        <b style={{ color: 'var(--ink)' }}>Normal or Emergency?</b> Pick <b>Emergency</b> if your payslip shows <b>Non Cumul.</b>, <b>M1</b>, <b>W1</b> or <b>X</b> after the code. It's usually temporary, after starting a new job or a tax code change, and means each month is taxed on its own. Otherwise leave it on <b>Normal</b>.
+      </div>
 
       {changes.length > 0 && <div style={{ ...lbl, marginTop: '14px', marginBottom: 0 }}>Changes during the year</div>}
       {changes.map(c => (

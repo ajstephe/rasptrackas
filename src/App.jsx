@@ -2902,7 +2902,7 @@ export default function App() {
         taxable, tax: add(pb=>pb.monthTax), ni: add(pb=>pb.monthNI), net: add(pb=>pb.monthNet),
         months: months.length,
         breakdown: last ? payeTaxBreakdown(last.cumAfter, last.taxMonth, last.taxInfo) : payeTaxBreakdown(0, 1),
-        taxCode: last ? last.taxCode : '1257L Cumulative',
+        taxCode: last ? last.taxCode : '1257L',
         ...taperExtra(taxable, fraction),
       };
     };

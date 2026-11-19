@@ -143,7 +143,7 @@ export const taxCodeOn = (settings, month) => {
   let info = parseTaxCode(code);
   if (!info.ok) { info = DEFAULT_INFO; code = DEFAULT_TAX_CODE; }
   if (info.month1) basis = 'month1';
-  return { info, basis, label: `${info.code} ${basis === 'month1' ? 'Month 1' : 'Cumulative'}` };
+  return { info, basis, label: `${info.code}${basis === 'month1' ? ' Emergency (Non Cumul.)' : ''}` };
 };
 export const payeNI = monthPay => {
   const raw = 0.08*Math.max(0, Math.min(monthPay, NI_UEL_MONTH) - NI_PT_MONTH) + 0.02*Math.max(0, monthPay - NI_UEL_MONTH);

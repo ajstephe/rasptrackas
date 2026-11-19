@@ -230,13 +230,13 @@ describe('taxCodeOn', () => {
     { id:'a', from:'October 2026', code:'1257L', basis:'month1' },
     { id:'b', from:'November 2026', code:'1271L', basis:'cumulative' } ] } };
   it('uses the latest change on or before the month', () => {
-    expect(taxCodeOn(s, 'September 2026').label).toBe('1257L Cumulative');
-    expect(taxCodeOn(s, 'October 2026').label).toBe('1257L Month 1');
-    expect(taxCodeOn(s, 'November 2026').label).toBe('1271L Cumulative');
-    expect(taxCodeOn(s, 'March 2027').label).toBe('1271L Cumulative');
+    expect(taxCodeOn(s, 'September 2026').label).toBe('1257L');
+    expect(taxCodeOn(s, 'October 2026').label).toBe('1257L Emergency (Non Cumul.)');
+    expect(taxCodeOn(s, 'November 2026').label).toBe('1271L');
+    expect(taxCodeOn(s, 'March 2027').label).toBe('1271L');
   });
   it('defaults to 1257L cumulative', () => {
-    expect(taxCodeOn({}, 'May 2026').label).toBe('1257L Cumulative');
+    expect(taxCodeOn({}, 'May 2026').label).toBe('1257L');
   });
 });
 
@@ -263,14 +263,14 @@ describe('a tax code change during the year', () => {
     expect(y[nov].monthTax).toBeLessThan(base[nov].monthTax - 15);
     expect(y[nov+1].monthTax).toBeLessThan(base[nov+1].monthTax);
     expect(y[nov+1].monthTax).toBeGreaterThan(base[nov+1].monthTax - 5);
-    expect(y[nov].taxCode).toBe('1271L Cumulative');
+    expect(y[nov].taxCode).toBe('1271L');
     // Earlier months untouched.
     expect(y.slice(0, nov).map(pb=>pb.monthTax)).toEqual(base.slice(0, nov).map(pb=>pb.monthTax));
   });
   it('month 1 taxes the month on its own, then cumulative catches up', () => {
     const y = withCodes([{ id:'a', from:'October 2026', code:'1257L', basis:'month1' }, { id:'b', from:'November 2026', code:'1257L', basis:'cumulative' }]);
     const oct = y.findIndex(pb=>pb.month==='October 2026');
-    expect(y[oct].taxCode).toBe('1257L Month 1');
+    expect(y[oct].taxCode).toBe('1257L Emergency (Non Cumul.)');
     expect(y[oct].monthTax).toBeCloseTo(taxToDateFor(y[oct].cumAfter - y[oct].cumPrev, 1, parseTaxCode('1257L')), 2);
     // By the end of the year the total is what cumulative would have charged.
     const total = a => a.reduce((s,pb)=>s+pb.monthTax,0);
