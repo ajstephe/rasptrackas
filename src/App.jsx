@@ -297,7 +297,7 @@ const NAV_TABS = [
   {id:'months',   n:'cal',  lbl:'Summary'},
   {id:'carms',    n:'send',  lbl:'Awaits Submission', short:'Awaits'},
   {id:'graph',    n:'clock', lbl:'TOIL'},
-  {id:'settings', n:'cog',  lbl:'More..'},
+  {id:'settings', n:'dots', lbl:'More'},
 ];
 
 // ─── auth: supabase client ─────────────────────────────────────────────────────
