@@ -324,3 +324,30 @@ describe('figures to date from a real payslip', () => {
     expect(y.map(pb=>pb.monthTax)).toEqual(base.map(pb=>pb.monthTax));
   });
 });
+
+describe('moved forces this tax year (P45)', () => {
+  const PC7 = { rank:'Constable', service:'PC 7 (top)' }, SVC7 = PAY_RATES.Constable['PC 7 (top)'];
+  const run = extra => buildPayYear({ periods: PERIODS, entries: [], settings: { ...PC7, ...extra }, svcData: SVC7 });
+  const fm = { on:true, leaving:'2026-09-20', pay:27500, tax:4800 };
+  const base = run({});
+  const y = run({ forceMove: fm });
+  const sep = y.findIndex(pb=>pb.month==='September 2026'), oct = sep+1;
+  it('months paid on or before the leaving date belong to the previous force', () => {
+    y.slice(0, sep+1).forEach(pb => { expect(pb.prevForce).toBe(true); expect(pb.monthGross).toBe(0); expect(pb.monthTax).toBe(0); expect(pb.monthNI).toBe(0); });
+    expect(y[oct].prevForce).toBe(false);
+  });
+  it('the first month here starts from the P45 pay and tax', () => {
+    expect(y[oct].cumPrev).toBeCloseTo(27500, 2);
+    expect(y[oct].paidBefore).toBeCloseTo(4800, 2);
+    expect(y[oct].monthGross).toBeCloseTo(base[oct].monthGross, 2);
+  });
+  it('payslip This Emp figures have the P45 added', () => {
+    const z = run({ forceMove: fm, payslipYtd: { month:'November 2026', taxable:10000, tax:2000 } });
+    const nov = oct+1;
+    expect(z[nov].cumAfter).toBeCloseTo(37500, 2);
+    expect(z[nov].taxToDate).toBeCloseTo(6800, 2);
+  });
+  it('switched off, nothing changes', () => {
+    expect(run({ forceMove: { ...fm, on:false } }).map(pb=>pb.monthTax)).toEqual(base.map(pb=>pb.monthTax));
+  });
+});

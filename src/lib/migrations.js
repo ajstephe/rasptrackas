@@ -61,7 +61,16 @@ export const migrateSettings = s => {
   const y = s.payslipYtd;
   if (y && typeof y === 'object' && typeof y.month === 'string' && /^[A-Za-z]+ \d{4}$/.test(y.month)
     && [y.taxable, y.tax].every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v < 1e7))
-    out.payslipYtd = { month:y.month, taxable:Math.round(y.taxable*100)/100, tax:Math.round(y.tax*100)/100 };
+  {
+    const r = x => Math.round(x*100)/100;
+    out.payslipYtd = { month:y.month, taxable:r(y.taxable), tax:r(y.tax) };
+  }
+  // Moved forces this tax year (More › Config): the switch and the P45's
+  // leaving date, total pay and total tax to date.
+  const f = s.forceMove;
+  if (f && typeof f === 'object' && f.on === true && typeof f.leaving === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f.leaving)
+    && [f.pay, f.tax].every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v < 1e7) && f.tax <= f.pay)
+    out.forceMove = { on:true, leaving:f.leaving, pay:Math.round(f.pay*100)/100, tax:Math.round(f.tax*100)/100 };
   return withTheme(out);
 };
 

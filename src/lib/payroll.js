@@ -3,6 +3,7 @@ import { pensionTierRate, payeTaxToDate, payeNI, payeBandName, taxToDateFor, tax
 import { RATE_CHANGE_DATE } from './payPeriods.js';
 import { svcDataOn } from './payRates.js';
 import { deductionsFor } from './deductions.js';
+import { paidByPreviousForce, p45For } from './forceMove.js';
 
 // ─── payroll: one pay month = one PAYE tax month ─────────────────────────────
 // Pay lands on the 20th of the month each pay period is named after, or the
@@ -85,23 +86,36 @@ export const periodNet = (pb, ot, pa) =>
 // Taxable pay and tax to date from a real payslip (More › Config), as
 // settings.payslipYtd = { month:'November 2026', taxable, tax }, for the
 // pay month it came from.
+// These are the payslip's This Emp figures; for someone who moved forces
+// this tax year the P45's pay and tax (More › Config) are added, as the
+// payslip's Prev Emp lines are.
 export const ytdFor = (settings, month) => {
   const y = settings && settings.payslipYtd;
-  return y && y.month === month && Number.isFinite(y.taxable) && Number.isFinite(y.tax) ? y : null;
+  if (!(y && y.month === month && Number.isFinite(y.taxable) && Number.isFinite(y.tax))) return null;
+  const p = p45For(settings, month);
+  return p ? { ...y, taxable: y.taxable + p.pay, tax: y.tax + p.tax } : y;
 };
 
 // Runs the twelve payslips of one pay year (= one tax year) given each
 // month's overtime and PA. `svcData` pins one pay point (tests); otherwise
 // each month uses the pay point in force on its pay date.
 export const runPayYear = ({ periods, settings, svcData, money }) => {
-  let cum = 0, taxToDate = 0;
+  let cum = 0, taxToDate = 0, wasPrevForce = false;
   const baseCum = [0,0,0];   // salary, London Weighting, London Allowance, each after its pension
   let baseTax = [0,0,0];     // tax to date on the salary, then salary + LW, then all three
   return periods.map((p,i)=>{
     const payDate = payDateOf(p);
     const taxMonth = i+1;
     const svc = svcData !== undefined ? svcData : svcDataOn(settings, payDate);
-    const m = monthlyPay(svc, payDate);
+    // A month paid by the previous force (More › Config › moved forces):
+    // none of this force's pay, overtime or deductions. Its pay and tax are
+    // on the P45, which takes over as pay and tax to date from the first
+    // month here.
+    const prevForce = paidByPreviousForce(settings, p.month);
+    const m0 = monthlyPay(svc, payDate);
+    const m = prevForce ? { ...m0, salary:0, lw:0, la:0, base:0, pensionable:0, laParts:{ la1:0, la2:0, laVar:0 } } : m0;
+    if (!prevForce && wasPrevForce) { const p45 = p45For(settings, p.month); if (p45) { cum = p45.pay; taxToDate = p45.tax; } }
+    wasPrevForce = prevForce;
     const pensionRate = svc ? pensionTierRate(m.annualPensionable) : 0;
     const periodPension = Math.round((m.pensionable * pensionRate + Number.EPSILON)*100)/100;
     // Salary sacrifice (deductions set to come off before tax and NI) lowers
@@ -132,7 +146,7 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const salaryAlone = m.salary - salaryPension - sliceTax[0] - payeNI(m.salary);
     const lwAlone = m.lw - lwPension - sliceTax[1] - (payeNI(m.salary + m.lw) - payeNI(m.salary));
     const laAlone = m.la - sliceTax[2] - (payeNI(m.base) - payeNI(m.salary + m.lw));
-    const { ot:claimedOt=0, pa=0, parts=[], imported=0 } = money[i] || {};
+    const { ot:claimedOt=0, pa=0, parts=[], imported=0 } = prevForce ? {} : (money[i] || {});
     // Overtime already paid before the person started logging shifts (see
     // importedShares) is taxed like overtime, ahead of the month's claims.
     const ot = claimedOt + imported;
@@ -177,7 +191,7 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const salaryNet = share(salaryAlone), lwNet = share(lwAlone);
     const laNet = aloneSum > 0 ? baseReal - salaryNet - lwNet : laAlone;
     return {
-      month:p.month, start:p.start, end:p.end, payDate, taxMonth,
+      month:p.month, start:p.start, end:p.end, payDate, taxMonth, prevForce,
       baseAmt:m.base, niBase, sacrifice, salary:m.salary, salaryNet, lw:m.lw, lwNet, la:m.la, laNet,
       pensionablePayThisPeriod:m.pensionable, pensionRate, periodPension,
       ot, pa, otResult, paResult, imported,

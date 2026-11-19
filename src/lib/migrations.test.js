@@ -212,3 +212,13 @@ describe('figures to date from a payslip in settings', () => {
       .forEach(payslipYtd => expect(mig({ ...base, payslipYtd }).payslipYtd).toBeUndefined());
   });
 });
+describe('moved forces in settings', () => {
+  const base = { rank:'Constable', service:'PC 4' };
+  it('keeps a real P45', () => {
+    expect(mig({ ...base, forceMove:{ on:true, leaving:'2026-09-20', pay:27500.123, tax:4800 } }).forceMove).toEqual({ on:true, leaving:'2026-09-20', pay:27500.12, tax:4800 });
+  });
+  it('drops it when off or not real', () => {
+    [{ on:false, leaving:'2026-09-20', pay:1, tax:0 }, { on:true, leaving:'20/09/2026', pay:1, tax:0 }, { on:true, leaving:'2026-09-20', pay:'1', tax:0 }, { on:true, leaving:'2026-09-20', pay:1, tax:5 }]
+      .forEach(forceMove => expect(mig({ ...base, forceMove }).forceMove).toBeUndefined());
+  });
+});

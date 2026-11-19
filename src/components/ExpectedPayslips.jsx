@@ -33,7 +33,14 @@ export function ExpectedPayslips({ payYear, settings, currPeriodIdx, S, MONO, BR
   );
 
   let slip = null;
-  if (pb) {
+  // A month paid by a previous force (More › Config › moved forces): that
+  // force's payslip, not one this app can work out.
+  if (pb && pb.prevForce) slip = (
+    <div style={{ background: 'var(--surface-2)', borderRadius: '14px', padding: '16px 18px', fontSize: '13px', fontWeight: 600, color: 'var(--muted)', lineHeight: 1.5 }}>
+      <b style={{ color: 'var(--ink)' }}>Paid by your previous force.</b> Its pay and tax for this tax year are on your P45 (More › Config › I moved forces this tax year), and count towards your tax from your first payslip here.
+    </div>
+  );
+  else if (pb) {
     const lap = pb.laParts || { la1: 0, la2: 0, laVar: pb.la };
     const payments = [
       ['Basic salary', pb.salary], ['London Allowance 1', lap.la1], ['London Allowance 2', lap.la2],

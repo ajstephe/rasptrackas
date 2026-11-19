@@ -147,7 +147,7 @@ export const taxCodeOn = (settings, month) => {
 };
 export const payeNI = monthPay => {
   const raw = 0.08*Math.max(0, Math.min(monthPay, NI_UEL_MONTH) - NI_PT_MONTH) + 0.02*Math.max(0, monthPay - NI_UEL_MONTH);
-  return Math.ceil(raw*100 - 0.5 - 1e-9)/100;
+  return Math.ceil(raw*100 - 0.5 - 1e-9)/100 + 0;   // + 0: never -0 (shown as "-£0.00")
 };
 export const payeBandName = (payToDate, month, info=DEFAULT_INFO) => {
   const taxable = payeTaxable(payToDate, month, info);
