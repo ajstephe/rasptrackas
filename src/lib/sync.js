@@ -139,9 +139,18 @@ export function dropUnheldSynced(lastSyncedMap, localItems) {
   return lastSyncedMap;
 }
 
-export function computeRowPushDiff(items, lastSyncedMap) {
+// Which never-synced items this device may upload. Only ones the person
+// actually created, edited, restored or brought back on this device count
+// (the "pending" set). Anything else that's here but has never been synced
+// is a stale copy: left over from an earlier account, or a copy whose
+// removal on another device this one missed. Uploading those is how
+// cleared entries kept coming back from a phone that still held them.
+// Without a pending set (null), every unsynced item goes up, as before.
+const mayUpload = (id, lastSyncedMap, pending) => !pending || lastSyncedMap.has(id) || pending.has(id);
+
+export function computeRowPushDiff(items, lastSyncedMap, pending = null) {
   const currentIds = new Set(items.map(it => it.id));
-  const toUpsert = items.filter(it => lastSyncedMap.get(it.id) !== JSON.stringify(it));
+  const toUpsert = items.filter(it => lastSyncedMap.get(it.id) !== JSON.stringify(it) && mayUpload(it.id, lastSyncedMap, pending));
   const toDelete = Array.from(lastSyncedMap.keys()).filter(id => !currentIds.has(id));
   return { toUpsert, toDelete };
 }
@@ -159,7 +168,7 @@ export function computeRowPushDiff(items, lastSyncedMap) {
 // remoteMap is consumed: rows this device already has locally are deleted
 // out of it as they're matched, exactly as pullAndMergeRows relied on, so
 // what's left afterward is remote-only rows.
-export function mergeRemoteRows(localItems, remoteMap, lastSyncedMap, isWithinCloudRetention) {
+export function mergeRemoteRows(localItems, remoteMap, lastSyncedMap, isWithinCloudRetention, pending = null) {
   const merged = [];
   for (const localItem of localItems) {
     if (remoteMap.has(localItem.id)) {
@@ -173,7 +182,9 @@ export function mergeRemoteRows(localItems, remoteMap, lastSyncedMap, isWithinCl
       }
       remoteMap.delete(localItem.id);
     } else if (!lastSyncedMap.has(localItem.id)) {
-      merged.push(localItem); // never synced yet — keep, will push shortly
+      // Never synced and not in the cloud. Kept (and pushed shortly) only if
+      // it was made or changed on this device; a stale copy is dropped.
+      if (mayUpload(localItem.id, lastSyncedMap, pending)) merged.push(localItem);
     } else if (!isWithinCloudRetention(localItem.date)) {
       // Was synced before, now gone from the cloud — but this item is older
       // than the retention window, so its absence is expected (pruned for
@@ -212,7 +223,7 @@ export function mergeRemoteRows(localItems, remoteMap, lastSyncedMap, isWithinCl
 // when deleted). Rows that couldn't be decrypted are left out by the
 // caller, the same "keep this device's copy" call the full pull makes.
 // Mutates lastSyncedMap in place, like mergeRemoteRows.
-export function applyRemoteDelta(localItems, deltaRows, lastSyncedMap) {
+export function applyRemoteDelta(localItems, deltaRows, lastSyncedMap, pending = null) {
   const merged = [...localItems];
   const indexOf = new Map(merged.map((it, i) => [it.id, i]));
   const dropped = new Set();
@@ -225,6 +236,10 @@ export function applyRemoteDelta(localItems, deltaRows, lastSyncedMap) {
       if (lastSyncedMap.has(id)) {
         if (i !== undefined) dropped.add(id);
         lastSyncedMap.delete(id);
+      } else if (i !== undefined && !mayUpload(id, lastSyncedMap, pending)) {
+        // A stale copy this device never synced or touched: the removal
+        // elsewhere wins, rather than the copy going back up.
+        dropped.add(id);
       }
       continue;
     }
@@ -341,6 +356,26 @@ export function mergeSettings3(base, local, remote) {
   }
   if (local.theme !== undefined) { out.theme = local.theme; if (local.themeAt !== undefined) out.themeAt = local.themeAt; }
   return newestTheme(out, remote);
+}
+
+// Keeps the pending set (ids made or changed on this device that may go up
+// even though they've never been synced) in step with local items. Any item
+// whose content differs from the last render's copy is marked; items gone
+// from this device are unmarked. prevJson maps id -> JSON as of the last
+// call and is updated in place. Rows already synced aren't marked: they go up
+// as edits anyway, and rows that arrived from the cloud must never count as
+// made here, or a stale copy of them could be uploaded again later.
+export function trackPending(pending, prevJson, items, lastSyncedMap) {
+  const now = new Map();
+  for (const it of items) {
+    const j = JSON.stringify(it);
+    now.set(it.id, j);
+    if (prevJson.get(it.id) !== j && !lastSyncedMap.has(it.id)) pending.add(it.id);
+  }
+  for (const id of [...pending]) if (!now.has(id)) pending.delete(id);
+  prevJson.clear();
+  for (const [id, j] of now) prevJson.set(id, j);
+  return pending;
 }
 
 // How an item goes up. An item this device has synced before is an edit

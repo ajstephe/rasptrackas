@@ -32,7 +32,7 @@ import {
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { TabErrorBoundary } from './ErrorBoundary.jsx';
 import { layoutFor, screenSize } from './lib/layout.js';
-import { clockOffsetFrom, settingsUnsynced, mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, mergeSettings3, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, pushModeFor, wipeAction } from './lib/sync.js';
+import { clockOffsetFrom, settingsUnsynced, mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, mergeSettings3, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, pushModeFor, wipeAction, trackPending } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -1551,6 +1551,29 @@ export default function App() {
   if (seenIdsRef.current === null) seenIdsRef.current = { entries: new Set(entries.map(e=>e.id)), toil_taken: new Set(toilTaken.map(t=>t.id)) };
   useEffect(()=>{ entries.forEach(e=>seenIdsRef.current.entries.add(e.id)); },[entries]);
   useEffect(()=>{ toilTaken.forEach(t=>seenIdsRef.current.toil_taken.add(t.id)); },[toilTaken]);
+  // Ids made or changed on this device and not yet synced (see trackPending
+  // in sync.js). The first run after this was added has no saved set, so it
+  // starts from whatever here hasn't been synced yet, as before.
+  const loadPending = (key, items, synced) => {
+    const saved = dualRead(key, null);
+    return new Set(Array.isArray(saved) ? saved : items.filter(it => !synced.has(it.id)).map(it => it.id));
+  };
+  const pendingRef = useRef(null);
+  if (pendingRef.current === null) pendingRef.current = {
+    entries: loadPending(KEYS.pendingEntries, entries, lastSyncedEntriesRef.current),
+    toil_taken: loadPending(KEYS.pendingToilTaken, toilTaken, lastSyncedToilRef.current),
+  };
+  const prevJsonRef = useRef(null);
+  if (prevJsonRef.current === null) prevJsonRef.current = {
+    entries: new Map(entries.map(e => [e.id, JSON.stringify(e)])),
+    toil_taken: new Map(toilTaken.map(t => [t.id, JSON.stringify(t)])),
+  };
+  const persistPending = (table) => dualWrite(table === 'entries' ? KEYS.pendingEntries : KEYS.pendingToilTaken, [...pendingRef.current[table]]);
+  const resetPending = () => {
+    pendingRef.current = { entries: new Set(), toil_taken: new Set() };
+    prevJsonRef.current = { entries: new Map(), toil_taken: new Map() };
+    persistPending('entries'); persistPending('toil_taken');
+  };
   const lastSyncedSettingsRef = useRef(dualRead(KEYS.lastSyncedSettings,null));
   // Newest settings-row updated_at this device has actually established —
   // either by pushing it, or by accepting an incoming pull/realtime update.
@@ -1616,8 +1639,8 @@ export default function App() {
   // sign-in, which is the next piece, not this one.
   function refreshUnsynced() {
     if (!session || !dataKey || !initialSyncDoneRef.current) { setUnsynced(u => u.length ? [] : u); return; }
-    const e = computeRowPushDiff(entriesRef.current, lastSyncedEntriesRef.current);
-    const t = computeRowPushDiff(toilTakenRef.current, lastSyncedToilRef.current);
+    const e = computeRowPushDiff(entriesRef.current, lastSyncedEntriesRef.current, pendingRef.current.entries);
+    const t = computeRowPushDiff(toilTakenRef.current, lastSyncedToilRef.current, pendingRef.current.toil_taken);
     const dels = e.toDelete.length + t.toDelete.length;
     const list = [
       ...[...e.toUpsert].sort((a,b)=>a.date<b.date?-1:1).map(x => ({ key:'e'+x.id, text: longDay(x.date) + (x.reason ? ' · ' + x.reason : '') })),
@@ -1672,6 +1695,7 @@ export default function App() {
     lastSettingsUpdatedAtRef.current = null; persistLastSettingsUpdatedAt();
     dualWrite(KEYS.entries, []); dualWrite(KEYS.toilTaken, []);
     dualWrite(KEYS.pullStateEntries, null); dualWrite(KEYS.pullStateToilTaken, null);
+    resetPending();
   }
 
   async function pushRowChanges(table, items, lastSyncedRef, persistFn) {
@@ -1703,7 +1727,8 @@ export default function App() {
       // that arrived from another device while this waited its turn would
       // otherwise look locally deleted and be soft-deleted on the server.
       const live = table === 'entries' ? entriesRef.current : table === 'toil_taken' ? toilTakenRef.current : items;
-      const diff = computeRowPushDiff(live || items, lastSyncedRef.current);
+      const pending = pendingRef.current[table];
+      const diff = computeRowPushDiff(live || items, lastSyncedRef.current, pending);
       // Anything going up is checked against a wipe on another device first.
       if (diff.toUpsert.length && await checkWipe()) return 0;
       const { toUpsert } = diff;
@@ -1732,10 +1757,11 @@ export default function App() {
             if (error) { failed++; console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error); continue; }
             if (!data || !data.length) { gone.push(item.id); lastSyncedRef.current.delete(item.id); persistFn(); continue; }
             lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); markSynced();
+            pending.delete(item.id); persistPending(table);
             continue;
           }
           const { error } = await supabase.from(table).upsert({ id: item.id, user_id: uid, ciphertext, updated_at: now, deleted_at: null });
-          if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); markSynced(); }
+          if (!error) { lastSyncedRef.current.set(item.id, JSON.stringify(item)); persistFn(); markSynced(); pending.delete(item.id); persistPending(table); }
           else { failed++; console.error(`[sync] push failed for ${table} id=${item.id}:`, error.message || error); }
         } catch (e) { failed++; console.error(`[sync] push threw for ${table} id=${item.id}:`, e.message || e); }
       }
@@ -1755,7 +1781,13 @@ export default function App() {
       for (const id of toDelete) {
         try {
           const { error } = await supabase.from(table).update({ deleted_at: now, updated_at: now }).eq('id', id).eq('user_id', uid);
-          if (!error) { lastSyncedRef.current.delete(id); persistFn(); markSynced(); }
+          if (!error) {
+            lastSyncedRef.current.delete(id); persistFn(); markSynced();
+            // Undone while the removal was on its way: the row is back here
+            // and now unsynced, so it counts as this device's to send up.
+            const nowItems = table === 'entries' ? entriesRef.current : toilTakenRef.current;
+            if (nowItems.some(it => it.id === id)) { pending.add(id); persistPending(table); }
+          }
           else { failed++; console.error(`[sync] soft-delete failed for ${table} id=${id}:`, error.message || error); }
         } catch (e) { failed++; console.error(`[sync] soft-delete threw for ${table} id=${id}:`, e.message || e); }
       }
@@ -1901,7 +1933,7 @@ export default function App() {
         catch (e) { /* unreadable: keep this device's copy, as the full pull does */ }
       }
       if (stale()) return;
-      let merged = applyRemoteDelta(itemsRef.current, delta, lastSyncedRef.current);
+      let merged = applyRemoteDelta(itemsRef.current, delta, lastSyncedRef.current, pendingRef.current[table]);
       let changed = delta.length > 0;
       if (needsIdList(live.count, merged, lastSyncedRef.current, isWithinCloudRetention)) {
         const ids = await fetchAll(() => supabase.from(table).select('id').eq('user_id', uid).is('deleted_at', null));
@@ -1916,7 +1948,7 @@ export default function App() {
         }
         const removed = findRemovedIds(merged, liveIds, lastSyncedRef.current, isWithinCloudRetention);
         if (removed.length) {
-          merged = applyRemoteDelta(merged, removed.map(id => ({ id, deleted: true })), lastSyncedRef.current);
+          merged = applyRemoteDelta(merged, removed.map(id => ({ id, deleted: true })), lastSyncedRef.current, pendingRef.current[table]);
           changed = true;
         }
       }
@@ -1945,7 +1977,7 @@ export default function App() {
       for (const id of failedIds) { const local = itemsRef.current.find(x=>x.id===id); if (local) remoteMap.set(id, local); }
     }
     if (stale()) return;
-    const merged = mergeRemoteRows(itemsRef.current, remoteMap, lastSyncedRef.current, isWithinCloudRetention);
+    const merged = mergeRemoteRows(itemsRef.current, remoteMap, lastSyncedRef.current, isWithinCloudRetention, pendingRef.current[table]);
     persistFn();
     // entries only, not toil_taken — TOIL records have no CARMS-submission
     // concept to default (same reasoning as parseBackupFile). A row that's
@@ -2109,7 +2141,8 @@ export default function App() {
         // Only drop it if this device has seen it synced: the echo of a
         // delete that was then undone can arrive after the undo, and the
         // pull path already makes the same check (applyRemoteDelta).
-        if (!lastSyncedRef.current.has(row.id) && itemsRef.current.some(it => it.id === row.id)) return;
+        // A copy this device never synced or touched is stale: the removal wins.
+        if (!lastSyncedRef.current.has(row.id) && pendingRef.current[table].has(row.id) && itemsRef.current.some(it => it.id === row.id)) return;
         setLocalItems(prev => prev.filter(it => it.id !== row.id));
         lastSyncedRef.current.delete(row.id);
         persistFn();
@@ -2222,9 +2255,14 @@ export default function App() {
   // ── persist ────────────────────────────────────────────────────────────────
   useEffect(()=>{
     dualWrite(KEYS.entries,entries);
+    trackPending(pendingRef.current.entries, prevJsonRef.current.entries, entries, lastSyncedEntriesRef.current); persistPending('entries');
     pushRowChanges('entries', entries, lastSyncedEntriesRef, persistLastSyncedEntries);
   },[entries]);
-  useEffect(()=>{ dualWrite(KEYS.toilTaken,toilTaken); pushRowChanges('toil_taken', toilTaken, lastSyncedToilRef, persistLastSyncedToil); },[toilTaken]);
+  useEffect(()=>{
+    dualWrite(KEYS.toilTaken,toilTaken);
+    trackPending(pendingRef.current.toil_taken, prevJsonRef.current.toil_taken, toilTaken, lastSyncedToilRef.current); persistPending('toil_taken');
+    pushRowChanges('toil_taken', toilTaken, lastSyncedToilRef, persistLastSyncedToil);
+  },[toilTaken]);
   // Local persistence (dualWrite) stays instant — every edit is safe on
   // this device the moment it happens, same as everywhere else. The
   // network push is debounced, though: picking Rank then Pay Point right
@@ -4105,6 +4143,7 @@ export default function App() {
     dualWrite(KEYS.pullStateToilTaken, null);
     dualWrite(KEYS.owner, null);
     dualWrite(KEYS.wipeSeen, null);
+    resetPending();
     setLastSyncedAt(null);
   };
 

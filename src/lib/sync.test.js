@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clockOffsetFrom, newestTheme, mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS, pushModeFor, wipeAction } from './sync.js';
+import { clockOffsetFrom, newestTheme, mergeRemoteRows, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, PULL_OVERLAP_MS, pushModeFor, wipeAction, trackPending } from './sync.js';
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -595,5 +595,70 @@ describe('settingsUnsynced (the "not synced" count)', () => {
   it('never synced counts; no settings at all does not', () => {
     expect(settingsUnsynced({ rank:'Constable' }, null)).toBe(true);
     expect(settingsUnsynced(null, null)).toBe(false);
+  });
+});
+
+describe('stale copies never come back (pending set)', () => {
+  const always = () => true;
+  const e = (id, x = 1) => ({ id, date: '2026-11-01', hours133: x });
+
+  it('does not upload a never-synced copy the person never touched', () => {
+    const pending = new Set();
+    const { toUpsert } = computeRowPushDiff([e('old1'), e('old2')], new Map(), pending);
+    expect(toUpsert).toEqual([]);
+  });
+
+  it('uploads entries made on this device', () => {
+    const pending = new Set(['new1']);
+    const { toUpsert } = computeRowPushDiff([e('new1'), e('old1')], new Map(), pending);
+    expect(toUpsert.map(x => x.id)).toEqual(['new1']);
+  });
+
+  it('still sends edits to rows already synced', () => {
+    const synced = new Map([['a', JSON.stringify(e('a', 1))]]);
+    const { toUpsert } = computeRowPushDiff([e('a', 2)], synced, new Set());
+    expect(toUpsert.map(x => x.id)).toEqual(['a']);
+  });
+
+  it('without a pending set behaves as before', () => {
+    const { toUpsert } = computeRowPushDiff([e('old1')], new Map(), null);
+    expect(toUpsert.map(x => x.id)).toEqual(['old1']);
+  });
+
+  it('a removal on another device wins over a stale copy (incremental pull)', () => {
+    const merged = applyRemoteDelta([e('a'), e('b')], [{ id: 'a', deleted: true }, { id: 'b', deleted: true }], new Map(), new Set(['b']));
+    // a: stale copy, dropped. b: changed here (e.g. undo), kept to go back up.
+    expect(merged.map(x => x.id)).toEqual(['b']);
+  });
+
+  it('a full pull drops stale copies the cloud does not have', () => {
+    const merged = mergeRemoteRows([e('stale'), e('mine')], new Map(), new Map(), always, new Set(['mine']));
+    expect(merged.map(x => x.id)).toEqual(['mine']);
+  });
+
+  it('today: Mac clears everything, phone with unsynced copies no longer re-uploads them', () => {
+    const phone = [e('s1'), e('s2'), e('s3')];
+    const pending = new Set(); // phone never created or edited these
+    const merged = applyRemoteDelta(phone, phone.map(x => ({ id: x.id, deleted: true })), new Map(), pending);
+    expect(merged).toEqual([]);
+    expect(computeRowPushDiff(merged, new Map(), pending).toUpsert).toEqual([]);
+  });
+});
+
+describe('trackPending', () => {
+  const e = (id, x = 1) => ({ id, hours133: x });
+  it('marks new and changed unsynced items, ignores unchanged and synced ones', () => {
+    const pending = new Set();
+    const prev = new Map([['a', JSON.stringify(e('a'))], ['b', JSON.stringify(e('b'))]]);
+    const synced = new Map([['fromCloud', '{}']]);
+    trackPending(pending, prev, [e('a'), e('b', 2), e('c'), e('fromCloud')], synced);
+    expect([...pending].sort()).toEqual(['b', 'c']);
+  });
+  it('unmarks items no longer on the device and remembers the latest copy', () => {
+    const pending = new Set(['gone', 'kept']);
+    const prev = new Map();
+    trackPending(pending, prev, [e('kept')], new Map());
+    expect([...pending]).toEqual(['kept']);
+    expect(prev.get('kept')).toBe(JSON.stringify(e('kept')));
   });
 });

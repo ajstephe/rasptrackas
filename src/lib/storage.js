@@ -30,6 +30,11 @@ export const KEYS = {
   // The account's last Wipe All Data time this device has acted on (or
   // 'none'), so a wipe done elsewhere clears this device's old copy.
   wipeSeen:'ajs_ot_wipeSeen',
+  // Ids made or changed on this device that haven't been synced yet, per
+  // table. Only these (or rows already synced) are ever uploaded; any other
+  // copy here defers to the cloud. See trackPending in sync.js.
+  pendingEntries:'ajs_ot_pendingEntries',
+  pendingToilTaken:'ajs_ot_pendingToilTaken',
 };
 
 // Every value is wrapped with a write timestamp (__t) before being
