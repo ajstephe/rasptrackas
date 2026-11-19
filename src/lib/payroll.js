@@ -36,7 +36,7 @@ export const monthlyPay = (svcData, payDate) => {
   const salaryAnnual = svcData ? svcData.salary[post?'post':'pre'] : 0;
   const lwAnnual = LONDON_WEIGHTING[post?'post':'pre'];
   const pence = x => Math.round((x + Number.EPSILON)*100)/100;
-  const salary = pence(salaryAnnual/12), lw = pence(lwAnnual/12), la = pence(LONDON_ALLOWANCE/12);
+  const salary = pence(salaryAnnual/12), lw = pence(lwAnnual/12), la = pence(LONDON_ALLOWANCE[post?'post':'pre']/12);
   return { salary, lw, la, base: salary+lw+la, pensionable: salary+lw, annualPensionable: salaryAnnual+lwAnnual };
 };
 

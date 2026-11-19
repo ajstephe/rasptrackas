@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildPayYear, payDateOf, monthlyPay, entryNet, partNets, periodNet } from './payroll.js';
 import { generateFYPeriods } from './payPeriods.js';
 import { PAY_RATES } from './payRates.js';
+import { pensionTierRate, payeNI } from './tax.js';
 
 const SETTINGS = { rank:'Constable', service:'PC 4' };
 const SVC = PAY_RATES.Constable['PC 4'];
@@ -179,5 +180,21 @@ describe('overtime already paid this tax year', () => {
     const net = withImp.filter(pb=>pb.payDate<=upTo).reduce((s,pb)=>s+pb.monthNet,0) - without.filter(pb=>pb.payDate<=upTo).reduce((s,pb)=>s+pb.monthNet,0);
     expect(Math.abs(net-2000)).toBeLessThan(0.02);
     expect(g).toBeGreaterThan(2000);
+  });
+});
+
+// A real Met payslip for November 2026 (pay point £52,014, paid 20 Nov).
+describe('November 2026 payslip, line by line', () => {
+  const m = monthlyPay({ salary: { pre: 0, post: 52014 } }, '2026-11-20');
+  it('salary, London Weighting and London Allowance', () => {
+    expect(m.salary).toBe(4334.5);
+    expect(m.lw).toBe(271.75);
+    expect(m.la).toBe(568.25);                       // 84.25 + 296.50 + 187.50
+    expect(Math.round(m.base * 100) / 100).toBe(5174.5);
+  });
+  it('pension and National Insurance', () => {
+    const pension = Math.round(m.pensionable * pensionTierRate(m.annualPensionable) * 100) / 100;
+    expect(pension).toBe(639.35);                    // 13.88% of £4,606.25
+    expect(payeNI(m.base)).toBe(270.99);
   });
 });

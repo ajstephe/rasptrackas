@@ -18,7 +18,7 @@
 const r2 = x => Math.round((x + Number.EPSILON) * 100) / 100;
 const TIERS = [[37035, 0.1288], [79588, 0.1388], [Infinity, 0.1422]]; // 2015 scheme, from 1 April 2026
 const tierRate = annual => annual <= TIERS[0][0] ? TIERS[0][1] : annual < TIERS[1][0] ? TIERS[1][1] : TIERS[2][1];
-const LW = { pre: 3150, post: 3260 }, LA = 6588;
+const LW = { pre: 3150, post: 3261 }, LA = { pre: 6588, post: 6819 };
 const PAY_DATES = ['2026-04-20','2026-05-20','2026-06-19','2026-07-20','2026-08-20','2026-09-18','2026-10-20','2026-11-20','2026-12-18','2027-01-20','2027-02-19','2027-03-19'];
 
 const niFor = gross => {
@@ -34,7 +34,7 @@ export const simulatePayslips = (salaryAnnual, extras) => {
     const post = payDate >= '2026-09-01';
     const salary = r2(salaryAnnual[post ? 'post' : 'pre'] / 12);
     const lw = r2(LW[post ? 'post' : 'pre'] / 12);
-    const la = r2(LA / 12);
+    const la = r2(LA[post ? 'post' : 'pre'] / 12);
     const extra = extras[i] || 0;
     const gross = r2(salary + lw + la + extra);
     const pension = r2((salary + lw) * tierRate(salaryAnnual[post ? 'post' : 'pre'] + LW[post ? 'post' : 'pre']));

@@ -473,7 +473,7 @@ export function TabSettings({
                 )}
                   </>);
                 })()}
-                <div style={{marginTop:'12px',fontSize:'9px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Excludes London Weighting (£3,150 before 1 Sept / £3,260 from 1 Sept) and London Allowance (£6,588), which are added separately.</div>
+                <div style={{marginTop:'12px',fontSize:'9px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Excludes London Weighting (£3,150 before 1 Sept / £3,261 from 1 Sept) and London Allowance (£6,588 before 1 Sept / £6,819 from 1 Sept), which are added separately.</div>
               </div>
             </div>
           );

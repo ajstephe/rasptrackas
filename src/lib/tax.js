@@ -1,6 +1,9 @@
 // ─── Met Police allowances ────────────────────────────────────────────────────
-export const LONDON_WEIGHTING = { pre:3150, post:3260 }; // pre/post 1 Sep 2026
-export const LONDON_ALLOWANCE = 6588;                     // fixed p.a.
+// Per year, before / from the 1 Sep 2026 pay award. From September the Met
+// payslip shows London Weighting £271.75 a month (£3,261) and London
+// Allowance £84.25 + £296.50 + £187.50 variable = £568.25 a month (£6,819).
+export const LONDON_WEIGHTING = { pre:3150, post:3261 };
+export const LONDON_ALLOWANCE = { pre:6588, post:6819 };
 
 // ─── UK income tax bands (2026/27), on a whole-year basis ─────────────────────
 // Used only to size the £100k taper (see taperExtra below): the pay months
