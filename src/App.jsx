@@ -2249,11 +2249,39 @@ export default function App() {
   // the installed app) picks up settings changed on another device straight
   // away — the theme in particular — rather than waiting for the live
   // channel to reconnect or the next manual sync.
+  // Signing out on another device ends this device's login on the server, but
+  // the copy here would otherwise carry on until it next renews (up to an
+  // hour). Asking the server who's signed in tells it straight away: a login
+  // that's been ended there signs this device out too. Network errors are
+  // ignored, so being offline never signs anyone out.
+  const lastSessionCheckRef = useRef(0);
+  const checkSessionStillValid = async () => {
+    if (!supabase || !session) return;
+    const now = Date.now(); if (now - lastSessionCheckRef.current < 15000) return;
+    lastSessionCheckRef.current = now;
+    try {
+      const { error } = await supabase.auth.getUser();
+      if (error && (error.status === 401 || error.status === 403 || error.code === 'session_not_found')) {
+        try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) {}
+        setDataKey(null);
+        clearLocalAccountData();
+        addToast('You were signed out from another device', 'warn', null, 6000);
+      }
+    } catch (_) { /* offline: try again next time */ }
+  };
+  useEffect(() => {
+    if (!session) return;
+    checkSessionStillValid();
+    const id = setInterval(() => { if (document.visibilityState === 'visible') checkSessionStillValid(); }, 5 * 60000);
+    return () => clearInterval(id);
+  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
   const lastFgPullRef = useRef(0);
   useEffect(()=>{
     if (!session || !dataKey) return;
     const onFg = () => {
-      if (document.visibilityState !== 'visible' || !initialSyncDoneRef.current) return;
+      if (document.visibilityState !== 'visible') return;
+      checkSessionStillValid();
+      if (!initialSyncDoneRef.current) return;
       const now = Date.now(); if (now - lastFgPullRef.current < 5000) return;
       lastFgPullRef.current = now;
       measureClock();
@@ -4061,13 +4089,25 @@ export default function App() {
     setLastSyncedAt(null);
   };
 
+  // Signs out everywhere: every device's login is ended on the server, and
+  // each one clears itself the next time it opens or comes back to the front
+  // (see the session check below). Offline, the server can't be reached, so
+  // only this device signs out and the toast says so.
   const handleSignOut = async () => {
     if (!supabase) return;
     haptic();
-    await supabase.auth.signOut();
+    let everywhere = true;
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      if (error) throw error;
+    } catch (e) {
+      everywhere = false;
+      try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) {}
+    }
     setDataKey(null);
     clearLocalAccountData();
-    addToast('Signed out', 'success');
+    if (everywhere) addToast('Signed out on all your devices', 'success');
+    else addToast('Signed out on this device. Couldn\u2019t reach the server to sign out your other devices.', 'warn', null, 7000);
     // No further manual state changes needed — onAuthStateChange (in the
     // effect above) picks up the sign-out and clears session automatically,
     // which sends the app straight back to the sign-in gate.
@@ -5259,7 +5299,7 @@ export default function App() {
             {unsynced.length>0 ? (<>
               <div style={{width:'42px',height:'42px',borderRadius:'50%',background:'var(--tint-amber)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px'}}><Ico n="bell" s={20} c="var(--text-amber-deep)"/></div>
               <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>{unsynced.length===1?'1 change hasn\u2019t synced':`${unsynced.length} changes haven\u2019t synced`}</div>
-              <div style={{fontSize:'12.5px',color:'var(--muted)',textAlign:'center',marginBottom:'12px',lineHeight:1.5}}>Signing out removes your data from this device. {unsynced.length===1?'This isn\u2019t':'These aren\u2019t'} in the cloud yet and would be lost:</div>
+              <div style={{fontSize:'12.5px',color:'var(--muted)',textAlign:'center',marginBottom:'12px',lineHeight:1.5}}>Signing out (on all your devices) removes your data from this device. {unsynced.length===1?'This isn\u2019t':'These aren\u2019t'} in the cloud yet and would be lost:</div>
               <div style={{background:'var(--tint-amber)',borderRadius:'11px',padding:'10px 12px',marginBottom:'16px',display:'flex',flexDirection:'column',gap:'4px'}}>
                 {unsynced.slice(0,4).map(u=><div key={u.key} style={{fontSize:'12.5px',fontWeight:700,color:'var(--text-amber-deep)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{u.text}</div>)}
                 {unsynced.length>4&&<div style={{fontSize:'12px',fontWeight:700,color:'var(--text-amber-deep)',opacity:0.8}}>and {unsynced.length-4} more</div>}
@@ -5274,7 +5314,7 @@ export default function App() {
               </div>
             </>) : (<>
             <div style={{fontSize:'15px',fontWeight:900,marginBottom:'6px',textAlign:'center'}}>Sign out?</div>
-            <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>You'll need your password again to get back in. Everything's synced, so it'll all be here when you do.</div>
+            <div style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginBottom:'18px',lineHeight:1.5}}>This signs you out on all your devices, and you'll need your password again to get back in. Everything's synced, so it'll all be here when you do.</div>
             <div style={{display:'flex',gap:'8px'}}>
               <button onClick={()=>{ setSignOutConfirmOpen(false); handleSignOut(); }} style={{flex:1,padding:'12px',background:BRASS,border:'none',borderRadius:'11px',color:'#fff',fontWeight:800,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Sign out</button>
               <button onClick={()=>setSignOutConfirmOpen(false)} style={{flex:1,padding:'12px',background:'transparent',border:'none',borderRadius:'11px',color:'var(--muted)',fontWeight:700,fontSize:'13px',fontFamily:'inherit',cursor:'pointer'}}>Cancel</button>
