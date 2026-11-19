@@ -53,7 +53,7 @@ export function TabDashboard({
   // month row onto four lines (folding phones on their side, small laptops).
   const rowsStack = vw<760 || (rowsW>0 && rowsW<900);
   // Narrow computers scroll the Overview sideways; it opens on the current month.
-  // Monthly deductions from Config (Federation subs, ATOC, savings…). Salary
+  // Monthly deductions from Config (Police Federation, ATOC, savings…). Salary
   // sacrifice is already off the payroll run's monthNet (with the tax and NI
   // it saves), so only after-tax deductions come off here; the payslip's own
   // sacrifice figure (capped at what the month can bear) is added back in

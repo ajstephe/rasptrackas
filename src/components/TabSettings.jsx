@@ -662,7 +662,7 @@ export function TabSettings({
 
       {/* ── Monthly deductions (its own card) ──
           Things taken off every payslip that the app can't know about —
-          Federation subs, ATOC, regular savings — so take-home matches the
+          Police Federation, ATOC, regular savings — so take-home matches the
           bank. Each is named, a monthly amount, and either after tax (most)
           or before tax and NI (salary sacrifice). Kept in the encrypted
           settings like everything else. Sits beside Config on desktop. */}
@@ -721,7 +721,7 @@ export function TabSettings({
               {list.map(d=>(
                 <div key={d.id} style={{background:'var(--surface-2)',borderRadius:'12px',padding:'10px'}}>
                   <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
-                    <input aria-label="Deduction name" value={d.name} placeholder="Name, e.g. Federation subs" onChange={e=>upd(d.id,{name:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'9px 11px',fontSize:'16px'}}/>
+                    <input aria-label="Deduction name" value={d.name} placeholder="Name, e.g. Police Federation" onChange={e=>upd(d.id,{name:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'9px 11px',fontSize:'16px'}}/>
                     <div style={{position:'relative',flex:isWide?'0 0 86px':'0 0 104px'}}>
                       <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
                       <input aria-label={`${d.name||'Deduction'} monthly amount`} inputMode="decimal" value={d.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) upd(d.id,{amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'9px 10px 9px 22px',fontSize:'16px',textAlign:'right'}}/>

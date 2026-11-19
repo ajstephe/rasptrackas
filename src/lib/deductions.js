@@ -1,6 +1,6 @@
 import { paidByPreviousForce } from './forceMove.js';
 // Monthly deductions (More › Config): things taken off every payslip that the
-// app otherwise can't know about — Federation subs, ATOC, insurance, savings.
+// app otherwise can't know about — Police Federation, ATOC, insurance, savings.
 // Each has a name, a monthly amount, optional amount changes from a given
 // pay month, pay months it's skipped, and whether it comes off after tax or
 // before tax and NI (salary sacrifice, e.g. cycle to work).
@@ -42,7 +42,7 @@ export const deductionsFor = (settings, month) => {
 
 // The quick-add presets, A–Z, used in setup and in More › Monthly deductions.
 // Cycle2Work is salary sacrifice, so it starts before tax & NI.
-export const DEDUCTION_PRESETS = ['ATOC','Cycle2Work','Federation subs','PFOA','Police Mutual','Regular savings','Sports & social'];
+export const DEDUCTION_PRESETS = ['ATOC','Benevolent Fund','Cycle2Work','Group Insurance','PFOA','Police Federation','Regular savings','Travel Insurance'];
 export const PRE_TAX_PRESETS = ['Cycle2Work'];
 export const newDeduction = (name = '') => ({
   id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),

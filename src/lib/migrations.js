@@ -29,7 +29,7 @@ export const migrateSettings = s => {
       && (imp.basis === 'gross' || imp.basis === 'net') && validDate(imp.upTo)) {
     out.paidImport = { taxYear:Number(imp.taxYear), amount:Number(imp.amount), basis:imp.basis, gross:Number(imp.gross), upTo:imp.upTo };
   }
-  // Monthly deductions (Federation subs, ATOC, savings…), each named with a
+  // Monthly deductions (Police Federation, ATOC, savings…), each named with a
   // monthly amount, taken off after tax or before tax and NI. The amount is
   // kept as typed so a half-entered "12." survives a save.
   if (Array.isArray(s.deductions)) {

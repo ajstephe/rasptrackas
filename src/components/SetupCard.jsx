@@ -96,7 +96,7 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupF
           <span style={{fontSize:'12px',color:'var(--text-green-deep)',lineHeight:1.45,fontWeight:600}}>Your pension, income tax (PAYE) and National Insurance are worked out and taken off automatically, so there's no need to add them here.</span>
         </div>
         <div style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,marginBottom:'10px'}}>
-          Things like ATOC, Federation subs, Police Mutual or regular savings. Adding them makes your take-home pay more accurate. You can always add these at a later date.
+          Things like ATOC, Police Federation, Group Insurance or regular savings. Adding them makes your take-home pay more accurate. You can always add these at a later date.
         </div>
         {done && <>
           {draft.length>0 && <div style={{display:'flex',flexDirection:'column',gap:'6px',marginBottom:'10px'}}>
