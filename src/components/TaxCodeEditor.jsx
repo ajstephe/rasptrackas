@@ -8,6 +8,29 @@ import { Ico } from './Icons.jsx';
 // basis }] }; lib/tax.js taxCodeOn works out the code for each pay month.
 // Edits go into a draft and only reach the pay figures when Save is pressed,
 // so nothing moves while a code is being typed.
+// The letters in common use in England (and Wales/NI): the number is the
+// tax-free pay ÷ 10, except K (that much extra taxable pay) and the
+// flat-rate codes, which have no number.
+const LETTERS = [
+  { v: 'L', name: 'Standard', help: 'L is the standard tax-free Personal Allowance.' },
+  { v: 'M', name: 'Marriage Allowance (getting)', help: 'M means you get Marriage Allowance from your partner.' },
+  { v: 'N', name: 'Marriage Allowance (giving)', help: 'N means you give part of your allowance to your partner.' },
+  { v: 'T', name: 'Other', help: 'T is used when HMRC needs to review something, and for 0T (no allowance).' },
+  { v: 'K', name: 'K code', help: 'K adds to your taxable pay, usually for a benefit or tax owed from an earlier year.' },
+  { v: 'BR', name: 'Basic rate on all pay', help: 'BR taxes all your pay at 20%, usually for a second job.' },
+  { v: 'D0', name: 'Higher rate on all pay', help: 'D0 taxes all your pay at 40%.' },
+  { v: 'D1', name: 'Additional rate on all pay', help: 'D1 taxes all your pay at 45%.' },
+  { v: 'NT', name: 'No tax', help: 'NT means no tax is taken.' },
+];
+const FLAT = ['BR', 'D0', 'D1', 'NT'];
+const splitCode = code => {
+  const c = String(code || '').toUpperCase().replace(/\s+/g, '').replace(/^C/, '').replace(/(M1|W1|X)$/, '');
+  if (FLAT.includes(c)) return { num: '', letter: c };
+  let m = c.match(/^K(\d*)$/); if (m) return { num: m[1], letter: 'K' };
+  m = c.match(/^(\d*)([LMNT])?$/); if (m) return { num: m[1], letter: m[2] || 'L' };
+  return { num: c.replace(/\D/g, '').slice(0, 4), letter: 'L' };
+};
+const joinCode = (num, letter) => FLAT.includes(letter) ? letter : letter === 'K' ? `K${num}` : `${num}${letter}`;
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const fromSettings = s => {
   const tc = s.taxCode || {};
@@ -45,11 +68,10 @@ export function TaxCodeEditor({ settings, saveSett, S, BRASS }) {
   const dirty = JSON.stringify(draft) !== savedJSON;
   const set = patch => { setDraft(d => ({ ...d, ...patch })); setJustSaved(false); };
   const setChange = (id, patch) => set({ changes: draft.changes.map(c => c.id === id ? { ...c, ...patch } : c) });
-  // Typing "1257L M1" (or W1 / X) switches that code to Emergency.
-  const typed = (text, apply) => { const t = text.toUpperCase().slice(0, 10); const p = parseTaxCode(t); apply(p.ok && p.month1 ? { code: t, basis: 'month1' } : { code: t }); };
 
-  const mainOk = parseTaxCode(draft.code);
-  const errors = [!mainOk.ok && mainOk.error, ...draft.changes.map(c => { const p = parseTaxCode(c.code); return p.ok ? null : `${PAY_PERIODS.find(x => x.month === c.from)?.short.slice(0, 3) || ''} pay: ${p.error}`; })].filter(Boolean);
+  const check = code => { const { num, letter } = splitCode(code); return !FLAT.includes(letter) && num === '' ? { ok: false, error: 'Type the number from your tax code, e.g. 1257' } : parseTaxCode(code); };
+  const mainOk = check(draft.code);
+  const errors = [!mainOk.ok && mainOk.error, ...draft.changes.map(c => { const p = check(c.code); return p.ok ? null : `${PAY_PERIODS.find(x => x.month === c.from)?.short.slice(0, 3) || ''} pay: ${p.error}`; })].filter(Boolean);
   const canSave = dirty && errors.length === 0;
   const save = () => {
     if (!canSave) return;
@@ -62,23 +84,38 @@ export function TaxCodeEditor({ settings, saveSett, S, BRASS }) {
   const curIdx = PAY_PERIODS.findIndex(p => p.start <= localDateStr() && localDateStr() <= p.end);
   const lbl = { fontSize: '10px', fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '7px' };
   const help = { fontSize: '11.5px', color: 'var(--quiet)', lineHeight: 1.45, fontWeight: 600, marginTop: '7px' };
+  // The code as a number and a letter picked from the common English codes,
+  // so there's nothing to mistype. Codes with no number (BR, D0, D1, NT) hide it.
   const codeInput = (value, onChange, label, small) => {
-    const bad = value.trim() && !parseTaxCode(value).ok;
+    const { num, letter } = splitCode(value);
+    const flat = FLAT.includes(letter);
+    const bad = !flat && num !== '' && !parseTaxCode(joinCode(num, letter)).ok;
+    const sel = { ...S.inp, width: 'auto', fontSize: '16px', fontWeight: 800, padding: small ? '8px 8px' : '10px 10px', ...(small ? { background: 'var(--surface)' } : null) };
+    const picker = (
+      <select aria-label={`${label} letter`} value={letter} onChange={e => onChange(joinCode(FLAT.includes(e.target.value) ? '' : (num || (e.target.value === 'K' ? '' : '1257')), e.target.value))} style={{ ...sel, ...(small ? { flex: '0 0 auto' } : { flex: '1 1 0', minWidth: 0, textOverflow: 'ellipsis' }) }}>
+          {LETTERS.map(l => <option key={l.v} value={l.v}>{small ? l.v : `${l.v} · ${l.name}`}</option>)}
+        </select>
+    );
     return (
-      <input aria-label={label} value={value} autoCapitalize="characters" autoCorrect="off" spellCheck={false} inputMode="text"
-        onChange={e => onChange(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') save(); }}
-        style={{ ...S.inp, ...(small ? { flex: '0 0 96px', background: 'var(--surface)', padding: '8px 10px' } : { flex: '1 1 auto', minWidth: 0 }), fontSize: '16px', fontWeight: 800, letterSpacing: '0.02em', ...(bad ? { boxShadow: 'inset 0 0 0 1.5px #dc2626' } : null) }}/>
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flex: small ? '0 1 auto' : '1 1 auto', minWidth: 0 }}>
+        {letter === 'K' && picker}
+        {!flat && <input aria-label={`${label} number`} value={num} inputMode="numeric" placeholder="1257"
+          onChange={e => onChange(joinCode(e.target.value.replace(/\D/g, '').slice(0, 4), letter))} onKeyDown={e => { if (e.key === 'Enter') save(); }}
+          style={{ ...S.inp, ...(small ? { flex: '0 0 72px', width: '72px', background: 'var(--surface)', padding: '8px 10px' } : { flex: '0 0 104px', width: '104px', boxSizing: 'border-box' }), fontSize: '16px', fontWeight: 800, letterSpacing: '0.02em', ...(bad ? { boxShadow: 'inset 0 0 0 1.5px #dc2626' } : null) }}/>}
+        {letter !== 'K' && picker}
+      </div>
     );
   };
+  const hint = LETTERS.find(l => l.v === splitCode(draft.code).letter);
 
   return (
     <div style={{ borderTop: '1px solid var(--border-2)', marginTop: '14px', paddingTop: '14px' }}>
       <div style={lbl}>Tax code</div>
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-        {codeInput(draft.code, t => typed(t, set), 'Tax code')}
-        <Basis value={draft.basis} onChange={v => set({ basis: v })} BRASS={BRASS}/>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+        {codeInput(draft.code, code => set({ code }), 'Tax code')}
       </div>
-      <div style={help}>Copy it from your payslip, next to “Tax Code”. Most people are on <b>1257L</b>.</div>
+      <div style={help}>Your code is <b style={{ color: 'var(--ink)' }}>{parseTaxCode(draft.code).ok ? parseTaxCode(draft.code).code : '…'}</b>{hint ? <>. {hint.help}</> : null} Copy it from your payslip, next to “Tax Code”. Most people are on <b>1257L</b>.</div>
+      <div style={{ display: 'flex', marginTop: '10px' }}><Basis value={draft.basis} onChange={v => set({ basis: v })} BRASS={BRASS}/></div>
       <div style={{ ...help, background: 'var(--surface-2)', borderRadius: '11px', padding: '9px 11px', marginTop: '9px' }}>
         <b style={{ color: 'var(--ink)' }}>Normal or Emergency?</b> Pick <b>Emergency</b> if your payslip shows <b>Non Cumul.</b>, <b>M1</b>, <b>W1</b> or <b>X</b> after the code. It's usually temporary, after starting a new job or a tax code change, and means each month is taxed on its own. Otherwise leave it on <b>Normal</b>.
       </div>
@@ -90,7 +127,7 @@ export function TaxCodeEditor({ settings, saveSett, S, BRASS }) {
           <select aria-label="Tax code change from pay month" value={c.from} onChange={e => setChange(c.id, { from: e.target.value })} style={{ ...S.inp, flex: '0 0 auto', width: 'auto', background: 'var(--surface)', padding: '8px 10px', fontSize: '16px' }}>
             {PAY_PERIODS.map(p => <option key={p.month} value={p.month}>{p.short.slice(0, 3)} pay</option>)}
           </select>
-          {codeInput(c.code, t => typed(t, patch => setChange(c.id, patch)), 'New tax code', true)}
+          {codeInput(c.code, code => setChange(c.id, { code }), 'New tax code', true)}
           <Basis value={c.basis} onChange={v => setChange(c.id, { basis: v })} BRASS={BRASS} small/>
           <button type="button" aria-label="Remove tax code change" onClick={() => set({ changes: draft.changes.filter(x => x.id !== c.id) })} style={{ background: 'none', border: 'none', padding: '6px', cursor: 'pointer', display: 'flex', marginLeft: 'auto' }}><Ico n="x" s={15} c="var(--quiet)"/></button>
         </div>
