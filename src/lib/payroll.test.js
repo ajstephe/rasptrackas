@@ -285,3 +285,36 @@ describe('a tax code change during the year', () => {
     y.forEach(pb=>expect(pb.monthTax).toBeLessThanOrEqual((pb.cumAfter - pb.cumPrev)/2 + 0.01));
   });
 });
+
+describe('figures to date from a real payslip', () => {
+  // PC 7: salary alone reaches the 40% band by November.
+  const PC7 = { rank:'Constable', service:'PC 7 (top)' }, SVC7 = PAY_RATES.Constable['PC 7 (top)'];
+  const withYtd = payslipYtd => buildPayYear({ periods: PERIODS, entries: [], settings: { ...PC7, payslipYtd }, svcData: SVC7 });
+  const base = withYtd(undefined);
+  const nov = base.findIndex(pb=>pb.month==='November 2026');
+  it("the app's own figures change nothing", () => {
+    const y = withYtd({ month:'November 2026', taxable: base[nov].cumAfter, tax: base[nov].taxToDate });
+    expect(y.map(pb=>pb.monthTax)).toEqual(base.map(pb=>pb.monthTax));
+  });
+  it('lower pay to date means less of the month taxed at 40%', () => {
+    const taxable = base[nov].cumAfter - 3000;
+    const tax = taxToDateFor(taxable, 8, parseTaxCode('1257L'));
+    const y = withYtd({ month:'November 2026', taxable, tax });
+    const monthTaxable = base[nov].cumAfter - base[nov].cumPrev;
+    expect(y[nov].monthTax).toBeCloseTo(tax - taxToDateFor(taxable - monthTaxable, 7, parseTaxCode('1257L')), 2);
+    expect(y[nov].monthTax).toBeLessThan(base[nov].monthTax);
+    expect(y[nov].taxToDate).toBeCloseTo(tax, 2);
+    expect(y[nov].cumAfter).toBeCloseTo(taxable, 2);
+    // Later months carry on from the payslip's figures.
+    expect(y[nov+1].cumPrev).toBeCloseTo(taxable, 2);
+    expect(y[nov+1].paidBefore).toBeCloseTo(tax, 2);
+    // Earlier months are left as they were.
+    expect(y.slice(0, nov).map(pb=>pb.monthTax)).toEqual(base.slice(0, nov).map(pb=>pb.monthTax));
+    // By March the year's tax is what's due on the whole year's pay.
+    expect(y[11].taxToDate).toBeCloseTo(taxToDateFor(y[11].cumAfter, 12, parseTaxCode('1257L')), 2);
+  });
+  it('a different month is ignored', () => {
+    const y = withYtd({ month:'November 2025', taxable: 1, tax: 1 });
+    expect(y.map(pb=>pb.monthTax)).toEqual(base.map(pb=>pb.monthTax));
+  });
+});

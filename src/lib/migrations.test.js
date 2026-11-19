@@ -201,3 +201,14 @@ describe('tax code in settings', () => {
     expect(out.taxCode).toBeUndefined();
   });
 });
+describe('figures to date from a payslip in settings', () => {
+  const base = { rank:'Constable', service:'PC 4' };
+  it('keeps real figures', () => {
+    expect(mig({ ...base, payslipYtd:{ month:'November 2026', taxable:30123.456, tax:5000.1 } }).payslipYtd)
+      .toEqual({ month:'November 2026', taxable:30123.46, tax:5000.1 });
+  });
+  it('drops anything else', () => {
+    [{ month:'bad', taxable:1, tax:1 }, { month:'November 2026', taxable:'1', tax:1 }, { month:'November 2026', taxable:-1, tax:1 }, 'x']
+      .forEach(payslipYtd => expect(mig({ ...base, payslipYtd }).payslipYtd).toBeUndefined());
+  });
+});

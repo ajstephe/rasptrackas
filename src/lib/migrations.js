@@ -57,6 +57,11 @@ export const migrateSettings = s => {
       .map(c => ({ id:c.id, from:c.from, code:parseTaxCode(c.code).code, basis: c.basis === 'month1' ? 'month1' : 'cumulative' })) : [];
     if (code !== '1257L' || basis !== 'cumulative' || changes.length) out.taxCode = { code, basis, changes };
   }
+  // Taxable pay and tax to date copied from a real payslip (More › Config).
+  const y = s.payslipYtd;
+  if (y && typeof y === 'object' && typeof y.month === 'string' && /^[A-Za-z]+ \d{4}$/.test(y.month)
+    && [y.taxable, y.tax].every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v < 1e7))
+    out.payslipYtd = { month:y.month, taxable:Math.round(y.taxable*100)/100, tax:Math.round(y.tax*100)/100 };
   return withTheme(out);
 };
 
