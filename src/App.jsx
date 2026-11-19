@@ -32,7 +32,7 @@ import {
 import { KEYS, dualWrite, dualRead } from './lib/storage.js';
 import { TabErrorBoundary } from './ErrorBoundary.jsx';
 import { layoutFor, screenSize } from './lib/layout.js';
-import { clockOffsetFrom, mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, mergeSettings3, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, pushModeFor, wipeAction } from './lib/sync.js';
+import { clockOffsetFrom, settingsUnsynced, mergeRemoteRows, dropUnheldSynced, hasNoPendingLocalEdit, computeRowPushDiff, chainSequential, remoteSettingsChanged, newestTheme, mergeSettings3, isStaleSettingsUpdate, applyRemoteDelta, findRemovedIds, findMissingIds, needsIdList, pullSince, advanceCursor, needsFullPull, pushModeFor, wipeAction } from './lib/sync.js';
 import { genRecordId } from './lib/ids.js';
 import { migrateSettings, migrateEntries, cleanToilTaken, parseBackupFile } from './lib/migrations.js';
 import { countSelectedClaims } from './lib/carms.js';
@@ -1622,7 +1622,7 @@ export default function App() {
       ...[...e.toUpsert].sort((a,b)=>a.date<b.date?-1:1).map(x => ({ key:'e'+x.id, text: longDay(x.date) + (x.reason ? ' · ' + x.reason : '') })),
       ...t.toUpsert.map(x => ({ key:'t'+x.id, text: 'TOIL taken · ' + longDay(x.date) })),
       ...(dels ? [{ key:'del', text: dels === 1 ? '1 deleted item' : dels + ' deleted items' }] : []),
-      ...(settingsRef.current && lastSyncedSettingsRef.current !== JSON.stringify(settingsRef.current) ? [{ key:'set', text:'Rank, pay point and settings' }] : []),
+      ...(settingsUnsynced(settingsRef.current, lastSyncedSettingsRef.current) ? [{ key:'set', text:'Rank, pay point and settings' }] : []),
     ];
     setUnsynced(u => (u.length === list.length && u.every((x,i)=>x.key===list[i].key && x.text===list[i].text)) ? u : list);
   }

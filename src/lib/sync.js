@@ -21,6 +21,17 @@ export function hasNoPendingLocalEdit(currentItem, priorSyncedJson) {
   try { return stableJSON(JSON.parse(priorSyncedJson)) === stableJSON(currentItem); } catch { return false; }
 }
 
+// Whether this device's settings still need to go up, for the "not synced"
+// count. The same test pushSettingsChange uses to decide whether to push:
+// a copy that only differs from the last one synced in key order is
+// already in the cloud. A plain string compare here counted it as one
+// change waiting for ever, which no sync could clear.
+export function settingsUnsynced(current, lastSyncedJson) {
+  if (!current) return false;
+  if (lastSyncedJson == null) return true;
+  return !hasNoPendingLocalEdit(current, lastSyncedJson);
+}
+
 // "Safe to take the remote copy" isn't the same question as "is this
 // remote copy actually the newest one" — a real, live bug this app shipped
 // for a while: Wipe All Data deletes the settings row, then pushes a fresh

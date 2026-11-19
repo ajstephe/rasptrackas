@@ -583,3 +583,17 @@ describe('wipeAction', () => {
     expect(wipeAction(W, null, null, false).clear).toBe(false);
   });
 });
+
+import { settingsUnsynced } from './sync.js';
+describe('settingsUnsynced (the "not synced" count)', () => {
+  it('the same settings in a different key order are synced', () => {
+    expect(settingsUnsynced({ rank:'Constable', service:'PC 7 (top)', taxCode:{ code:'1257L' } }, JSON.stringify({ taxCode:{ code:'1257L' }, service:'PC 7 (top)', rank:'Constable' }))).toBe(false);
+  });
+  it('a real change is not', () => {
+    expect(settingsUnsynced({ rank:'Constable', service:'PC 6' }, JSON.stringify({ rank:'Constable', service:'PC 7 (top)' }))).toBe(true);
+  });
+  it('never synced counts; no settings at all does not', () => {
+    expect(settingsUnsynced({ rank:'Constable' }, null)).toBe(true);
+    expect(settingsUnsynced(null, null)).toBe(false);
+  });
+});
