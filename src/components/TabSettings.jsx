@@ -593,14 +593,16 @@ export function TabSettings({
                 {ranks.map(rank=>(
                   <div key={rank} style={{marginBottom: rank==='Constable' && ranks.length>1 ? '16px' : 0}}>
                     <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-navy)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'}}>{rank}</div>
-                    {/* Each pay point's national salary, and beside it the same
-                        salary with London Weighting and London Allowance added:
-                        the "Standard Rate" a Met payslip shows. */}
-                    <div style={{display:'grid',gridTemplateColumns:'minmax(0,1.15fr) repeat(4, minmax(0,1fr))',gap:0,alignItems:'stretch'}}>
+                    {/* Each pay point's national salary from 1 Sept 2026, and beside
+                        it the same salary with London Weighting and London
+                        Allowance added: the "Standard Rate" a Met payslip shows.
+                        Only today's scale is shown; the pre-Sept rates stay in
+                        PAY_RATES for working out pay before 1 Sept. */}
+                    <div style={{display:'grid',gridTemplateColumns:'minmax(0,1.3fr) repeat(2, minmax(0,1fr))',gap:0,alignItems:'stretch'}}>
                       <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)',display:'flex',alignItems:'flex-end'}}>Pay Point</div>
-                      {[['pre','Before 1 Sept'],['post','From 1 Sept']].map(([k,when])=>(
+                      {['post'].map(k=>(
                         <Fragment key={k}>
-                          <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',padding:'0 4px 5px',borderBottom:'1px solid var(--border-2)',lineHeight:1.35,display:'flex',flexDirection:'column',justifyContent:'flex-end'}}>{when}<div>National</div></div>
+                          <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',padding:'0 4px 5px',borderBottom:'1px solid var(--border-2)',lineHeight:1.35,display:'flex',flexDirection:'column',justifyContent:'flex-end'}}><div>National</div></div>
                           <div style={{fontSize:'8px',fontWeight:900,color:BRASS,textTransform:'uppercase',textAlign:'right',padding:'0 4px 5px',borderBottom:'1px solid var(--border-2)',lineHeight:1.35,display:'flex',flexDirection:'column',justifyContent:'flex-end'}}><div>With London</div></div>
                         </Fragment>
                       ))}
@@ -611,7 +613,7 @@ export function TabSettings({
                         return (
                         <div key={point} style={{display:'contents'}}>
                           <div style={{...cell,textAlign:'left',whiteSpace:'normal',fontWeight:me?900:700,color:'var(--ink)',boxShadow:me?`inset 3px 0 0 ${BRASS}`:'none',justifyContent:'flex-start',paddingLeft:me?'11px':'8px'}}><div>{point}{me&&<span style={{fontWeight:700,color:'var(--muted)'}}> · you</span>}</div></div>
-                          {['pre','post'].map(k=>(
+                          {['post'].map(k=>(
                             <Fragment key={k}>
                               <div style={{...cell,fontWeight:k==='post'?900:700,color:k==='post'?'var(--text-navy)':'var(--muted)'}}>£{data.salary[k].toLocaleString('en-GB')}</div>
                               <div style={{...cell,fontWeight:900,color:BRASS}}>£{(data.salary[k]+LONDON_WEIGHTING[k]+LONDON_ALLOWANCE[k]).toLocaleString('en-GB')}</div>
@@ -628,7 +630,7 @@ export function TabSettings({
                 )}
                   </>);
                 })()}
-                <div style={{marginTop:'12px',fontSize:'9px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>National figures exclude London pay. With London adds London Weighting (£3,150 before 1 Sept / £3,261 from 1 Sept) and London Allowance (£6,588 before 1 Sept / £6,819 from 1 Sept): the Standard Rate on a Met payslip.</div>
+                <div style={{marginTop:'12px',fontSize:'9px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Pay scales from 1 Sept 2026. National figures exclude London pay. With London adds London Weighting (£3,261) and London Allowance (£6,819): the Standard Rate on a Met payslip.</div>
               </div>
             </div>
           );
