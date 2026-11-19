@@ -341,8 +341,10 @@ export function TabSettings({
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
       {/* An item opened in place sits inside the list's card, so its own
-          card frame is dropped there (no box inside a box). */}
-      <style>{`.more-inline > div > div { background: none !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; border-radius: 0 !important; }`}</style>
+          card frame is dropped there (no box inside a box). Specific enough
+          to beat the themes that restyle every card (Insert Coin, Miami…),
+          which otherwise left a square outline round it. */}
+      <style>{`:root:root .more-inline.more-inline > div > div[style] { background: none !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; border-radius: 0 !important; }`}</style>
       <div style={{display:(isWide||!page)?'flex':'none',alignItems:'center',justifyContent:'space-between',marginBottom:'16px',...(isWide?{maxWidth:'860px',marginLeft:'auto',marginRight:'auto'}:null)}}>
         {(isWide||!page)&&<h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>More</h2>}
         {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'var(--text-green-deep)'}}>Saved</span></div>}
