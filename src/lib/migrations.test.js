@@ -222,3 +222,10 @@ describe('moved forces in settings', () => {
       .forEach(forceMove => expect(mig({ ...base, forceMove }).forceMove).toBeUndefined());
   });
 });
+
+describe('taxCodeChecked', () => {
+  it('keeps the answered tax code reminder, and only a real true', () => {
+    expect(migrateSettings({ taxCodeChecked: true }).taxCodeChecked).toBe(true);
+    expect('taxCodeChecked' in migrateSettings({ taxCodeChecked: 'yes' })).toBe(false);
+  });
+});

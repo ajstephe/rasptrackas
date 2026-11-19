@@ -828,7 +828,7 @@ export function TabDashboard({
 
     <div style={{fontSize:'10.5px',color:'var(--text-red-deep)',textAlign:'center',lineHeight:1.5,padding:'8px 12px 0'}}>For guidance only. Always verify amounts against your payslip.</div>
     </div>}
-    {payslipAt!=null&&<PayslipModal payYear={totals.periodBreakdown} settings={settings} startIdx={payslipAt} onClose={()=>setPayslipAt(null)} MONO={MONO} BRASS={BRASS} isWide={isWide}/>}
+    {payslipAt!=null&&<PayslipModal payYear={totals.periodBreakdown} settings={settings} saveSett={saveSett} S={S} startIdx={payslipAt} onClose={()=>setPayslipAt(null)} MONO={MONO} BRASS={BRASS} isWide={isWide}/>}
   </div>
   );
 }

@@ -1062,7 +1062,7 @@ export function TabSettings({
         );
       })()}
 
-      {page==='payslips'&&settings.rank&&settings.service&&<ExpectedPayslips alwaysOpen payYear={payYear} settings={settings} currPeriodIdx={currPeriodIdx} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide}/>}
+      {page==='payslips'&&settings.rank&&settings.service&&<ExpectedPayslips alwaysOpen payYear={payYear} settings={settings} saveSett={saveSett} currPeriodIdx={currPeriodIdx} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide}/>}
 
 
       {/* ── Financial Years — generated calendar, every past year with data is browsable ── */}

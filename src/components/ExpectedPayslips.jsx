@@ -7,6 +7,7 @@ import { fmtGBP, payLabel, shiftSpan } from '../lib/format.js';
 import { deductionFor } from '../lib/deductions.js';
 import { localDateStr } from '../lib/payPeriods.js';
 import { Ico } from './Icons.jsx';
+import { TaxCodeEditor } from './TaxCodeEditor.jsx';
 
 // More › Pay & tax: what each month's payslip should show, laid out like the
 // Met's Pay Advice, from the same payroll run as everything else (salary and
@@ -17,9 +18,10 @@ const fmtDay = d => new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { day:
 
 // The month chips and that month's Pay Advice: shared by the card in More
 // and the pop-up opened from Home.
-function PayslipPanel({ months, pick, setPick, settings, MONO, BRASS, isWide }) {
+function PayslipPanel({ months, pick, setPick, settings, saveSett, S, MONO, BRASS, isWide }) {
   const pb = months[pick];
   const today = localDateStr();
+  const [codeOpen, setCodeOpen] = useState(false);
 
   const fs = isWide ? '14px' : '12.5px';
   const row = (label, amount, tone) => (
@@ -71,8 +73,36 @@ function PayslipPanel({ months, pick, setPick, settings, MONO, BRASS, isWide }) 
         <div style={{ fontFamily: MONO, fontSize: big ? '28px' : '22px', fontWeight: 700, color: tone || 'var(--ink)', marginTop: '4px' }}>{fmtGBP(amount)}</div>
       </div>
     );
+    // Still on the default 1257L and never confirmed: most people are, but a
+    // different code on the real payslip (e.g. 1271L) puts the tax out every
+    // month, so ask once. "Mine is 1257L" or saving a code answers it.
+    const askCode = !!saveSett && !settings?.taxCode && !settings?.taxCodeChecked;
+    const answered = s => saveSett({ ...s, taxCodeChecked: true });
+    const codeNudge = askCode && (
+      <div style={{ background: 'var(--tint-amber)', borderRadius: '12px', padding: isWide ? '12px 16px' : '10px 12px', marginBottom: isWide ? '14px' : '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+          <Ico n="warn" s={16} c="var(--text-amber-deep)"/>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: isWide ? '13.5px' : '12.5px', fontWeight: 900, color: 'var(--text-amber-deep)' }}>Is your tax code 1257L?</div>
+            <div style={{ fontSize: isWide ? '12.5px' : '11.5px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.45, marginTop: '2px' }}>This payslip uses 1257L, the standard code. Check the Tax Code box on your real payslip: if it's different, the tax here will be out.</div>
+            {!codeOpen && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '9px' }}>
+                <button type="button" onClick={() => setCodeOpen(true)} style={{ background: BRASS, color: '#fff', border: 'none', borderRadius: '10px', padding: '8px 14px', fontFamily: 'inherit', fontWeight: 900, fontSize: '12.5px', cursor: 'pointer' }}>Mine's different</button>
+                <button type="button" onClick={() => answered(settings)} style={{ background: 'transparent', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: '10px', padding: '8px 14px', fontFamily: 'inherit', fontWeight: 800, fontSize: '12.5px', cursor: 'pointer' }}>Yes, it's 1257L</button>
+              </div>
+            )}
+          </div>
+        </div>
+        {codeOpen && (
+          <div style={{ background: 'var(--surface)', borderRadius: '10px', padding: '12px', marginTop: '10px' }}>
+            <TaxCodeEditor bare settings={settings} saveSett={answered} S={S} BRASS={BRASS}/>
+          </div>
+        )}
+      </div>
+    );
     const wideSlip = (
       <>
+        {codeNudge}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '12px', marginBottom: '16px' }}>
           {tile('Total payments', totalPay)}
           {tile('Total deductions', totalDed, 'var(--text-red-deep)')}
@@ -121,6 +151,7 @@ function PayslipPanel({ months, pick, setPick, settings, MONO, BRASS, isWide }) 
     );
     slip = isWide ? wideSlip : (
       <>
+        {codeNudge}
         <div style={{ border: '1.5px solid var(--ink)', borderRadius: '8px', overflow: 'hidden', background: 'var(--surface)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px', padding: '10px 12px', borderBottom: '1.5px solid var(--ink)', background: 'var(--surface-2)' }}>
             {[['Date paid', fmtDay(pb.payDate)], ['Tax code', pb.taxCode || '1257L'], ['Pay month', payLabel(pb.month)], ['Shifts', shiftSpan(pb.start, pb.end).replace(/^Shifts /, '')]].map(([k, v]) => (
@@ -171,14 +202,14 @@ function PayslipPanel({ months, pick, setPick, settings, MONO, BRASS, isWide }) 
 
 const startPick = idx => Math.max(0, Math.min(11, idx >= 0 ? idx : 0));
 
-export function ExpectedPayslips({ payYear, settings, currPeriodIdx, S, MONO, BRASS, isWide, alwaysOpen }) {
+export function ExpectedPayslips({ payYear, settings, saveSett, currPeriodIdx, S, MONO, BRASS, isWide, alwaysOpen }) {
   const [open, setOpen] = useState(false);
   const months = Array.isArray(payYear) ? payYear : [];
   const [pick, setPick] = useState(() => startPick(currPeriodIdx));
   // More › Expected payslips: the page is the card, so no header to tap.
   if (alwaysOpen) return (
     <div style={S.card}>
-      {months.length ? <PayslipPanel months={months} pick={pick} setPick={setPick} settings={settings} MONO={MONO} BRASS={BRASS} isWide={isWide}/>
+      {months.length ? <PayslipPanel months={months} pick={pick} setPick={setPick} settings={settings} saveSett={saveSett} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide}/>
         : <div style={{ fontSize: '12.5px', color: 'var(--quiet)' }}>Set your rank and pay point to see your payslips.</div>}
     </div>
   );
@@ -193,7 +224,7 @@ export function ExpectedPayslips({ payYear, settings, currPeriodIdx, S, MONO, BR
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'transform 0.35s cubic-bezier(.65,0,.35,1)', transform: open ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       {open && (months.length ? (
-        <PayslipPanel months={months} pick={pick} setPick={setPick} settings={settings} MONO={MONO} BRASS={BRASS} isWide={isWide}/>
+        <PayslipPanel months={months} pick={pick} setPick={setPick} settings={settings} saveSett={saveSett} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide}/>
       ) : <div style={{ fontSize: '12.5px', color: 'var(--quiet)' }}>Set your rank and pay point in Config to see your payslips.</div>)}
     </div>
   );
@@ -201,7 +232,7 @@ export function ExpectedPayslips({ payYear, settings, currPeriodIdx, S, MONO, BR
 
 // Home › Overview: the same Pay Advice in a pop-up over the page, opened on
 // a given month, with ‹ › and the month chips to move between months.
-export function PayslipModal({ payYear, settings, startIdx, onClose, MONO, BRASS, isWide }) {
+export function PayslipModal({ payYear, settings, saveSett, S, startIdx, onClose, MONO, BRASS, isWide }) {
   const months = Array.isArray(payYear) ? payYear : [];
   const [pick, setPick] = useState(() => startPick(startIdx));
   const boxRef = useRef(null);
@@ -225,7 +256,7 @@ export function PayslipModal({ payYear, settings, startIdx, onClose, MONO, BRASS
           <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: '10px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Ico n="x" s={14} c="var(--muted)"/></button>
         </div>
         <div style={{ overflowY: 'auto', padding: '14px 16px 18px' }}>
-          <PayslipPanel months={months} pick={pick} setPick={setPick} settings={settings} MONO={MONO} BRASS={BRASS} isWide={isWide}/>
+          <PayslipPanel months={months} pick={pick} setPick={setPick} settings={settings} saveSett={saveSett} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide}/>
         </div>
       </div>
     </div>,
