@@ -11,7 +11,7 @@ import { Ico } from './Icons.jsx';
 const num = t => { const n = parseFloat(String(t).replace(/[£,\s]/g, '')); return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : NaN; };
 const fmtDate = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-export function ForceMoveEditor({ settings, saveSett, S, BRASS, MONO }) {
+export function ForceMoveEditor({ settings, saveSett, S, BRASS, MONO, bare }) {
   // A P45 only counts in the tax year of its leaving date: from the next
   // 6 April the switch shows as off, ready for anyone who moves again.
   const thisTaxYear = getUKTaxYearStart(localDateStr());
@@ -49,7 +49,7 @@ export function ForceMoveEditor({ settings, saveSett, S, BRASS, MONO }) {
   const inp = { ...S.inp, width: '100%', boxSizing: 'border-box', fontSize: '16px', fontWeight: 800 };
 
   return (
-    <div style={{ borderTop: '1px solid var(--border-2)', marginTop: '14px', paddingTop: '14px' }}>
+    <div style={bare ? undefined : { borderTop: '1px solid var(--border-2)', marginTop: '14px', paddingTop: '14px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--ink)' }}>I moved forces this tax year</div>

@@ -657,11 +657,11 @@ export function TabDashboard({
     {settings.p45Later && isSetUp(settings) && !setupFlow?.ask && !p45ForTaxYear(settings, getUKTaxYearStart(localDateStr())) && (
       <div style={{...S.card,display:'flex',alignItems:'center',gap:'10px',padding:'12px 14px',marginBottom:'12px',boxShadow:`inset 3px 0 0 ${BRASS}`}}>
         <div style={{background:'var(--tint-brass)',padding:'8px',borderRadius:'11px',display:'flex'}}><Ico n="cash" s={16} c={BRASS}/></div>
-        <button type="button" onClick={()=>setTab('settings')} style={{flex:1,minWidth:0,textAlign:'left',background:'none',border:'none',padding:0,fontFamily:'inherit',cursor:'pointer'}}>
+        <button type="button" onClick={()=>{ try { sessionStorage.setItem('more.openPage','ytd'); } catch (_) {} setTab('settings'); }} style={{flex:1,minWidth:0,textAlign:'left',background:'none',border:'none',padding:0,fontFamily:'inherit',cursor:'pointer'}}>
           <div style={{fontWeight:900,fontSize:'13.5px',color:'var(--ink)'}}>Add your P45</div>
           <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>So your tax is right after moving forces</div>
         </button>
-        <button type="button" onClick={()=>setTab('settings')} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer'}}>Add ›</button>
+        <button type="button" onClick={()=>{ try { sessionStorage.setItem('more.openPage','ytd'); } catch (_) {} setTab('settings'); }} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer'}}>Add ›</button>
         <button type="button" aria-label="Dismiss" onClick={()=>{ const { p45Later, ...rest } = settings; saveSett(rest); }} style={{background:'none',border:'none',padding:'4px',cursor:'pointer',display:'flex'}}><Ico n="x" s={14} c="var(--quiet)"/></button>
       </div>
     )}

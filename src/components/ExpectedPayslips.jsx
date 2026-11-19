@@ -171,10 +171,17 @@ function PayslipPanel({ months, pick, setPick, settings, MONO, BRASS, isWide }) 
 
 const startPick = idx => Math.max(0, Math.min(11, idx >= 0 ? idx : 0));
 
-export function ExpectedPayslips({ payYear, settings, currPeriodIdx, S, MONO, BRASS, isWide }) {
+export function ExpectedPayslips({ payYear, settings, currPeriodIdx, S, MONO, BRASS, isWide, alwaysOpen }) {
   const [open, setOpen] = useState(false);
   const months = Array.isArray(payYear) ? payYear : [];
   const [pick, setPick] = useState(() => startPick(currPeriodIdx));
+  // More › Expected payslips: the page is the card, so no header to tap.
+  if (alwaysOpen) return (
+    <div style={S.card}>
+      {months.length ? <PayslipPanel months={months} pick={pick} setPick={setPick} settings={settings} MONO={MONO} BRASS={BRASS} isWide={isWide}/>
+        : <div style={{ fontSize: '12.5px', color: 'var(--quiet)' }}>Set your rank and pay point to see your payslips.</div>}
+    </div>
+  );
   return (
     <div style={{ ...S.card, ...(isWide && open ? { gridColumn: '1 / -1' } : null) }}>
       <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} className="tap-row"

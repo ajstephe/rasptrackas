@@ -4,7 +4,9 @@ import { createPortal } from 'react-dom';
 import { CURRENT_FY_YEAR, PAY_PERIODS, generateFYPeriods, localDateStr, getUKTaxYearStart } from '../lib/payPeriods.js';
 import { payDateOf, grossForImportedNet } from '../lib/payroll.js';
 import { PAY_RATES } from '../lib/payRates.js';
-import { deductionFor, DEDUCTION_PRESETS, PRE_TAX_PRESETS } from '../lib/deductions.js';
+import { deductionFor, deductionsFor, DEDUCTION_PRESETS, PRE_TAX_PRESETS } from '../lib/deductions.js';
+import { taxCodeOn } from '../lib/tax.js';
+import { p45ForTaxYear } from '../lib/forceMove.js';
 import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { PrivacyNotice } from './PrivacyNotice.jsx';
@@ -66,6 +68,40 @@ export function TabSettings({
   const [dedExpanded, setDedExpanded] = useState(false);         // Monthly deductions card
   const [dedDraft, setDedDraft] = useState(null);                // unsaved deduction edits
   const [dedSavedAt, setDedSavedAt] = useState(0);
+  // More is a grouped list; each item opens on its own page on a phone, or
+  // in the panel beside the list on a computer (where the first item is
+  // open to start with). `page` is that item, or null for the list.
+  const [page, setPageState] = useState(() => {
+    // Another screen can ask for a page (Home's "Add your P45" opens Year to date & P45).
+    let asked = null; try { asked = sessionStorage.getItem('more.openPage'); sessionStorage.removeItem('more.openPage'); } catch (_) {}
+    return asked || (isWide ? 'pay' : null);
+  });
+  // Which open/closed flag each page uses for its section's contents.
+  const PAGE_FLAGS = {
+    pay:[configExpanded,setConfigExpanded], taxcode:[configExpanded,setConfigExpanded], ytd:[configExpanded,setConfigExpanded], rates:[configExpanded,setConfigExpanded],
+    deductions:[dedExpanded,setDedExpanded], import:[importExpanded,setImportExpanded], taxcalc:[taxImpactExpanded,setTaxImpactExpanded],
+    archive:[financialYearsExpanded,setFinancialYearsExpanded], export:[exportDataExpanded,setExportDataExpanded], account:[dataManagementExpanded,setDataManagementExpanded],
+  };
+  const setPage = next => {
+    const want = PAGE_FLAGS[next]?.[1];
+    [setConfigExpanded,setDedExpanded,setImportExpanded,setTaxImpactExpanded,setFinancialYearsExpanded,setExportDataExpanded,setDataManagementExpanded]
+      .forEach(f => f(f===want));
+    setPageState(next);
+  };
+  // Opened from elsewhere (Home's tax gauge, setup's "add deductions"):
+  // show that section's page.
+  useEffect(()=>{ if (taxImpactExpanded && page!=='taxcalc') setPageState('taxcalc'); },[taxImpactExpanded]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{ if (dedExpanded && page!=='deductions') setPageState('deductions'); },[dedExpanded]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A computer always has something open beside the list; a phone going
+  // wide keeps its page, and one going narrow goes back to the list.
+  useEffect(()=>{ if (isWide && !page) setPage('pay'); },[isWide]); // eslint-disable-line react-hooks/exhaustive-deps
+  // An open page keeps its section open (some close themselves on Save).
+  useEffect(()=>{ if (page) { const f = PAGE_FLAGS[page]; if (f && !f[0]) f[1](true); } },[page, PAGE_FLAGS[page]?.[0]]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Rank and pay point not set yet: that's the page to be on.
+  useEffect(()=>{ if (configSetupIncomplete && page!=='pay') setPage('pay'); },[configSetupIncomplete]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Phone: back (gesture or button) returns to the list.
+  useBackButtonCloses(!isWide && !!page, () => setPage(null));
+  useEscapeToClose(!isWide && !!page, () => setPage(null));
   // Arriving from setup's "Yes, add them": open Monthly deductions and
   // bring it into view.
   const dedCardRef = useRef(null);
@@ -152,13 +188,15 @@ export function TabSettings({
   // itself, so there's no reason left to leave this one unfixed.
   // While setup is incomplete the card always stays inline (see the
   // showInline/showModal split further down).
-  const configModalOpen = isWide && configExpanded && !configSetupIncomplete;
-  const taxModalOpen = isWide && taxImpactExpanded;
-  const fyModalOpen = isWide && financialYearsExpanded;
-  const exportModalOpen = isWide && exportDataExpanded;
-  const dataModalOpen = isWide && dataManagementExpanded;
-  const importModalOpen = isWide && importExpanded;
-  const dedModalOpen = isWide && dedExpanded;
+  // Each item opens on its own page (phone) or in the panel beside the
+  // list (computer), so none of them pops out as a modal any more.
+  const configModalOpen = false;
+  const taxModalOpen = false;
+  const fyModalOpen = false;
+  const exportModalOpen = false;
+  const dataModalOpen = false;
+  const importModalOpen = false;
+  const dedModalOpen = false;
   const configModalMounted = useMountTransition(configModalOpen, 220);
   const taxModalMounted = useMountTransition(taxModalOpen, 220);
   const fyModalMounted = useMountTransition(fyModalOpen, 220);
@@ -203,10 +241,80 @@ export function TabSettings({
     <button key={v} data-seg-key={v} onClick={()=>setTheme(v)} style={{position:'relative',zIndex:1,flexShrink:0,whiteSpace:'nowrap',padding:'6px 12px',borderRadius:'9px',border:'none',fontFamily:'inherit',fontWeight:900,fontSize:'12px',cursor:'pointer',background:'transparent',color:themeMode===v?'#fff':'var(--muted)'}}>{lbl}</button>
   ));
 
+  // ── The grouped list ──
+  const curMonthLabel = PAY_PERIODS.find(p=>p.start<=localDateStr() && localDateStr()<=p.end)?.month;
+  const hasPay = !!(settings.rank && settings.service);
+  const dedTotal = curMonthLabel ? deductionsFor(settings, curMonthLabel).total : 0;
+  const ytdSaved = settings.payslipYtd && PAY_PERIODS.some(p=>p.month===settings.payslipYtd.month) ? settings.payslipYtd : null;
+  const p45 = p45ForTaxYear(settings, getUKTaxYearStart(localDateStr()));
+  const themeLabel = (THEME_OPTIONS.find(([v])=>v===themeMode)||[])[1] || '';
+  const ROW_GROUPS = [
+    ['Your pay', [
+      ['pay','Rank & pay point','user','var(--tint-blue)','#2563eb', settings.service || 'Not set'],
+      ['deductions','Monthly deductions','cash','var(--tint-green)','#059669', dedTotal>0.005 ? fmtGBP(dedTotal) : 'None'],
+      ...(hasPay ? [
+        ['taxcode','Tax code','calc','var(--tint-amber)',BRASS, curMonthLabel ? taxCodeOn(settings, curMonthLabel).label.replace(' Emergency (Non Cumul.)',' M1') : ''],
+        ['ytd','Year to date & P45','shield','var(--tint-amber)',BRASS, [ytdSaved ? ytdSaved.month.split(' ')[0].slice(0,3)+' payslip' : '', p45 ? 'P45' : ''].filter(Boolean).join(' · ') || 'Not set', 'Match your payslip’s PAYE'],
+      ] : []),
+    ]],
+    ...(hasPay ? [['See your pay', [
+      ['payslips','Expected payslips','cash','var(--tint-green)','#059669',''],
+      ...(taxView ? [['taxcalc','Tax & £100k calculator','calc','var(--tint-green)','#059669','']] : []),
+      ['rates','Hourly rates & pay scales','clock','var(--tint-blue)','#2563eb',''],
+    ]]] : []),
+    ['Your data', [
+      ['import','Bulk input overtime','dl','var(--tint-green)','#059669', settings.paidImport ? fmtGBP(settings.paidImport.amount) : ''],
+      ['archive','Archived tax years','cal','var(--tint-blue)','#2563eb',''],
+      ['export','Reports & export','share','var(--tint-amber)','#d97706',''],
+      ['account','Account & data','user','var(--tint-blue)','#2563eb', session ? 'Signed in' : 'Not signed in', 'Sign-in, backup, restore, wipe data'],
+    ]],
+    [isWide ? 'Support' : 'App & support', [
+      ...(isWide ? [] : [['theme','Theme','sun','var(--tint-amber)',BRASS, themeLabel]]),
+      ['help','Help & suggestions','mail','var(--tint-blue)','#2563eb',''],
+      ['privacy','Privacy notice','shield','var(--tint-blue)','#2563eb',''],
+    ]],
+  ];
+  const TITLES = Object.fromEntries(ROW_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]])));
+  const rowTap = key => key==='help' ? null : key==='privacy' ? ()=>setPrivacyNoticeOpen(true) : ()=>setPage(key);
+  const moreList = (
+    <div style={isWide?{position:'sticky',top:'8px'}:undefined}>
+      {ROW_GROUPS.map(([title, rows], gi)=>(
+        <div key={title}>
+          <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.07em',padding:gi?'14px 4px 6px':'2px 4px 6px'}}>{title}</div>
+          <div style={{...S.card,padding:0,overflow:'hidden'}}>
+            {rows.map(([key,label,icon,tint,col,value,sub],ri)=>{
+              const on = isWide && page===key;
+              const inner = (<>
+                <div style={{background:tint,padding:'7px',borderRadius:'10px',display:'flex',flexShrink:0}}><Ico n={icon} s={16} c={col}/></div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>{label}</div>
+                  {sub&&<div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{sub}</div>}
+                </div>
+                {value&&<span style={{fontSize:'12px',fontWeight:700,color:'var(--muted)',whiteSpace:'nowrap',maxWidth:'45%',overflow:'hidden',textOverflow:'ellipsis'}}>{value}</span>}
+                <Ico n="cR" s={14} c="var(--quiet)" w={2.4}/>
+              </>);
+              const rowStyle = {display:'flex',alignItems:'center',gap:'11px',width:'100%',padding:'12px 14px',background:on?'var(--tint-brass)':'none',border:'none',borderTop:ri?'1px solid var(--border-2)':'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',textDecoration:'none',boxShadow:on?`inset 3px 0 0 ${BRASS}`:'none'};
+              return key==='help'
+                ? <a key={key} href="mailto:ajstephe@me.com?subject=Overtime%20%26%20Shift%20Tracker%20—%20Feedback" className="tap-row" style={rowStyle}>{inner}</a>
+                : <button key={key} type="button" onClick={rowTap(key)} aria-current={on?'page':undefined} className="tap-row" style={rowStyle}>{inner}</button>;
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+  // Above an opened page: ‹ More (phone) and the page's name.
+  const pageHeader = page && (
+    <div style={{marginBottom:'12px',...(isWide?{paddingTop:'22px'}:null)}}>
+      {!isWide&&<button type="button" onClick={()=>setPage(null)} style={{display:'inline-flex',alignItems:'center',gap:'4px',background:'none',border:'none',padding:'2px 0 8px',fontFamily:'inherit',fontSize:'14px',fontWeight:800,color:BRASS,cursor:'pointer'}}><Ico n="cL" s={15} c={BRASS} w={2.6}/>More</button>}
+      <div style={{fontSize:isWide?'17px':'19px',fontWeight:900,color:'var(--ink)',letterSpacing:'-0.3px'}}>{configSetupIncomplete && !TITLES[page] ? 'Rank & pay point' : TITLES[page]}</div>
+    </div>
+  );
+
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
-        <h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>More..</h2>
+      <div style={{display:(isWide||!page)?'flex':'none',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
+        {(isWide||!page)&&<h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>More</h2>}
         {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'var(--text-green-deep)'}}>Saved</span></div>}
         {/* Mobile-only — same low-key icon pill as the Home screen's
             sign-out button, duplicated here on the title line (right
@@ -230,7 +338,7 @@ export function TabSettings({
            both mobile and desktop now (it used to be split: folded
            into the Help & Suggestions box on mobile, and a separate
            card further down the grid on desktop). ── */}
-      <div style={{...S.card,marginBottom:'12px'}}>
+      {(isWide||!page)&&<div style={{...S.card,marginBottom:'12px'}}>
         <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
           {/* The cup lifts and tips to the right every few seconds, as if
               someone's taking a sip; the steam fades while it's tipped. */}
@@ -244,14 +352,19 @@ export function TabSettings({
           A lot of late nights, caffeine, and swearing went into building and hosting this. If it's making your life easier and you'd like to say thanks, come and find me and buy me a coffee.
         </div>
         <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
-      </div>
+      </div>}
 
       {/* ── Appearance — not an accordion like the rest of this tab;
            a 3-way choice doesn't need to hide behind a "tap to
            expand". Sits outside the grid on desktop too, full-width,
            since a 2-up grid cell would leave it looking cramped next
            to a tall accordion. ── */}
-      {!isWide&&<div style={{...S.card,padding:'13px 16px',marginBottom:'12px'}}>
+
+      <div style={isWide?{display:'grid',gridTemplateColumns:'380px minmax(0,1fr)',gap:'20px',alignItems:'start'}:undefined}>
+      {(isWide||!page)&&moreList}
+      {page&&<div style={{minWidth:0}}>
+      {pageHeader}
+      {page==='theme'&&<div style={{...S.card,padding:'13px 16px',marginBottom:'12px'}}>
         <div style={{display:'flex',alignItems:'center',gap:'9px',marginBottom:'9px'}}>
           <div style={{background:'var(--tint-amber)',padding:'6px',borderRadius:'11px',flexShrink:0}}><Ico n="sun" s={14} c={BRASS}/></div>
           <div>
@@ -282,18 +395,15 @@ export function TabSettings({
         )}
       </div>}
 
-      <div style={isWide?{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}:undefined}>
-
       {/* ── Section labels — pure grouping, no functional change. On
            desktop each spans the full width of the 2-column grid so the
            cards under it read as one group. ── */}
-      <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',padding:isWide?'6px 4px 0':'2px 4px 6px',...(isWide?{gridColumn:'1 / -1'}:{})}}>Pay &amp; tax</div>
 
       {/* ── Configuration — now a single collapsible unit like the
            other cards, except it forces itself open for as long as
            rank/pay point setup is incomplete (see configShown above)
            — that part was never meant to be hideable. ── */}
-      {(()=>{
+      {(['pay','taxcode','ytd','rates'].includes(page)||configSetupIncomplete)&&(()=>{
         const cardHeader = (
           <button disabled={configSetupIncomplete} onClick={configSetupIncomplete?undefined:()=>{ if(isWide){setDedExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);setImportExpanded(false);} const wasOpen = configExpanded || justCompletedSetup; setJustCompletedSetup(false); setConfigExpanded(!wasOpen); }} className={configSetupIncomplete?'':'tap-row'} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:configSetupIncomplete?'default':'pointer',marginBottom:(configShown&&(!isWide||configSetupIncomplete||justCompletedSetup))?'13px':0}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
@@ -309,6 +419,7 @@ export function TabSettings({
         );
         const cardBody = configShown && (
         <>
+        {(page==='pay'||configSetupIncomplete)&&<>
         <div style={{marginBottom:'13px'}}>
           <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'7px'}}>
             <label style={{...S.lbl,marginBottom:0}}>Rank</label>
@@ -408,22 +519,19 @@ export function TabSettings({
             <button onClick={undoLastPayChange} style={{background:'none',border:'none',padding:'4px 0 0',fontSize:'11.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',cursor:'pointer',fontFamily:'inherit'}}>Undo the last change</button>
           </div>
         )}
-        {settings.rank&&settings.service&&<TaxCodeEditor settings={settings} saveSett={saveSett} S={S} BRASS={BRASS}/>}
-        {settings.rank&&settings.service&&<ForceMoveEditor settings={settings} saveSett={saveSett} S={S} BRASS={BRASS} MONO={MONO}/>}
-        {settings.rank&&settings.service&&<PayslipYtdEditor settings={settings} saveSett={saveSett} S={S} BRASS={BRASS} MONO={MONO}/>}
-        <div style={{display:'flex',alignItems:'center',gap:'8px',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}}>
-          <div style={{background:'var(--tint-blue)',padding:'9px',borderRadius:'13px'}}><Ico n="clock" s={17} c="#2563eb"/></div>
-          <span style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Hourly rates &amp; pay scales</span>
-        </div>
+        </>}
+        {page==='taxcode'&&settings.rank&&settings.service&&<TaxCodeEditor bare settings={settings} saveSett={saveSett} S={S} BRASS={BRASS}/>}
+        {page==='ytd'&&settings.rank&&settings.service&&<ForceMoveEditor bare settings={settings} saveSett={saveSett} S={S} BRASS={BRASS} MONO={MONO}/>}
+        {page==='ytd'&&settings.rank&&settings.service&&<PayslipYtdEditor settings={settings} saveSett={saveSett} S={S} BRASS={BRASS} MONO={MONO}/>}
 
         {/* Same defensive gate as the Pay Point block above — checks the
             lookup actually resolves rather than just that both strings are
             non-empty, so an invalid rank/service pair can't reach the
             unguarded PAY_RATES[rank][service] below. */}
-        {PAY_RATES[settings.rank]?.[settings.service]&&(()=>{
+        {page==='rates'&&PAY_RATES[settings.rank]?.[settings.service]&&(()=>{
           const svcData = PAY_RATES[settings.rank][settings.service];
           return (
-            <div style={{borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'14px'}}>
+            <div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
                 {[['Before 1 Sept 2026','pre','var(--muted)','var(--surface-2)'],['From 1 Sept 2026','post','#2563eb','var(--surface)']].map(([label,key,col,bg])=>(
                   <div key={key} style={{background:bg,borderRadius:'12px',padding:'12px',border:key==='post'?'1.5px solid var(--border-2)':'1px solid var(--border-2)'}}>
@@ -494,13 +602,12 @@ export function TabSettings({
         // here organically (the More.. nav item, say) with setup still
         // incomplete is a first-run nudge, not something tapped open, so
         // it shouldn't hijack into a popup on its own.
-        const showInline = configShown && (!isWide || configSetupIncomplete || justCompletedSetup);
-        const showModal = isWide && configExpanded && !configSetupIncomplete && !justCompletedSetup;
+        const showInline = configShown;
+        const showModal = false;
         if (showModal) configModalContentRef.current = <>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></>;
         return (
           <>
             <div style={S.card}>
-              {cardHeader}
               {showInline && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {configModalMounted && contentWrapRef.current && createPortal(
@@ -517,7 +624,7 @@ export function TabSettings({
           bank. Each is named, a monthly amount, and either after tax (most)
           or before tax and NI (salary sacrifice). Kept in the encrypted
           settings like everything else. Sits beside Config on desktop. */}
-      {(()=>{
+      {page==='deductions'&&(()=>{
         // Edits go into a draft and only reach the payslip maths (and sync)
         // when Save is tapped, so half-typed amounts never move take-home.
         const saved = Array.isArray(settings.deductions) ? settings.deductions : [];
@@ -529,7 +636,8 @@ export function TabSettings({
           saveSett({...settings, deductions:clean}); setDedDraft(null);
           // Saved: close the card. Straight after first-time setup that goes
           // on to Home; otherwise stay on More, back at the top.
-          setDedExpanded(false);
+          // Phone: back to the list. Computer: the page stays open beside it.
+          if (!isWide) setPage(null);
           if (addToast) addToast('Deductions saved. Take-home updated', 'success');
           else setDedSavedAt(Date.now());
           if (dedFromSetup.current && setTab) { dedFromSetup.current = false; setTab('dashboard'); }
@@ -627,7 +735,7 @@ export function TabSettings({
             </>);
             if (dedModalOpen) dedModalContentRef.current = <>{cardHeader}<div style={{marginTop:'13px'}}>{cardBody}</div></>;
             return (<>
-              <div ref={dedCardRef} style={{...S.card,scrollMarginTop:'12px'}}>{cardHeader}{!isWide && cardBody ? <div className="accordion-in" style={{marginTop:'12px'}}>{cardBody}</div> : null}</div>
+              <div ref={dedCardRef} style={{...S.card,scrollMarginTop:'12px'}}>{cardBody ? <div className="accordion-in">{cardBody}</div> : null}</div>
               {dedModalMounted && contentWrapRef.current && createPortal(
                 <div ref={dedModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Monthly deductions" className={'modal-pop'+(dedModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{dedModalContentRef.current}</div>,
                 contentWrapRef.current)}
@@ -640,7 +748,7 @@ export function TabSettings({
            the year: one figure for overtime already paid instead of
            backdating every claim. Spread across the paydays it covers (see
            importedShares in lib/payroll.js). */}
-      {(()=>{
+      {page==='import'&&(()=>{
           const today = localDateStr();
           const taxYear = Number(getUKTaxYearStart(today).slice(0,4));
           const periods = generateFYPeriods(taxYear);
@@ -728,8 +836,7 @@ export function TabSettings({
           return (
             <>
               <div style={S.card}>
-                {cardHeader}
-                {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
+                {cardBody ? <div className="accordion-in">{cardBody}</div> : null}
               </div>
               {importModalMounted && contentWrapRef.current && createPortal(
                 <div ref={importModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Bulk input overtime" className={'modal-pop'+(importModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{importModalContentRef.current}</div>,
@@ -740,7 +847,7 @@ export function TabSettings({
       })()}
 
       {/* ── Tax & 100K+ Calculator — Actual (YTD) and Forecast (full year), side by side ── */}
-      {settings.rank&&settings.service&&taxView&&(()=>{
+      {page==='taxcalc'&&settings.rank&&settings.service&&taxView&&(()=>{
         // Both columns come straight from the monthly payslips (see taxView
         // in App.jsx): Actual = the paydays so far this tax year, Forecast =
         // all twelve. Tax and NI are worked out the way payroll does; the
@@ -898,8 +1005,7 @@ export function TabSettings({
         return (
           <>
             <div ref={taxImpactCardRef} style={S.card}>
-              {cardHeader}
-              {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
+              {cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {taxModalMounted && contentWrapRef.current && createPortal(
               <div ref={taxModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Tax & £100k+ calculator" className={'modal-pop'+(taxModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{taxModalContentRef.current}</div>,
@@ -927,12 +1033,11 @@ export function TabSettings({
         );
       })()}
 
-      {settings.rank&&settings.service&&<ExpectedPayslips payYear={payYear} settings={settings} currPeriodIdx={currPeriodIdx} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide}/>}
+      {page==='payslips'&&settings.rank&&settings.service&&<ExpectedPayslips alwaysOpen payYear={payYear} settings={settings} currPeriodIdx={currPeriodIdx} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide}/>}
 
-      <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',padding:isWide?'6px 4px 0':'8px 4px 6px',...(isWide?{gridColumn:'1 / -1'}:{})}}>Data</div>
 
       {/* ── Financial Years — generated calendar, every past year with data is browsable ── */}
-      {(()=>{
+      {page==='archive'&&(()=>{
         const cardHeader = (
           <button onClick={()=>{ if(isWide){setDedExpanded(false);setConfigExpanded(false);setTaxImpactExpanded(false);setExportDataExpanded(false);setDataManagementExpanded(false);setImportExpanded(false);} setFinancialYearsExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(financialYearsExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
@@ -972,8 +1077,7 @@ export function TabSettings({
         return (
           <>
             <div style={S.card}>
-              {cardHeader}
-              {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
+              {cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {fyModalMounted && contentWrapRef.current && createPortal(
               <div ref={fyModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Archived tax years" className={'modal-pop'+(fyModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{fyModalContentRef.current}</div>,
@@ -984,7 +1088,7 @@ export function TabSettings({
       })()}
 
       {/* ── Export to spreadsheet — separate from backup ── */}
-      {(()=>{
+      {page==='export'&&(()=>{
         const cardHeader = (
           <button onClick={()=>{ if(isWide){setDedExpanded(false);setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setDataManagementExpanded(false);setImportExpanded(false);} setExportDataExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',marginBottom:(exportDataExpanded&&!isWide)?'11px':0,cursor:'pointer'}}>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
@@ -1007,8 +1111,7 @@ export function TabSettings({
         return (
           <>
             <div style={S.card}>
-              {cardHeader}
-              {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
+              {cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {exportModalMounted && contentWrapRef.current && createPortal(
               <div ref={exportModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Reports & export" className={'modal-pop'+(exportModalOpen?'':' pop-out')} style={modalBoxStyle(S.card)}>{exportModalContentRef.current}</div>,
@@ -1024,7 +1127,7 @@ export function TabSettings({
            look to match the same dark-theme conventions Wipe All
            Data's own confirm flow already uses). One shared expand
            toggle now, not two. ── */}
-      {(()=>{
+      {page==='account'&&(()=>{
         const acctBase = {background:'var(--surface)',borderRadius:'18px',padding:S.card.padding,boxShadow:'0 1px 6px rgba(0,0,0,0.05)',border:'1px solid var(--border-2)',marginBottom:'10px',position:'relative',overflow:'hidden'};
         const cardHeader = (
           <button onClick={()=>{ if(isWide){setDedExpanded(false);setConfigExpanded(false);setTaxImpactExpanded(false);setFinancialYearsExpanded(false);setExportDataExpanded(false);setImportExpanded(false);} setDataManagementExpanded(v=>!v); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer',marginBottom:(dataManagementExpanded&&!isWide)?'13px':0}}>
@@ -1133,8 +1236,7 @@ export function TabSettings({
         return (
           <>
             <div style={acctBase}>
-              {cardHeader}
-              {!isWide && cardBody ? <div className="accordion-in">{cardBody}</div> : null}
+              {cardBody ? <div className="accordion-in">{cardBody}</div> : null}
             </div>
             {dataModalMounted && contentWrapRef.current && createPortal(
               <div ref={dataModalTrapRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Account & data" className={'modal-pop'+(dataModalOpen?'':' pop-out')} style={modalBoxStyle(acctBase)}>{dataModalContentRef.current}</div>,
@@ -1144,36 +1246,11 @@ export function TabSettings({
         );
       })()}
 
-      <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',padding:isWide?'6px 4px 0':'8px 4px 6px',...(isWide?{gridColumn:'1 / -1'}:{})}}>Support</div>
 
-      {/* ── Help & suggestions ── */}
-      <div style={S.card}>
-        <a href="mailto:ajstephe@me.com?subject=Overtime%20%26%20Shift%20Tracker%20—%20Feedback" style={{display:'flex',alignItems:'center',gap:'8px',textDecoration:'none',cursor:'pointer'}}>
-          <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px',flexShrink:0}}><Ico n="mail" s={isWide?21:17} c="#2563eb"/></div>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Help &amp; suggestions</div>
-            <div style={{fontSize:'11px',color:BRASS,fontWeight:700,marginTop:'2px'}}>ajstephe@me.com</div>
-          </div>
-          <Ico n="cR" s={16} c="#94a3b8"/>
-        </a>
+      </div>}
       </div>
-
-      {/* ── Privacy Notice — read-only here (the sign-up screen is where the
-           actual consent checkbox lives); this is just so an existing
-           officer can come back and re-read what they agreed to. ── */}
-      <div style={S.card}>
-        <button onClick={()=>setPrivacyNoticeOpen(true)} style={{display:'flex',alignItems:'center',gap:'8px',width:'100%',background:'none',border:'none',padding:0,textAlign:'left',fontFamily:'inherit',cursor:'pointer'}}>
-          <div style={{background:'var(--tint-blue)',padding:isWide?'11px':'9px',borderRadius:'13px',flexShrink:0}}><Ico n="shield" s={isWide?21:17} c="#2563eb"/></div>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Privacy notice</div>
-            <div style={{fontSize:'11px',color:'var(--quiet)',fontWeight:700,marginTop:'2px'}}>What's collected, and why</div>
-          </div>
-          <Ico n="cR" s={16} c="#94a3b8"/>
-        </button>
-      </div>
+      {(isWide||!page)&&<VersionLine/>}
       {privacyNoticeOpen && <PrivacyNotice brass={BRASS} onClose={()=>setPrivacyNoticeOpen(false)}/>}
-      <VersionLine/>
-      </div>
 
       {/* ── Backdrop for the desktop popup cards above — click
            anywhere outside the open card to close it. Only one card

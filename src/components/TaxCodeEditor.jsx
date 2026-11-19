@@ -53,7 +53,7 @@ function Basis({ value, onChange, BRASS, small }) {
   );
 }
 
-export function TaxCodeEditor({ settings, saveSett, S, BRASS }) {
+export function TaxCodeEditor({ settings, saveSett, S, BRASS, bare }) {
   const saved = fromSettings(settings);
   const savedJSON = JSON.stringify(saved);
   const [draft, setDraft] = useState(saved);
@@ -109,8 +109,8 @@ export function TaxCodeEditor({ settings, saveSett, S, BRASS }) {
   const hint = LETTERS.find(l => l.v === splitCode(draft.code).letter);
 
   return (
-    <div style={{ borderTop: '1px solid var(--border-2)', marginTop: '14px', paddingTop: '14px' }}>
-      <div style={lbl}>Tax code</div>
+    <div style={bare ? undefined : { borderTop: '1px solid var(--border-2)', marginTop: '14px', paddingTop: '14px' }}>
+      {!bare && <div style={lbl}>Tax code</div>}
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
         {codeInput(draft.code, code => set({ code }), 'Tax code')}
       </div>
