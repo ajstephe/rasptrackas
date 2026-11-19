@@ -2142,7 +2142,15 @@ export default function App() {
       } catch (e) { /* undecryptable — skip */ }
     };
 
-    const channel = supabase.channel('sync-'+uid)
+    const channel = supabase.channel('sync-'+uid, { config: { broadcast: { self: false } } })
+      // Another device just signed out everywhere: check with the server
+      // now rather than at the next minute's check. The message only
+      // prompts the check; it's the server that says whether this
+      // session has really ended.
+      .on('broadcast', { event: 'signed-out' }, () => {
+        setTimeout(() => { lastSessionCheckRef.current = 0; checkSessionStillValid(); }, 1500);
+        setTimeout(() => { lastSessionCheckRef.current = 0; checkSessionStillValid(); }, 6000);
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `user_id=eq.${uid}` }, p => handleRowChange('entries', entriesRef, setEntries, lastSyncedEntriesRef, persistLastSyncedEntries, p))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'toil_taken', filter: `user_id=eq.${uid}` }, p => handleRowChange('toil_taken', toilTakenRef, setToilTaken, lastSyncedToilRef, persistLastSyncedToil, p))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings', filter: `user_id=eq.${uid}` }, async (p) => {
@@ -2206,7 +2214,8 @@ export default function App() {
         }
       });
 
-    return () => { supabase.removeChannel(channel); };
+    syncChannelRef.current = channel;
+    return () => { if (syncChannelRef.current === channel) syncChannelRef.current = null; supabase.removeChannel(channel); };
   },[supabase, session, dataKey]);
 
   // ── persist ────────────────────────────────────────────────────────────────
@@ -2255,6 +2264,7 @@ export default function App() {
   // that's been ended there signs this device out too. Network errors are
   // ignored, so being offline never signs anyone out.
   const lastSessionCheckRef = useRef(0);
+  const syncChannelRef = useRef(null);
   const checkSessionStillValid = async () => {
     if (!supabase || !session) return;
     const now = Date.now(); if (now - lastSessionCheckRef.current < 15000) return;
@@ -2272,7 +2282,7 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     checkSessionStillValid();
-    const id = setInterval(() => { if (document.visibilityState === 'visible') checkSessionStillValid(); }, 5 * 60000);
+    const id = setInterval(() => { if (document.visibilityState === 'visible') checkSessionStillValid(); }, 60000);
     return () => clearInterval(id);
   }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
   const lastFgPullRef = useRef(0);
@@ -4098,6 +4108,11 @@ export default function App() {
     haptic();
     let everywhere = true;
     try {
+      // Tell this account's other open devices, so they check with the
+      // server in a moment (by which time this sign-out has gone through)
+      // rather than at their next minute's check. Sent first: signing out
+      // closes this device's connection.
+      try { await syncChannelRef.current?.send({ type: 'broadcast', event: 'signed-out', payload: {} }); } catch (_) {}
       const { error } = await supabase.auth.signOut({ scope: 'global' });
       if (error) throw error;
     } catch (e) {
