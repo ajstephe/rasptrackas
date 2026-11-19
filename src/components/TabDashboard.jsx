@@ -366,7 +366,7 @@ export function TabDashboard({
       ...(anyDed ? [['Total net', c=>cell(c.takeHome+c.ded,'var(--ink)',700)]] : []),
       [anyDed?'Net take-home':'Take-home', c=>cell(c.takeHome,'var(--text-green-deep)',800)],
       // Each month's expected payslip, in a pop-up over Home.
-      ['Payslip', c=><button type="button" onClick={()=>setPayslipAt(c.idx)} aria-label={`View ${payLabel(c.p.month)} expected payslip`} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'11.5px',fontWeight:800,color:BRASS,cursor:'pointer'}}>View</button>],
+      ['Payslip (expected)', c=><button type="button" onClick={()=>setPayslipAt(c.idx)} aria-label={`View ${payLabel(c.p.month)} expected payslip`} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'11.5px',fontWeight:800,color:BRASS,cursor:'pointer'}}>View</button>],
     ];
     // Narrow: as many months as fit fill the visible width; the rest scroll sideways.
     const gridCols = narrow && ovFit<12 ? `152px repeat(12, calc((100cqw - 152px - ${ovFit*8}px) / ${ovFit}))` : `152px repeat(${cols.length},minmax(0,1fr))`;
@@ -388,7 +388,6 @@ export function TabDashboard({
             <div style={{background:'var(--tint-green, color-mix(in srgb, #059669 14%, transparent))',padding:'6px',borderRadius:'9px',display:'flex'}}><Ico n="bar" s={14} c={GRN}/></div>
             <span style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>Overview</span>
           </div>}
-          {isWide&&currPeriodIdx>=0&&allCols[currPeriodIdx]&&<button type="button" onClick={()=>setPayslipAt(currPeriodIdx)} style={{display:'inline-flex',alignItems:'center',gap:'6px',marginLeft:'auto',order:3,padding:'7px 12px',border:'none',borderRadius:'10px',background:'var(--tint-brass)',color:BRASS,fontFamily:'inherit',fontSize:'12.5px',fontWeight:900,cursor:'pointer'}}><Ico n="cash" s={14} c={BRASS}/>View {allCols[currPeriodIdx].p.month.split(' ')[0]}'s expected payslip<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>}
           <span style={{display:'flex',flexWrap:'wrap',gap:'5px 12px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
             {key(sq(GRN),'Submitted')}{key(sq(RED),'To submit')}{key(sq(STRIPE),'Planned')}
             {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,wc?'Overtime take-home':'Take-home')}
@@ -528,7 +527,6 @@ export function TabDashboard({
                   <span style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>Total</span>
                   <span style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:800,color:'var(--ink)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(totals.combinedGrossYTD)}</span>
                   <span style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:800,color:'#059669',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(totals.combinedNetYTD)}</span>
-                  <button type="button" onClick={()=>setPayslipAt(currPeriodIdx>=0?currPeriodIdx:0)} style={{gridColumn:'1 / -1',justifySelf:'end',background:'none',border:'none',padding:'2px 0',fontFamily:'inherit',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'3px'}}>See each month's payslip<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>
                 </>}
                 {/* Claims waiting for a later payday aren't in the total; they
                     show on their own line underneath. */}
