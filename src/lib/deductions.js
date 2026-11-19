@@ -1,3 +1,4 @@
+import { paidByPreviousForce } from './forceMove.js';
 // Monthly deductions (More › Config): things taken off every payslip that the
 // app otherwise can't know about — Federation subs, ATOC, insurance, savings.
 // Each has a name, a monthly amount, optional amount changes from a given
@@ -30,7 +31,9 @@ export const deductionFor = (d, month) => {
 
 // A pay month's deductions split by when they come off.
 export const deductionsFor = (settings, month) => {
-  const list = Array.isArray(settings?.deductions) ? settings.deductions : [];
+  // Months paid by a previous force (More › Config) had that force's
+  // deductions, not these.
+  const list = Array.isArray(settings?.deductions) && !paidByPreviousForce(settings, month) ? settings.deductions : [];
   let before = 0, after = 0;
   for (const d of list) { const a = deductionFor(d, month); if (d.when === 'before') before += a; else after += a; }
   const r = x => Math.round(x*100)/100;

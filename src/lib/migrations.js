@@ -63,13 +63,14 @@ export const migrateSettings = s => {
     && [y.taxable, y.tax].every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v < 1e7))
   {
     const r = x => Math.round(x*100)/100;
-    const part = o => o && typeof o === 'object' && [o.taxable, o.tax].every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v < 1e7) ? { taxable:r(o.taxable), tax:r(o.tax) } : null;
     out.payslipYtd = { month:y.month, taxable:r(y.taxable), tax:r(y.tax) };
-    // The payslip's This Emp / Prev Emp split, kept only when both add up
-    // to the totals the pay figures use.
-    const a = part(y.thisEmp), b = part(y.prevEmp);
-    if (a && b && Math.abs(a.taxable + b.taxable - out.payslipYtd.taxable) < 0.01 && Math.abs(a.tax + b.tax - out.payslipYtd.tax) < 0.01) { out.payslipYtd.thisEmp = a; out.payslipYtd.prevEmp = b; }
   }
+  // Moved forces this tax year (More › Config): the switch and the P45's
+  // leaving date, total pay and total tax to date.
+  const f = s.forceMove;
+  if (f && typeof f === 'object' && f.on === true && typeof f.leaving === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f.leaving)
+    && [f.pay, f.tax].every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v < 1e7) && f.tax <= f.pay)
+    out.forceMove = { on:true, leaving:f.leaving, pay:Math.round(f.pay*100)/100, tax:Math.round(f.tax*100)/100 };
   return withTheme(out);
 };
 

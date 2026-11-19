@@ -4,23 +4,19 @@ import { payDateOf } from '../lib/payroll.js';
 import { fmtGBP } from '../lib/format.js';
 import { Ico } from './Icons.jsx';
 
-// More › Config: the "Year to Date Totals" box from a real payslip, stored as
-// settings.payslipYtd = { month, taxable, tax, thisEmp:{taxable,tax},
-// prevEmp:{taxable,tax} }. The four boxes use the payslip's own wording
-// (Taxable Pay This Emp / Prev Emp, Tax Paid This Emp / Prev Emp); the
-// Prev Emp lines are the P45 from an earlier employer (another force, say)
-// and are blank for most people. taxable and tax are the two added
-// together, which is what lib/payroll.js runPayYear works from: that
-// month's tax from these figures, and every month after carrying on from
-// them. Without them the app assumes this year's pay every month since
-// April, which is wrong for anyone who joined, transferred, was promoted
-// or changed tax code part-way through.
+// More › Config: the This Emp lines of the "Year to Date Totals" box on a
+// real payslip, stored as settings.payslipYtd = { month, taxable, tax }.
+// For someone who moved forces this tax year the Prev Emp lines are the
+// P45 entered under "I moved forces this tax year" (lib/forceMove.js), so
+// they aren't typed here. lib/payroll.js runPayYear takes that month's tax
+// from these figures and carries on from them for the months after.
+// Without them the app assumes this year's pay every month since April,
+// which is wrong for anyone who joined, was promoted or changed tax code
+// part-way through.
 const num = t => { if (!String(t).trim()) return 0; const n = parseFloat(String(t).replace(/[£,\s]/g, '')); return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : NaN; };
 const KEYS = [
-  ['taxableThis', 'Taxable Pay This Emp', true],
-  ['taxablePrev', 'Taxable Pay Prev Emp', false],
-  ['taxThis', 'Tax Paid This Emp', true],
-  ['taxPrev', 'Tax Paid Prev Emp', false],
+  ['taxable', 'Taxable Pay This Emp'],
+  ['tax', 'Tax Paid This Emp'],
 ];
 
 export function PayslipYtdEditor({ settings, saveSett, S, BRASS, MONO }) {
@@ -36,26 +32,17 @@ export function PayslipYtdEditor({ settings, saveSett, S, BRASS, MONO }) {
 
   const start = () => {
     setMonth(saved ? saved.month : (months[months.length - 1]?.month || ''));
-    // Figures saved before the four boxes existed were already totals:
-    // they go in This Emp.
-    const t = saved?.thisEmp || (saved ? { taxable: saved.taxable, tax: saved.tax } : {});
-    const p = saved?.prevEmp || {};
-    const s = x => x ? String(x) : '';
-    setVals(saved ? { taxableThis: s(t.taxable), taxThis: s(t.tax), taxablePrev: s(p.taxable), taxPrev: s(p.tax) } : {});
+    setVals(saved ? { taxable: String(saved.taxable), tax: String(saved.tax) } : {});
     setOpen(true); setJustSaved(false);
   };
   const v = Object.fromEntries(KEYS.map(([k]) => [k, num(vals[k] || '')]));
   const errors = KEYS.filter(([k]) => Number.isNaN(v[k])).map(([, l]) => `${l} needs to be an amount, e.g. 10,369.49`);
-  const missing = KEYS.filter(([k, , req]) => req && !String(vals[k] || '').trim()).length > 0;
-  if (!errors.length && v.taxThis + v.taxPrev > v.taxableThis + v.taxablePrev) errors.push('Tax paid can’t be more than taxable pay');
+  const missing = KEYS.some(([k]) => !String(vals[k] || '').trim());
+  if (!errors.length && v.tax > v.taxable) errors.push('Tax paid can’t be more than taxable pay');
   const canSave = month && !missing && !errors.length;
   const save = () => {
     if (!canSave) return;
-    const r = x => Math.round(x * 100) / 100;
-    saveSett({ ...settings, payslipYtd: {
-      month, taxable: r(v.taxableThis + v.taxablePrev), tax: r(v.taxThis + v.taxPrev),
-      thisEmp: { taxable: v.taxableThis, tax: v.taxThis }, prevEmp: { taxable: v.taxablePrev, tax: v.taxPrev },
-    } });
+    saveSett({ ...settings, payslipYtd: { month, taxable: v.taxable, tax: v.tax } });
     setOpen(false); setJustSaved(true);
   };
   const remove = () => { const { payslipYtd, ...rest } = settings; saveSett(rest); setJustSaved(false); };
@@ -63,9 +50,10 @@ export function PayslipYtdEditor({ settings, saveSett, S, BRASS, MONO }) {
   const lbl = { fontSize: '10px', fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '7px' };
   const help = { fontSize: '11.5px', color: 'var(--quiet)', lineHeight: 1.45, fontWeight: 600, marginTop: '7px' };
   const short = m => m ? m.split(' ')[0] : '';
-  const field = ([k, label, req]) => (
+  const moved = !!(settings.forceMove && settings.forceMove.on);
+  const field = ([k, label]) => (
     <label key={k} style={{ flex: '1 1 150px', minWidth: 0 }}>
-      <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--muted)', marginBottom: '5px' }}>{label}{!req && <span style={{ fontWeight: 600, color: 'var(--quiet)' }}> · if shown</span>}</div>
+      <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--muted)', marginBottom: '5px' }}>{label}</div>
       <input inputMode="decimal" aria-label={label} placeholder="£0.00" value={vals[k] || ''} onChange={e => { const t = e.target.value; setVals(x => ({ ...x, [k]: t })); setJustSaved(false); }}
         onKeyDown={e => { if (e.key === 'Enter') save(); }}
         style={{ ...S.inp, width: '100%', boxSizing: 'border-box', fontSize: '16px', fontWeight: 800, fontFamily: MONO }}/>
@@ -73,7 +61,7 @@ export function PayslipYtdEditor({ settings, saveSett, S, BRASS, MONO }) {
   );
   const row = (label, a, b) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: '12.5px', fontWeight: 700, color: 'var(--muted)', padding: '2px 0' }}>
-      <span>{label}</span><span style={{ fontFamily: MONO, color: 'var(--ink)', fontWeight: 800 }}>{fmtGBP(a)}{b ? <span style={{ color: 'var(--quiet)', fontWeight: 600 }}> + {fmtGBP(b)} prev</span> : null}</span>
+      <span>{label}</span><span style={{ fontFamily: MONO, color: 'var(--ink)', fontWeight: 800 }}>{fmtGBP(a)}{b ? <span style={{ color: 'var(--quiet)', fontWeight: 600 }}> + {fmtGBP(b)} P45</span> : null}</span>
     </div>
   );
 
@@ -81,14 +69,14 @@ export function PayslipYtdEditor({ settings, saveSett, S, BRASS, MONO }) {
     <div style={{ borderTop: '1px solid var(--border-2)', marginTop: '14px', paddingTop: '14px' }}>
       <div style={lbl}>Year to date totals</div>
       <div style={{ ...help, marginTop: 0 }}>
-        Copy the <b>Year to Date Totals</b> box from your latest payslip so the app's PAYE matches payroll. Worth doing if you joined, transferred forces, were promoted or changed tax code part-way through the year.
+        Copy the <b>Year to Date Totals</b> box from your latest payslip so the app's PAYE matches payroll. Worth doing if you joined, were promoted or changed tax code part-way through the year.
       </div>
 
       {!open && saved && (
         <div style={{ marginTop: '10px', background: 'var(--surface-2)', borderRadius: '11px', padding: '11px 12px' }}>
           <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--muted)', marginBottom: '4px' }}>From your {short(saved.month)} payslip</div>
-          {row('Taxable pay', saved.thisEmp ? saved.thisEmp.taxable : saved.taxable, saved.prevEmp?.taxable)}
-          {row('Tax paid', saved.thisEmp ? saved.thisEmp.tax : saved.tax, saved.prevEmp?.tax)}
+          {row('Taxable Pay This Emp', saved.taxable, moved ? settings.forceMove.pay : 0)}
+          {row('Tax Paid This Emp', saved.tax, moved ? settings.forceMove.tax : 0)}
           <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--muted)', marginTop: '4px' }}>{short(saved.month)} onwards is worked out from these.</div>
           <div style={{ display: 'flex', gap: '14px', marginTop: '8px' }}>
             <button type="button" onClick={start} style={{ background: 'none', border: 'none', padding: 0, fontSize: '12px', fontWeight: 800, color: BRASS, cursor: 'pointer', fontFamily: 'inherit' }}>Update</button>
@@ -110,9 +98,8 @@ export function PayslipYtdEditor({ settings, saveSett, S, BRASS, MONO }) {
               {months.map(p => <option key={p.month} value={p.month}>{short(p.month)} pay</option>)}
             </select>
           </label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>{KEYS.slice(0, 2).map(field)}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>{KEYS.slice(2).map(field)}</div>
-          <div style={{ ...help, marginTop: 0 }}>The <b>Prev Emp</b> lines come from a P45, for example after transferring from another force. Leave them blank if your payslip doesn't show them.</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>{KEYS.map(field)}</div>
+          {moved && <div style={{ ...help, marginTop: 0, background: 'var(--surface-2)', borderRadius: '11px', padding: '9px 11px' }}>Prev Emp lines: taken from your <b>P45</b> above, so there's nothing more to type.</div>}
           {errors.length > 0 && <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-red-deep)', lineHeight: 1.45 }}>{errors.map((e, i) => <div key={i}>{e}</div>)}</div>}
           <div style={{ display: 'flex', gap: '10px' }}>
             <button type="button" onClick={() => setOpen(false)} style={{ flex: '0 0 auto', background: 'transparent', border: '1px solid var(--border)', borderRadius: '11px', padding: '11px 16px', fontFamily: 'inherit', fontWeight: 800, fontSize: '13px', color: 'var(--muted)', cursor: 'pointer' }}>Cancel</button>
