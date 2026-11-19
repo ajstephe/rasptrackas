@@ -212,3 +212,14 @@ describe('figures to date from a payslip in settings', () => {
       .forEach(payslipYtd => expect(mig({ ...base, payslipYtd }).payslipYtd).toBeUndefined());
   });
 });
+describe('payslip This Emp / Prev Emp split', () => {
+  const base = { rank:'Constable', service:'PC 4' };
+  it('keeps the split when it adds up to the totals', () => {
+    const y = { month:'November 2026', taxable:35000.1, tax:6500.2, thisEmp:{ taxable:10000.05, tax:2000.1 }, prevEmp:{ taxable:25000.05, tax:4500.1 } };
+    expect(mig({ ...base, payslipYtd:y }).payslipYtd).toEqual(y);
+  });
+  it('drops a split that does not add up, keeping the totals', () => {
+    const out = mig({ ...base, payslipYtd:{ month:'November 2026', taxable:100, tax:10, thisEmp:{ taxable:50, tax:5 }, prevEmp:{ taxable:1, tax:1 } } }).payslipYtd;
+    expect(out).toEqual({ month:'November 2026', taxable:100, tax:10 });
+  });
+});

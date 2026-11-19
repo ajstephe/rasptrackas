@@ -61,7 +61,15 @@ export const migrateSettings = s => {
   const y = s.payslipYtd;
   if (y && typeof y === 'object' && typeof y.month === 'string' && /^[A-Za-z]+ \d{4}$/.test(y.month)
     && [y.taxable, y.tax].every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v < 1e7))
-    out.payslipYtd = { month:y.month, taxable:Math.round(y.taxable*100)/100, tax:Math.round(y.tax*100)/100 };
+  {
+    const r = x => Math.round(x*100)/100;
+    const part = o => o && typeof o === 'object' && [o.taxable, o.tax].every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v < 1e7) ? { taxable:r(o.taxable), tax:r(o.tax) } : null;
+    out.payslipYtd = { month:y.month, taxable:r(y.taxable), tax:r(y.tax) };
+    // The payslip's This Emp / Prev Emp split, kept only when both add up
+    // to the totals the pay figures use.
+    const a = part(y.thisEmp), b = part(y.prevEmp);
+    if (a && b && Math.abs(a.taxable + b.taxable - out.payslipYtd.taxable) < 0.01 && Math.abs(a.tax + b.tax - out.payslipYtd.tax) < 0.01) { out.payslipYtd.thisEmp = a; out.payslipYtd.prevEmp = b; }
+  }
   return withTheme(out);
 };
 
