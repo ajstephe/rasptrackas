@@ -5,7 +5,7 @@ import { CURRENT_FY_YEAR, PAY_PERIODS, generateFYPeriods, localDateStr, getUKTax
 import { payDateOf, grossForImportedNet } from '../lib/payroll.js';
 import { PAY_RATES } from '../lib/payRates.js';
 import { deductionFor, deductionsFor, DEDUCTION_PRESETS, PRE_TAX_PRESETS } from '../lib/deductions.js';
-import { taxCodeOn } from '../lib/tax.js';
+import { taxCodeOn, LONDON_WEIGHTING, LONDON_ALLOWANCE } from '../lib/tax.js';
 import { p45ForTaxYear } from '../lib/forceMove.js';
 import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
@@ -593,19 +593,30 @@ export function TabSettings({
                 {ranks.map(rank=>(
                   <div key={rank} style={{marginBottom: rank==='Constable' && ranks.length>1 ? '16px' : 0}}>
                     <div style={{fontSize:'10px',fontWeight:900,color:'var(--text-navy)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'7px'}}>{rank}</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',gap:0,alignItems:'center'}}>
-                      <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Pay Point</div>
-                      <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>Before 1 Sept</div>
-                      <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)'}}>From 1 Sept</div>
+                    {/* Each pay point's national salary, and beside it the same
+                        salary with London Weighting and London Allowance added:
+                        the "Standard Rate" a Met payslip shows. */}
+                    <div style={{display:'grid',gridTemplateColumns:'minmax(0,1.15fr) repeat(4, minmax(0,1fr))',gap:0,alignItems:'stretch'}}>
+                      <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',paddingBottom:'5px',borderBottom:'1px solid var(--border-2)',display:'flex',alignItems:'flex-end'}}>Pay Point</div>
+                      {[['pre','Before 1 Sept'],['post','From 1 Sept']].map(([k,when])=>(
+                        <Fragment key={k}>
+                          <div style={{fontSize:'8px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',textAlign:'right',padding:'0 4px 5px',borderBottom:'1px solid var(--border-2)',lineHeight:1.35,display:'flex',flexDirection:'column',justifyContent:'flex-end'}}>{when}<div>National</div></div>
+                          <div style={{fontSize:'8px',fontWeight:900,color:BRASS,textTransform:'uppercase',textAlign:'right',padding:'0 4px 5px',borderBottom:'1px solid var(--border-2)',lineHeight:1.35,display:'flex',flexDirection:'column',justifyContent:'flex-end'}}><div>With London</div></div>
+                        </Fragment>
+                      ))}
                       {visiblePoints(rank).map(point=>{
                         const data = PAY_RATES[rank][point];
                         const me = rank===settings.rank && point===settings.service;
-                        const cell = {fontSize:'11px',padding:'6px 8px',background:me?'var(--tint-brass)':'transparent'};
+                        const cell = {fontSize:'11px',padding:'6px 4px',background:me?'var(--tint-brass)':'transparent',textAlign:'right',whiteSpace:'nowrap',display:'flex',alignItems:'center',justifyContent:'flex-end'};
                         return (
                         <div key={point} style={{display:'contents'}}>
-                          <div style={{...cell,fontWeight:me?900:700,color:'var(--ink)',boxShadow:me?`inset 3px 0 0 ${BRASS}`:'none',paddingLeft:me?'11px':'8px'}}>{point}{me&&<span style={{fontWeight:700,color:'var(--muted)'}}> · you</span>}</div>
-                          <div style={{...cell,fontWeight:700,color:'var(--muted)',textAlign:'right'}}>£{data.salary.pre.toLocaleString('en-GB')}</div>
-                          <div style={{...cell,fontWeight:900,color:'var(--text-navy)',textAlign:'right'}}>£{data.salary.post.toLocaleString('en-GB')}</div>
+                          <div style={{...cell,textAlign:'left',whiteSpace:'normal',fontWeight:me?900:700,color:'var(--ink)',boxShadow:me?`inset 3px 0 0 ${BRASS}`:'none',justifyContent:'flex-start',paddingLeft:me?'11px':'8px'}}><div>{point}{me&&<span style={{fontWeight:700,color:'var(--muted)'}}> · you</span>}</div></div>
+                          {['pre','post'].map(k=>(
+                            <Fragment key={k}>
+                              <div style={{...cell,fontWeight:k==='post'?900:700,color:k==='post'?'var(--text-navy)':'var(--muted)'}}>£{data.salary[k].toLocaleString('en-GB')}</div>
+                              <div style={{...cell,fontWeight:900,color:BRASS}}>£{(data.salary[k]+LONDON_WEIGHTING[k]+LONDON_ALLOWANCE[k]).toLocaleString('en-GB')}</div>
+                            </Fragment>
+                          ))}
                         </div>
                         );
                       })}
@@ -617,7 +628,7 @@ export function TabSettings({
                 )}
                   </>);
                 })()}
-                <div style={{marginTop:'12px',fontSize:'9px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>Excludes London Weighting (£3,150 before 1 Sept / £3,261 from 1 Sept) and London Allowance (£6,588 before 1 Sept / £6,819 from 1 Sept), which are added separately.</div>
+                <div style={{marginTop:'12px',fontSize:'9px',fontWeight:600,color:'var(--quiet)',lineHeight:1.5}}>National figures exclude London pay. With London adds London Weighting (£3,150 before 1 Sept / £3,261 from 1 Sept) and London Allowance (£6,588 before 1 Sept / £6,819 from 1 Sept): the Standard Rate on a Met payslip.</div>
               </div>
             </div>
           );
