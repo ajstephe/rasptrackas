@@ -1,4 +1,5 @@
 import { PAY_RATES } from './payRates.js';
+import { parseTaxCode } from './tax.js';
 
 // Migrate settings if they contain old rank names from a previous version
 const validDate = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
@@ -43,6 +44,18 @@ export const migrateSettings = s => {
         changes: Array.isArray(x.changes) ? x.changes.filter(c => c && typeof c.from === 'string' && /^[A-Za-z]+ \d{4}$/.test(c.from)
           && /^\d{0,6}(\.\d{0,2})?$/.test(String(c.amount))).slice(0, 24).map(c => ({ from:c.from, amount:String(c.amount) })) : [] }));
     if (d.length) out.deductions = d;
+  }
+  // Tax code (More › Config) and changes to it from a pay month, kept only
+  // when each code reads as a real one. Left out entirely for 1257L
+  // cumulative with no changes, the default.
+  const tc = s.taxCode;
+  if (tc && typeof tc === 'object') {
+    const code = parseTaxCode(tc.code).ok ? parseTaxCode(tc.code).code : '1257L';
+    const basis = tc.basis === 'month1' ? 'month1' : 'cumulative';
+    const changes = Array.isArray(tc.changes) ? tc.changes.filter(c => c && typeof c === 'object' && typeof c.id === 'string' && c.id.length <= 40
+      && typeof c.from === 'string' && /^[A-Za-z]+ \d{4}$/.test(c.from) && parseTaxCode(c.code).ok).slice(0, 24)
+      .map(c => ({ id:c.id, from:c.from, code:parseTaxCode(c.code).code, basis: c.basis === 'month1' ? 'month1' : 'cumulative' })) : [];
+    if (code !== '1257L' || basis !== 'cumulative' || changes.length) out.taxCode = { code, basis, changes };
   }
   return withTheme(out);
 };

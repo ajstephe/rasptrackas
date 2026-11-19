@@ -9,6 +9,8 @@ import { fmtGBP } from '../lib/format.js';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { PrivacyNotice } from './PrivacyNotice.jsx';
 import { VersionLine } from './VersionLine.jsx';
+import { TaxCodeEditor } from './TaxCodeEditor.jsx';
+import { ExpectedPayslips } from './ExpectedPayslips.jsx';
 import TaxWorkings from './TaxWorkings.jsx';
 import { SegSlider } from './SegSlider.jsx';
 import { AppSelect } from './AppSelect.jsx';
@@ -43,7 +45,7 @@ export function TabSettings({
   financialYearsExpanded, setFinancialYearsExpanded,
   exportDataExpanded, setExportDataExpanded,
   dataManagementExpanded, setDataManagementExpanded,
-  settings, saveSett, taxView, entries, currPeriodIdx,
+  settings, saveSett, taxView, entries, currPeriodIdx, payYear,
   setExportFormat, setPayslipMode, setPayslipPeriodIdx, setPayslipFYYear, setPayslipModalOpen,
   session, handleExport, pulseBackupBtn, setRestoreConfirmOpen, fileRef, handleImport,
   wipeConf, setWipeConf, handleWipe, wipingData,
@@ -404,6 +406,7 @@ export function TabSettings({
             <button onClick={undoLastPayChange} style={{background:'none',border:'none',padding:'4px 0 0',fontSize:'11.5px',fontWeight:700,color:'#2563eb',textDecoration:'underline',cursor:'pointer',fontFamily:'inherit'}}>Undo the last change</button>
           </div>
         )}
+        {settings.rank&&settings.service&&<TaxCodeEditor settings={settings} saveSett={saveSett} S={S} BRASS={BRASS}/>}
         <div style={{display:'flex',alignItems:'center',gap:'8px',borderTop:'1px solid var(--border-2)',marginTop:'14px',paddingTop:'12px'}}>
           <div style={{background:'var(--tint-blue)',padding:'9px',borderRadius:'13px'}}><Ico n="clock" s={17} c="#2563eb"/></div>
           <span style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Hourly rates &amp; pay scales</span>
@@ -919,6 +922,8 @@ export function TabSettings({
           </>
         );
       })()}
+
+      {settings.rank&&settings.service&&<ExpectedPayslips payYear={payYear} settings={settings} currPeriodIdx={currPeriodIdx} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide}/>}
 
       <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.06em',padding:isWide?'6px 4px 0':'8px 4px 6px',...(isWide?{gridColumn:'1 / -1'}:{})}}>Data</div>
 

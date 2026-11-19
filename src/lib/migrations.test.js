@@ -187,3 +187,17 @@ describe('malformed records are dropped or cleaned, not trusted', () => {
     expect(cleanToilTaken([{ id:'t', date:'2026-05-01', hours:'2', note:{} }])[0].note).toBe('');
   });
 });
+
+import { migrateSettings as mig } from './migrations.js';
+describe('tax code in settings', () => {
+  const base = { rank:'Constable', service:'PC 4' };
+  it('keeps a real code and its changes', () => {
+    const out = mig({ ...base, taxCode:{ code:'1271l', basis:'cumulative', changes:[{ id:'a', from:'October 2026', code:'1257L', basis:'month1' }] } });
+    expect(out.taxCode).toEqual({ code:'1271L', basis:'cumulative', changes:[{ id:'a', from:'October 2026', code:'1257L', basis:'month1' }] });
+  });
+  it('drops bad entries and leaves the default out', () => {
+    expect(mig({ ...base, taxCode:{ code:'1257L', basis:'cumulative', changes:[] } }).taxCode).toBeUndefined();
+    const out = mig({ ...base, taxCode:{ code:'nonsense', basis:'x', changes:[{ id:'a', from:'bad', code:'1257L' }, { id:'b', from:'May 2026', code:'S1257L' }, 5] } });
+    expect(out.taxCode).toBeUndefined();
+  });
+});

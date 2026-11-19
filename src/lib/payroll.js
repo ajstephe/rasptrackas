@@ -1,5 +1,5 @@
 import { calcEntry, isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate } from './calc.js';
-import { pensionTierRate, payeTaxToDate, payeNI, payeBandName, LONDON_WEIGHTING, LONDON_ALLOWANCE } from './tax.js';
+import { pensionTierRate, payeTaxToDate, payeNI, payeBandName, taxToDateFor, taxCodeOn, LONDON_WEIGHTING, LONDON_ALLOWANCE, LONDON_ALLOWANCE_PARTS } from './tax.js';
 import { RATE_CHANGE_DATE } from './payPeriods.js';
 import { svcDataOn } from './payRates.js';
 import { deductionsFor } from './deductions.js';
@@ -37,7 +37,10 @@ export const monthlyPay = (svcData, payDate) => {
   const lwAnnual = LONDON_WEIGHTING[post?'post':'pre'];
   const pence = x => Math.round((x + Number.EPSILON)*100)/100;
   const salary = pence(salaryAnnual/12), lw = pence(lwAnnual/12), la = pence(LONDON_ALLOWANCE[post?'post':'pre']/12);
-  return { salary, lw, la, base: salary+lw+la, pensionable: salary+lw, annualPensionable: salaryAnnual+lwAnnual };
+  // The three London Allowance lines, as the payslip shows them.
+  const P = LONDON_ALLOWANCE_PARTS, k = post?'post':'pre';
+  const laParts = { la1: pence(P.la1[k]/12), la2: pence(P.la2[k]/12), laVar: pence(P.laVar[k]/12) };
+  return { salary, lw, la, laParts, base: salary+lw+la, pensionable: salary+lw, annualPensionable: salaryAnnual+lwAnnual };
 };
 
 // The money parts of one entry that have been claimed: overtime and PA are
@@ -54,18 +57,30 @@ const zeroResult = { tax:0, ni:0, net:0, rate:0, bandName:null };
 
 // Tax and NI on a slice of pay added to a payslip: `payBefore` is taxable
 // pay to date before it, `monthPayBefore` this month's gross before it.
-const paySlice = (payBefore, amount, taxMonth, monthPayBefore) => {
-  if (amount <= 0) return zeroResult;
-  const tax = payeTaxToDate(payBefore+amount, taxMonth) - payeTaxToDate(payBefore, taxMonth);
-  const ni  = payeNI(monthPayBefore+amount) - payeNI(monthPayBefore);
-  return { tax, ni, net: amount-tax-ni, rate: (tax+ni)/amount*100, bandName: payeBandName(payBefore+amount, taxMonth) };
+// A pay month's tax as a function of taxable pay to date: on a cumulative
+// code, tax due for the year so far at that month; on a month 1 code, tax
+// already paid plus tax on this month's pay alone. Either way, the month's
+// tax is tax(pay to date after it) less the tax paid before it.
+const monthTaxFns = ({ taxMonth, cumPrev=0, paidBefore=0, taxInfo, taxBasis }) => {
+  const m1 = taxBasis === 'month1';
+  return {
+    tax: x => m1 ? paidBefore + taxToDateFor(x - cumPrev, 1, taxInfo) : taxToDateFor(x, taxMonth, taxInfo),
+    band: x => m1 ? payeBandName(x - cumPrev, 1, taxInfo) : payeBandName(x, taxMonth, taxInfo),
+  };
 };
+const paySlice = (fns, payBefore, amount, monthPayBefore) => {
+  if (amount <= 0) return zeroResult;
+  const tax = fns.tax(payBefore+amount) - fns.tax(payBefore);
+  const ni  = payeNI(monthPayBefore+amount) - payeNI(monthPayBefore);
+  return { tax, ni, net: amount-tax-ni, rate: (tax+ni)/amount*100, bandName: fns.band(payBefore+amount) };
+};
+const fnsOf = pb => monthTaxFns(pb);
 
 // Take-home from a pay month's overtime and PA, stacked on top of that
 // month's salary and everything earlier in the tax year.
 export const periodNet = (pb, ot, pa) =>
-  paySlice(pb.cumBase, ot, pb.taxMonth, pb.niBase ?? pb.baseAmt).net +
-  paySlice(pb.cumBase+ot, pa, pb.taxMonth, (pb.niBase ?? pb.baseAmt)+ot).net;
+  paySlice(fnsOf(pb), pb.cumBase, ot, pb.niBase ?? pb.baseAmt).net +
+  paySlice(fnsOf(pb), pb.cumBase+ot, pa, (pb.niBase ?? pb.baseAmt)+ot).net;
 
 // Runs the twelve payslips of one pay year (= one tax year) given each
 // month's overtime and PA. `svcData` pins one pay point (tests); otherwise
@@ -112,14 +127,19 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     // Overtime already paid before the person started logging shifts (see
     // importedShares) is taxed like overtime, ahead of the month's claims.
     const ot = claimedOt + imported;
-    const otResult = paySlice(cumBase, ot, taxMonth, niBase);
-    const paResult = paySlice(cumBase+ot, pa, taxMonth, niBase+ot);
+    // The tax code for this pay month (More › Config; 1257L cumulative unless set).
+    const tc = taxCodeOn(settings, p.month);
+    const cumPrev = cum, paidBefore = taxToDate;
+    const fns = monthTaxFns({ taxMonth, cumPrev, paidBefore, taxInfo: tc.info, taxBasis: tc.basis });
+    const otResult = paySlice(fns, cumBase, ot, niBase);
+    const paResult = paySlice(fns, cumBase+ot, pa, niBase+ot);
     cum = cumBase + ot + pa;
     // The whole payslip for the month: salary and allowances plus overtime/PA.
-    const newTaxToDate = payeTaxToDate(cum, taxMonth);
-    const monthTax = newTaxToDate - taxToDate;
-    taxToDate = newTaxToDate;
     const monthGross = m.base + ot + pa;
+    let monthTax = fns.tax(cum) - paidBefore;
+    // K codes: tax in a month can't be more than half that month's pay.
+    if (tc.info.type === 'K') monthTax = Math.min(monthTax, Math.floor((cum - cumPrev) * 0.5 * 100) / 100);
+    taxToDate = paidBefore + monthTax;
     const monthNI = payeNI(monthGross - sacrifice);
     const monthNet = monthGross - periodPension - monthTax - monthNI - sacrifice;
     // The month's take-home that isn't overtime or PA, shared between the
@@ -138,7 +158,8 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
       pensionablePayThisPeriod:m.pensionable, pensionRate, periodPension,
       ot, pa, otResult, paResult, imported,
       combinedGross: ot+pa, combinedNet: otResult.net+paResult.net,
-      cumBase, cumAfter: cum, parts,
+      cumBase, cumAfter: cum, parts, cumPrev, paidBefore,
+      taxCode: tc.label, taxInfo: tc.info, taxBasis: tc.basis, laParts: m.laParts,
       monthGross, monthTax, monthNI, monthNet, taxToDate,
     };
   });
@@ -200,7 +221,7 @@ export const partNets = pb => {
   let prior = pb.imported || 0;   // imported overtime stacks first
   return pb.parts.map(part=>{
     const cumBefore = pb.cumBase + prior;
-    const r = paySlice(cumBefore, part.amount, pb.taxMonth, (pb.niBase ?? pb.baseAmt) + prior);
+    const r = paySlice(fnsOf(pb), cumBefore, part.amount, (pb.niBase ?? pb.baseAmt) + prior);
     prior += part.amount;
     return { part, net:r.net, tax:r.tax, ni:r.ni, rate:r.rate, bandName:r.bandName, cumBefore };
   });

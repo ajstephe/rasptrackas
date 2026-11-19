@@ -77,7 +77,9 @@ export default function TaxWorkings({ v, kind, onClose, BRASS }) {
       </Step>
 
       <Step n={3} title="Your tax-free amount">
-        <Say>Everyone gets £12,570 a year tax-free. Payroll hands it out a twelfth at a time: {g(b.freePay / m)} a payday on tax code 1257L.</Say>
+        <Say>{(b.code||'1257L')==='1257L'
+          ? <>Everyone gets £12,570 a year tax-free. Payroll hands it out a twelfth at a time: {g(b.freePay / m)} a payday on tax code 1257L.</>
+          : <>Your tax code is <b>{v.taxCode || b.code}</b> (set in More › Config), so your tax-free pay is {g(b.freePay / m)} a payday{b.freePay < 0 ? ', which adds to your taxable pay' : ''}. The standard code, 1257L, gives £1,048.25.</>}</Say>
         <Sum lines={[
           ['Taxable pay', g(v.taxable)],
           [`Tax-free: ${g(b.freePay / m)} × ${m} payday${m === 1 ? '' : 's'}`, g(b.freePay), '−'],

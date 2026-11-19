@@ -198,3 +198,90 @@ describe('November 2026 payslip, line by line', () => {
     expect(payeNI(m.base)).toBe(270.99);
   });
 });
+
+// ── Tax codes (More › Config) ────────────────────────────────────────────
+import { parseTaxCode, taxCodeOn, taxToDateFor, payeTaxToDate } from './tax.js';
+
+describe('parseTaxCode', () => {
+  it('reads the usual codes', () => {
+    expect(parseTaxCode('1271L')).toMatchObject({ ok:true, code:'1271L', type:'allowance', n:1271, month1:false });
+    expect(parseTaxCode(' 1257l ')).toMatchObject({ ok:true, code:'1257L' });
+    expect(parseTaxCode('0T')).toMatchObject({ ok:true, type:'allowance', n:0 });
+    expect(parseTaxCode('K475')).toMatchObject({ ok:true, type:'K', n:475 });
+    expect(parseTaxCode('BR').type).toBe('BR');
+    expect(parseTaxCode('D0').type).toBe('D0');
+    expect(parseTaxCode('NT').type).toBe('NT');
+    expect(parseTaxCode('C1257L')).toMatchObject({ ok:true, code:'1257L' });
+  });
+  it('spots month 1 markers', () => {
+    expect(parseTaxCode('1257L M1').month1).toBe(true);
+    expect(parseTaxCode('1257LX').month1).toBe(true);
+    expect(parseTaxCode('1257L W1')).toMatchObject({ ok:true, code:'1257L', month1:true });
+  });
+  it('turns away Scottish and nonsense codes', () => {
+    expect(parseTaxCode('S1257L').ok).toBe(false);
+    expect(parseTaxCode('hello').ok).toBe(false);
+    expect(parseTaxCode('').ok).toBe(false);
+  });
+});
+
+describe('taxCodeOn', () => {
+  const s = { taxCode: { code:'1257L', basis:'cumulative', changes:[
+    { id:'a', from:'October 2026', code:'1257L', basis:'month1' },
+    { id:'b', from:'November 2026', code:'1271L', basis:'cumulative' } ] } };
+  it('uses the latest change on or before the month', () => {
+    expect(taxCodeOn(s, 'September 2026').label).toBe('1257L Cumulative');
+    expect(taxCodeOn(s, 'October 2026').label).toBe('1257L Month 1');
+    expect(taxCodeOn(s, 'November 2026').label).toBe('1271L Cumulative');
+    expect(taxCodeOn(s, 'March 2027').label).toBe('1271L Cumulative');
+  });
+  it('defaults to 1257L cumulative', () => {
+    expect(taxCodeOn({}, 'May 2026').label).toBe('1257L Cumulative');
+  });
+});
+
+describe('flat-rate codes', () => {
+  it('BR, D0, D1 and NT', () => {
+    expect(taxToDateFor(1000.99, 1, parseTaxCode('BR'))).toBe(200);
+    expect(taxToDateFor(1000, 3, parseTaxCode('D0'))).toBe(400);
+    expect(taxToDateFor(1000, 1, parseTaxCode('D1'))).toBe(450);
+    expect(taxToDateFor(5000, 6, parseTaxCode('NT'))).toBe(0);
+  });
+  it('1257L matches the default everywhere', () => {
+    for (const pay of [0, 900, 5000, 40000, 130000]) for (const m of [1, 6, 12])
+      expect(taxToDateFor(pay, m, parseTaxCode('1257L'))).toBe(payeTaxToDate(pay, m));
+  });
+});
+
+describe('a tax code change during the year', () => {
+  const base = year([]);
+  const withCodes = changes => buildPayYear({ periods: PERIODS, entries: [], settings: { ...SETTINGS, taxCode: { code:'1257L', basis:'cumulative', changes } }, svcData: SVC });
+  it('a higher cumulative code refunds the earlier months in the month it starts', () => {
+    const y = withCodes([{ id:'b', from:'November 2026', code:'1271L', basis:'cumulative' }]);
+    const nov = y.findIndex(pb=>pb.month==='November 2026');
+    // £11.67 more free pay a month; 8 months' worth comes back in November.
+    expect(y[nov].monthTax).toBeLessThan(base[nov].monthTax - 15);
+    expect(y[nov+1].monthTax).toBeLessThan(base[nov+1].monthTax);
+    expect(y[nov+1].monthTax).toBeGreaterThan(base[nov+1].monthTax - 5);
+    expect(y[nov].taxCode).toBe('1271L Cumulative');
+    // Earlier months untouched.
+    expect(y.slice(0, nov).map(pb=>pb.monthTax)).toEqual(base.slice(0, nov).map(pb=>pb.monthTax));
+  });
+  it('month 1 taxes the month on its own, then cumulative catches up', () => {
+    const y = withCodes([{ id:'a', from:'October 2026', code:'1257L', basis:'month1' }, { id:'b', from:'November 2026', code:'1257L', basis:'cumulative' }]);
+    const oct = y.findIndex(pb=>pb.month==='October 2026');
+    expect(y[oct].taxCode).toBe('1257L Month 1');
+    expect(y[oct].monthTax).toBeCloseTo(taxToDateFor(y[oct].cumAfter - y[oct].cumPrev, 1, parseTaxCode('1257L')), 2);
+    // By the end of the year the total is what cumulative would have charged.
+    const total = a => a.reduce((s,pb)=>s+pb.monthTax,0);
+    expect(total(y)).toBeCloseTo(total(base), 2);
+  });
+  it('a month 1 code all year gives the same tax for steady pay', () => {
+    const y = withCodes([{ id:'a', from:'April 2026', code:'1257L', basis:'month1' }]);
+    y.forEach((pb,i)=>expect(Math.abs(pb.monthTax - base[i].monthTax)).toBeLessThan(5));
+  });
+  it('K codes cap the tax at half the month', () => {
+    const y = withCodes([{ id:'k', from:'April 2026', code:'K9999', basis:'cumulative' }]);
+    y.forEach(pb=>expect(pb.monthTax).toBeLessThanOrEqual((pb.cumAfter - pb.cumPrev)/2 + 0.01));
+  });
+});

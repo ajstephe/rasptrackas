@@ -2901,7 +2901,8 @@ export default function App() {
         gross, pension, pensionable: add(pb=>pb.pensionablePayThisPeriod), pensionRate: last ? last.pensionRate : 0,
         taxable, tax: add(pb=>pb.monthTax), ni: add(pb=>pb.monthNI), net: add(pb=>pb.monthNet),
         months: months.length,
-        breakdown: last ? payeTaxBreakdown(last.cumAfter, last.taxMonth) : payeTaxBreakdown(0, 1),
+        breakdown: last ? payeTaxBreakdown(last.cumAfter, last.taxMonth, last.taxInfo) : payeTaxBreakdown(0, 1),
+        taxCode: last ? last.taxCode : '1257L Cumulative',
         ...taperExtra(taxable, fraction),
       };
     };
@@ -5484,7 +5485,7 @@ export default function App() {
 
         {/* ══════════════════════════════════════════ SETTINGS */}
         {tab==='settings'&&(
-          <TabSettings openCustomDatePicker={openCustomDatePicker} openDedRequest={openDedRequest} setOpenDedRequest={setOpenDedRequest} setTab={setTab} addToast={addToast}
+          <TabSettings payYear={totals.periodBreakdown} openCustomDatePicker={openCustomDatePicker} openDedRequest={openDedRequest} setOpenDedRequest={setOpenDedRequest} setTab={setTab} addToast={addToast}
             animClass={tabAnimClass}
             isWide={isWide} S={S} MONO={MONO} BRASS={BRASS}
             savedBadge={savedBadge} themeMode={themeMode} setTheme={setTheme} pillShadow={THEME.pillShadow}
