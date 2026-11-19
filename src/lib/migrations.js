@@ -65,6 +65,8 @@ export const migrateSettings = s => {
     const r = x => Math.round(x*100)/100;
     out.payslipYtd = { month:y.month, taxable:r(y.taxable), tax:r(y.tax) };
   }
+  // "Add it later" from setup's moved-forces step: Home reminds them.
+  if (s.p45Later === true) out.p45Later = true;
   // Moved forces this tax year (More › Config): the switch and the P45's
   // leaving date, total pay and total tax to date.
   const f = s.forceMove;

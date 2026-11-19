@@ -39,7 +39,8 @@ export function ForceMoveEditor({ settings, saveSett, S, BRASS, MONO }) {
   const canSave = /^\d{4}-\d{2}-\d{2}$/.test(leaving) && pay.trim() && tax.trim() && !errors.length;
   const save = () => {
     if (!canSave) return;
-    saveSett({ ...settings, forceMove: { on: true, leaving, pay: p, tax: t } });
+    const { p45Later, ...rest } = settings;   // the setup reminder is done with
+    saveSett({ ...rest, forceMove: { on: true, leaving, pay: p, tax: t } });
     setOpen(false); setJustSaved(true);
   };
 

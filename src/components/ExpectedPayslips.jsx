@@ -1,4 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useFocusTrap } from '../lib/useFocusTrap.js';
+import { useEscapeToClose } from '../lib/useEscapeToClose.js';
+import { useBackButtonCloses } from '../lib/useBackButtonCloses.js';
 import { fmtGBP, payLabel, shiftSpan } from '../lib/format.js';
 import { deductionFor } from '../lib/deductions.js';
 import { localDateStr } from '../lib/payPeriods.js';
@@ -11,10 +15,9 @@ import { Ico } from './Icons.jsx';
 const pct = r => `${(r * 100).toFixed(2).replace(/\.?0+$/, '')}%`;
 const fmtDay = d => new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function ExpectedPayslips({ payYear, settings, currPeriodIdx, S, MONO, BRASS, isWide }) {
-  const [open, setOpen] = useState(false);
-  const months = Array.isArray(payYear) ? payYear : [];
-  const [pick, setPick] = useState(() => Math.max(0, Math.min(11, currPeriodIdx >= 0 ? currPeriodIdx : 0)));
+// The month chips and that month's Pay Advice: shared by the card in More
+// and the pop-up opened from Home.
+function PayslipPanel({ months, pick, setPick, settings, MONO, BRASS, isWide }) {
   const pb = months[pick];
   const today = localDateStr();
 
@@ -152,6 +155,27 @@ export function ExpectedPayslips({ payYear, settings, currPeriodIdx, S, MONO, BR
   }
 
   return (
+    <div style={{ maxWidth: isWide ? '980px' : '560px', margin: isWide ? '0 auto' : 0 }}>
+      <div role="tablist" aria-label="Pay month" style={{ display: 'flex', flexWrap: 'wrap', gap: isWide ? '6px' : '5px', marginBottom: isWide ? '16px' : '12px', ...(isWide ? { background: 'var(--surface-2)', borderRadius: '14px', padding: '5px', justifyContent: 'space-between' } : null) }}>
+        {months.map((m, k) => (
+          <button key={m.month} type="button" role="tab" aria-selected={k === pick} onClick={() => setPick(k)}
+            style={{ border: 'none', borderRadius: isWide ? '10px' : '999px', padding: isWide ? '9px 0' : '6px 10px', flex: isWide ? '1 1 0' : '0 0 auto', fontFamily: 'inherit', fontSize: isWide ? '13.5px' : '12px', fontWeight: 800, cursor: 'pointer', background: k === pick ? BRASS : (isWide ? 'transparent' : 'var(--surface-2)'), color: k === pick ? '#fff' : 'var(--quiet)' }}>
+            {m.month.split(' ')[0].slice(0, 3)}
+          </button>
+        ))}
+      </div>
+      {slip}
+    </div>
+  );
+}
+
+const startPick = idx => Math.max(0, Math.min(11, idx >= 0 ? idx : 0));
+
+export function ExpectedPayslips({ payYear, settings, currPeriodIdx, S, MONO, BRASS, isWide }) {
+  const [open, setOpen] = useState(false);
+  const months = Array.isArray(payYear) ? payYear : [];
+  const [pick, setPick] = useState(() => startPick(currPeriodIdx));
+  return (
     <div style={{ ...S.card, ...(isWide && open ? { gridColumn: '1 / -1' } : null) }}>
       <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} className="tap-row"
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%', background: 'none', border: 'none', padding: 0, textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', marginBottom: open ? '12px' : 0 }}>
@@ -162,18 +186,42 @@ export function ExpectedPayslips({ payYear, settings, currPeriodIdx, S, MONO, BR
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'transform 0.35s cubic-bezier(.65,0,.35,1)', transform: open ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       {open && (months.length ? (
-        <div style={{ maxWidth: isWide ? '980px' : '560px', margin: isWide ? '0 auto' : 0 }}>
-          <div role="tablist" aria-label="Pay month" style={{ display: 'flex', flexWrap: 'wrap', gap: isWide ? '6px' : '5px', marginBottom: isWide ? '16px' : '12px', ...(isWide ? { background: 'var(--surface-2)', borderRadius: '14px', padding: '5px', justifyContent: 'space-between' } : null) }}>
-            {months.map((m, k) => (
-              <button key={m.month} type="button" role="tab" aria-selected={k === pick} onClick={() => setPick(k)}
-                style={{ border: 'none', borderRadius: isWide ? '10px' : '999px', padding: isWide ? '9px 0' : '6px 10px', flex: isWide ? '1 1 0' : '0 0 auto', fontFamily: 'inherit', fontSize: isWide ? '13.5px' : '12px', fontWeight: 800, cursor: 'pointer', background: k === pick ? BRASS : (isWide ? 'transparent' : 'var(--surface-2)'), color: k === pick ? '#fff' : 'var(--quiet)' }}>
-                {m.month.split(' ')[0].slice(0, 3)}
-              </button>
-            ))}
-          </div>
-          {slip}
-        </div>
+        <PayslipPanel months={months} pick={pick} setPick={setPick} settings={settings} MONO={MONO} BRASS={BRASS} isWide={isWide}/>
       ) : <div style={{ fontSize: '12.5px', color: 'var(--quiet)' }}>Set your rank and pay point in Config to see your payslips.</div>)}
     </div>
+  );
+}
+
+// Home › Overview: the same Pay Advice in a pop-up over the page, opened on
+// a given month, with ‹ › and the month chips to move between months.
+export function PayslipModal({ payYear, settings, startIdx, onClose, MONO, BRASS, isWide }) {
+  const months = Array.isArray(payYear) ? payYear : [];
+  const [pick, setPick] = useState(() => startPick(startIdx));
+  const boxRef = useRef(null);
+  useFocusTrap(true, boxRef);
+  useEscapeToClose(true, onClose, { top: true });
+  useBackButtonCloses(true, onClose, { top: true });
+  const step = d => setPick(k => Math.max(0, Math.min(months.length - 1, k + d)));
+  const nav = (d, label, glyph) => (
+    <button type="button" aria-label={label} disabled={d < 0 ? pick === 0 : pick === months.length - 1} onClick={() => step(d)}
+      style={{ background: 'var(--surface-2)', border: 'none', borderRadius: '10px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink)', fontSize: '18px', fontWeight: 800, opacity: (d < 0 ? pick === 0 : pick === months.length - 1) ? 0.35 : 1 }}>{glyph}</button>
+  );
+  if (!months.length) return null;
+  return createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', fontFamily: 'var(--app-font)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      <div onClick={e => e.stopPropagation()} ref={boxRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Expected payslip"
+        style={{ background: 'var(--surface)', borderRadius: '18px', width: '100%', maxWidth: isWide ? '1040px' : '560px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,0.35)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '14px 16px', borderBottom: '1px solid var(--border-2)', flexShrink: 0 }}>
+          <Ico n="cash" s={18} c="#059669"/>
+          <span style={{ fontSize: '15.5px', fontWeight: 900, color: 'var(--ink)', flex: 1 }}>Expected payslip</span>
+          {nav(-1, 'Previous month', '‹')}{nav(1, 'Next month', '›')}
+          <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'var(--surface-2)', border: 'none', borderRadius: '10px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Ico n="x" s={14} c="var(--muted)"/></button>
+        </div>
+        <div style={{ overflowY: 'auto', padding: '14px 16px 18px' }}>
+          <PayslipPanel months={months} pick={pick} setPick={setPick} settings={settings} MONO={MONO} BRASS={BRASS} isWide={isWide}/>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }

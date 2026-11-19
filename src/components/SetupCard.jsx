@@ -3,6 +3,7 @@ import { AppSelect } from './AppSelect.jsx';
 import { DEDUCTION_PRESETS, newDeduction } from '../lib/deductions.js';
 import { PAY_RATES } from '../lib/payRates.js';
 import { Ico } from './Icons.jsx';
+import { getUKTaxYearStart, localDateStr } from '../lib/payPeriods.js';
 
 // The one place a new person sets their rank and pay point, shown on Home
 // and in Log Overtime until both are chosen, then gone.
@@ -14,6 +15,11 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupF
   // Rows added with "+ Custom" get a name box instead of a fixed label.
   // (Every hook stays above the early return below.)
   const [customIds, setCustomIds] = useState([]);
+  // Step 4, optional: moved forces this tax year (the P45), or a reminder
+  // to add it later.
+  const [moved, setMoved] = useState(false);
+  const [p45, setP45] = useState({ leaving:'', pay:'', tax:'' });
+  const [p45Later, setP45Later] = useState(false);
   const card = { background:'var(--surface)', border:'1px solid var(--border-2)', borderRadius:'16px', padding:'16px', marginBottom:'12px', boxShadow:`inset 3px 0 0 ${BRASS}` };
   const done = isSetUp(settings);
   // Once the pay point is in, the same card carries on to an optional third
@@ -28,9 +34,25 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupF
   const btn = { border:'none', borderRadius:'12px', padding:'12px 16px', fontWeight:800, fontSize:'14px', cursor:'pointer', fontFamily:'inherit', flex:'1 1 140px' };
   const unused = DEDUCTION_PRESETS.filter(n => !draft.some(d => d.name === n && !customIds.includes(d.id)));
   const addCustom = () => { const d = newDeduction(''); setCustomIds(ids => [...ids, d.id]); setDraft(l => [...l, d]); };
+  const amt = t => { const n = parseFloat(String(t).replace(/[£,\s]/g, '')); return Number.isFinite(n) && n >= 0 ? Math.round(n*100)/100 : NaN; };
+  const thisTaxYear = getUKTaxYearStart(localDateStr());
+  const p45Pay = amt(p45.pay), p45Tax = amt(p45.tax);
+  const p45Filled = /^\d{4}-\d{2}-\d{2}$/.test(p45.leaving) || p45.pay.trim() || p45.tax.trim();
+  const p45Error = !moved || p45Later || !p45Filled ? null
+    : !/^\d{4}-\d{2}-\d{2}$/.test(p45.leaving) ? 'Enter the leaving date from your P45'
+    : getUKTaxYearStart(p45.leaving) !== thisTaxYear ? 'The leaving date needs to be in this tax year (from 6 April)'
+    : Number.isNaN(p45Pay) || !p45.pay.trim() ? 'Enter Total pay to date from your P45'
+    : Number.isNaN(p45Tax) || !p45.tax.trim() ? 'Enter Total tax to date from your P45'
+    : p45Tax > p45Pay ? 'Total tax to date can’t be more than total pay to date' : null;
   const finish = () => {
+    if (p45Error) return;
     const keep = draft.filter(d => parseFloat(d.amount) > 0).map(d => ({ ...d, name: d.name.trim() || 'Deduction' }));
-    if (keep.length) saveSett({ ...settings, deductions: [...(Array.isArray(settings.deductions) ? settings.deductions : []), ...keep] });
+    let next = settings;
+    if (keep.length) next = { ...next, deductions: [...(Array.isArray(settings.deductions) ? settings.deductions : []), ...keep] };
+    if (moved && !p45Later && p45Filled) next = { ...next, forceMove: { on:true, leaving:p45.leaving, pay:p45Pay, tax:p45Tax } };
+    // No P45 to hand: Home reminds them until it's added (or dismissed).
+    else if (moved) next = { ...next, p45Later: true };
+    if (next !== settings) saveSett(next);
     setupFlow?.answer(false);
   };
   return (
@@ -102,6 +124,32 @@ export function SetupCard({ settings, saveSett, S, BRASS, where = 'home', setupF
           <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'14px'}}>
             {unused.map(n=><button key={n} type="button" onClick={()=>setDraft(l=>[...l,newDeduction(n)])} style={{background:'var(--chip-bg)',border:'none',borderRadius:'999px',padding:'6px 11px',fontSize:'11.5px',fontWeight:800,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit'}}>+ {n}</button>)}
             <button type="button" onClick={addCustom} style={{background:'transparent',border:'1.5px dashed var(--quiet)',borderRadius:'999px',padding:'5px 11px',fontSize:'11.5px',fontWeight:800,color:'var(--ink)',cursor:'pointer',fontFamily:'inherit'}}>+ Custom</button>
+          </div>
+          {/* Step 4, optional: moved forces this tax year. */}
+          <div style={{borderTop:'1px solid var(--border-2)',paddingTop:'14px',marginBottom:'14px'}}>
+            <div style={lbl}>{step(4, moved && !p45Error && (p45Later || p45Filled))}Moved forces? <span style={{fontWeight:700,textTransform:'none',letterSpacing:0}}>· optional</span></div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px'}}>
+              <div>
+                <div style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>I moved forces this tax year</div>
+                <div style={{fontSize:'11.5px',color:'var(--quiet)',fontWeight:600,marginTop:'2px'}}>Only if you joined from another force since 6 April</div>
+              </div>
+              <button type="button" role="switch" aria-checked={moved} aria-label="I moved forces this tax year" onClick={()=>{ setMoved(v=>!v); setP45Later(false); }}
+                style={{flex:'0 0 auto',width:'46px',height:'28px',borderRadius:'14px',border:'none',padding:0,cursor:'pointer',position:'relative',background:moved?BRASS:'var(--chip-bg)'}}>
+                <span style={{position:'absolute',top:'3px',left:moved?'21px':'3px',width:'22px',height:'22px',borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}/>
+              </button>
+            </div>
+            {moved && !p45Later && <div style={{marginTop:'10px',display:'flex',flexDirection:'column',gap:'8px'}}>
+              <div style={{fontSize:'12px',color:'var(--muted)',lineHeight:1.5}}>Copy these three boxes from the P45 your old force gave you.</div>
+              {[['leaving','Leaving date','date'],['pay','Total pay to date','decimal'],['tax','Total tax to date','decimal']].map(([k,l,t])=>(
+                <label key={k}><div style={{fontSize:'11px',fontWeight:800,color:'var(--muted)',marginBottom:'4px'}}>{l}</div>
+                  <input aria-label={l} {...(t==='date'?{type:'date'}:{inputMode:'decimal',placeholder:'£0.00'})} value={p45[k]} onChange={e=>{ const v=e.target.value; setP45(x=>({...x,[k]:v})); }} style={{...S.inp,width:'100%',boxSizing:'border-box',fontSize:'16px',fontWeight:800}}/></label>
+              ))}
+              {p45Error && <div style={{fontSize:'11.5px',fontWeight:700,color:'var(--text-red-deep)'}}>{p45Error}</div>}
+              <div style={{background:'var(--surface-2)',borderRadius:'11px',padding:'9px 11px',fontSize:'12px',fontWeight:700,color:'var(--ink)'}}>No P45 to hand? <button type="button" onClick={()=>setP45Later(true)} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer'}}>Add it later ›</button></div>
+            </div>}
+            {moved && p45Later && <div style={{marginTop:'10px',background:'var(--surface-2)',borderRadius:'11px',padding:'9px 11px',fontSize:'12px',fontWeight:600,color:'var(--muted)',lineHeight:1.45}}>
+              No problem. We'll remind you on Home, and you can add it any time in More › Year to date &amp; P45. <button type="button" onClick={()=>setP45Later(false)} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer'}}>I have it now</button>
+            </div>}
           </div>
           <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
             <button type="button" onClick={()=>setupFlow?.answer(false)} style={{...btn,background:'var(--surface-2)',color:'var(--ink)'}}>{draft.length?'Skip for now':'Not right now'}</button>

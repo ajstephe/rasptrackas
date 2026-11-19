@@ -1,8 +1,10 @@
 import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
+import { PayslipModal } from './ExpectedPayslips.jsx';
 import { Ico, FireExitIcon } from './Icons.jsx';
 import { useCountUp } from '../lib/useCountUp.js';
-import { localDateStr, PAY_PERIODS } from '../lib/payPeriods.js';
+import { localDateStr, PAY_PERIODS, getUKTaxYearStart } from '../lib/payPeriods.js';
+import { p45ForTaxYear } from '../lib/forceMove.js';
 import { deductionsFor } from '../lib/deductions.js';
 import { submitWindow } from '../lib/deadline.js';
 
@@ -10,7 +12,7 @@ import { submitWindow } from '../lib/deadline.js';
 // Extracted verbatim from App.jsx's tab==='dashboard' IIFE — no behaviour
 // change. S and the various setters/refs all come in as
 // props rather than being closed over directly.
-import { SetupCard } from './SetupCard.jsx';
+import { SetupCard, isSetUp } from './SetupCard.jsx';
 const NARROW_W = 1080;
 
 export function TabDashboard({
@@ -29,6 +31,8 @@ export function TabDashboard({
   const pb = currPeriodIdx>=0 ? totals.periodBreakdown[currPeriodIdx] : null;
   // Pay month picked on the Monthly overtime chart (phones show its figures under it).
   const [chartPick, setChartPick] = useState(null);
+  // The expected payslip pop-up: the pay month index it opened on, or null.
+  const [payslipAt, setPayslipAt] = useState(null);
   // Phones open and close the Overview card like Salary breakdown; computers always show it.
   // Open by default; the header collapses it (and opens it again).
   const [overviewOpen, setOverviewOpen] = useState(true);
@@ -361,6 +365,8 @@ export function TabDashboard({
       // only worth its own row once there are deductions to separate it from.
       ...(anyDed ? [['Total net', c=>cell(c.takeHome+c.ded,'var(--ink)',700)]] : []),
       [anyDed?'Net take-home':'Take-home', c=>cell(c.takeHome,'var(--text-green-deep)',800)],
+      // Each month's expected payslip, in a pop-up over Home.
+      ['Payslip', c=><button type="button" onClick={()=>setPayslipAt(c.idx)} aria-label={`View ${payLabel(c.p.month)} expected payslip`} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'11.5px',fontWeight:800,color:BRASS,cursor:'pointer'}}>View</button>],
     ];
     // Narrow: as many months as fit fill the visible width; the rest scroll sideways.
     const gridCols = narrow && ovFit<12 ? `152px repeat(12, calc((100cqw - 152px - ${ovFit*8}px) / ${ovFit}))` : `152px repeat(${cols.length},minmax(0,1fr))`;
@@ -382,6 +388,7 @@ export function TabDashboard({
             <div style={{background:'var(--tint-green, color-mix(in srgb, #059669 14%, transparent))',padding:'6px',borderRadius:'9px',display:'flex'}}><Ico n="bar" s={14} c={GRN}/></div>
             <span style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>Overview</span>
           </div>}
+          {isWide&&currPeriodIdx>=0&&allCols[currPeriodIdx]&&<button type="button" onClick={()=>setPayslipAt(currPeriodIdx)} style={{display:'inline-flex',alignItems:'center',gap:'6px',marginLeft:'auto',order:3,padding:'7px 12px',border:'none',borderRadius:'10px',background:'var(--tint-brass)',color:BRASS,fontFamily:'inherit',fontSize:'12.5px',fontWeight:900,cursor:'pointer'}}><Ico n="cash" s={14} c={BRASS}/>View {allCols[currPeriodIdx].p.month.split(' ')[0]}'s expected payslip<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>}
           <span style={{display:'flex',flexWrap:'wrap',gap:'5px 12px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
             {key(sq(GRN),'Submitted')}{key(sq(RED),'To submit')}{key(sq(STRIPE),'Planned')}
             {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,wc?'Overtime take-home':'Take-home')}
@@ -444,6 +451,7 @@ export function TabDashboard({
             {pick.ded>0.005&&line('Total net',pick.takeHome+pick.ded,false,'var(--ink)')}
             {pick.ded>0.005&&line('Less deductions',pick.ded,false,'var(--text-red-deep)')}
             {line(pick.ded>0.005?'Net take-home':'Take-home',pick.takeHome,false,'var(--text-green-deep)')}
+            <button type="button" onClick={()=>setPayslipAt(pick.idx)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',width:'100%',marginTop:'8px',marginBottom:'2px',padding:'9px',border:'none',borderRadius:'10px',background:'var(--tint-brass)',color:BRASS,fontFamily:'inherit',fontSize:'13px',fontWeight:900,cursor:'pointer'}}><Ico n="cash" s={15} c={BRASS}/>View expected payslip<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>
           </div>
         )}
         {!wc&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'5px',textAlign:'center'}}>Tap a month for its pay · hollow dots = not paid yet</div>}
@@ -520,6 +528,7 @@ export function TabDashboard({
                   <span style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>Total</span>
                   <span style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:800,color:'var(--ink)',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(totals.combinedGrossYTD)}</span>
                   <span style={{fontFamily:MONO,fontSize:'12.5px',fontWeight:800,color:'#059669',textAlign:'right',whiteSpace:'nowrap'}}>{fmtGBP(totals.combinedNetYTD)}</span>
+                  <button type="button" onClick={()=>setPayslipAt(currPeriodIdx>=0?currPeriodIdx:0)} style={{gridColumn:'1 / -1',justifySelf:'end',background:'none',border:'none',padding:'2px 0',fontFamily:'inherit',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'3px'}}>See each month's payslip<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>
                 </>}
                 {/* Claims waiting for a later payday aren't in the total; they
                     show on their own line underneath. */}
@@ -643,6 +652,19 @@ export function TabDashboard({
   return (
   <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
     <SetupCard where="home" settings={settings} saveSett={saveSett} S={S} BRASS={BRASS} setupFlow={setupFlow}/>
+    {/* "Add it later" from setup's moved-forces step: a reminder until the
+        P45 is in (More › Year to date & P45) or this is dismissed. */}
+    {settings.p45Later && isSetUp(settings) && !setupFlow?.ask && !p45ForTaxYear(settings, getUKTaxYearStart(localDateStr())) && (
+      <div style={{...S.card,display:'flex',alignItems:'center',gap:'10px',padding:'12px 14px',marginBottom:'12px',boxShadow:`inset 3px 0 0 ${BRASS}`}}>
+        <div style={{background:'var(--tint-brass)',padding:'8px',borderRadius:'11px',display:'flex'}}><Ico n="cash" s={16} c={BRASS}/></div>
+        <button type="button" onClick={()=>setTab('settings')} style={{flex:1,minWidth:0,textAlign:'left',background:'none',border:'none',padding:0,fontFamily:'inherit',cursor:'pointer'}}>
+          <div style={{fontWeight:900,fontSize:'13.5px',color:'var(--ink)'}}>Add your P45</div>
+          <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>So your tax is right after moving forces</div>
+        </button>
+        <button type="button" onClick={()=>setTab('settings')} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'12.5px',fontWeight:800,color:BRASS,cursor:'pointer'}}>Add ›</button>
+        <button type="button" aria-label="Dismiss" onClick={()=>{ const { p45Later, ...rest } = settings; saveSett(rest); }} style={{background:'none',border:'none',padding:'4px',cursor:'pointer',display:'flex'}}><Ico n="x" s={14} c="var(--quiet)"/></button>
+      </div>
+    )}
 
     {setupFlow?.gate ? null : <div>
     {isWide ? (<>
@@ -806,6 +828,7 @@ export function TabDashboard({
 
     <div style={{fontSize:'10.5px',color:'var(--text-red-deep)',textAlign:'center',lineHeight:1.5,padding:'8px 12px 0'}}>For guidance only. Always verify amounts against your payslip.</div>
     </div>}
+    {payslipAt!=null&&<PayslipModal payYear={totals.periodBreakdown} settings={settings} startIdx={payslipAt} onClose={()=>setPayslipAt(null)} MONO={MONO} BRASS={BRASS} isWide={isWide}/>}
   </div>
   );
 }
