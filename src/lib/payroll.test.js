@@ -73,7 +73,7 @@ describe('salary take-home', () => {
     // April pay: £4,187.92 salary, £581.28 pension (13.88%), £511.60 tax on
     // £2,558 taxable, £251.19 NI.
     expect(plain[0].salaryNet).toBeCloseTo(2843.85, 2);
-    expect(plain[6].salaryNet).toBeCloseTo(2941.75, 2);   // after the pay award
+    expect(plain[6].salaryNet).toBeCloseTo(2941.68, 2);   // after the pay award (£52,014, as on the payslip)
   });
 
   it('adds up to the payslip take-home even with heavy overtime', () => {
@@ -283,5 +283,11 @@ describe('a tax code change during the year', () => {
   it('K codes cap the tax at half the month', () => {
     const y = withCodes([{ id:'k', from:'April 2026', code:'K9999', basis:'cumulative' }]);
     y.forEach(pb=>expect(pb.monthTax).toBeLessThanOrEqual((pb.cumAfter - pb.cumPrev)/2 + 0.01));
+  });
+});
+
+describe('PC 7 after the pay award', () => {
+  it('basic salary is £4,334.50 a month, as on the payslip', () => {
+    expect(monthlyPay(PAY_RATES.Constable['PC 7 (top)'], '2026-11-20').salary).toBe(4334.5);
   });
 });

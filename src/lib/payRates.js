@@ -36,7 +36,7 @@ export const PAY_RATES = {
       post:   { base:21.36, r133:28.41, r150:32.04, r200:42.72 },
     },
     'PC 7 (top)': {
-      salary: { pre:50255, post:52015 },
+      salary: { pre:50255, post:52014 },
       pre:    { base:24.14, r133:32.11, r150:36.13, r200:48.17 },
       post:   { base:24.94, r133:33.17, r150:37.41, r200:49.88 },
     },
