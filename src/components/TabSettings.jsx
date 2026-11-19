@@ -1,5 +1,5 @@
 import { themeInSeason } from '../seasonal.js';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CURRENT_FY_YEAR, PAY_PERIODS, generateFYPeriods, localDateStr, getUKTaxYearStart } from '../lib/payPeriods.js';
 import { payDateOf, grossForImportedNet } from '../lib/payroll.js';
@@ -74,7 +74,7 @@ export function TabSettings({
   const [page, setPageState] = useState(() => {
     // Another screen can ask for a page (Home's "Add your P45" opens Year to date & P45).
     let asked = null; try { asked = sessionStorage.getItem('more.openPage'); sessionStorage.removeItem('more.openPage'); } catch (_) {}
-    return asked || (isWide ? 'pay' : null);
+    return asked || null;
   });
   // Which open/closed flag each page uses for its section's contents.
   const PAGE_FLAGS = {
@@ -94,11 +94,34 @@ export function TabSettings({
   useEffect(()=>{ if (dedExpanded && page!=='deductions') setPageState('deductions'); },[dedExpanded]); // eslint-disable-line react-hooks/exhaustive-deps
   // A computer always has something open beside the list; a phone going
   // wide keeps its page, and one going narrow goes back to the list.
-  useEffect(()=>{ if (isWide && !page) setPage('pay'); },[isWide]); // eslint-disable-line react-hooks/exhaustive-deps
   // An open page keeps its section open (some close themselves on Save).
   useEffect(()=>{ if (page) { const f = PAGE_FLAGS[page]; if (f && !f[0]) f[1](true); } },[page, PAGE_FLAGS[page]?.[0]]); // eslint-disable-line react-hooks/exhaustive-deps
   // Rank and pay point not set yet: that's the page to be on.
   useEffect(()=>{ if (configSetupIncomplete && page!=='pay') setPage('pay'); },[configSetupIncomplete]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A newly opened item starts at its top.
+  // Computer: an item opens in place, under its row; the row then scrolls
+  // to the top (just under the app's top bar) so the whole item reads from
+  // its start.
+  const [slot, setSlot] = useState(null);
+  const rowRefs = useRef({});
+  useEffect(()=>{
+    if (!isWide || !page) return;
+    const t = setTimeout(()=>rowRefs.current[page]?.scrollIntoView({ behavior:'smooth', block:'start' }), 60);
+    return () => clearTimeout(t);
+  },[page, isWide]);
+  // The app's top bar sits over the scrolling page, so the panel sticks just
+  // below it (measured, as its height varies with the window).
+  const [hdrH, setHdrH] = useState(76);
+  useEffect(()=>{
+    if (!isWide) return;
+    const h = document.querySelector('.app-header');
+    if (!h) return;
+    const measure = () => setHdrH(Math.round(h.getBoundingClientRect().bottom));
+    measure();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    ro?.observe(h); window.addEventListener('resize', measure);
+    return () => { ro?.disconnect(); window.removeEventListener('resize', measure); };
+  },[isWide]);
   // Phone: back (gesture or button) returns to the list.
   useBackButtonCloses(!isWide && !!page, () => setPage(null));
   useEscapeToClose(!isWide && !!page, () => setPage(null));
@@ -275,9 +298,9 @@ export function TabSettings({
     ]],
   ];
   const TITLES = Object.fromEntries(ROW_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]])));
-  const rowTap = key => key==='help' ? null : key==='privacy' ? ()=>setPrivacyNoticeOpen(true) : ()=>setPage(key);
+  const rowTap = key => key==='help' ? null : key==='privacy' ? ()=>setPrivacyNoticeOpen(true) : ()=>setPage(isWide && page===key ? null : key);
   const moreList = (
-    <div style={isWide?{position:'sticky',top:'8px'}:undefined}>
+    <div>
       {ROW_GROUPS.map(([title, rows], gi)=>(
         <div key={title}>
           <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.07em',padding:gi?'14px 4px 6px':'2px 4px 6px'}}>{title}</div>
@@ -291,18 +314,22 @@ export function TabSettings({
                   {sub&&<div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{sub}</div>}
                 </div>
                 {value&&<span style={{fontSize:'12px',fontWeight:700,color:'var(--muted)',whiteSpace:'nowrap',maxWidth:'45%',overflow:'hidden',textOverflow:'ellipsis'}}>{value}</span>}
-                <Ico n="cR" s={14} c="var(--quiet)" w={2.4}/>
+                <span style={{display:'flex',transition:'transform 0.25s',transform:isWide&&key!=='help'&&key!=='privacy'?(on?'rotate(-90deg)':'rotate(90deg)'):'none'}}><Ico n="cR" s={14} c="var(--quiet)" w={2.4}/></span>
               </>);
               const rowStyle = {display:'flex',alignItems:'center',gap:'11px',width:'100%',padding:'12px 14px',background:on?'var(--tint-brass)':'none',border:'none',borderTop:ri?'1px solid var(--border-2)':'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',textDecoration:'none',boxShadow:on?`inset 3px 0 0 ${BRASS}`:'none'};
               return key==='help'
                 ? <a key={key} href="mailto:ajstephe@me.com?subject=Overtime%20%26%20Shift%20Tracker%20—%20Feedback" className="tap-row" style={rowStyle}>{inner}</a>
-                : <button key={key} type="button" onClick={rowTap(key)} aria-current={on?'page':undefined} className="tap-row" style={rowStyle}>{inner}</button>;
+                : <Fragment key={key}>
+                    <button ref={el=>{ rowRefs.current[key]=el; }} type="button" onClick={rowTap(key)} aria-expanded={isWide?on:undefined} className="tap-row" style={{...rowStyle,scrollMarginTop:`${hdrH+10}px`}}>{inner}</button>
+                    {on && <div ref={setSlot} className="more-inline accordion-in" style={{padding:'4px 16px 16px',borderTop:'1px solid var(--border-2)'}}/>}
+                  </Fragment>;
             })}
           </div>
         </div>
       ))}
     </div>
   );
+  const placeDetail = node => !isWide ? node : (slot ? createPortal(node, slot) : null);
   // Above an opened page: ‹ More (phone) and the page's name.
   const pageHeader = page && (
     <div style={{marginBottom:'12px',...(isWide?{paddingTop:'22px'}:null)}}>
@@ -313,7 +340,10 @@ export function TabSettings({
 
   return (
     <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
-      <div style={{display:(isWide||!page)?'flex':'none',alignItems:'center',justifyContent:'space-between',marginBottom:'16px'}}>
+      {/* An item opened in place sits inside the list's card, so its own
+          card frame is dropped there (no box inside a box). */}
+      <style>{`.more-inline > div > div { background: none !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; border-radius: 0 !important; }`}</style>
+      <div style={{display:(isWide||!page)?'flex':'none',alignItems:'center',justifyContent:'space-between',marginBottom:'16px',...(isWide?{maxWidth:'860px',marginLeft:'auto',marginRight:'auto'}:null)}}>
         {(isWide||!page)&&<h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>More</h2>}
         {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'var(--text-green-deep)'}}>Saved</span></div>}
         {/* Mobile-only — same low-key icon pill as the Home screen's
@@ -338,7 +368,7 @@ export function TabSettings({
            both mobile and desktop now (it used to be split: folded
            into the Help & Suggestions box on mobile, and a separate
            card further down the grid on desktop). ── */}
-      {(isWide||!page)&&<div style={{...S.card,marginBottom:'12px'}}>
+      {(isWide||!page)&&<div style={{...S.card,marginBottom:'12px',...(isWide?{maxWidth:'860px',marginLeft:'auto',marginRight:'auto',boxSizing:'border-box'}:null)}}>
         <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
           {/* The cup lifts and tips to the right every few seconds, as if
               someone's taking a sip; the steam fades while it's tipped. */}
@@ -360,10 +390,12 @@ export function TabSettings({
            since a 2-up grid cell would leave it looking cramped next
            to a tall accordion. ── */}
 
-      <div style={isWide?{display:'grid',gridTemplateColumns:'380px minmax(0,1fr)',gap:'20px',alignItems:'start'}:undefined}>
+      <div style={isWide?{maxWidth:'860px',margin:'0 auto'}:undefined}>
       {(isWide||!page)&&moreList}
-      {page&&<div style={{minWidth:0}}>
-      {pageHeader}
+      {/* The opened item: its own page on a phone; on a computer, drawn
+          into the slot under its row (see moreList). */}
+      {page&&placeDetail(<div style={{minWidth:0}}>
+      {!isWide&&pageHeader}
       {page==='theme'&&<div style={{...S.card,padding:'13px 16px',marginBottom:'12px'}}>
         {/* The page title says Theme, so no header of its own here. */}
         <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginBottom:'10px'}}>Light, dark, or a different look entirely.</div>
@@ -1242,7 +1274,7 @@ export function TabSettings({
       })()}
 
 
-      </div>}
+      </div>)}
       </div>
       {(isWide||!page)&&<VersionLine/>}
       {privacyNoticeOpen && <PrivacyNotice brass={BRASS} onClose={()=>setPrivacyNoticeOpen(false)}/>}
