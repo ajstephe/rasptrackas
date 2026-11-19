@@ -61,7 +61,7 @@ function PayslipPanel({ months, pick, setPick, settings, saveSett, S, MONO, BRAS
       ['PAYE income tax', pb.monthTax],
       ['National Insurance', pb.monthNI],
       ...own.map(([n, a, pre]) => [pre ? `${n} (before tax)` : n, a]),
-    ];
+    ].sort(([a], [b]) => a.localeCompare(b, 'en-GB', { sensitivity: 'base' }));   // A–Z, as on a Met payslip
     const totalDed = deductions.reduce((s, [, a]) => s + a, 0);
     const net = totalPay - totalDed;
     const i = months.indexOf(pb);
