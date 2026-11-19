@@ -43,6 +43,7 @@ import {
   isOtSubmitted, isPaSubmitted, effectiveOtDate, effectivePaDate,
 } from './lib/calc.js';
 import { buildPayYear, runPayYear, entryNet as entryNetPure, partNets, claimedParts, payDateOf } from './lib/payroll.js';
+import { p45ForTaxYear } from './lib/forceMove.js';
 import { Ico, ClockCashIcon, FireExitIcon } from './components/Icons.jsx';
 import { PrivacyNotice } from './components/PrivacyNotice.jsx';
 import { ToastStack } from './components/ToastStack.jsx';
@@ -2819,13 +2820,20 @@ export default function App() {
     // isn't in the total yet.
     const onItsWayByPayday = upcoming.filter(pb=>pb.combinedGross>0.005).map(pb=>({ payDate:pb.payDate, gross:pb.combinedGross, net:pb.combinedNet }));
     const importedYTD = sum(paidMonths, pb=>pb.imported||0);
-    const combinedGrossYTD = sum(paidMonths, pb=>pb.monthGross);
+    // Pay from a previous force this tax year (More › Config › moved
+    // forces): the P45's pay and tax, once its leaving date has passed. It's
+    // taxable pay (after pension) and a P45 has no NI, so its "net" is pay
+    // less tax.
+    const p45 = hasPay ? p45ForTaxYear(settings, taxYearStart) : null;
+    const prevForcePay = p45 && p45.leaving <= todayStr ? p45.pay : 0;
+    const prevForceTax = p45 && p45.leaving <= todayStr ? p45.tax : 0;
+    const combinedGrossYTD = sum(paidMonths, pb=>pb.monthGross) + prevForcePay;
     const pensionYTD = sum(paidMonths, pb=>pb.periodPension);
     // Salary sacrifice lowers taxable pay too (and so the £100k taper).
     const taxableGrossYTD = Math.max(0, combinedGrossYTD - pensionYTD - sum(paidMonths, pb=>pb.sacrifice||0));
-    const ytdTax = sum(paidMonths, pb=>pb.monthTax);
+    const ytdTax = sum(paidMonths, pb=>pb.monthTax) + prevForceTax;
     const ytdNI  = sum(paidMonths, pb=>pb.monthNI);
-    const combinedNetYTD = sum(paidMonths, pb=>pb.monthNet);
+    const combinedNetYTD = sum(paidMonths, pb=>pb.monthNet) + prevForcePay - prevForceTax;
     const taxYearFraction = Math.max(1, paidMonths.length)/12;
 
     // Full tax year: all twelve monthly payments.
@@ -2844,7 +2852,7 @@ export default function App() {
     const forecastYear = hasPay ? runPayYear({ periods: taxPeriods, settings, money: taxYearMonths.map(pb=>({
       ot: pb.combinedGross + (upcoming.length && pb.payDate>todayStr ? projectedExtras/upcoming.length : 0), pa:0, parts:[],
     })) }) : [];
-    const projectedAnnualGross = hasPay ? sum(forecastYear, pb=>pb.monthGross) : 0;
+    const projectedAnnualGross = hasPay ? sum(forecastYear, pb=>pb.monthGross) + (p45 ? p45.pay : 0) : 0;
 
     // What planned (future-dated) shifts should add, shown as "expected" in
     // its own colour and never mixed into the real totals: the pay year is
@@ -2888,6 +2896,7 @@ export default function App() {
       prev:getP(currPeriodIdx-1), curr:getP(currPeriodIdx),
       salaryYTD, salaryNetYTD, lwYTD, laYTD, lwNetYTD, laNetYTD, salaryAnnualTotal,
       otPaidGross, otPaidNet, paPaidGross, paPaidNet, onItsWayGross, onItsWayNet, onItsWayByPayday, importedYTD,
+      prevForcePay, prevForceTax,
       combinedGrossYTD, combinedNetYTD, pensionYTD, ytdTax, ytdNI,
       taxYearDaysElapsed, taxYearStart, taxYearFraction, taxFY,
       paidMonths, forecastYear, projectedAnnualGross,

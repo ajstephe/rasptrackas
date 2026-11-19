@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { PAY_PERIODS, localDateStr } from '../lib/payPeriods.js';
 import { payDateOf } from '../lib/payroll.js';
+import { p45ForTaxYear } from '../lib/forceMove.js';
+import { getUKTaxYearStart } from '../lib/payPeriods.js';
 import { fmtGBP } from '../lib/format.js';
 import { Ico } from './Icons.jsx';
 
@@ -50,7 +52,8 @@ export function PayslipYtdEditor({ settings, saveSett, S, BRASS, MONO }) {
   const lbl = { fontSize: '10px', fontWeight: 900, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '7px' };
   const help = { fontSize: '11.5px', color: 'var(--quiet)', lineHeight: 1.45, fontWeight: 600, marginTop: '7px' };
   const short = m => m ? m.split(' ')[0] : '';
-  const moved = !!(settings.forceMove && settings.forceMove.on);
+  const p45 = p45ForTaxYear(settings, getUKTaxYearStart(localDateStr()));
+  const moved = !!p45;
   const field = ([k, label]) => (
     <label key={k} style={{ flex: '1 1 150px', minWidth: 0 }}>
       <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--muted)', marginBottom: '5px' }}>{label}</div>
@@ -75,8 +78,8 @@ export function PayslipYtdEditor({ settings, saveSett, S, BRASS, MONO }) {
       {!open && saved && (
         <div style={{ marginTop: '10px', background: 'var(--surface-2)', borderRadius: '11px', padding: '11px 12px' }}>
           <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--muted)', marginBottom: '4px' }}>From your {short(saved.month)} payslip</div>
-          {row('Taxable Pay This Emp', saved.taxable, moved ? settings.forceMove.pay : 0)}
-          {row('Tax Paid This Emp', saved.tax, moved ? settings.forceMove.tax : 0)}
+          {row('Taxable Pay This Emp', saved.taxable, moved ? p45.pay : 0)}
+          {row('Tax Paid This Emp', saved.tax, moved ? p45.tax : 0)}
           <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--muted)', marginTop: '4px' }}>{short(saved.month)} onwards is worked out from these.</div>
           <div style={{ display: 'flex', gap: '14px', marginTop: '8px' }}>
             <button type="button" onClick={start} style={{ background: 'none', border: 'none', padding: 0, fontSize: '12px', fontWeight: 800, color: BRASS, cursor: 'pointer', fontFamily: 'inherit' }}>Update</button>

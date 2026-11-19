@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { fmtGBP } from '../lib/format.js';
+import { getUKTaxYearStart, localDateStr } from '../lib/payPeriods.js';
 import { Ico } from './Icons.jsx';
 
 // More › Config › "I moved forces this tax year": off for almost everyone.
@@ -11,7 +12,10 @@ const num = t => { const n = parseFloat(String(t).replace(/[£,\s]/g, '')); retu
 const fmtDate = iso => new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
 export function ForceMoveEditor({ settings, saveSett, S, BRASS, MONO }) {
-  const saved = settings.forceMove && settings.forceMove.on ? settings.forceMove : null;
+  // A P45 only counts in the tax year of its leaving date: from the next
+  // 6 April the switch shows as off, ready for anyone who moves again.
+  const thisTaxYear = getUKTaxYearStart(localDateStr());
+  const saved = settings.forceMove && settings.forceMove.on && settings.forceMove.leaving && getUKTaxYearStart(settings.forceMove.leaving) === thisTaxYear ? settings.forceMove : null;
   const [open, setOpen] = useState(false);       // the switch on, nothing saved yet (or editing)
   const [leaving, setLeaving] = useState('');
   const [pay, setPay] = useState('');
@@ -25,7 +29,9 @@ export function ForceMoveEditor({ settings, saveSett, S, BRASS, MONO }) {
     else startEdit();
   };
   const p = num(pay), t = num(tax);
+  const leavingOk = !leaving || getUKTaxYearStart(leaving) === thisTaxYear;
   const errors = [
+    !leavingOk && 'The leaving date needs to be in this tax year (from 6 April)',
     pay.trim() && Number.isNaN(p) && 'Total pay to date needs to be an amount, e.g. 27,500.00',
     tax.trim() && Number.isNaN(t) && 'Total tax to date needs to be an amount, e.g. 4,800.00',
     !Number.isNaN(p) && !Number.isNaN(t) && pay.trim() && tax.trim() && t > p && 'Total tax to date can’t be more than total pay to date',

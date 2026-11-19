@@ -243,6 +243,13 @@ export function TabDashboard({
             </div>
           );
         })()}
+        {/* Someone who moved forces this tax year: the headline includes the
+            P45's pay (More › Config), split out here. */}
+        {totals.prevForcePay>0.005 && (
+          <div style={{fontFamily:MONO,fontSize:compact?'10.5px':'11.5px',fontWeight:600,color:'#cbd5e1',marginTop:'4px'}}>
+            {fmtGBP(totals.combinedGrossYTD - totals.prevForcePay)} here · {fmtGBP(totals.prevForcePay)} previous force (P45)
+          </div>
+        )}
       </div>
     </div>
   );
@@ -496,12 +503,14 @@ export function TabDashboard({
               const rule = {gridColumn:'1 / -1',borderTop:'1px solid var(--border-2)',margin:'2px 0'};
               return (<>
                 {[
+                  ...(totals.prevForcePay>0.005 ? [['Previous force (P45)', totals.prevForcePay, totals.prevForcePay - totals.prevForceTax, true]] : []),
                   ['Base salary', totals.salaryYTD, totals.salaryNetYTD, true],
                   ['London Weighting', totals.lwYTD, totals.lwNetYTD, true],
                   ['London Allowance', totals.laYTD, totals.laNetYTD, true],
                   ['Overtime', totals.otPaidGross, totals.otPaidNet],
                   ['Protection Allowance', totals.paPaidGross, totals.paPaidNet],
                 ].map(row)}
+                {totals.prevForcePay>0.005 && <span style={{gridColumn:'1 / -1',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'-4px',lineHeight:1.45}}>The P45 gives pay after pension, so the previous force's line is a little under its true gross. Its net is pay less the P45's tax (a P45 doesn't show NI).</span>}
                 {totals.importedYTD>0.005 && <span style={{gridColumn:'1 / -1',fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'-4px'}}>Overtime includes {fmtGBP(totals.importedYTD)} gross you entered as already paid (More › Config)</span>}
                 {/* Everything paid so far: the rows above add up to it, and it
                     matches the payslips (gross, and take-home after pension,

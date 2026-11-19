@@ -351,3 +351,13 @@ describe('moved forces this tax year (P45)', () => {
     expect(run({ forceMove: { ...fm, on:false } }).map(pb=>pb.monthTax)).toEqual(base.map(pb=>pb.monthTax));
   });
 });
+
+import { p45ForTaxYear } from './forceMove.js';
+describe('p45ForTaxYear', () => {
+  const s = { forceMove:{ on:true, leaving:'2026-09-20', pay:27500, tax:4800 } };
+  it('counts in the tax year of the leaving date only', () => {
+    expect(p45ForTaxYear(s, '2026-04-06')).toEqual({ pay:27500, tax:4800, leaving:'2026-09-20' });
+    expect(p45ForTaxYear(s, '2027-04-06')).toBeNull();
+    expect(p45ForTaxYear({ forceMove:{ ...s.forceMove, on:false } }, '2026-04-06')).toBeNull();
+  });
+});

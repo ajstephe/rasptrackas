@@ -40,3 +40,11 @@ export const p45For = (settings, month) => {
   const pd = payDateOfLabel(month);
   return pd > f.leaving && getUKTaxYearStart(pd) === getUKTaxYearStart(f.leaving) ? { pay: f.pay, tax: f.tax } : null;
 };
+
+// The P45 for the tax year starting `taxYearStart` ('2026-04-06'), or null:
+// what the year totals add as "Previous force (P45)". In any later tax
+// year it's ignored, and the switch in More › Config shows as off.
+export const p45ForTaxYear = (settings, taxYearStart) => {
+  const f = forceMoveOf(settings);
+  return f && getUKTaxYearStart(f.leaving) === taxYearStart ? { pay: f.pay, tax: f.tax, leaving: f.leaving } : null;
+};
