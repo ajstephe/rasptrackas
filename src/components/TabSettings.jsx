@@ -365,13 +365,8 @@ export function TabSettings({
       {page&&<div style={{minWidth:0}}>
       {pageHeader}
       {page==='theme'&&<div style={{...S.card,padding:'13px 16px',marginBottom:'12px'}}>
-        <div style={{display:'flex',alignItems:'center',gap:'9px',marginBottom:'9px'}}>
-          <div style={{background:'var(--tint-amber)',padding:'6px',borderRadius:'11px',flexShrink:0}}><Ico n="sun" s={14} c={BRASS}/></div>
-          <div>
-            <div style={{fontWeight:900,fontSize:'13px',color:'var(--ink)'}}>Themes</div>
-            <div style={{fontSize:'10px',color:'var(--quiet)',marginTop:'1px'}}>Light, dark, or a different look entirely</div>
-          </div>
-        </div>
+        {/* The page title says Theme, so no header of its own here. */}
+        <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginBottom:'10px'}}>Light, dark, or a different look entirely.</div>
         {/* Pro is short for Professional Light —
             the sliding pill (SegSlider) measures each segment's own
             offsetLeft/offsetWidth to animate between them, which only works
@@ -1141,7 +1136,7 @@ export function TabSettings({
           </button>
         );
         const cardBody = dataManagementExpanded&&(
-          <div style={{background:'var(--surface-2)',borderRadius:'13px',padding:'13px'}}>
+          <div>
             {session&&<div style={{fontSize:'12px',color:'var(--ink)',fontWeight:700,marginBottom:'11px'}}>Signed in as {session.user?.email}</div>}
 
             {session&&(
