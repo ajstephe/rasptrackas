@@ -312,9 +312,8 @@
         --text-amber-deep:#ffe600; --tint-blue-2:#14295a; --tint-brass:#3a0f2a; --tint-indigo:#1d1a48;
         --text-indigo-deep:#b3abff; --surface-red-mid:#7a1846; --text-blue-deep:#7df8ff;
       }
-      :root[data-theme="arcade"] body,:root[data-theme="arcade"] [style*="background: var(--page-bg)"]{background:linear-gradient(180deg,#3a2a85 0%,#2a2063 45%,#221a52 100%) fixed!important}
-      /* CRT scanlines over the whole screen */
-      :root[data-theme="arcade"] body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background:repeating-linear-gradient(180deg,rgba(0,0,0,0) 0 2px,rgba(0,0,0,0.08) 2px 3px)}
+      /* CRT scanlines on the backdrop only: cards sit on top of them, so their text stays clean */
+      :root[data-theme="arcade"] body,:root[data-theme="arcade"] [style*="background: var(--page-bg)"]{background:repeating-linear-gradient(180deg,rgba(0,0,0,0) 0 2px,rgba(0,0,0,0.10) 2px 3px) fixed,linear-gradient(180deg,#3a2a85 0%,#2a2063 45%,#221a52 100%) fixed!important}
       :root[data-theme="arcade"] .app-header{background:#1e1650!important;border-bottom:3px solid #ff2e88!important;box-shadow:0 3px 0 #00f0ff}
       :root[data-theme="arcade"] .app-header > div:first-child span:first-child{font-family:'Press Start 2P',monospace!important;font-weight:400!important;font-size:0.82em!important;letter-spacing:0!important;-webkit-text-fill-color:#ffe600!important;text-shadow:0 0 6px rgba(255,230,0,0.6),2px 2px 0 #ff2e88}
       :root[data-theme="arcade"] .app-header > div:first-child span:last-child{color:#00f0ff!important;text-transform:uppercase;letter-spacing:1px!important}
