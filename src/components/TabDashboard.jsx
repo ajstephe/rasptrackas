@@ -279,7 +279,7 @@ export function TabDashboard({
           <div style={{background:'var(--tint-green-2)',padding:compact?'8px':'9px',borderRadius:compact?'10px':'11px',flexShrink:0,alignSelf:'flex-start'}}><Ico n="cash" s={compact?16:17} c="#15803d"/></div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px'}}>
-              <span style={{fontSize:compact?'12px':'12.5px',fontWeight:700,color:'var(--muted)'}}>Net overtime this month</span>
+              <span style={{fontSize:compact?'12px':'12.5px',fontWeight:700,color:'var(--muted)'}}>{totals.curr ? `Net overtime in ${totals.curr.month.split(' ')[0]} pay${!compact && submitWindow(localDateStr())?.paidOn ? ` · paid ${submitWindow(localDateStr()).paidOn}` : ''}` : 'Net overtime this month'}</span>
               <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)',textAlign:'right',whiteSpace:'nowrap'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}{exp&&exp.n>0&&<span style={{fontWeight:700,color:'var(--exp-ink)'}}> · +{fmtGBP(exp.gross)}</span>}</span>
             </div>
             <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px 8px',marginTop:'1px'}}>
@@ -288,7 +288,7 @@ export function TabDashboard({
                   filling up); tapping it opens that pay month. */}
               {delta!=null&&(
                 <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx-1); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:600,color:'var(--muted)',background:'var(--chip-bg)',padding:'2px 6px 2px 8px',borderRadius:'20px',border:'none',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
-                  <span>Last month <span style={{fontFamily:MONO,fontWeight:700,color:'var(--ink)'}}>{fmtGBP(prevPb.combinedNet)}</span></span>
+                  <span>{PAY_PERIODS[currPeriodIdx-1]?.month.split(' ')[0] || 'Last month'} pay <span style={{fontFamily:MONO,fontWeight:700,color:'var(--ink)'}}>{fmtGBP(prevPb.combinedNet)}</span></span>
                   <Ico n="cR" s={9} c="currentColor" w={2.5}/>
                 </button>
               )}
