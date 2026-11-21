@@ -283,7 +283,12 @@ export function TabDashboard({
             </div>
           </div>
         </div>
-        <div style={{fontFamily:MONO,fontSize:compact?'14px':'15px',fontWeight:600,color:'var(--ink)',flexShrink:0}}>{fmtGBP(animatedNet)}</div>
+        {/* An invisible arrow keeps the figure lined up with the rows
+            around it, which end in one. */}
+        <div style={{display:'flex',alignItems:'center',gap:compact?'8px':'10px',flexShrink:0}}>
+          <div style={{fontFamily:MONO,fontSize:compact?'14px':'15px',fontWeight:600,color:'var(--ink)'}}>{fmtGBP(animatedNet)}</div>
+          <span aria-hidden="true" style={{visibility:'hidden',display:'flex'}}>{chev}</span>
+        </div>
       </div>
     );
   };
