@@ -187,10 +187,10 @@ function PayslipPanel({ months, pick, setPick, settings, saveSett, S, MONO, BRAS
 
   return (
     <div style={{ maxWidth: isWide ? '980px' : '560px', margin: isWide ? '0 auto' : 0 }}>
-      <div role="tablist" aria-label="Pay month" style={{ display: 'flex', flexWrap: 'wrap', gap: isWide ? '6px' : '5px', marginBottom: isWide ? '16px' : '12px', ...(isWide ? { background: 'var(--surface-2)', borderRadius: '14px', padding: '5px', justifyContent: 'space-between' } : null) }}>
+      <div role="tablist" aria-label="Pay month" style={{ ...(isWide ? { display: 'flex', flexWrap: 'wrap' } : { display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))' }), gap: isWide ? '6px' : '5px', marginBottom: isWide ? '16px' : '12px', ...(isWide ? { background: 'var(--surface-2)', borderRadius: '14px', padding: '5px', justifyContent: 'space-between' } : null) }}>
         {months.map((m, k) => (
           <button key={m.month} type="button" role="tab" aria-selected={k === pick} onClick={() => setPick(k)}
-            style={{ border: 'none', borderRadius: isWide ? '10px' : '999px', padding: isWide ? '9px 0' : '6px 10px', flex: isWide ? '1 1 0' : '0 0 auto', fontFamily: 'inherit', fontSize: isWide ? '13.5px' : '12px', fontWeight: 800, cursor: 'pointer', background: k === pick ? BRASS : (isWide ? 'transparent' : 'var(--surface-2)'), color: k === pick ? '#fff' : 'var(--quiet)' }}>
+            style={{ border: 'none', borderRadius: isWide ? '10px' : '999px', padding: isWide ? '9px 0' : '6px 0', flex: isWide ? '1 1 0' : '0 0 auto', fontFamily: 'inherit', fontSize: isWide ? '13.5px' : '12px', fontWeight: 800, cursor: 'pointer', background: k === pick ? BRASS : (isWide ? 'transparent' : 'var(--surface-2)'), color: k === pick ? '#fff' : 'var(--quiet)' }}>
             {m.month.split(' ')[0].slice(0, 3)}
           </button>
         ))}

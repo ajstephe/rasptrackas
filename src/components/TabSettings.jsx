@@ -328,15 +328,15 @@ export function TabSettings({
             {rows.map(([key,label,icon,tint,col,value,sub],ri)=>{
               const on = split && page===key;
               const inner = (<>
-                <div style={{background:tint,padding:'7px',borderRadius:'10px',display:'flex',flexShrink:0}}><Ico n={icon} s={16} c={col}/></div>
+                {!compact&&<div style={{background:tint,padding:'7px',borderRadius:'10px',display:'flex',flexShrink:0}}><Ico n={icon} s={16} c={col}/></div>}
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>{label}</div>
+                  <div style={{fontWeight:800,fontSize:compact?'13px':'13.5px',color:'var(--ink)'}}>{label}</div>
                   {sub&&!compact&&<div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{sub}</div>}
                 </div>
                 {value&&!compact&&<span style={{fontSize:'12px',fontWeight:700,color:'var(--muted)',whiteSpace:'nowrap',maxWidth:'45%',overflow:'hidden',textOverflow:'ellipsis'}}>{value}</span>}
-                <span style={{display:'flex',transition:'transform 0.25s',transform:'none',opacity:split&&!on?0.5:1}}><Ico n="cR" s={14} c="var(--quiet)" w={2.4}/></span>
+                {!compact&&<span style={{display:'flex',transition:'transform 0.25s',transform:'none',opacity:split&&!on?0.5:1}}><Ico n="cR" s={14} c="var(--quiet)" w={2.4}/></span>}
               </>);
-              const rowStyle = {display:'flex',alignItems:'center',gap:'11px',width:'100%',padding:'12px 14px',background:on?'var(--tint-brass)':'none',border:'none',borderTop:ri?'1px solid var(--border-2)':'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',textDecoration:'none',boxShadow:on?`inset 3px 0 0 ${BRASS}`:'none'};
+              const rowStyle = {display:'flex',alignItems:'center',gap:'11px',width:'100%',padding:compact?'11px 12px':'12px 14px',background:on?'var(--tint-brass)':'none',border:'none',borderTop:ri?'1px solid var(--border-2)':'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',textDecoration:'none',boxShadow:on?`inset 3px 0 0 ${BRASS}`:'none'};
               return key==='help'
                 ? <a key={key} href="mailto:ajstephe@me.com?subject=Overtime%20%26%20Shift%20Tracker%20—%20Feedback" className="tap-row" style={rowStyle}>{inner}</a>
                 : <Fragment key={key}>
@@ -411,7 +411,7 @@ export function TabSettings({
            since a 2-up grid cell would leave it looking cramped next
            to a tall accordion. ── */}
 
-      <div ref={wrapRef} style={{...(isWide?{maxWidth:split?'1120px':'860px',margin:'0 auto'}:null),...(split?{display:'grid',gridTemplateColumns:compact?`${wrapW<680?190:220}px minmax(0,1fr)`:'minmax(250px,300px) minmax(0,1fr)',gap:isWide?'22px':'16px',alignItems:'start'}:null)}}>
+      <div ref={wrapRef} style={{...(isWide?{maxWidth:split?'1120px':'860px',margin:'0 auto'}:null),...(split?{display:'grid',gridTemplateColumns:compact?`${wrapW<760?150:190}px minmax(0,1fr)`:'minmax(250px,300px) minmax(0,1fr)',gap:isWide?'22px':'16px',alignItems:'start'}:null)}}>
       {(split||!page)&&<div style={split?{position:'sticky',top:`${hdrH+10}px`,maxHeight:`calc(100vh - ${hdrH+24}px)`,overflowY:'auto',paddingBottom:'6px'}:undefined}>{moreList}</div>}
       {/* The opened item: on the right when side by side, otherwise its
           own page with ‹ More to go back. */}
