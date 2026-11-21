@@ -332,12 +332,16 @@ export function TabDashboard({
     const short = c => String(c.p.short||c.p.month).slice(0,3);
     const pickIdx = chartPick ?? (currPeriodIdx>=0 ? currPeriodIdx : 0);
     // Two "current" months, told apart: the overtime period you're working
-    // in now (brass, e.g. January for shifts 9 Nov – 6 Dec) and this calendar
-    // month's payslip (green, e.g. November on 21 Nov).
-    const SLIP = 'var(--text-green-deep)';
-    const slipIdx = (()=>{ const t=new Date(); const m=t.toLocaleDateString('en-GB',{month:'long'})+' '+t.getFullYear(); return PAY_PERIODS.findIndex(p=>p.month===m); })();
-    const ring = c => c.idx===currPeriodIdx ? `0 0 0 2px color-mix(in srgb, ${BRASS} 60%, transparent)` : c.idx===slipIdx ? `0 0 0 2px color-mix(in srgb, ${SLIP} 55%, transparent)` : 'none';
-    const tint = c => c.idx===currPeriodIdx ? 'color-mix(in srgb, var(--tint-brass) 70%, transparent)' : c.idx===slipIdx ? 'color-mix(in srgb, var(--tint-green) 70%, transparent)' : 'transparent';
+    // in now (the theme's accent ring, e.g. January for shifts 9 Nov – 6 Dec)
+    // and this calendar month's payslip (e.g. November on 21 Nov). The
+    // payslip is marked by shape, not colour (a dashed outline and a filled
+    // tag in the text colour), so it can't blur into the accent or a green
+    // bar in any theme.
+    const SLIP = 'var(--ink)';
+    const slipIdx = (()=>{ const t=new Date(); const m=t.toLocaleDateString('en-GB',{month:'long'})+' '+t.getFullYear(); const i=PAY_PERIODS.findIndex(p=>p.month===m); return i===currPeriodIdx ? -1 : i; })();
+    const ring = c => c.idx===currPeriodIdx ? `0 0 0 2px color-mix(in srgb, ${BRASS} 60%, transparent)` : 'none';
+    const dash = c => c.idx===slipIdx ? {outline:`2px dashed color-mix(in srgb, ${SLIP} 70%, transparent)`,outlineOffset:'2px'} : null;
+    const tint = c => c.idx===currPeriodIdx ? 'color-mix(in srgb, var(--tint-brass) 70%, transparent)' : c.idx===slipIdx ? 'color-mix(in srgb, var(--chip-bg) 80%, transparent)' : 'transparent';
     // A month's column (or its Details link on a phone) opens Summary on that
     // month, in the person's default Breakdown view.
     const openSummary = month => showMonthInSummary(month);
@@ -385,8 +389,6 @@ export function TabDashboard({
           <span style={{display:'flex',flexWrap:'wrap',gap:'5px 12px',fontSize:'11px',fontWeight:700,color:'var(--muted)'}}>
             {key(sq(GRN),'Submitted')}{key(sq(RED),'To submit')}{key(sq(STRIPE),'Planned')}
             {key(<svg width="20" height="10" aria-hidden="true"><line x1="1" y1="5" x2="19" y2="5" stroke={LINE} strokeWidth="2"/><circle cx="10" cy="5" r="3.2" fill={LINE} stroke="var(--surface)" strokeWidth="1.2"/></svg>,wc?'Overtime take-home':'Take-home')}
-            {currPeriodIdx>=0&&key(<i style={{width:'10px',height:'10px',borderRadius:'3px',boxShadow:`inset 0 0 0 2px ${BRASS}`}}/>,'Overtime period')}
-            {slipIdx>=0&&slipIdx!==currPeriodIdx&&key(<i style={{width:'10px',height:'10px',borderRadius:'3px',boxShadow:`inset 0 0 0 2px ${SLIP}`}}/>,wc?'This month\u2019s payslip':'Payslip')}
           </span>
         </div>
         <div style={narrow?{position:'relative'}:undefined}>
@@ -404,7 +406,7 @@ export function TabDashboard({
                   <button key={c.p.month} type="button" onClick={wc?()=>openSummary(c.p.month):()=>setChartPick(c.idx)} aria-pressed={wc?undefined:on}
                     aria-label={`${payLabel(c.p.month)}${c.future?' (forecast)':''}: overtime ${fmtGBP(c.ot)}, total pay ${fmtGBP(c.gross)}, take-home ${fmtGBP(c.takeHome)}`}
                     style={{flex:'1 1 0',minWidth:0,display:'flex',justifyContent:'center',background:on?'var(--tint-brass)':'none',borderRadius:'7px',border:'none',padding:wc?0:'3px 0',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation'}}>
-                    <span style={{height:`${H}px`,width:wc?'40%':'58%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:ring(c)}}>
+                    <span style={{height:`${H}px`,width:wc?'40%':'58%',display:'flex',flexDirection:'column-reverse',borderRadius:'5px',overflow:'hidden',background:'var(--surface-2)',boxShadow:ring(c),...dash(c)}}>
                       {seg(c.g,GRN)}{seg(c.t,RED)}{seg(c.e,STRIPE)}
                     </span>
                   </button>);
@@ -419,7 +421,9 @@ export function TabDashboard({
           </div>
           <div style={{display:'flex',gap,marginTop:'4px',...(wc?{gridColumn:'2 / -1'}:{})}}>
             {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, isSlip=c.idx===slipIdx&&!isCurr, on=!wc&&c.idx===pickIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:wc?'11.5px':'9.5px',fontWeight:isCurr||isSlip||on?900:800,color:isCurr||on?BRASS:isSlip?SLIP:'var(--quiet)'}}>{short(c)}{wc&&(isCurr||isSlip)
-              ? <span style={{display:'block',fontSize:'9px',fontWeight:800,color:isCurr?BRASS:SLIP,lineHeight:1.1,whiteSpace:'nowrap'}}>{isCurr?'OT period':'Payslip'}</span>
+              ? (isCurr
+                  ? <span style={{display:'block',fontSize:'9px',fontWeight:800,color:BRASS,lineHeight:1.1,whiteSpace:'nowrap'}}>OT period</span>
+                  : <span style={{display:'block',lineHeight:1}}><span style={{display:'inline-block',fontSize:'8.5px',fontWeight:800,color:'var(--surface)',background:SLIP,borderRadius:'4px',padding:'1px 5px',lineHeight:1.2,whiteSpace:'nowrap'}}>Payslip</span></span>)
               : wc&&c.future&&<span style={{display:'block',fontSize:'9px',fontWeight:700,color:'var(--quiet)',lineHeight:1.1}}>forecast</span>}</span>; })}
           </div>
           {wc&&ROWS.map(([l,f],ri)=><Fragment key={l}>
