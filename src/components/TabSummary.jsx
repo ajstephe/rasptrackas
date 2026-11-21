@@ -657,7 +657,8 @@ export function TabSummary({
         <button type="button" onClick={()=>setTab('add')} style={{display:'inline-flex',alignItems:'center',gap:'6px',background:BRASS,color:'#fff',border:'none',borderRadius:'11px',padding:'10px 18px',fontSize:'13.5px',fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}><Ico n="plus" s={14} c="#fff" w={2.6}/>Log overtime</button>
       </div>
     );
-    const shown = infos.filter(m => !(m.p.start>todayStr && isEmpty(m) && m.pE.length===0 && !m.carms && expanded!==m.p.month && m.idx!==currPeriodIdx));
+    // Every pay month is listed, empty ones included, so the whole year shows at a glance.
+    const shown = infos;
     const later = infos.filter(m => !shown.includes(m));
     // Newest first on phone and computer, so the current pay month sits at the top.
     const rows = [...shown].reverse();
@@ -765,7 +766,7 @@ export function TabSummary({
     };
 
     // Past months with nothing in them fold into one quiet line (tap to show).
-    const foldable = m => !showEmpty && isEmpty(m) && m.pE.length===0 && !m.carms && expanded!==m.p.month && m.idx!==currPeriodIdx;
+    const foldable = () => false;
     const blocks = [];
     rows.forEach(m => { const last=blocks[blocks.length-1]; if (foldable(m)) { if (last&&last.fold) last.ms.push(m); else blocks.push({fold:true, ms:[m]}); } else blocks.push({m}); });
     const foldLine = ms => { const oldest=ms[ms.length-1];
@@ -829,7 +830,7 @@ export function TabSummary({
           const views = [
             {id:'calendar', lbl:'Calendar', icon:'cal',   go:()=>{ setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }},
             {id:'compact',  lbl:'Shifts',   icon:'table', go:()=>{ setBreakdownView('compact'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }},
-            {id:'list',     lbl:'Months',   icon:'list',  go:()=>{ setBreakdownView('list'); snapToActiveMonth(); }},
+            {id:'list',     lbl:'Months',   icon:'list',  go:()=>{ setBreakdownView('list'); setExpanded(currPeriodIdx>=0?PAY_PERIODS[currPeriodIdx].month:null); snapToActiveMonth(); }},
             {id:'sheet',    lbl:'Old School', icon:'doc', go:()=>{ setBreakdownView('sheet'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); if(mainRef.current) mainRef.current.scrollTo({top:0,behavior:'auto'}); }},
           ];
           const current = views.find(v=>v.id===breakdownView) || views[0];
