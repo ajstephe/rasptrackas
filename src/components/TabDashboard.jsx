@@ -258,42 +258,23 @@ export function TabDashboard({
     </div>
   );
 
+  // Overtime and PA in this pay month's pay so far (claims submitted in
+  // time for it), laid out like the rows around it: what it is on the left,
+  // the take-home figure on the right. Planned shifts that would add to it
+  // show as their own chip, never part of the figure.
   const netHeroRow = (compact) => {
-    const prevPb = currPeriodIdx>0  ? totals.periodBreakdown[currPeriodIdx-1] : null;
     const exp = currPeriodIdx>=0 ? totals.expected?.[currPeriodIdx] : null;
-    const delta  = (pb&&prevPb) ? (pb.combinedNet - prevPb.combinedNet) : null;
-    const sparkFrom = Math.max(0, currPeriodIdx - 5);
-    const sparkVals = currPeriodIdx>=0 ? totals.periodBreakdown.slice(sparkFrom, currPeriodIdx+1).map(p=>p.combinedNet) : [];
-    const sparkMin = sparkVals.length ? Math.min(...sparkVals) : 0;
-    const sparkMax = sparkVals.length ? Math.max(...sparkVals) : 1;
-    const sparkRange = sparkMax - sparkMin || 1;
-    const W = compact ? 120 : 140, H = 26, PAD = 3;
-    const pts = sparkVals.map((v,i)=>{
-      const x = sparkVals.length>1 ? (i/(sparkVals.length-1))*W : W;
-      const y = PAD + (1 - (v-sparkMin)/sparkRange) * (H - PAD*2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    });
+    const month = totals.curr ? totals.curr.month.split(' ')[0] : null;
     return (
-      <div style={{padding:compact?'10px 0':'11px 0',borderBottom:'1px solid var(--border-2)'}}>
-        <div style={{display:'flex',alignItems:'center',gap:compact?'10px':'12px'}}>
-          <div style={{background:'var(--tint-green-2)',padding:compact?'8px':'9px',borderRadius:compact?'10px':'11px',flexShrink:0,alignSelf:'flex-start'}}><Ico n="cash" s={compact?16:17} c="#15803d"/></div>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'8px'}}>
-              <span style={{fontSize:compact?'12px':'12.5px',fontWeight:700,color:'var(--muted)'}}>{totals.curr ? `Net overtime in ${totals.curr.month.split(' ')[0]} pay${!compact && submitWindow(localDateStr())?.paidOn ? ` · paid ${submitWindow(localDateStr()).paidOn}` : ''}` : 'Net overtime this month'}</span>
-              <span style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'var(--quiet)',textAlign:'right',whiteSpace:'nowrap'}}>Gross {pb?fmtGBP(pb.combinedGross):'£0.00'}{exp&&exp.n>0&&<span style={{fontWeight:700,color:'var(--exp-ink)'}}> · +{fmtGBP(exp.gross)}</span>}</span>
-            </div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:compact?'10px':'12px',padding:compact?'10px 0':'11px 0',borderBottom:'1px solid var(--border-2)'}}>
+        <div style={{display:'flex',alignItems:'center',gap:compact?'10px':'12px',minWidth:0}}>
+          <div style={{background:'var(--tint-green-2)',padding:compact?'8px':'9px',borderRadius:compact?'10px':'11px',flexShrink:0}}><Ico n="cash" s={compact?16:17} c="#15803d"/></div>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:compact?'13px':'14px',fontWeight:800,color:'var(--ink)'}}>{month ? `Net overtime in ${month}` : 'Net overtime this month'}</div>
             <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:'4px 8px',marginTop:'1px'}}>
-              <span style={{fontFamily:MONO,fontSize:compact?'19px':'18px',fontWeight:700,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.2}}>{fmtGBP(animatedNet)}</span>
-              {/* Last month's figure to compare with (this month is still
-                  filling up); tapping it opens that pay month. */}
-              {delta!=null&&(
-                <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx-1); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10px',fontWeight:600,color:'var(--muted)',background:'var(--chip-bg)',padding:'2px 6px 2px 8px',borderRadius:'20px',border:'none',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
-                  <span>{PAY_PERIODS[currPeriodIdx-1]?.month.split(' ')[0] || 'Last month'} pay <span style={{fontFamily:MONO,fontWeight:700,color:'var(--ink)'}}>{fmtGBP(prevPb.combinedNet)}</span></span>
-                  <Ico n="cR" s={9} c="currentColor" w={2.5}/>
-                </button>
-              )}
+              <span style={{fontFamily:MONO,fontSize:compact?'10.5px':'11px',fontWeight:600,color:'var(--quiet)'}}>{pb?fmtGBP(pb.combinedGross):'£0.00'} gross</span>
               {/* What this month's planned shifts should add once worked and
-                  claimed — its own colour, never part of the figure. */}
+                  claimed: its own colour, never part of the figure. */}
               {exp&&exp.n>0&&(
                 <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('list'); setTab('months'); }} className="tap-row" style={{display:'inline-flex',alignItems:'center',gap:'4px',fontSize:'10.5px',fontWeight:800,color:'var(--exp-ink)',background:'var(--exp-tint)',border:'1px dashed color-mix(in srgb, var(--exp) 55%, transparent)',padding:'2px 8px',borderRadius:'20px',cursor:'pointer',fontFamily:'inherit',touchAction:'manipulation',whiteSpace:'nowrap'}}>
                   <span style={{fontFamily:MONO}}>+{fmtGBP(exp.net)}</span>{` planned · ${exp.n} shift${exp.n!==1?'s':''}`}
@@ -302,6 +283,7 @@ export function TabDashboard({
             </div>
           </div>
         </div>
+        <div style={{fontFamily:MONO,fontSize:compact?'14px':'15px',fontWeight:600,color:'var(--ink)',flexShrink:0}}>{fmtGBP(animatedNet)}</div>
       </div>
     );
   };
