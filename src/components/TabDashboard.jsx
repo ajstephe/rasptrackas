@@ -694,9 +694,9 @@ export function TabDashboard({
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
               <div>
-                <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Current pay month</div>
+                <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Current overtime period</div>
                 <div style={{display:'flex',alignItems:'baseline',gap:'8px',marginTop:'1px'}}>
-                  <span style={{fontSize:'18px',fontWeight:800,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.2}}>{payLabel(totals.curr.month)}</span>
+                  <span style={{fontSize:'18px',fontWeight:800,color:'var(--ink)',letterSpacing:'-0.01em',lineHeight:1.2}}>{totals.curr.month.split(' ')[0]}</span>
                   <span style={{fontSize:'12px',fontWeight:600,color:'var(--quiet)'}}>{shiftSpan(totals.curr.start,totals.curr.end)}</span>
                 </div>
               </div>
@@ -750,7 +750,7 @@ export function TabDashboard({
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
               <div style={{background:'var(--tint-teal)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={16} c="#0d9488"/></div>
               <div>
-                <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>{payLabel(totals.curr.month)}</div>
+                <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>{totals.curr.month.split(' ')[0]}</div>
                 <div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{shiftSpan(totals.curr.start,totals.curr.end)}</div>
               </div>
             </div>
