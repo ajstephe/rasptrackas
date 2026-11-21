@@ -102,18 +102,35 @@ export function TabSettings({
   // Computer: an item opens in place, under its row; the row then scrolls
   // to the top (just under the app's top bar) so the whole item reads from
   // its start.
-  const [slot, setSlot] = useState(null);
   const rowRefs = useRef({});
+  const firstKeyRef = useRef(null);
+  // Side by side (headings left, the open item right) only when there's
+  // room for both: a computer, foldable or tablet in desktop view that's
+  // narrower than this gets the phone's list-then-page instead.
+  const wrapRef = useRef(null);
+  const [wrapW, setWrapW] = useState(0);
   useEffect(()=>{
-    if (!isWide || !page) return;
-    const t = setTimeout(()=>rowRefs.current[page]?.scrollIntoView({ behavior:'smooth', block:'start' }), 60);
-    return () => clearTimeout(t);
-  },[page, isWide]);
+    const el = wrapRef.current; if (!el) return;
+    const m = () => setWrapW(el.getBoundingClientRect().width);
+    m(); const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(m) : null; ro?.observe(el);
+    return () => ro?.disconnect();
+  },[]);
+  const split = wrapW >= 660;
+  // Tight side by side (foldables, desktop view on a tablet): the list drops
+  // each row's value and subtitle, which the open item shows anyway.
+  const compact = split && wrapW < 820;
+  const paneRef = useRef(null);
+  useEffect(()=>{
+    if (!split || !page) return;
+    const el = paneRef.current; if (!el) return;
+    if (el.getBoundingClientRect().top < hdrH) window.scrollTo({ top: window.scrollY + el.getBoundingClientRect().top - hdrH - 10, behavior:'smooth' });
+  },[page, split]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Side by side always has something open on the right.
+  useEffect(()=>{ if (split && !page && firstKeyRef.current) setPage(firstKeyRef.current); },[split, page]); // eslint-disable-line react-hooks/exhaustive-deps
   // The app's top bar sits over the scrolling page, so the panel sticks just
   // below it (measured, as its height varies with the window).
   const [hdrH, setHdrH] = useState(76);
   useEffect(()=>{
-    if (!isWide) return;
     const h = document.querySelector('.app-header');
     if (!h) return;
     const measure = () => setHdrH(Math.round(h.getBoundingClientRect().bottom));
@@ -123,8 +140,8 @@ export function TabSettings({
     return () => { ro?.disconnect(); window.removeEventListener('resize', measure); };
   },[isWide]);
   // Phone: back (gesture or button) returns to the list.
-  useBackButtonCloses(!isWide && !!page, () => setPage(null));
-  useEscapeToClose(!isWide && !!page, () => setPage(null));
+  useBackButtonCloses(!split && !!page, () => setPage(null));
+  useEscapeToClose(!split && !!page, () => setPage(null));
   // Arriving from setup's "Yes, add them": open Monthly deductions and
   // bring it into view.
   const dedCardRef = useRef(null);
@@ -298,7 +315,9 @@ export function TabSettings({
     ]],
   ];
   const TITLES = Object.fromEntries(ROW_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]])));
-  const rowTap = key => key==='help' ? null : key==='privacy' ? ()=>setPrivacyNoticeOpen(true) : ()=>setPage(isWide && page===key ? null : key);
+  const rowTap = key => key==='help' ? null : key==='privacy' ? ()=>setPrivacyNoticeOpen(true) : ()=>setPage(key);
+  const firstKey = ROW_GROUPS[0]?.[1]?.[0]?.[0];
+  firstKeyRef.current = firstKey;
   const moreList = (
     <div>
       {ROW_GROUPS.map(([title, rows], gi)=>(
@@ -306,22 +325,21 @@ export function TabSettings({
           <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.07em',padding:gi?'14px 4px 6px':'2px 4px 6px'}}>{title}</div>
           <div style={{...S.card,padding:0,overflow:'hidden'}}>
             {rows.map(([key,label,icon,tint,col,value,sub],ri)=>{
-              const on = isWide && page===key;
+              const on = split && page===key;
               const inner = (<>
                 <div style={{background:tint,padding:'7px',borderRadius:'10px',display:'flex',flexShrink:0}}><Ico n={icon} s={16} c={col}/></div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:800,fontSize:'13.5px',color:'var(--ink)'}}>{label}</div>
-                  {sub&&<div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{sub}</div>}
+                  {sub&&!compact&&<div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{sub}</div>}
                 </div>
-                {value&&<span style={{fontSize:'12px',fontWeight:700,color:'var(--muted)',whiteSpace:'nowrap',maxWidth:'45%',overflow:'hidden',textOverflow:'ellipsis'}}>{value}</span>}
-                <span style={{display:'flex',transition:'transform 0.25s',transform:isWide&&key!=='help'&&key!=='privacy'?(on?'rotate(-90deg)':'rotate(90deg)'):'none'}}><Ico n="cR" s={14} c="var(--quiet)" w={2.4}/></span>
+                {value&&!compact&&<span style={{fontSize:'12px',fontWeight:700,color:'var(--muted)',whiteSpace:'nowrap',maxWidth:'45%',overflow:'hidden',textOverflow:'ellipsis'}}>{value}</span>}
+                <span style={{display:'flex',transition:'transform 0.25s',transform:'none',opacity:split&&!on?0.5:1}}><Ico n="cR" s={14} c="var(--quiet)" w={2.4}/></span>
               </>);
               const rowStyle = {display:'flex',alignItems:'center',gap:'11px',width:'100%',padding:'12px 14px',background:on?'var(--tint-brass)':'none',border:'none',borderTop:ri?'1px solid var(--border-2)':'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',textDecoration:'none',boxShadow:on?`inset 3px 0 0 ${BRASS}`:'none'};
               return key==='help'
                 ? <a key={key} href="mailto:ajstephe@me.com?subject=Overtime%20%26%20Shift%20Tracker%20—%20Feedback" className="tap-row" style={rowStyle}>{inner}</a>
                 : <Fragment key={key}>
-                    <button ref={el=>{ rowRefs.current[key]=el; }} type="button" onClick={rowTap(key)} aria-expanded={isWide?on:undefined} className="tap-row" style={{...rowStyle,scrollMarginTop:`${hdrH+10}px`}}>{inner}</button>
-                    {on && <div ref={setSlot} className="more-inline accordion-in" style={{padding:'4px 16px 16px',borderTop:'1px solid var(--border-2)'}}/>}
+                    <button ref={el=>{ rowRefs.current[key]=el; }} type="button" onClick={rowTap(key)} aria-current={on?'page':undefined} className="tap-row" style={{...rowStyle,scrollMarginTop:`${hdrH+10}px`}}>{inner}</button>
                   </Fragment>;
             })}
           </div>
@@ -329,12 +347,12 @@ export function TabSettings({
       ))}
     </div>
   );
-  const placeDetail = node => !isWide ? node : (slot ? createPortal(node, slot) : null);
+  const placeDetail = node => node;
   // Above an opened page: ‹ More (phone) and the page's name.
   const pageHeader = page && (
-    <div style={{marginBottom:'12px',...(isWide?{paddingTop:'22px'}:null)}}>
-      {!isWide&&<button type="button" onClick={()=>setPage(null)} style={{display:'inline-flex',alignItems:'center',gap:'4px',background:'none',border:'none',padding:'2px 0 8px',fontFamily:'inherit',fontSize:'14px',fontWeight:800,color:BRASS,cursor:'pointer'}}><Ico n="cL" s={15} c={BRASS} w={2.6}/>More</button>}
-      <div style={{fontSize:isWide?'17px':'19px',fontWeight:900,color:'var(--ink)',letterSpacing:'-0.3px'}}>{configSetupIncomplete && !TITLES[page] ? 'Rank & pay point' : TITLES[page]}</div>
+    <div style={{marginBottom:'12px'}}>
+      {!split&&<button type="button" onClick={()=>setPage(null)} style={{display:'inline-flex',alignItems:'center',gap:'4px',background:'none',border:'none',padding:'2px 0 8px',fontFamily:'inherit',fontSize:'14px',fontWeight:800,color:BRASS,cursor:'pointer'}}><Ico n="cL" s={15} c={BRASS} w={2.6}/>More</button>}
+      <div style={{fontSize:split?'18px':'19px',fontWeight:900,color:'var(--ink)',letterSpacing:'-0.3px'}}>{configSetupIncomplete && !TITLES[page] ? 'Rank & pay point' : TITLES[page]}</div>
     </div>
   );
 
@@ -345,8 +363,8 @@ export function TabSettings({
           to beat the themes that restyle every card (Insert Coin, Miami…),
           which otherwise left a square outline round it. */}
       <style>{`:root:root .more-inline.more-inline > div > div[style] { background: none !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; border-radius: 0 !important; }`}</style>
-      <div style={{display:(isWide||!page)?'flex':'none',alignItems:'center',justifyContent:'space-between',marginBottom:'16px',...(isWide?{maxWidth:'860px',marginLeft:'auto',marginRight:'auto'}:null)}}>
-        {(isWide||!page)&&<h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>More</h2>}
+      <div style={{display:(split||!page)?'flex':'none',alignItems:'center',justifyContent:'space-between',marginBottom:'16px',...(isWide?{maxWidth:split?'1120px':'860px',marginLeft:'auto',marginRight:'auto'}:null)}}>
+        {(split||!page)&&<h2 style={{fontSize:'19px',fontWeight:900,color:'var(--ink)',margin:0,letterSpacing:'-0.5px'}}>More</h2>}
         {savedBadge&&<div style={{display:'flex',alignItems:'center',gap:'5px',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'9px',padding:'4px 9px'}}><Ico n="check" s={12} c="#059669"/><span style={{fontSize:'11px',fontWeight:900,color:'var(--text-green-deep)'}}>Saved</span></div>}
         {/* Mobile-only — same low-key icon pill as the Home screen's
             sign-out button, duplicated here on the title line (right
@@ -370,7 +388,7 @@ export function TabSettings({
            both mobile and desktop now (it used to be split: folded
            into the Help & Suggestions box on mobile, and a separate
            card further down the grid on desktop). ── */}
-      {(isWide||!page)&&<div style={{...S.card,marginBottom:'12px',...(isWide?{maxWidth:'860px',marginLeft:'auto',marginRight:'auto',boxSizing:'border-box'}:null)}}>
+      {(split||!page)&&<div style={{...S.card,marginBottom:'12px',...(isWide?{maxWidth:split?'1120px':'860px',marginLeft:'auto',marginRight:'auto',boxSizing:'border-box'}:null)}}>
         <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
           {/* The cup lifts and tips to the right every few seconds, as if
               someone's taking a sip; the steam fades while it's tipped. */}
@@ -392,12 +410,12 @@ export function TabSettings({
            since a 2-up grid cell would leave it looking cramped next
            to a tall accordion. ── */}
 
-      <div style={isWide?{maxWidth:'860px',margin:'0 auto'}:undefined}>
-      {(isWide||!page)&&moreList}
-      {/* The opened item: its own page on a phone; on a computer, drawn
-          into the slot under its row (see moreList). */}
-      {page&&placeDetail(<div style={{minWidth:0}}>
-      {!isWide&&pageHeader}
+      <div ref={wrapRef} style={{...(isWide?{maxWidth:split?'1120px':'860px',margin:'0 auto'}:null),...(split?{display:'grid',gridTemplateColumns:compact?'220px minmax(0,1fr)':'minmax(250px,300px) minmax(0,1fr)',gap:isWide?'22px':'16px',alignItems:'start'}:null)}}>
+      {(split||!page)&&<div style={split?{position:'sticky',top:`${hdrH+10}px`,maxHeight:`calc(100vh - ${hdrH+24}px)`,overflowY:'auto',paddingBottom:'6px'}:undefined}>{moreList}</div>}
+      {/* The opened item: on the right when side by side, otherwise its
+          own page with ‹ More to go back. */}
+      {page&&placeDetail(<div ref={paneRef} key={split?page:undefined} className={split?'accordion-in':undefined} style={{minWidth:0}}>
+      {pageHeader}
       {page==='theme'&&<div style={{...S.card,padding:'13px 16px',marginBottom:'12px'}}>
         {/* The page title says Theme, so no header of its own here. */}
         <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginBottom:'10px'}}>Light, dark, or a different look entirely.</div>
@@ -1291,7 +1309,7 @@ export function TabSettings({
 
       </div>)}
       </div>
-      {(isWide||!page)&&<VersionLine/>}
+      {(split||!page)&&<VersionLine/>}
       {privacyNoticeOpen && <PrivacyNotice brass={BRASS} onClose={()=>setPrivacyNoticeOpen(false)}/>}
 
       {/* ── Backdrop for the desktop popup cards above — click
