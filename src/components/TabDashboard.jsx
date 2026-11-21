@@ -694,7 +694,7 @@ export function TabDashboard({
         {totals.curr&&(
           <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'11px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-              <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
+              <div style={{background:'var(--tint-teal)',padding:'9px',borderRadius:'11px',flexShrink:0}}><Ico n="cal" s={17} c="#0d9488"/></div>
               <div>
                 <div style={{fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>Current overtime period</div>
                 <div style={{display:'flex',alignItems:'baseline',gap:'8px',marginTop:'1px'}}>
@@ -750,7 +750,7 @@ export function TabDashboard({
         {totals.curr&&(
           <button onClick={()=>{ skipBreakdownReset.current=true; setBreakdownView('calendar'); setCalPeriodIdx(currPeriodIdx>=0?currPeriodIdx:0); setTab('months'); }} className="tap-row" style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',padding:'10px 0',cursor:'pointer',background:'none',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:'var(--border-2)',textAlign:'left',fontFamily:'inherit'}}>
             <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-              <div style={{background:'var(--tint-teal)',padding:'8px',borderRadius:'13px',flexShrink:0}}><Ico n="cal" s={16} c="#0d9488"/></div>
+              <div style={{background:'var(--tint-teal)',padding:'8px',borderRadius:'10px',flexShrink:0}}><Ico n="cal" s={16} c="#0d9488"/></div>
               <div>
                 <div style={{fontSize:'13px',fontWeight:800,color:'var(--ink)'}}>{totals.curr.month.split(' ')[0]}</div>
                 <div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{shiftSpan(totals.curr.start,totals.curr.end)}</div>
