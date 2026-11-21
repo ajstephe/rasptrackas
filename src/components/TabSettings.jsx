@@ -115,7 +115,8 @@ export function TabSettings({
     m(); const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(m) : null; ro?.observe(el);
     return () => ro?.disconnect();
   },[]);
-  const split = wrapW >= 660;
+  // 560 so an unfolded Z Fold (about 670px wide in the browser) gets it too.
+  const split = wrapW >= 560;
   // Tight side by side (foldables, desktop view on a tablet): the list drops
   // each row's value and subtitle, which the open item shows anyway.
   const compact = split && wrapW < 820;
@@ -410,7 +411,7 @@ export function TabSettings({
            since a 2-up grid cell would leave it looking cramped next
            to a tall accordion. ── */}
 
-      <div ref={wrapRef} style={{...(isWide?{maxWidth:split?'1120px':'860px',margin:'0 auto'}:null),...(split?{display:'grid',gridTemplateColumns:compact?'220px minmax(0,1fr)':'minmax(250px,300px) minmax(0,1fr)',gap:isWide?'22px':'16px',alignItems:'start'}:null)}}>
+      <div ref={wrapRef} style={{...(isWide?{maxWidth:split?'1120px':'860px',margin:'0 auto'}:null),...(split?{display:'grid',gridTemplateColumns:compact?`${wrapW<680?190:220}px minmax(0,1fr)`:'minmax(250px,300px) minmax(0,1fr)',gap:isWide?'22px':'16px',alignItems:'start'}:null)}}>
       {(split||!page)&&<div style={split?{position:'sticky',top:`${hdrH+10}px`,maxHeight:`calc(100vh - ${hdrH+24}px)`,overflowY:'auto',paddingBottom:'6px'}:undefined}>{moreList}</div>}
       {/* The opened item: on the right when side by side, otherwise its
           own page with ‹ More to go back. */}
