@@ -423,8 +423,8 @@ export function TabDashboard({
             {cols.map(c=>{ const isCurr=c.idx===currPeriodIdx, isSlip=c.idx===slipIdx&&!isCurr, on=!wc&&c.idx===pickIdx; return <span key={c.p.month} style={{flex:'1 1 0',minWidth:0,textAlign:'center',fontSize:wc?'11.5px':'9.5px',fontWeight:isCurr||isSlip||on?900:800,color:isCurr||on?BRASS:isSlip?SLIP:'var(--quiet)'}}>{short(c)}{wc&&(isCurr||isSlip)
               ? (isCurr
                   ? <span style={{display:'block',fontSize:'9px',fontWeight:800,color:BRASS,lineHeight:1.1,whiteSpace:'nowrap'}}>OT period</span>
-                  : <span style={{display:'block',lineHeight:1}}><span style={{display:'inline-block',fontSize:'8.5px',fontWeight:800,color:'var(--surface)',background:SLIP,borderRadius:'4px',padding:'1px 5px',lineHeight:1.2,whiteSpace:'nowrap'}}>Payslip</span></span>)
-              : wc&&c.future&&<span style={{display:'block',fontSize:'9px',fontWeight:700,color:'var(--quiet)',lineHeight:1.1}}>forecast</span>}</span>; })}
+                  : <span style={{display:'block',lineHeight:1}}><span style={{display:'inline-block',fontSize:'8.5px',fontWeight:800,color:'var(--surface)',background:SLIP,borderRadius:'4px',padding:'1px 5px',lineHeight:1.2,whiteSpace:'nowrap'}}>Now</span></span>)
+              : null}</span>; })}
           </div>
           {wc&&ROWS.map(([l,f],ri)=><Fragment key={l}>
             <span style={{...lbl,...stick,whiteSpace:'nowrap',alignSelf:'stretch',display:'flex',alignItems:'center',padding:'2px 0',borderTop:ri===2?'1px solid var(--border)':ri===0?'1px solid var(--border-2)':'none',marginTop:ri===0?'6px':0,paddingTop:ri===0||ri===2?'4px':'2px',color:ri>=2?'var(--ink)':'var(--quiet)'}}>{l}</span>
