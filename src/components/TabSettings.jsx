@@ -736,12 +736,12 @@ export function TabSettings({
               <span style={{display:'flex',flexShrink:0,marginTop:'1px'}}><Ico n="check" s={14} c="#059669" w={2.6}/></span>
               <span style={{fontSize:'12px',color:'var(--text-green-deep)',lineHeight:1.45,fontWeight:600}}>Your pension, income tax (PAYE) and National Insurance are worked out and taken off automatically, so there's no need to add them here.</span>
             </div>
-            {list.length>0&&<div style={{display:'grid',gridTemplateColumns:isWide?'repeat(2,minmax(0,1fr))':'minmax(0,1fr)',gap:'8px',alignItems:'start'}}>
+            {list.length>0&&<div style={{display:'grid',gridTemplateColumns:isWide&&!compact?'repeat(2,minmax(0,1fr))':'minmax(0,1fr)',gap:'8px',alignItems:'start'}}>
               {list.map(d=>(
                 <div key={d.id} style={{background:'var(--surface-2)',borderRadius:'12px',padding:'10px'}}>
                   <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
                     <input aria-label="Deduction name" value={d.name} placeholder="Name, e.g. Police Federation" onChange={e=>upd(d.id,{name:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'9px 11px',fontSize:'16px'}}/>
-                    <div style={{position:'relative',flex:isWide?'0 0 86px':'0 0 104px'}}>
+                    <div style={{position:'relative',flex:isWide&&!compact?'0 0 86px':'0 0 104px'}}>
                       <span style={{position:'absolute',left:'10px',top:'50%',transform:'translateY(-50%)',fontWeight:800,color:'var(--quiet)',fontSize:'14px'}}>£</span>
                       <input aria-label={`${d.name||'Deduction'} monthly amount`} inputMode="decimal" value={d.amount} placeholder="0.00" onChange={e=>{ const v=e.target.value.replace(/[^0-9.]/g,''); if (/^\d{0,6}(\.\d{0,2})?$/.test(v)) upd(d.id,{amount:v}); }} style={{...S.inp,background:'var(--surface)',padding:'9px 10px 9px 22px',fontSize:'16px',textAlign:'right'}}/>
                     </div>
@@ -1094,7 +1094,7 @@ export function TabSettings({
         );
       })()}
 
-      {page==='payslips'&&settings.rank&&settings.service&&<ExpectedPayslips alwaysOpen payYear={payYear} settings={settings} saveSett={saveSett} currPeriodIdx={currPeriodIdx} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide}/>}
+      {page==='payslips'&&settings.rank&&settings.service&&<ExpectedPayslips alwaysOpen payYear={payYear} settings={settings} saveSett={saveSett} currPeriodIdx={currPeriodIdx} S={S} MONO={MONO} BRASS={BRASS} isWide={isWide && !compact}/>}
 
 
       {/* ── Financial Years — generated calendar, every past year with data is browsable ── */}
