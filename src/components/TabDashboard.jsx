@@ -444,15 +444,12 @@ export function TabDashboard({
               <button type="button" onClick={()=>openSummary(pick.p.month)} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'3px'}}>Details<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>
             </div>
             {line('Salary & allowances',pick.sal,false,'var(--muted)')}
-            {pick.g>0.005&&line('Overtime submitted',pick.g,false,'var(--text-green-deep)')}
-            {pick.t>0.005&&line('Overtime to submit',pick.t,false,'var(--text-red-deep)')}
-            {pick.e>0.005&&line('Overtime planned',pick.e,false,'var(--exp-ink)')}
-            {pick.ot<=0.005&&line('Overtime & PA',0,false,'var(--quiet)')}
+            {/* Same rows as the desktop table. */}
+            {line('Overtime & PA',pick.ot,false,pick.ot>0.005?'var(--ink)':'var(--quiet)')}
             {line('Total gross',pick.gross,true,'var(--ink)')}
             {pick.ded>0.005&&line('Total net',pick.takeHome+pick.ded,false,'var(--ink)')}
-            {pick.ded>0.005&&line('Less deductions',pick.ded,false,'var(--text-red-deep)')}
             {line(pick.ded>0.005?'Net inc deductions':'Take-home',pick.takeHome,false,'var(--text-green-deep)')}
-            <button type="button" onClick={()=>setPayslipAt(pick.idx)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',width:'100%',marginTop:'8px',marginBottom:'2px',padding:'9px',border:'none',borderRadius:'10px',background:'var(--tint-brass)',color:BRASS,fontFamily:'inherit',fontSize:'13px',fontWeight:900,cursor:'pointer'}}><Ico n="cash" s={15} c={BRASS}/>View expected payslip<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>
+            <button type="button" onClick={()=>setPayslipAt(pick.idx)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',width:'100%',marginTop:'8px',marginBottom:'2px',padding:'9px',border:'none',borderRadius:'10px',background:'var(--tint-brass)',color:BRASS,fontFamily:'inherit',fontSize:'13px',fontWeight:900,cursor:'pointer'}}><Ico n="cash" s={15} c={BRASS}/>View payslip<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>
           </div>
         )}
         {!wc&&<div style={{fontSize:'10.5px',fontWeight:600,color:'var(--quiet)',marginTop:'5px',textAlign:'center'}}>Tap a month for its pay · hollow dots = not paid yet</div>}
