@@ -440,6 +440,9 @@ const friendlyAuthError = (err) => {
 const PASSWORD_KDF_ITERATIONS = 210000; // used every sign-in, cost stays invisible
 const RECOVERY_KDF_ITERATIONS = 600000; // used maybe once ever, so it can afford to be slower
 
+// How long the Undo on a restored backup stays live; a sync runs once it closes.
+const RESTORE_UNDO_MS = 12000;
+
 
 // ─── auth screens ───────────────────────────────────────────────────────────
 // Phase 1 scope: sign in, sign up, forgot-password request, and the
@@ -4054,8 +4057,19 @@ export default function App() {
     addToast(msg, 'undo', { label:'Undo', fn:()=>{
       setEntries(before.entries); setToilTaken(before.toilTaken); if (before.settings) setSettings(before.settings);
       addToast('Your data is back as it was');
-    } }, 12000);
+    } }, RESTORE_UNDO_MS);
+    // Once the Undo window has closed, run a full sync so the cloud and
+    // other devices pick up whichever version stuck (the restore, or what
+    // was here if Undo was tapped). Reads through refs so it acts on the
+    // data as it is when the timer fires, not as it was at restore time.
+    clearTimeout(restoreSyncTimerRef.current);
+    restoreSyncTimerRef.current = setTimeout(() => {
+      restoreSyncTimerRef.current = null;
+      if (sessionRef.current && !manualSyncingRef.current) handleManualSyncRef.current();
+    }, RESTORE_UNDO_MS + 250);
   };
+  const restoreSyncTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(restoreSyncTimerRef.current), []);
 
   // Clears local data as before, and — new — the same user's rows in
   // Supabase, when there's an active session. Deliberately does NOT delete
