@@ -220,8 +220,8 @@ export function TabDashboard({
         {(()=>{
           const hasPay = !!(settings.rank&&settings.service);
           const due = hasPay ? (totals.onItsWayGross||0) : 0;
-          // Nothing submitted and waiting for a payday: one figure, as before.
-          if (due < 0.005) return (
+          // Not set up yet: no figures to show.
+          if (!hasPay) return (
             <div style={{fontFamily:MONO,fontSize:compact?'24px':'26px',fontWeight:600,color:'#fff',letterSpacing:'-0.5px',lineHeight:1.15,marginBottom:'4px'}}>
               {hasPay ? fmtGBP(animatedGrossYTD) : '—'}
             </div>
@@ -242,7 +242,9 @@ export function TabDashboard({
               <div style={{borderLeft:'1px solid rgba(255,255,255,0.18)',paddingLeft:compact?'14px':'26px'}}>
                 <div style={{...lbl,color:'var(--hero-label,#93c5fd)'}}>Paid to date + submitted</div>
                 <div style={{...fig,color:'#fde68a'}}>{fmtGBP(animatedGrossYTD + due)}</div>
-                <div style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'#fbbf24',opacity:0.85,marginTop:'3px'}}>+{fmtGBP(due)} due {paydays.length>1?`${paydays[0]} – ${paydays[paydays.length-1]}`:paydays[0]||''}</div>
+                {/* Both figures always show; with nothing waiting for a payday
+                    they match, and the line under says so. */}
+                <div style={{fontFamily:MONO,fontSize:compact?'10px':'10.5px',fontWeight:600,color:'#fbbf24',opacity:0.85,marginTop:'3px'}}>{due>=0.005 ? `+${fmtGBP(due)} due ${paydays.length>1?`${paydays[0]} – ${paydays[paydays.length-1]}`:paydays[0]||''}` : 'Nothing waiting for a payday'}</div>
               </div>
             </div>
           );
