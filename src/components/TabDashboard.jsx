@@ -364,7 +364,7 @@ export function TabDashboard({
       ...(anyDed ? [['Total net', c=>cell(c.takeHome+c.ded,'var(--ink)',700)]] : []),
       [anyDed?'Net take-home':'Take-home', c=>cell(c.takeHome,'var(--text-green-deep)',800)],
       // Each month's expected payslip, in a pop-up over Home.
-      ['Payslip (expected)', c=><button type="button" onClick={()=>setPayslipAt(c.idx)} aria-label={`View ${payLabel(c.p.month)} expected payslip`} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'11.5px',fontWeight:800,color:BRASS,cursor:'pointer'}}>View</button>],
+      ['View payslip', c=><button type="button" onClick={()=>setPayslipAt(c.idx)} aria-label={`View ${payLabel(c.p.month)} expected payslip`} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'11.5px',fontWeight:800,color:BRASS,cursor:'pointer'}}>View</button>],
     ];
     // Narrow: as many months as fit fill the visible width; the rest scroll sideways.
     const gridCols = narrow && ovFit<12 ? `152px repeat(12, calc((100cqw - 152px - ${ovFit*8}px) / ${ovFit}))` : `152px repeat(${cols.length},minmax(0,1fr))`;
