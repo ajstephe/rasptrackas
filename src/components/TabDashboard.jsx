@@ -251,7 +251,7 @@ export function TabDashboard({
             P45's pay (More › Config), split out here. */}
         {totals.prevForcePay>0.005 && (
           <div style={{fontFamily:MONO,fontSize:compact?'10.5px':'11.5px',fontWeight:600,color:'#cbd5e1',marginTop:'4px'}}>
-            {fmtGBP(totals.combinedGrossYTD - totals.prevForcePay)} here · {fmtGBP(totals.prevForcePay)} previous force (P45)
+            {fmtGBP(totals.combinedGrossYTD - totals.prevForcePay)} Met · {fmtGBP(totals.prevForcePay)} previous force (P45)
           </div>
         )}
       </div>
