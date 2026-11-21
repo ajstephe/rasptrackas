@@ -91,7 +91,7 @@
     <div><span>Summary</span><span>6</span></div>
     <div><span>Awaits Submission and TOIL</span><span>7</span></div>
     <div><span>Monthly deductions and More</span><span>8</span></div>
-    <div><span>Tax &amp; £100k+ calculator</span><span>9</span></div>
+    <div><span>Tax &amp; £100k calculator</span><span>9</span></div>
     <div><span>PDF pay statement</span><span>10</span></div>
     <div><span>Sync, updates and privacy</span><span>11</span></div>
   </div>
@@ -105,12 +105,13 @@
   <div class="screen"><img src="shots/desktop/home.png" alt=""></div>
   <div class="row">
     <div>
-      <p>On a computer the menu sits down the left: <b>Home</b>, <b>Log Overtime</b>, <b>Summary</b>, <b>Awaits Submission</b> (with a count of claims still to submit), <b>TOIL</b> and <b>More..</b>, with the date and your theme underneath. On a phone the same menu runs along the bottom.</p>
+      <p>On a computer the menu sits down the left: <b>Home</b>, <b>Log Overtime</b>, <b>Summary</b>, <b>Awaits Submission</b> (with a count of claims still to submit), <b>TOIL</b> and <b>More</b>, with the date and your theme underneath. On a phone the same menu runs along the bottom.</p>
       <table>
-        <tr><td>Gross pay this tax year</td><td>Paid to date, and with overtime you've submitted but haven't been paid for yet.</td></tr>
-        <tr><td>Current pay month</td><td>This month's <b>net take-home</b>, after tax, NI, pension and your deductions. Click it for the full breakdown.</td></tr>
-        <tr><td>Net overtime this month</td><td>This month's overtime after tax, with last month alongside.</td></tr>
+        <tr><td>Gross pay this tax year</td><td>Paid to date, and with overtime you've submitted but haven't been paid for yet. With a P45 from another force it splits into <b>£x Met</b> and <b>£y previous force</b>.</td></tr>
+        <tr><td>Current overtime period</td><td>The pay month your shifts are going into now, its shift dates, and its <b>net take-home</b> after tax, NI, pension and your deductions.</td></tr>
+        <tr><td>Net overtime</td><td>That month's overtime after tax, with the gross underneath.</td></tr>
         <tr><td>TOIL balance</td><td>Hours banked and not yet taken.</td></tr>
+        <tr><td>Overtime &amp; PA to submit</td><td>What's still to go on CARMS and PSOP, and the date to submit by.</td></tr>
       </table>
     </div>
     <div><div class="phone"><img src="shots/phone/home.png" alt=""></div><div class="phone-cap">Home on a phone</div></div>
@@ -126,8 +127,8 @@
   <div class="row">
     <div>
       <h2>Overview <span class="new">NEW</span></h2>
-      <p>A column for every pay month: <b>green</b> submitted, <b>red</b> still to submit, <b>striped</b> planned. The line is your overtime take-home. Underneath, each month's salary and allowances, overtime and PA, total gross, total net and <b>net take-home</b>. Months still to come are marked forecast.</p>
-      <p><b>Click a month</b> to open it in <b>Summary</b>, in whichever view you've starred as your default. On a phone, tap a month to see its figures, then <b>Details</b>.</p>
+      <p>A column for every pay month: <b>green</b> submitted, <b>red</b> still to submit, <b>striped</b> planned. The line is your overtime take-home. This month is tagged <b>Now</b>. Underneath, each month's salary and allowances, overtime and PA, <b>total gross</b>, <b>total net</b>, <b>net inc deductions</b> (what reaches your bank) and a <b>View</b> link to that month's expected payslip.</p>
+      <p><b>Click a month</b> to open it in <b>Summary</b>, in whichever view you've starred as your default. On a phone, tap a month to see the same rows, then <b>View payslip</b>.</p>
       <h2>Salary breakdown &amp; forecast</h2>
       <p>The year to date, gross and net: base salary, London Weighting, London Allowance, overtime and Protection Allowance. Gauges show your gross pay so far and forecast for the year against the tax bands.</p>
     </div>
@@ -168,7 +169,7 @@
       <table>
         <tr><td>Calendar</td><td>The month's shift dates as a calendar. Click a day to see its shifts or log one; the key underneath explains the colours.</td></tr>
         <tr><td>Shifts</td><td>A compact list of the month's shifts with their gross and net.</td></tr>
-        <tr><td>Months</td><td>Every pay month in the year, each opening to its overtime, PA and shifts.</td></tr>
+        <tr><td>Months</td><td>Every pay month in the year, with the current overtime period already open. Click any other month to see its overtime, PA and shifts.</td></tr>
         <tr><td>Old School</td><td>The month laid out like the paper overtime sheet.</td></tr>
       </table>
       <p>Click the <b>★</b> on a view to make it your default: Summary always opens on it, and so do links from Home.</p>
@@ -199,34 +200,34 @@
 
 <!-- 8 · Deductions & More -->
 <section class="page">
-  <div class="kicker">More..</div>
+  <div class="kicker">More</div>
   <h1>Monthly deductions and settings</h1>
   <div class="screen"><img src="shots/desktop/deductions.png" alt=""></div>
   <div class="row">
     <div>
       <h2>Monthly deductions <span class="new">NEW</span></h2>
-      <p>On a computer each card in <b>More..</b> opens as a pop-up. Deductions are anything taken off your payslip each month, so the <b>net take-home</b> matches your bank.</p>
+      <p>On a computer, and on a foldable opened out, <b>More</b> lists its headings on the left and opens the one you pick on the right. On a phone, tap a heading to open it and <b>‹ More</b> to go back. Deductions are anything taken off your payslip each month, so <b>net inc deductions</b> matches your bank.</p>
       <ul>
         <li>Add a preset, or <b>+ Add your own</b> and name it.</li>
         <li><b>After tax</b> for most things; <b>Before tax &amp; NI</b> for salary sacrifice, which also lowers your tax and NI.</li>
         <li>Click a month to <b>skip</b> it, and <b>+ Change the amount from a month</b> when it changes.</li>
-        <li><b>Save</b> closes the card and keeps you on More.</li>
       </ul>
       <table>
-        <tr><td>Config, rates &amp; pay scales</td><td>Rank, pay point, rates, and pay point changes with their start date.</td></tr>
+        <tr><td>Rank &amp; pay point</td><td>Your rank, pay point, and pay point changes with their start date.</td></tr>
+        <tr><td>Tax code · Year to date &amp; P45</td><td>Your tax code, and your payslip's year-to-date figures or a P45 from another force.</td></tr>
+        <tr><td>Expected payslips</td><td>Each month laid out like your payslip: payments, deductions and net pay.</td></tr>
         <tr><td>Bulk input overtime</td><td>Overtime already paid this tax year, as one figure.</td></tr>
-        <tr><td>Themes</td><td>The theme you pick follows you to every signed-in device.</td></tr>
         <tr><td>Account &amp; data</td><td>Sign in or out, back up, restore or wipe your data.</td></tr>
       </table>
     </div>
-    <div><div class="phone"><img src="shots/phone/deductions.png" alt=""></div><div class="phone-cap">On a phone the card opens in place</div></div>
+    <div><div class="phone"><img src="shots/phone/deductions.png" alt=""></div><div class="phone-cap">On a phone each heading opens as its own page</div></div>
   </div>
   <div class="foot"><span>Overtime &amp; Shift Tracker · User guide</span><span>8</span></div>
 </section>
 
 <!-- 9 · Tax & 100k -->
 <section class="page">
-  <div class="kicker">More.. · Tax &amp; £100k+ calculator</div>
+  <div class="kicker">More · Tax &amp; £100k calculator</div>
   <h1>Your tax band and the £100k taper</h1>
   <div class="screen"><img src="shots/desktop/taxcalc.png" alt=""></div>
   <div class="row">
@@ -247,7 +248,7 @@
 
 <!-- 10 · PDF statement -->
 <section class="page">
-  <div class="kicker">More.. · Reports &amp; export</div>
+  <div class="kicker">More · Reports &amp; export</div>
   <h1>A pay statement for your accountant <span class="new">NEW</span></h1>
   <div class="screen crop"><img src="shots/desktop/statement.png" alt="" style="height:84mm"></div>
   <div class="two" style="margin-top:5mm">
@@ -281,12 +282,12 @@
   <h2>Your data</h2>
   <ul>
     <li><b>Encrypted end to end.</b> Shifts and settings are encrypted on your device with a key only your password or recovery word can unlock. Nobody else, including the app's developer, can read them.</li>
-    <li><b>Back up</b> from More › Account &amp; data whenever you like, and <b>restore</b> from a backup file the same way.</li>
+    <li><b>Back up</b> from More › Account &amp; data whenever you like, and <b>restore</b> from a backup file the same way. After a restore you get a few seconds to <b>Undo</b>, then it syncs to your other devices.</li>
     <li>Three pay years are kept in the cloud; older years stay on your device and in your backups.</li>
   </ul>
   <h2>Quick answers</h2>
   <table>
-    <tr><td>My take-home doesn't match</td><td>Check your monthly deductions and pay point. Tax is worked out on code 1257L; a different code on your payslip will change it.</td></tr>
+    <tr><td>My take-home doesn't match</td><td>Check your monthly deductions, pay point and <b>Tax code</b> in More against your payslip.</td></tr>
     <tr><td>Overtime is in the wrong month</td><td>Overtime is paid in the pay month you submit it, not when you worked it. Check the submitted date on the shift.</td></tr>
     <tr><td>A theme or setting isn't syncing</td><td>Update both devices (the update prompt, or close and reopen the app) and check they're signed into the same account.</td></tr>
     <tr><td>Forgot my password</td><td><b>Forgot password</b> on the sign-in screen, then your recovery word to unlock your data.</td></tr>
