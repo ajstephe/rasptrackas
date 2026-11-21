@@ -362,7 +362,7 @@ export function TabDashboard({
       // Pay after tax, NI and pension, before the person's own deductions;
       // only worth its own row once there are deductions to separate it from.
       ...(anyDed ? [['Total net', c=>cell(c.takeHome+c.ded,'var(--ink)',700)]] : []),
-      [anyDed?'Net take-home':'Take-home', c=>cell(c.takeHome,'var(--text-green-deep)',800)],
+      [anyDed?'Net inc deductions':'Take-home', c=>cell(c.takeHome,'var(--text-green-deep)',800)],
       // Each month's expected payslip, in a pop-up over Home.
       ['Payslip', c=><button type="button" onClick={()=>setPayslipAt(c.idx)} aria-label={`View ${payLabel(c.p.month)} expected payslip`} style={{background:'none',border:'none',padding:0,fontFamily:'inherit',fontSize:'11.5px',fontWeight:800,color:BRASS,cursor:'pointer'}}>View</button>],
     ];
@@ -451,7 +451,7 @@ export function TabDashboard({
             {line('Total gross',pick.gross,true,'var(--ink)')}
             {pick.ded>0.005&&line('Total net',pick.takeHome+pick.ded,false,'var(--ink)')}
             {pick.ded>0.005&&line('Less deductions',pick.ded,false,'var(--text-red-deep)')}
-            {line(pick.ded>0.005?'Net take-home':'Take-home',pick.takeHome,false,'var(--text-green-deep)')}
+            {line(pick.ded>0.005?'Net inc deductions':'Take-home',pick.takeHome,false,'var(--text-green-deep)')}
             <button type="button" onClick={()=>setPayslipAt(pick.idx)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',width:'100%',marginTop:'8px',marginBottom:'2px',padding:'9px',border:'none',borderRadius:'10px',background:'var(--tint-brass)',color:BRASS,fontFamily:'inherit',fontSize:'13px',fontWeight:900,cursor:'pointer'}}><Ico n="cash" s={15} c={BRASS}/>View expected payslip<Ico n="cR" s={12} c={BRASS} w={2.5}/></button>
           </div>
         )}
