@@ -515,7 +515,11 @@
       .festive-scene,.festive-quip{display:none}
       /* Festive: a reindeer crawling through an air vent across the Gross pay banner. */
       .festive-vent,.vent-quip{display:none}
-      :root[data-theme="festive"] .festive-vent{display:block;animation:ventFade 18s infinite;position:absolute;right:2px;bottom:4px;width:108px;height:33px;overflow:visible;pointer-events:none;z-index:0;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.35))}
+      :root[data-theme="festive"]{--vw:min(calc(100cqw + 8px),440px)}
+      :root[data-theme="festive"] div:has(> .festive-vent){container-type:inline-size}
+      /* Phones: the duct gets its own strip under the figures, full width. */
+      :root[data-theme="festive"] div:has(> .festive-vent:not(.wide)){padding-bottom:calc(var(--vw) * .3 + 10px) !important}
+      :root[data-theme="festive"] .festive-vent{display:block;animation:ventFade 18s infinite;position:absolute;left:12px;bottom:6px;width:var(--vw);height:calc(var(--vw) * .3077);overflow:visible;pointer-events:none;z-index:0;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.35))}
       :root[data-theme="festive"] .festive-vent.wide{right:auto;left:calc(50% - 40px);bottom:6px;width:300px;height:92px}
       :root[data-theme="festive"] .vent-deer{animation:ventCrawl 18s linear infinite}
       :root[data-theme="festive"] .vent-bob{animation:ventBob 18s linear infinite}
@@ -527,17 +531,30 @@
       :root[data-theme="festive"] .vent-pool{transform-box:fill-box;transform-origin:50% 50%;animation:ventPool .3s ease-in-out infinite alternate}
       :root[data-theme="festive"] .vent-duct{animation:ventRattle 18s infinite}
       :root[data-theme="festive"] .vent-bonk{opacity:0;animation:ventBonk 18s infinite}
-      :root[data-theme="festive"] .vent-quip{display:block;position:absolute;z-index:2;white-space:nowrap;padding:5px 8px;border-radius:11px;background:#fffdf6;color:#3a1a12;font:800 8.5px/1.25 var(--app-font);text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:none;opacity:0;bottom:32px;transform-origin:calc(100% - 12px) 100%}
-      :root[data-theme="festive"] .vent-quip.l1{right:63px;animation:ventQuip 18s infinite}
-      :root[data-theme="festive"] .vent-quip.l2{right:38px;animation:ventQuip2 18s infinite}
-      :root[data-theme="festive"] .vent-quip.l3{right:13px;animation:ventQuip3 18s infinite}
+      :root[data-theme="festive"] .vent-quip{display:block;position:absolute;z-index:2;white-space:nowrap;padding:5px 8px;border-radius:11px;background:#fffdf6;color:#3a1a12;font:800 10.5px/1.25 var(--app-font);text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:none;opacity:0;bottom:calc(var(--vw) * .246 + 2px);transform-origin:14px 100%}
+      :root[data-theme="festive"] .vent-quip.l1{left:calc(12px + var(--vw) * .315 - 14px);animation:ventQuip 18s infinite}
+      :root[data-theme="festive"] .vent-quip.l2{left:calc(12px + var(--vw) * .546 - 14px);animation:ventQuip2 18s infinite}
+      :root[data-theme="festive"] .vent-quip.l3{left:auto;right:calc(100% - 12px - var(--vw) * .777 - 14px);animation:ventQuip3 18s infinite}
       :root[data-theme="festive"] .vent-quip em{font-style:italic;font-weight:900;color:#b3121f}
-      :root[data-theme="festive"] .vent-quip::after{content:'';position:absolute;right:10px;bottom:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#fffdf6}
+      :root[data-theme="festive"] .vent-quip::after{content:'';position:absolute;left:10px;bottom:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#fffdf6}
+      :root[data-theme="festive"] .vent-quip.l3:not(.wide)::after{left:auto;right:10px}
+      :root[data-theme="festive"] .vent-quip.l3:not(.wide){transform-origin:calc(100% - 14px) 100%}
       :root[data-theme="festive"] .vent-quip.wide{right:auto;bottom:72px;font-size:11.5px;padding:6px 10px;transform-origin:14px 100%}
       :root[data-theme="festive"] .vent-quip.wide.l1{left:calc(50% - 40px + 80px)}
       :root[data-theme="festive"] .vent-quip.wide.l2{left:calc(50% - 40px + 150px)}
-      :root[data-theme="festive"] .vent-quip.wide.l3{left:calc(50% - 40px + 219px)}
+      :root[data-theme="festive"] .vent-quip.wide.l3{left:calc(50% - 40px + 219px);right:auto}
       :root[data-theme="festive"] .vent-quip.wide::after{right:auto;left:10px}
+      /* Narrower computer-style banners (unfolded phones, small tablets): the strip under the figures too. */
+      @media (max-width:1100px){
+        :root[data-theme="festive"] .festive-vent.wide,:root[data-theme="festive"] .vent-quip.wide{--vw:min(calc(100cqw + 28px),440px)}
+        :root[data-theme="festive"] div:has(> .festive-vent.wide){padding-bottom:calc(var(--vw) * .3 + 10px) !important}
+        :root[data-theme="festive"] .festive-vent.wide{left:12px;right:auto;bottom:6px;width:var(--vw);height:calc(var(--vw) * .3077)}
+        :root[data-theme="festive"] .vent-quip.wide{bottom:calc(var(--vw) * .246 + 2px);font-size:10.5px;padding:5px 8px}
+        :root[data-theme="festive"] .vent-quip.wide.l1{left:calc(12px + var(--vw) * .315 - 14px)}
+        :root[data-theme="festive"] .vent-quip.wide.l2{left:calc(12px + var(--vw) * .546 - 14px)}
+        :root[data-theme="festive"] .vent-quip.wide.l3{left:auto;right:calc(100% - 12px - var(--vw) * .777 - 14px);transform-origin:calc(100% - 14px) 100%}
+        :root[data-theme="festive"] .vent-quip.wide.l3::after{left:auto;right:10px}
+      }
       @keyframes ventCrawl{0%{transform:translateX(-70px)}12%,24%{transform:translateX(30px)}32%,44%{transform:translateX(90px)}52%,64%{transform:translateX(150px)}80%,100%{transform:translateX(250px)}}
       @keyframes ventBob{0%{transform:translateY(0)}1.95%{transform:translateY(-1.4px)}3.9%{transform:translateY(0)}5.85%{transform:translateY(-1.4px)}7.8%{transform:translateY(0)}9.75%{transform:translateY(-1.4px)}11.7%{transform:translateY(0)}12%{transform:translateY(0)}23.5%{transform:translateY(0)}24%{transform:translateY(0)}25.95%{transform:translateY(-1.4px)}27.9%{transform:translateY(0)}29.85%{transform:translateY(-1.4px)}31.8%{transform:translateY(0)}32%{transform:translateY(0)}43.5%{transform:translateY(0)}44%{transform:translateY(0)}45.95%{transform:translateY(-1.4px)}47.9%{transform:translateY(0)}49.85%{transform:translateY(-1.4px)}51.8%{transform:translateY(0)}52%{transform:translateY(0)}63.5%{transform:translateY(0)}64%{transform:translateY(0)}65.95%{transform:translateY(-1.4px)}67.9%{transform:translateY(0)}69.85%{transform:translateY(-1.4px)}71.8%{transform:translateY(0)}73.75%{transform:translateY(-1.4px)}75.7%{transform:translateY(0)}77.65%{transform:translateY(-1.4px)}79.6%{transform:translateY(0)}80%,100%{transform:translateY(0)}}
       @keyframes ventLegB{0%{transform:rotate(12deg)}1.95%{transform:rotate(-14deg)}3.9%{transform:rotate(12deg)}5.85%{transform:rotate(-14deg)}7.8%{transform:rotate(12deg)}9.75%{transform:rotate(-14deg)}11.7%{transform:rotate(12deg)}12%{transform:rotate(0deg)}23.5%{transform:rotate(0deg)}24%{transform:rotate(12deg)}25.95%{transform:rotate(-14deg)}27.9%{transform:rotate(12deg)}29.85%{transform:rotate(-14deg)}31.8%{transform:rotate(12deg)}32%{transform:rotate(0deg)}43.5%{transform:rotate(0deg)}44%{transform:rotate(12deg)}45.95%{transform:rotate(-14deg)}47.9%{transform:rotate(12deg)}49.85%{transform:rotate(-14deg)}51.8%{transform:rotate(12deg)}52%{transform:rotate(0deg)}63.5%{transform:rotate(0deg)}64%{transform:rotate(12deg)}65.95%{transform:rotate(-14deg)}67.9%{transform:rotate(12deg)}69.85%{transform:rotate(-14deg)}71.8%{transform:rotate(12deg)}73.75%{transform:rotate(-14deg)}75.7%{transform:rotate(12deg)}77.65%{transform:rotate(-14deg)}79.6%{transform:rotate(12deg)}80%,100%{transform:rotate(0deg)}}

@@ -14,7 +14,7 @@ export function FestiveVent({ wide }) {
           <stop offset="0" stopColor="#d9dee4"/><stop offset=".45" stopColor="#a9b1bb"/><stop offset="1" stopColor="#7d8692"/>
         </linearGradient>
         <radialGradient id="ventGlow"><stop offset="0" stopColor="#ffcf6b" stopOpacity=".75"/><stop offset=".5" stopColor="#ff9a2e" stopOpacity=".25"/><stop offset="1" stopColor="#ff9a2e" stopOpacity="0"/></radialGradient>
-        <clipPath id="ventInside"><rect x="14" y="24" width="246" height="40"/></clipPath>
+        <clipPath id="ventInside"><rect x="0" y="24" width="260" height="40"/></clipPath>
         <radialGradient id="ventHole"><stop offset="0" stopColor="#000"/><stop offset=".45" stopColor="#000"/><stop offset="1" stopColor="#fff"/></radialGradient>
         {/* Darkness everywhere except a pool of light round the lighter, which travels with him. */}
         <mask id="ventDark" maskUnits="userSpaceOnUse" x="0" y="0" width="260" height="80">
@@ -26,14 +26,14 @@ export function FestiveVent({ wide }) {
       <path d="M40 0 V18 M130 0 V18 M220 0 V18" stroke="#5b636d" strokeWidth="2"/>
       <g className="vent-duct">
         {/* the duct, its front cut away so we can see in */}
-        <rect x="8" y="16" width="252" height="54" rx="3" fill="url(#ventMetal)"/>
-        <rect x="14" y="24" width="246" height="40" fill="#15181d"/>
+        <rect x="0" y="16" width="260" height="54" fill="url(#ventMetal)"/>
+        <rect x="0" y="24" width="260" height="40" fill="#15181d"/>
         <g clipPath="url(#ventInside)">
           {/* the inside of the duct: only seen by lighter-light */}
-          <rect x="14" y="24" width="246" height="40" fill="#3b424c"/>
-          <rect x="14" y="56" width="246" height="8" fill="#2c323a"/>
-          {[30,52,74,96,118,140,162,184,206,228,250].map(x=><path key={x} d={`M${x} 24 V64`} stroke="#555e69" strokeWidth="1.4"/>)}
-          <path d="M14 30 H260 M14 56 H260" stroke="#4a525d" strokeWidth="1"/>
+          <rect x="0" y="24" width="260" height="40" fill="#3b424c"/>
+          <rect x="0" y="56" width="260" height="8" fill="#2c323a"/>
+          {[8,30,52,74,96,118,140,162,184,206,228,250].map(x=><path key={x} d={`M${x} 24 V64`} stroke="#555e69" strokeWidth="1.4"/>)}
+          <path d="M0 30 H260 M0 56 H260" stroke="#4a525d" strokeWidth="1"/>
           <g className="vent-deer">
             <g className="vent-bob">
               {/* back legs, tucked */}
@@ -65,13 +65,13 @@ export function FestiveVent({ wide }) {
               <path d="M51 52.5 q-1 -1.8 0 -3.4 q1 1.6 0 3.4 z" fill="#fff3b0"/>
             </g>
           </g>
-          <rect x="14" y="24" width="246" height="40" fill="#030405" mask="url(#ventDark)"/>
+          <rect x="0" y="24" width="260" height="40" fill="#030405" mask="url(#ventDark)"/>
           <g className="vent-deer"><circle className="vent-glow" cx="51" cy="48" r="30" fill="url(#ventGlow)" style={{mixBlendMode:'screen'}}/></g>
         </g>
         {/* lip of the cut-away and seams */}
-        <rect x="14" y="62" width="246" height="3" fill="#8e97a2"/>
+        <rect x="0" y="62" width="260" height="3" fill="#8e97a2"/>
         {/* stencilled on the side */}
-        <text x="137" y="69.6" textAnchor="middle" fontSize="6.6" fontWeight="900" letterSpacing="1.8" fill="#2f353d" fontFamily="Arial, Helvetica, sans-serif">NAKATOMI PLAZA</text>
+        <text x="130" y="69.6" textAnchor="middle" fontSize="6.6" fontWeight="900" letterSpacing="1.8" fill="#2f353d" fontFamily="Arial, Helvetica, sans-serif">NAKATOMI PLAZA</text>
         <path d="M70 16 V24 M190 16 V24 M250 16 V24" stroke="#6f7782" strokeWidth="1.2"/>
         {[22,58,82,118,142,178,202].map(x=><circle key={x} cx={x} cy="20" r="1.1" fill="#6f7782"/>)}
       </g>
