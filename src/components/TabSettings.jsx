@@ -125,17 +125,30 @@ export function TabSettings({
   // scroll-to-top below are measured against that.
   const [mainH, setMainH] = useState(0);
   const [wrapTop, setWrapTop] = useState(0);
+  const [padB, setPadB] = useState(0);
+  const [mainCH, setMainCH] = useState(0);
   useEffect(()=>{
     const w = wrapRef.current, m = w?.closest('main'); if (!m) return;
-    const f = () => { setMainH(m.clientHeight); setWrapTop(Math.round(m.scrollTop + w.getBoundingClientRect().top - m.getBoundingClientRect().top)); };
-    f(); const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(f) : null; ro?.observe(m); ro?.observe(w);
-    return () => ro?.disconnect();
+    const f = () => {
+      const mr = m.getBoundingClientRect(), nav = document.querySelector('.app-nav');
+      const navTop = nav && nav.offsetParent ? nav.getBoundingClientRect().top : Infinity;
+      setMainH(Math.round(Math.min(mr.bottom, navTop) - mr.top));
+      setWrapTop(Math.round(m.scrollTop + w.getBoundingClientRect().top - mr.top));
+      // Spacing under the columns (page padding), so the two fit exactly.
+      let pad = 0; for (let e = w.parentElement; e && e !== m.parentElement; e = e.parentElement) pad += parseFloat(getComputedStyle(e).paddingBottom) || 0;
+      setPadB(Math.round(pad)); setMainCH(m.clientHeight);
+    };
+    f(); const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(f) : null; ro?.observe(m); ro?.observe(w); window.addEventListener('resize', f);
+    return () => { ro?.disconnect(); window.removeEventListener('resize', f); };
   },[]);
   // On a computer the two columns fit the window and each scrolls on its
   // own, like a settings window: the headings never slide away and a picked
   // item always opens at its top. Room is left for the version line below.
-  const panes = split && isWide && mainH > 0 && (mainH - wrapTop - 64) >= 420;
-  const paneH = panes ? mainH - wrapTop - 64 : 0;
+  // Visible height (above any bottom tab bar), but never so tall that the page
+  // itself would need to scroll.
+  const fitH = Math.min(mainH - wrapTop - 8, mainCH - wrapTop - padB - 2);
+  const panes = split && mainH > 0 && fitH >= 300;
+  const paneH = panes ? fitH : 0;
   // A newly picked item starts at its top: if the page is scrolled past the
   // top of the two columns, it goes back up to them.
   useEffect(()=>{
@@ -325,6 +338,24 @@ export function TabSettings({
   const rowTap = key => key==='help' ? null : key==='privacy' ? ()=>setPrivacyNoticeOpen(true) : ()=>setPage(key);
   const firstKey = ROW_GROUPS[0]?.[1]?.[0]?.[0];
   firstKeyRef.current = firstKey;
+  // Side by side it sits under the headings, so the two columns get the height.
+  const thanksCard = (
+<div style={{...S.card,marginBottom:'12px',...(split?{marginTop:'14px'}:isWide?{maxWidth:'860px',marginLeft:'auto',marginRight:'auto',boxSizing:'border-box'}:null)}}>
+        <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
+          {/* The cup lifts and tips to the right every few seconds, as if
+              someone's taking a sip; the steam fades while it's tipped. */}
+          <svg className="coffee-sip" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,overflow:'visible'}} aria-hidden="true">
+            <g className="coffee-cup"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></g>
+            <g className="coffee-steam"><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></g>
+          </svg>
+          <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Want to say thanks?</div>
+        </div>
+        <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,lineHeight:1.6}}>
+          A lot of late nights, caffeine, and swearing went into building and hosting this. If it's making your life easier and you'd like to say thanks, come and find me and buy me a coffee.
+        </div>
+        <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
+      </div>
+  );
   const moreList = (
     <div>
       {ROW_GROUPS.map(([title, rows], gi)=>(
@@ -364,7 +395,7 @@ export function TabSettings({
   );
 
   return (
-    <div className={animClass} style={{padding:'14px',paddingBottom:'calc(96px + env(safe-area-inset-bottom))'}}>
+    <div className={animClass} style={{padding:'14px',paddingBottom:isWide&&split?'14px':'calc(96px + env(safe-area-inset-bottom))'}}>
       {/* An item opened in place sits inside the list's card, so its own
           card frame is dropped there (no box inside a box). Specific enough
           to beat the themes that restyle every card (Insert Coin, Miami…),
@@ -395,21 +426,7 @@ export function TabSettings({
            both mobile and desktop now (it used to be split: folded
            into the Help & Suggestions box on mobile, and a separate
            card further down the grid on desktop). ── */}
-      {(split||!page)&&<div style={{...S.card,marginBottom:'12px',...(isWide?{maxWidth:split?'1120px':'860px',marginLeft:'auto',marginRight:'auto',boxSizing:'border-box'}:null)}}>
-        <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}}>
-          {/* The cup lifts and tips to the right every few seconds, as if
-              someone's taking a sip; the steam fades while it's tipped. */}
-          <svg className="coffee-sip" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,overflow:'visible'}} aria-hidden="true">
-            <g className="coffee-cup"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></g>
-            <g className="coffee-steam"><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></g>
-          </svg>
-          <div style={{fontWeight:900,fontSize:'14px',color:'var(--ink)'}}>Want to say thanks?</div>
-        </div>
-        <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,lineHeight:1.6}}>
-          A lot of late nights, caffeine, and swearing went into building and hosting this. If it's making your life easier and you'd like to say thanks, come and find me and buy me a coffee.
-        </div>
-        <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
-      </div>}
+      {!split&&!page&&thanksCard}
 
       {/* ── Appearance — not an accordion like the rest of this tab;
            a 3-way choice doesn't need to hide behind a "tap to
@@ -418,7 +435,7 @@ export function TabSettings({
            to a tall accordion. ── */}
 
       <div ref={wrapRef} style={{...(isWide?{maxWidth:split?'1120px':'860px',margin:'0 auto'}:null),...(split?{display:'grid',gridTemplateColumns:compact?`${wrapW<760?150:190}px minmax(0,1fr)`:'minmax(250px,300px) minmax(0,1fr)',gap:isWide?'22px':'16px',alignItems:'start'}:null)}}>
-      {(split||!page)&&<div style={split?(panes?{height:`${paneH}px`,overflowY:'auto',overscrollBehavior:'contain',padding:'0 4px 8px 2px',margin:'0 -4px 0 -2px'}:{position:'sticky',top:'12px',maxHeight:mainH?`${mainH-24}px`:'calc(100dvh - 120px)',overflowY:'auto',overscrollBehavior:'contain',paddingBottom:'6px'}):undefined}>{moreList}</div>}
+      {(split||!page)&&<div style={split?(panes?{height:`${paneH}px`,overflowY:'auto',overscrollBehavior:'contain',padding:'0 4px 8px 2px',margin:'0 -4px 0 -2px'}:{position:'sticky',top:'12px',maxHeight:mainH?`${mainH-24}px`:'calc(100dvh - 160px)',overflowY:'auto',overscrollBehavior:'contain',paddingBottom:'6px'}):undefined}>{moreList}{split&&thanksCard}{split&&<VersionLine/>}</div>}
       {/* The opened item: on the right when side by side, otherwise its
           own page with ‹ More to go back. */}
       {page&&placeDetail(<div ref={paneRef} key={split?page:undefined} className={split?'accordion-in':undefined} style={{minWidth:0,...(panes?{height:`${paneH}px`,overflowY:'auto',overscrollBehavior:'contain',padding:'0 6px 12px 4px',margin:'0 -6px 0 -4px'}:null)}}>
@@ -1316,7 +1333,7 @@ export function TabSettings({
 
       </div>)}
       </div>
-      {(split||!page)&&<VersionLine/>}
+      {!split&&!page&&<VersionLine/>}
       {privacyNoticeOpen && <PrivacyNotice brass={BRASS} onClose={()=>setPrivacyNoticeOpen(false)}/>}
 
       {/* ── Backdrop for the desktop popup cards above — click
