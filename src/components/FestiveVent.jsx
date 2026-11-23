@@ -46,16 +46,16 @@ export function FestiveVent({ wide }) {
               {/* body, belly to the floor */}
               <ellipse cx="22" cy="51" rx="18" ry="8" fill="#8b5a3c"/>
               <ellipse cx="25" cy="54" rx="10" ry="4" fill="#c79a72"/>
-              {/* white ribbed tank top: low scooped back, deep cut-away armhole, narrow strap over the shoulder */}
-              <defs><clipPath id="ventVest"><path d="M10 46 Q17.5 42.6 24.5 43.4 Q27.5 50.6 31.6 51.2 Q33.6 54.2 33 57.6 Q22 60.2 11 57.6 Q7.8 51 10 46 Z"/><path d="M31.2 50.6 Q33.4 46.2 36.6 44.2 L38.4 45.6 Q35.4 48.4 33.6 51.6 Z"/></clipPath></defs>
-              <path d="M10 46 Q17.5 42.6 24.5 43.4 Q27.5 50.6 31.6 51.2 Q33.6 54.2 33 57.6 Q22 60.2 11 57.6 Q7.8 51 10 46 Z" fill="#fbfbf9"/>
+              {/* white ribbed tank top: full back, small scoop at the neck, deep cut-away armhole, narrow strap over the shoulder */}
+              <defs><clipPath id="ventVest"><path d="M10 46 Q20 42.2 29.5 42.9 Q31.2 46.8 31.9 50.8 Q33.6 54.2 33 57.6 Q22 60.2 11 57.6 Q7.8 51 10 46 Z"/><path d="M31.2 50.6 Q33.4 46.2 36.6 44.2 L38.4 45.6 Q35.4 48.4 33.6 51.6 Z"/></clipPath></defs>
+              <path d="M10 46 Q20 42.2 29.5 42.9 Q31.2 46.8 31.9 50.8 Q33.6 54.2 33 57.6 Q22 60.2 11 57.6 Q7.8 51 10 46 Z" fill="#fbfbf9"/>
               <path d="M31.2 50.6 Q33.4 46.2 36.6 44.2 L38.4 45.6 Q35.4 48.4 33.6 51.6 Z" fill="#fbfbf9"/>
               <g clipPath="url(#ventVest)" stroke="#dcdcd6" strokeWidth=".45">
                 {[12,14,16,18,20,22,24,26,28,30,32,34,36,38].map(x=><path key={x} d={`M${x} 40 L${x+1.2} 61`}/>)}
               </g>
               {/* binding round the scoop, the armhole and the hem */}
-              <path d="M24.5 43.4 Q27.5 50.6 31.6 51.2" stroke="#e3e3dd" strokeWidth="1.1" fill="none"/>
-              <path d="M31.6 51.2 Q33.6 54.2 33 57.6" stroke="#e3e3dd" strokeWidth="1" fill="none"/>
+              <path d="M29.5 42.9 Q31.2 46.8 31.9 50.8" stroke="#e3e3dd" strokeWidth="1.1" fill="none"/>
+              <path d="M31.9 50.8 Q33.6 54.2 33 57.6" stroke="#e3e3dd" strokeWidth="1" fill="none"/>
               <path d="M11 57.6 Q22 60.2 33 57.6" stroke="#e3e3dd" strokeWidth="1" fill="none"/>
               <path d="M5 49 q-4 -3 -2 -6" stroke="#8b5a3c" strokeWidth="3" fill="none" strokeLinecap="round"/>
               {/* front legs, elbow-crawling */}
