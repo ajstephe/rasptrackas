@@ -4,7 +4,7 @@
 export function FestiveVent({ wide }) {
   const cls = wide ? ' wide' : '';
   return (<>
-    <div className={'vent-quip'+cls} aria-hidden="true">Ho ho ho…<br/>who put a grille here?</div>
+    <div className={'vent-quip'+cls} aria-hidden="true">Come out to the coast, we’ll get<br/>together, have a few laughs…</div>
     <svg className={'festive-vent'+cls} viewBox="0 0 260 80" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="ventMetal" x1="0" y1="0" x2="0" y2="1">
