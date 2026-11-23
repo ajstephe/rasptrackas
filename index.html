@@ -515,8 +515,10 @@
       .festive-scene,.festive-quip{display:none}
       /* Festive: a reindeer crawling through an air vent across the Gross pay banner. */
       .festive-vent,.vent-quip,.vent-caption{display:none}
-      :root[data-theme="festive"] .vent-caption{display:block;position:absolute;z-index:2;right:calc(100% - 12px - var(--vw) + 8px);bottom:calc(var(--vw) * .246 + 2px);white-space:nowrap;padding:5px 9px;border-radius:11px;background:#fffdf6;color:#3a1a12;font:800 10.5px/1.25 var(--app-font);box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:none;opacity:0;transform-origin:calc(100% - 14px) 100%}
-      :root[data-theme="festive"] .vent-caption::after{content:'';position:absolute;right:10px;bottom:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#fffdf6}
+      :root[data-theme="festive"] .vent-caption{display:block;position:absolute;z-index:2;right:calc(100% - 12px - var(--vw) + 8px);bottom:calc(var(--vw) * .246 + 2px);white-space:nowrap;padding:6px 13px;border-radius:999px;isolation:isolate;background:#fffdf6;color:#3a1a12;font:800 10.5px/1.25 var(--app-font);filter:drop-shadow(0 3px 5px rgba(0,0,0,.35));pointer-events:none;opacity:0;transform-origin:calc(100% - 14px) 100%}
+      /* a thought-cloud: scalloped puffs round the edge, and two little puffs trailing off to where he went */
+      :root[data-theme="festive"] .vent-caption::before{content:'';position:absolute;inset:-5px -6px;z-index:-1;border-radius:999px;background:radial-gradient(circle,#fffdf6 5.4px,transparent 6px) 0 0/11px 11px repeat-x,radial-gradient(circle,#fffdf6 5.4px,transparent 6px) 0 100%/11px 11px repeat-x,radial-gradient(circle,#fffdf6 5.4px,transparent 6px) 0 50%/11px 11px repeat-y,radial-gradient(circle,#fffdf6 5.4px,transparent 6px) 100% 50%/11px 11px repeat-y}
+      :root[data-theme="festive"] .vent-caption::after{content:'';position:absolute;right:2px;bottom:-15px;width:16px;height:13px;background:radial-gradient(circle at 35% 30%,#fffdf6 3.6px,transparent 4.2px),radial-gradient(circle at 85% 85%,#fffdf6 2.2px,transparent 2.7px)}
       :root[data-theme="festive"] .vent-caption.c1{animation:ventOff1 21.6s infinite}
       :root[data-theme="festive"] .vent-caption.c2{animation:ventOff2 21.6s infinite}
       :root[data-theme="festive"] .vent-caption.c3{animation:ventOff3 21.6s infinite}
