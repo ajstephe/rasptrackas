@@ -513,6 +513,32 @@
          builds · 5.6s over backwards · 6.6s "happy new year" on the floor ·
          10s back upright. Held still under reduced motion. */
       .festive-scene,.festive-quip{display:none}
+      /* Festive: a reindeer crawling through an air vent across the Gross pay banner. */
+      .festive-vent,.vent-quip{display:none}
+      :root[data-theme="festive"] .festive-vent{display:block;position:absolute;right:2px;bottom:4px;width:108px;height:33px;overflow:visible;pointer-events:none;z-index:0;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.35))}
+      :root[data-theme="festive"] .festive-vent.wide{right:auto;left:calc(50% - 40px);bottom:6px;width:300px;height:92px}
+      :root[data-theme="festive"] .vent-deer{animation:ventCrawl 13s infinite}
+      :root[data-theme="festive"] .vent-bob{animation:ventBob .7s ease-in-out infinite}
+      :root[data-theme="festive"] .vent-leg{transform-box:fill-box;transform-origin:0% 0%}
+      :root[data-theme="festive"] .vent-leg.a{animation:ventLeg .7s ease-in-out infinite}
+      :root[data-theme="festive"] .vent-leg.b{animation:ventLeg .7s ease-in-out -.35s infinite}
+      :root[data-theme="festive"] .vent-flame{transform-box:fill-box;transform-origin:50% 100%;animation:ventFlame .22s ease-in-out infinite alternate}
+      :root[data-theme="festive"] .vent-glow{animation:ventGlow .3s ease-in-out infinite alternate}
+      :root[data-theme="festive"] .vent-duct{animation:ventRattle 13s infinite}
+      :root[data-theme="festive"] .vent-bonk{opacity:0;animation:ventBonk 13s infinite}
+      :root[data-theme="festive"] .vent-quip{display:block;position:absolute;z-index:2;white-space:nowrap;padding:5px 8px;border-radius:11px;background:#fffdf6;color:#3a1a12;font:800 8.5px/1.25 var(--app-font);text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);pointer-events:none;opacity:0;right:4px;bottom:44px;transform-origin:90% 100%;animation:ventQuip 13s infinite}
+      :root[data-theme="festive"] .vent-quip::after{content:'';position:absolute;right:10px;bottom:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#fffdf6}
+      :root[data-theme="festive"] .vent-quip.wide{right:auto;left:calc(50% + 266px);bottom:46px;font-size:11.5px;padding:6px 10px;transform-origin:0% 100%}
+      :root[data-theme="festive"] .vent-quip.wide::after{right:auto;left:-7px;bottom:8px;border:6px solid transparent;border-left:0;border-right-color:#fffdf6}
+      @keyframes ventCrawl{0%,4%{transform:translateX(-70px)}52%{transform:translateX(176px)}53.5%{transform:translateX(170px)}55%,84%{transform:translateX(172px)}95%,100%{transform:translateX(-70px)}}
+      @keyframes ventBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.4px)}}
+      @keyframes ventLeg{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(12deg)}}
+      @keyframes ventFlame{from{transform:scale(1,1)}to{transform:scale(.8,1.25)}}
+      @keyframes ventGlow{from{opacity:.75}to{opacity:1}}
+      @keyframes ventRattle{0%,51.8%{transform:translate(0,0)}52.3%{transform:translate(1.5px,-1px)}52.8%{transform:translate(-1.5px,1px)}53.3%{transform:translate(1px,0)}53.8%,100%{transform:translate(0,0)}}
+      @keyframes ventBonk{0%,51.8%{opacity:0;transform:scale(.6)}52.6%{opacity:1;transform:scale(1.1)}56%{opacity:1;transform:scale(1)}58%,100%{opacity:0}}
+      @keyframes ventQuip{0%,55%{opacity:0;transform:scale(.6)}57%{opacity:1;transform:scale(1.06)}58%{transform:scale(1)}80%{opacity:1;transform:scale(1)}83%,100%{opacity:0;transform:scale(1)}}
+      @media (prefers-reduced-motion: reduce){:root[data-theme="festive"] :is(.vent-deer,.vent-bob,.vent-leg,.vent-flame,.vent-glow,.vent-duct,.vent-bonk,.vent-quip){animation:none}:root[data-theme="festive"] .vent-deer{transform:translateX(120px)}}
       :root[data-theme="festive"] .festive-scene{display:block;position:absolute;right:10px;bottom:0;width:147px;height:120px;overflow:visible;pointer-events:none;z-index:0;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.35))}
       :root[data-theme="festive"] .festive-scene.wide{right:auto;left:calc(52% - 40px);width:136px;height:110px}
       @media (max-width:389px){:root[data-theme="festive"] .festive-scene:not(.wide){width:120px;height:97px}}

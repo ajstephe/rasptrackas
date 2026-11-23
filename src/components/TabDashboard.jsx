@@ -1,3 +1,4 @@
+import { FestiveVent } from './FestiveVent.jsx';
 import { Fragment, useState, useEffect, useRef, useCallback } from 'react';
 import { fmtGBP, fmtHrs, payLabel, shiftSpan } from '../lib/format.js';
 import { PayslipModal } from './ExpectedPayslips.jsx';
@@ -123,94 +124,7 @@ export function TabDashboard({
   const masthead = (compact) => (
     <div style={{background:'var(--navy)',padding:compact?'12px 16px':'12px 26px',position:'relative',overflow:'hidden',display:compact?'block':'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'16px',flexWrap:'wrap'}}>
       <div style={{position:'absolute',right:'-14px',top:'-14px',width:'72px',height:'72px',background:'rgba(255,255,255,0.04)',borderRadius:'50%'}}/>
-      {/* Festive only (hidden by CSS in every other theme): Santa's sack of
-          presents in the corner, with an elf who pops out now and then. */}
-      {/* Festive only (hidden by CSS otherwise): one looping scene. The elf
-          pops out of Santa's sack, the reindeer swings a bauble on a string
-          at him, then rocks his chair over backwards and lies on the floor. */}
-      <div className={'festive-quip q1'+(compact?'':' wide')} aria-hidden="true">Merry Christmas,<br/>ya filthy animal!</div>
-      <div className={'festive-quip q2'+(compact?'':' wide')} aria-hidden="true">And a happy<br/>new year!</div>
-      <svg className={'festive-scene'+(compact?'':' wide')} viewBox="0 -26 170 138" aria-hidden="true" focusable="false">
-        <svg x="0" y="27" width="76" height="85" viewBox="0 0 100 112" overflow="visible">
-          <g transform="matrix(-1 0 0 1 100 0)">
-            <g className="deer-rock"><g className="deer-tip">
-          <path d="M6 100 Q50 114 94 100" fill="none" stroke="#5e3a17" strokeWidth="5" strokeLinecap="round"/>
-          <path d="M24 74 L19 101 M76 74 L81 101" stroke="#6b4423" strokeWidth="4" strokeLinecap="round"/>
-          <rect x="58" y="20" width="28" height="56" rx="10" fill="#a8322a"/>
-          <rect x="62" y="25" width="20" height="45" rx="7" fill="#c2453a"/>
-          <rect x="14" y="64" width="70" height="13" rx="5" fill="#a8322a"/>
-          <rect x="10" y="54" width="17" height="22" rx="7" fill="#c2453a"/>
-          <ellipse cx="50" cy="56" rx="17" ry="14" fill="#8b5a3c"/>
-          <ellipse cx="45" cy="60" rx="9" ry="8" fill="#c79a72"/>
-          <rect x="27" y="66" width="7" height="22" rx="3" fill="#8b5a3c"/><rect x="27" y="85" width="7" height="5" rx="2" fill="#3a2414"/>
-          <rect x="37" y="67" width="7" height="21" rx="3" fill="#7a4d31"/><rect x="37" y="85" width="7" height="5" rx="2" fill="#3a2414"/>
-          <path d="M44 20 L46 8 M45 12 L51 7 M44 16 L38 10 M52 20 L58 9 M56 13 L63 11 M55 16 L54 6" stroke="#6b4423" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
-          <ellipse cx="55" cy="24" rx="5" ry="2.6" fill="#7a4d31" transform="rotate(-25 55 24)"/>
-          <circle cx="45" cy="30" r="11" fill="#8b5a3c"/>
-          <ellipse cx="35" cy="35" rx="9" ry="6.5" fill="#c79a72"/>
-          <circle cx="27.5" cy="34" r="3.6" fill="#e0312f"/>
-          <circle cx="26.6" cy="32.8" r="1" fill="#ffd0d0"/>
-          <circle cx="44" cy="27" r="1.7" fill="#2b1a10"/>
-          <circle cx="44.6" cy="26.4" r="0.5" fill="#ffffff"/>
-          <path d="M33 39.5 Q36 41.5 39 39.5" fill="none" stroke="#5e3a17" strokeWidth="1.1" strokeLinecap="round"/>
-          <g className="deer-arm">
-            <path d="M52 54 Q44 52 37 45" fill="none" stroke="#8b5a3c" strokeWidth="5.5" strokeLinecap="round"/>
-            <path d="M24 42 L39 41 L37 47 Z" fill="#f08a24"/>
-            <path d="M28 42.5 L29 45 M32 42 L33 45" stroke="#c96a12" strokeWidth="0.8"/>
-            <path d="M39 42 L45 37 M39 43 L46 41 M38 44 L44 46" stroke="#3f9a3a" strokeWidth="1.6" strokeLinecap="round"/>
-            <circle cx="37" cy="45" r="3" fill="#5e3a22"/>
-          </g>
-            </g></g>
-          </g>
-        </svg>
-        <svg x="50" y="-26" width="120" height="138" viewBox="0 -26 120 138" overflow="visible">
-        <ellipse cx="60" cy="45" rx="37" ry="8" fill="#3d240e"/>
-        <g className="festive-elf">
-          <path d="M49 52 Q49 36 60 34 Q71 36 71 52 Z" fill="#1f8a4c"/>
-          <path d="M55 35 L60 41 L65 35" fill="none" stroke="#e8b64c" strokeWidth="1.6"/>
-          <g className="festive-elf-arm">
-            <path d="M68 37 Q75 33 78 24" fill="none" stroke="#1f8a4c" strokeWidth="4.5" strokeLinecap="round"/>
-            <circle cx="78.5" cy="22.5" r="3.6" fill="#ffffff" stroke="#2b1a10" strokeWidth="0.8"/>
-          </g>
-          <path d="M52 22 L44 16 L53 26 Z" fill="#f2c9a0"/>
-          <path d="M68 22 L76 16 L67 26 Z" fill="#f2c9a0"/>
-          <circle cx="60" cy="24" r="9" fill="#f2c9a0"/>
-          <circle cx="56.6" cy="23" r="1.2" fill="#2b1a10"/>
-          <circle cx="63.4" cy="23" r="1.2" fill="#2b1a10"/>
-          <circle cx="54.6" cy="26.6" r="1.8" fill="#f0909a" opacity="0.7"/>
-          <circle cx="65.4" cy="26.6" r="1.8" fill="#f0909a" opacity="0.7"/>
-          <path d="M57 27.5 Q60 30.5 63 27.5" fill="none" stroke="#7a2a1a" strokeWidth="1.1" strokeLinecap="round"/>
-          <path d="M50.5 18 Q55 3 70 2 Q78 2 80 9 L72 8 Q66 9 69.5 18 Z" fill="#1f8a4c"/>
-          <rect x="49.5" y="16" width="21" height="4.2" rx="2.1" fill="#ffffff"/>
-          <circle cx="80.5" cy="9.5" r="2.6" fill="#e8b64c"/>
-        </g>
-        <rect x="27" y="27" width="22" height="20" rx="1.5" fill="#1f8a4c"/>
-        <rect x="36" y="27" width="4" height="20" fill="#e8b64c"/><rect x="27" y="35" width="22" height="4" fill="#e8b64c"/>
-        <rect x="70" y="23" width="23" height="24" rx="1.5" fill="#2b6cb0"/>
-        <rect x="79.5" y="23" width="4" height="24" fill="#ffffff"/><rect x="70" y="32" width="23" height="4" fill="#ffffff"/>
-        <path d="M81.5 23 q-6 -7 -8 -1 q4 2 8 1 q6 -7 8 -1 q-4 2 -8 1" fill="#ffffff"/>
-        <rect x="51" y="34" width="18" height="13" rx="1.5" fill="#e8b64c"/>
-        <rect x="58" y="34" width="4" height="13" fill="#c8102e"/>
-        <path d="M22 46 C9 62 7 94 22 105 Q60 115 98 105 C113 94 111 62 98 46 Q60 54 22 46 Z" fill="#8a5a2b"/>
-        <path d="M30 60 C26 74 27 90 34 99" fill="none" stroke="#a8733d" strokeWidth="4" strokeLinecap="round" opacity="0.7"/>
-        <path d="M22 46 Q60 54 98 46" fill="none" stroke="#5e3a17" strokeWidth="3" strokeLinecap="round"/>
-        <path d="M48 52 q12 6 24 0" fill="none" stroke="#e8b64c" strokeWidth="3" strokeLinecap="round"/>
-        <g className="festive-stars">
-          <path d="M44 22 l1.6 3.4 3.6 .5 -2.6 2.5 .7 3.6 -3.3 -1.8 -3.3 1.8 .7 -3.6 -2.6 -2.5 3.6 -.5 z" fill="#ffe27a"/>
-          <path d="M74 18 l1.3 2.7 2.9 .4 -2.1 2 .5 2.9 -2.6 -1.4 -2.6 1.4 .5 -2.9 -2.1 -2 2.9 -.4 z" fill="#ffffff"/>
-          <path d="M60 10 l1.4 3 3.2 .4 -2.3 2.2 .6 3.2 -2.9 -1.6 -2.9 1.6 .6 -3.2 -2.3 -2.2 3.2 -.4 z" fill="#ffe27a"/>
-        </g>
-        </svg>
-        <g className="festive-pendulum">
-          <line x1="0" y1="0" x2="0" y2="106" stroke="#fff3c4" strokeWidth="1"/>
-          <g transform="translate(0 115.4)">
-            <circle r="6.5" fill="#e8b64c"/><circle r="6.5" fill="none" stroke="#9a6b12" strokeWidth="0.9"/>
-            <path d="M-6 1 Q0 4 6 1" fill="none" stroke="#c8961e" strokeWidth="1.1"/>
-            <circle cx="-2.2" cy="-2.4" r="1.8" fill="#fff8dc" opacity="0.85"/>
-            <rect x="-2.4" y="-9" width="4.8" height="3" rx="0.8" fill="#b8862a"/>
-          </g>
-        </g>
-      </svg>
+      <FestiveVent wide={!compact}/>
       <div style={{flex:1,minWidth:0,position:'relative'}}>
         {/* The tax-year progress sits on the heading's line, at the right. */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'10px',marginBottom:compact?'6px':'8px'}}>
