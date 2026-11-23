@@ -126,8 +126,8 @@ export function TabDashboard({
       {/* Festive only (hidden by CSS in every other theme): Santa's sack of
           presents in the corner, with an elf who pops out now and then. */}
       {/* Festive only (hidden by CSS otherwise): one looping scene. The elf
-          pops out of Santa's sack, the reindeer swings a bauble on a string
-          at him, then rocks his chair over backwards and lies on the floor. */}
+          pops out of Santa's sack, the reindeer reaches up, grabs the bauble
+          hanging beside him and swings it at the elf, then rocks his chair over backwards and lies on the floor. */}
       <div className={'festive-quip q1'+(compact?'':' wide')} aria-hidden="true">Merry Christmas,<br/>ya filthy animal!</div>
       <div className={'festive-quip q2'+(compact?'':' wide')} aria-hidden="true">And a happy<br/>new year!</div>
       <svg className={'festive-scene'+(compact?'':' wide')} viewBox="0 -26 170 138" aria-hidden="true" focusable="false">
@@ -202,8 +202,8 @@ export function TabDashboard({
         </g>
         </svg>
         <g className="festive-pendulum">
-          <line x1="0" y1="0" x2="0" y2="106" stroke="#fff3c4" strokeWidth="1"/>
-          <g transform="translate(0 115.4)">
+          <line x1="0" y1="0" x2="0" y2="146" stroke="#fff3c4" strokeWidth="1"/>
+          <g transform="translate(0 155)">
             <circle r="6.5" fill="#e8b64c"/><circle r="6.5" fill="none" stroke="#9a6b12" strokeWidth="0.9"/>
             <path d="M-6 1 Q0 4 6 1" fill="none" stroke="#c8961e" strokeWidth="1.1"/>
             <circle cx="-2.2" cy="-2.4" r="1.8" fill="#fff8dc" opacity="0.85"/>
