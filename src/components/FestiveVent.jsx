@@ -1,7 +1,7 @@
 // Festive theme only (hidden by CSS in every other theme): a reindeer
-// crawling through an air vent across the Gross pay banner, lit by a
-// lighter. He stops three times to mutter a bit of his line, then crawls
-// on and bumps into the grille at the end.
+// crawling through a pitch-dark air vent across the Gross pay banner, lit
+// only by the lighter in his hoof. He stops three times to mutter a bit of his line, then crawls
+// on and bumps into the grille at the end, and the scene fades out.
 export function FestiveVent({ wide }) {
   const cls = wide ? ' wide' : '';
   return (<>
@@ -15,6 +15,12 @@ export function FestiveVent({ wide }) {
         </linearGradient>
         <radialGradient id="ventGlow"><stop offset="0" stopColor="#ffcf6b" stopOpacity=".75"/><stop offset=".5" stopColor="#ff9a2e" stopOpacity=".25"/><stop offset="1" stopColor="#ff9a2e" stopOpacity="0"/></radialGradient>
         <clipPath id="ventInside"><rect x="14" y="24" width="222" height="40"/></clipPath>
+        <radialGradient id="ventHole"><stop offset="0" stopColor="#000"/><stop offset=".45" stopColor="#000"/><stop offset="1" stopColor="#fff"/></radialGradient>
+        {/* Darkness everywhere except a pool of light round the lighter, which travels with him. */}
+        <mask id="ventDark" maskUnits="userSpaceOnUse" x="0" y="0" width="260" height="80">
+          <rect x="0" y="0" width="260" height="80" fill="#fff"/>
+          <g className="vent-deer"><g className="vent-pool"><circle cx="51" cy="48" r="30" fill="url(#ventHole)"/></g></g>
+        </mask>
       </defs>
       {/* hanging straps */}
       <path d="M40 0 V18 M130 0 V18 M220 0 V18" stroke="#5b636d" strokeWidth="2"/>
@@ -23,9 +29,12 @@ export function FestiveVent({ wide }) {
         <rect x="8" y="16" width="244" height="54" rx="3" fill="url(#ventMetal)"/>
         <rect x="14" y="24" width="222" height="40" fill="#15181d"/>
         <g clipPath="url(#ventInside)">
-          <path d="M14 58 H236" stroke="#2a2f36" strokeWidth="1"/>
+          {/* the inside of the duct: only seen by lighter-light */}
+          <rect x="14" y="24" width="222" height="40" fill="#3b424c"/>
+          <rect x="14" y="56" width="222" height="8" fill="#2c323a"/>
+          {[30,52,74,96,118,140,162,184,206,228].map(x=><path key={x} d={`M${x} 24 V64`} stroke="#555e69" strokeWidth="1.4"/>)}
+          <path d="M14 30 H236 M14 56 H236" stroke="#4a525d" strokeWidth="1"/>
           <g className="vent-deer">
-            <circle className="vent-glow" cx="52" cy="46" r="34" fill="url(#ventGlow)"/>
             <g className="vent-bob">
               {/* back legs, tucked */}
               <path d="M8 57 Q14 60 22 57" stroke="#6b4423" strokeWidth="4" fill="none" strokeLinecap="round"/>
@@ -51,6 +60,8 @@ export function FestiveVent({ wide }) {
               <path d="M51 52.5 q-1 -1.8 0 -3.4 q1 1.6 0 3.4 z" fill="#fff3b0"/>
             </g>
           </g>
+          <rect x="14" y="24" width="222" height="40" fill="#030405" mask="url(#ventDark)"/>
+          <g className="vent-deer"><circle className="vent-glow" cx="51" cy="48" r="30" fill="url(#ventGlow)" style={{mixBlendMode:'screen'}}/></g>
         </g>
         {/* lip of the cut-away and seams */}
         <rect x="14" y="62" width="222" height="3" fill="#8e97a2"/>
