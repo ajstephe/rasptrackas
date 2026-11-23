@@ -1,10 +1,13 @@
 // Festive theme only (hidden by CSS in every other theme): a reindeer
 // crawling through an air vent across the Gross pay banner, lit by a
-// lighter, until he bumps into the grille at the end and says his line.
+// lighter. He stops three times to mutter a bit of his line, then crawls
+// on and bumps into the grille at the end.
 export function FestiveVent({ wide }) {
   const cls = wide ? ' wide' : '';
   return (<>
-    <div className={'vent-quip'+cls} aria-hidden="true">Come out to the coast, we’ll get<br/>together, have a few laughs…</div>
+    <div className={'vent-quip l1'+cls} aria-hidden="true">Come out to the coast…</div>
+    <div className={'vent-quip l2'+cls} aria-hidden="true">we’ll get together…</div>
+    <div className={'vent-quip l3'+cls} aria-hidden="true">have a few laughs…</div>
     <svg className={'festive-vent'+cls} viewBox="0 0 260 80" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="ventMetal" x1="0" y1="0" x2="0" y2="1">
