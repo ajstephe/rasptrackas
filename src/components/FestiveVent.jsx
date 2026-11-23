@@ -5,9 +5,9 @@
 export function FestiveVent({ wide }) {
   const cls = wide ? ' wide' : '';
   return (<>
-    <div className={'vent-quip l1'+cls} aria-hidden="true">Come out to the coast…</div>
-    <div className={'vent-quip l2'+cls} aria-hidden="true">we’ll get together…</div>
-    <div className={'vent-quip l3'+cls} aria-hidden="true">have a few laughs…</div>
+    <div className={'vent-quip l1'+cls} aria-hidden="true">Come out to the <em>coast</em>…</div>
+    <div className={'vent-quip l2'+cls} aria-hidden="true">we’ll get <em>togetheeerrr</em>…</div>
+    <div className={'vent-quip l3'+cls} aria-hidden="true">have a few <em>laaaaughs</em>…</div>
     <svg className={'festive-vent'+cls} viewBox="0 0 260 80" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="ventMetal" x1="0" y1="0" x2="0" y2="1">
@@ -41,6 +41,11 @@ export function FestiveVent({ wide }) {
               {/* body, belly to the floor */}
               <ellipse cx="22" cy="51" rx="18" ry="8" fill="#8b5a3c"/>
               <ellipse cx="25" cy="54" rx="10" ry="4" fill="#c79a72"/>
+              {/* white vest: grubby, one strap over the shoulder */}
+              <path d="M13 44.5 Q24 41.5 36 45.5 L38 55 Q26 59.5 14 57 Z" fill="#f4f1ea"/>
+              <path d="M14 56.5 Q26 59 37.6 54.6" stroke="#d9d3c6" strokeWidth="1.2" fill="none"/>
+              <path d="M33 45 L37.5 41 L39.5 42.5 L36.5 46.5" fill="#f4f1ea"/>
+              <circle cx="22" cy="50" r="1.6" fill="#d8cfbd" opacity=".8"/><circle cx="29" cy="52.5" r="1.1" fill="#d8cfbd" opacity=".8"/>
               <path d="M5 49 q-4 -3 -2 -6" stroke="#8b5a3c" strokeWidth="3" fill="none" strokeLinecap="round"/>
               {/* front legs, elbow-crawling */}
               <g className="vent-leg a"><path d="M34 52 L42 58 L50 57" stroke="#7a4d31" strokeWidth="3.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/></g>
