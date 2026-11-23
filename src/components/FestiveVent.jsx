@@ -85,8 +85,10 @@ export function FestiveVent({ wide }) {
         <rect x="0" y="62" width="260" height="3" fill="#8e97a2"/>
         {/* stencilled on the side */}
         <text x="130" y="69.6" textAnchor="middle" fontSize="6.6" fontWeight="900" letterSpacing="1.8" fill="#2f353d" fontFamily="Arial, Helvetica, sans-serif">NAKATOMI PLAZA</text>
-        <path d="M70 16 V24 M190 16 V24 M250 16 V24" stroke="#6f7782" strokeWidth="1.2"/>
-        {[22,58,82,118,142,178,202].map(x=><circle key={x} cx={x} cy="20" r="1.1" fill="#6f7782"/>)}
+        <path d="M26 16 V24 M234 16 V24" stroke="#6f7782" strokeWidth="1.2"/>
+        {[8,18,242,252].map(x=><circle key={x} cx={x} cy="20" r="1.1" fill="#6f7782"/>)}
+        {/* stencilled along the top */}
+        <text x="130" y="22" textAnchor="middle" fontSize="5.4" fontWeight="900" letterSpacing="1.2" fill="#2f353d" fontFamily="Arial, Helvetica, sans-serif">DIE HARD <tspan fill="#b3121f">IS</tspan> A CHRISTMAS FILM !!!</text>
       </g>
     </svg>
   </>);
