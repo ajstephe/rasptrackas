@@ -46,16 +46,17 @@ export function FestiveVent({ wide }) {
               {/* body, belly to the floor */}
               <ellipse cx="22" cy="51" rx="18" ry="8" fill="#8b5a3c"/>
               <ellipse cx="25" cy="54" rx="10" ry="4" fill="#c79a72"/>
-              {/* white ribbed tank top: clean, snug, round neck, deep armhole */}
-              <defs><clipPath id="ventVest"><path d="M10 45.5 Q22 41 33 43 Q35 45.5 37.5 44.5 L38.5 55.5 Q26 60.5 11 57.5 Q8 51 10 45.5 Z"/></clipPath></defs>
-              <path d="M10 45.5 Q22 41 33 43 Q35 45.5 37.5 44.5 L38.5 55.5 Q26 60.5 11 57.5 Q8 51 10 45.5 Z" fill="#fbfbf9"/>
+              {/* white ribbed tank top: low scooped back, deep cut-away armhole, narrow strap over the shoulder */}
+              <defs><clipPath id="ventVest"><path d="M10 46 Q17.5 42.6 24.5 43.4 Q27.5 50.6 31.6 51.2 Q33.6 54.2 33 57.6 Q22 60.2 11 57.6 Q7.8 51 10 46 Z"/><path d="M31.2 50.6 Q33.4 46.2 36.6 44.2 L38.4 45.6 Q35.4 48.4 33.6 51.6 Z"/></clipPath></defs>
+              <path d="M10 46 Q17.5 42.6 24.5 43.4 Q27.5 50.6 31.6 51.2 Q33.6 54.2 33 57.6 Q22 60.2 11 57.6 Q7.8 51 10 46 Z" fill="#fbfbf9"/>
+              <path d="M31.2 50.6 Q33.4 46.2 36.6 44.2 L38.4 45.6 Q35.4 48.4 33.6 51.6 Z" fill="#fbfbf9"/>
               <g clipPath="url(#ventVest)" stroke="#dcdcd6" strokeWidth=".45">
-                {[12,14,16,18,20,22,24,26,28,30,32,34,36].map(x=><path key={x} d={`M${x} 40 L${x+1.2} 61`}/>)}
+                {[12,14,16,18,20,22,24,26,28,30,32,34,36,38].map(x=><path key={x} d={`M${x} 40 L${x+1.2} 61`}/>)}
               </g>
-              {/* neckline and armhole binding */}
-              <path d="M33 43 Q35 45.5 37.5 44.5" stroke="#e6e6e1" strokeWidth="1.1" fill="none"/>
-              <path d="M33.5 50 Q31.5 53.5 33.5 56.6" stroke="#e6e6e1" strokeWidth="1" fill="none"/>
-              <path d="M11 57.5 Q26 60.5 38.5 55.5" stroke="#e6e6e1" strokeWidth="1" fill="none"/>
+              {/* binding round the scoop, the armhole and the hem */}
+              <path d="M24.5 43.4 Q27.5 50.6 31.6 51.2" stroke="#e3e3dd" strokeWidth="1.1" fill="none"/>
+              <path d="M31.6 51.2 Q33.6 54.2 33 57.6" stroke="#e3e3dd" strokeWidth="1" fill="none"/>
+              <path d="M11 57.6 Q22 60.2 33 57.6" stroke="#e3e3dd" strokeWidth="1" fill="none"/>
               <path d="M5 49 q-4 -3 -2 -6" stroke="#8b5a3c" strokeWidth="3" fill="none" strokeLinecap="round"/>
               {/* front legs, elbow-crawling */}
               <g className="vent-leg a"><path d="M34 52 L42 58 L50 57" stroke="#7a4d31" strokeWidth="3.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/></g>
