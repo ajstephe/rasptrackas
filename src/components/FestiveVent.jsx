@@ -8,6 +8,8 @@ export function FestiveVent({ wide }) {
     <div className={'vent-quip l1'+cls} aria-hidden="true">Come out to the <em>coast</em>…</div>
     <div className={'vent-quip l2'+cls} aria-hidden="true">we’ll get <em>togetheeerrr</em>…</div>
     <div className={'vent-quip l3'+cls} aria-hidden="true">have a few <em>laaaaughs</em>…</div>
+    {/* After he's gone: a voice from off screen. */}
+    <div className={'vent-caption'+cls} aria-hidden="true"><span>Now I have a machine gun.</span> <em>Ho, ho, ho.</em></div>
     <svg className={'festive-vent'+cls} viewBox="0 0 260 80" aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id="ventMetal" x1="0" y1="0" x2="0" y2="1">
