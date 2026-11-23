@@ -46,11 +46,16 @@ export function FestiveVent({ wide }) {
               {/* body, belly to the floor */}
               <ellipse cx="22" cy="51" rx="18" ry="8" fill="#8b5a3c"/>
               <ellipse cx="25" cy="54" rx="10" ry="4" fill="#c79a72"/>
-              {/* white vest: grubby, one strap over the shoulder */}
-              <path d="M13 44.5 Q24 41.5 36 45.5 L38 55 Q26 59.5 14 57 Z" fill="#f4f1ea"/>
-              <path d="M14 56.5 Q26 59 37.6 54.6" stroke="#d9d3c6" strokeWidth="1.2" fill="none"/>
-              <path d="M33 45 L37.5 41 L39.5 42.5 L36.5 46.5" fill="#f4f1ea"/>
-              <circle cx="22" cy="50" r="1.6" fill="#d8cfbd" opacity=".8"/><circle cx="29" cy="52.5" r="1.1" fill="#d8cfbd" opacity=".8"/>
+              {/* white ribbed tank top: clean, snug, round neck, deep armhole */}
+              <defs><clipPath id="ventVest"><path d="M10 45.5 Q22 41 33 43 Q35 45.5 37.5 44.5 L38.5 55.5 Q26 60.5 11 57.5 Q8 51 10 45.5 Z"/></clipPath></defs>
+              <path d="M10 45.5 Q22 41 33 43 Q35 45.5 37.5 44.5 L38.5 55.5 Q26 60.5 11 57.5 Q8 51 10 45.5 Z" fill="#fbfbf9"/>
+              <g clipPath="url(#ventVest)" stroke="#dcdcd6" strokeWidth=".45">
+                {[12,14,16,18,20,22,24,26,28,30,32,34,36].map(x=><path key={x} d={`M${x} 40 L${x+1.2} 61`}/>)}
+              </g>
+              {/* neckline and armhole binding */}
+              <path d="M33 43 Q35 45.5 37.5 44.5" stroke="#e6e6e1" strokeWidth="1.1" fill="none"/>
+              <path d="M33.5 50 Q31.5 53.5 33.5 56.6" stroke="#e6e6e1" strokeWidth="1" fill="none"/>
+              <path d="M11 57.5 Q26 60.5 38.5 55.5" stroke="#e6e6e1" strokeWidth="1" fill="none"/>
               <path d="M5 49 q-4 -3 -2 -6" stroke="#8b5a3c" strokeWidth="3" fill="none" strokeLinecap="round"/>
               {/* front legs, elbow-crawling */}
               <g className="vent-leg a"><path d="M34 52 L42 58 L50 57" stroke="#7a4d31" strokeWidth="3.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/></g>
