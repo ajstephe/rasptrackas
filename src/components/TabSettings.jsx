@@ -121,25 +121,31 @@ export function TabSettings({
   // each row's value and subtitle, which the open item shows anyway.
   const compact = split && wrapW < 820;
   const paneRef = useRef(null);
+  // The app scrolls inside <main>, not the window, so the sticky list and the
+  // scroll-to-top below are measured against that.
+  const [mainH, setMainH] = useState(0);
+  const [wrapTop, setWrapTop] = useState(0);
   useEffect(()=>{
-    if (!split || !page) return;
-    const el = paneRef.current; if (!el) return;
-    if (el.getBoundingClientRect().top < hdrH) window.scrollTo({ top: window.scrollY + el.getBoundingClientRect().top - hdrH - 10, behavior:'smooth' });
+    const w = wrapRef.current, m = w?.closest('main'); if (!m) return;
+    const f = () => { setMainH(m.clientHeight); setWrapTop(Math.round(m.scrollTop + w.getBoundingClientRect().top - m.getBoundingClientRect().top)); };
+    f(); const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(f) : null; ro?.observe(m); ro?.observe(w);
+    return () => ro?.disconnect();
+  },[]);
+  // On a computer the two columns fit the window and each scrolls on its
+  // own, like a settings window: the headings never slide away and a picked
+  // item always opens at its top. Room is left for the version line below.
+  const panes = split && isWide && mainH > 0 && (mainH - wrapTop - 64) >= 420;
+  const paneH = panes ? mainH - wrapTop - 64 : 0;
+  // A newly picked item starts at its top: if the page is scrolled past the
+  // top of the two columns, it goes back up to them.
+  useEffect(()=>{
+    if (!split || !page || panes) return;
+    const w = wrapRef.current, m = w?.closest('main'); if (!w || !m) return;
+    const top = m.scrollTop + w.getBoundingClientRect().top - m.getBoundingClientRect().top - 12;
+    if (m.scrollTop > top + 1) m.scrollTo({ top: Math.max(0, top), behavior:'smooth' });
   },[page, split]); // eslint-disable-line react-hooks/exhaustive-deps
   // Side by side always has something open on the right.
   useEffect(()=>{ if (split && !page && firstKeyRef.current) setPage(firstKeyRef.current); },[split, page]); // eslint-disable-line react-hooks/exhaustive-deps
-  // The app's top bar sits over the scrolling page, so the panel sticks just
-  // below it (measured, as its height varies with the window).
-  const [hdrH, setHdrH] = useState(76);
-  useEffect(()=>{
-    const h = document.querySelector('.app-header');
-    if (!h) return;
-    const measure = () => setHdrH(Math.round(h.getBoundingClientRect().bottom));
-    measure();
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
-    ro?.observe(h); window.addEventListener('resize', measure);
-    return () => { ro?.disconnect(); window.removeEventListener('resize', measure); };
-  },[isWide]);
   // Phone: back (gesture or button) returns to the list.
   useBackButtonCloses(!split && !!page, () => setPage(null));
   useEscapeToClose(!split && !!page, () => setPage(null));
@@ -340,7 +346,7 @@ export function TabSettings({
               return key==='help'
                 ? <a key={key} href="mailto:ajstephe@me.com?subject=Overtime%20%26%20Shift%20Tracker%20—%20Feedback" className="tap-row" style={rowStyle}>{inner}</a>
                 : <Fragment key={key}>
-                    <button ref={el=>{ rowRefs.current[key]=el; }} type="button" onClick={rowTap(key)} aria-current={on?'page':undefined} className="tap-row" style={{...rowStyle,scrollMarginTop:`${hdrH+10}px`}}>{inner}</button>
+                    <button ref={el=>{ rowRefs.current[key]=el; }} type="button" onClick={rowTap(key)} aria-current={on?'page':undefined} className="tap-row" style={{...rowStyle,scrollMarginTop:'12px'}}>{inner}</button>
                   </Fragment>;
             })}
           </div>
@@ -412,10 +418,10 @@ export function TabSettings({
            to a tall accordion. ── */}
 
       <div ref={wrapRef} style={{...(isWide?{maxWidth:split?'1120px':'860px',margin:'0 auto'}:null),...(split?{display:'grid',gridTemplateColumns:compact?`${wrapW<760?150:190}px minmax(0,1fr)`:'minmax(250px,300px) minmax(0,1fr)',gap:isWide?'22px':'16px',alignItems:'start'}:null)}}>
-      {(split||!page)&&<div style={split?{position:'sticky',top:`${hdrH+10}px`,maxHeight:`calc(100vh - ${hdrH+24}px)`,overflowY:'auto',paddingBottom:'6px'}:undefined}>{moreList}</div>}
+      {(split||!page)&&<div style={split?(panes?{height:`${paneH}px`,overflowY:'auto',overscrollBehavior:'contain',padding:'0 4px 8px 2px',margin:'0 -4px 0 -2px'}:{position:'sticky',top:'12px',maxHeight:mainH?`${mainH-24}px`:'calc(100dvh - 120px)',overflowY:'auto',overscrollBehavior:'contain',paddingBottom:'6px'}):undefined}>{moreList}</div>}
       {/* The opened item: on the right when side by side, otherwise its
           own page with ‹ More to go back. */}
-      {page&&placeDetail(<div ref={paneRef} key={split?page:undefined} className={split?'accordion-in':undefined} style={{minWidth:0}}>
+      {page&&placeDetail(<div ref={paneRef} key={split?page:undefined} className={split?'accordion-in':undefined} style={{minWidth:0,...(panes?{height:`${paneH}px`,overflowY:'auto',overscrollBehavior:'contain',padding:'0 6px 12px 4px',margin:'0 -6px 0 -4px'}:null)}}>
       {pageHeader}
       {page==='theme'&&<div style={{...S.card,padding:'13px 16px',marginBottom:'12px'}}>
         {/* The page title says Theme, so no header of its own here. */}
