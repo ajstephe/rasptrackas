@@ -32,7 +32,8 @@ function start() {
     const cs = getComputedStyle(probe), d = document.documentElement, vv = window.visualViewport;
     const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     box.textContent = [
-      'SCREEN TEST BUILD',
+      `SCREEN TEST BUILD · mode ${window.__diagV || 'normal'}`,
+      `status bar:  ${document.querySelector('meta[name=apple-mobile-web-app-status-bar-style]')?.content}`,
       `opened as:   ${standalone ? 'home-screen app' : 'Safari tab'}`,
       `orientation: ${window.screen?.orientation?.type || (matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait')}`,
       `page width:  ${d.clientWidth} x ${d.clientHeight}`,

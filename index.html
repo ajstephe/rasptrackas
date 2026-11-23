@@ -23,6 +23,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
     <meta name="mobile-web-app-capable" content="yes"/>
     <link rel="manifest" href="/manifest.json"/>
+    <!-- TEST BUILD ONLY: ?v=fs | fsd | sd picks a home-screen app mode to try. -->
+    <script>(function(){try{var q=new URLSearchParams(location.search).get('v');var v=q||localStorage.getItem('diagV')||'';if(q)localStorage.setItem('diagV',q);var S={fs:['fs','black-translucent'],fsd:['fsd','default'],sd:['sd','default']}[v];window.__diagV=v||'normal';if(!S)return;document.querySelector('link[rel=manifest]').setAttribute('href','/manifest-'+S[0]+'.json');document.querySelector('meta[name=apple-mobile-web-app-status-bar-style]').setAttribute('content',S[1]);var t=document.querySelector('meta[name=apple-mobile-web-app-title]');if(!t){t=document.createElement('meta');t.name='apple-mobile-web-app-title';document.head.appendChild(t);}t.content={fs:'OT Test FS',fsd:'OT Test FS2',sd:'OT Test SD'}[v];}catch(e){}})();</script>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
     <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png"/>
     <!-- Classic favicon.ico, generated from the same 192px source. Most

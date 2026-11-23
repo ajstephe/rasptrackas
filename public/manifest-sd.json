@@ -1,0 +1,30 @@
+{
+  "name": "OT Test SD",
+  "short_name": "OT Test SD",
+  "description": "Log overtime shifts, calculate pay at multiple rate tiers, track Protection Allowance, and manage TOIL.",
+  "start_url": "/?v=sd",
+  "id": "/?v=sd",
+  "display": "standalone",
+  "background_color": "#e2e8f0",
+  "theme_color": "#0f2744",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
