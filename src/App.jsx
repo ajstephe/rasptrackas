@@ -489,7 +489,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     // light theme, matching the brand-moment treatment requested for this
     // screen specifically. #0f2744 matches the app's own theme-color, so
     // it's not a new colour being introduced, just used at page-scale here.
-    page: {display:'flex',flexDirection:'column',minHeight:'100dvh',maxWidth:isWide?'none':'430px',margin:'0 auto',background:'var(--navy)',fontFamily:'var(--app-font)',color:'var(--ink)',boxSizing:'border-box',position:'relative',overflowY:'auto',overscrollBehavior:'contain'},
+    page: {display:'flex',flexDirection:'column',minHeight:'100dvh',maxWidth:isWide?'none':'600px',margin:'0 auto',background:'var(--navy)',fontFamily:'var(--app-font)',color:'var(--ink)',boxSizing:'border-box',position:'relative',overflowY:'auto',overscrollBehavior:'contain'},
     cardWrap: {flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',position:'relative',zIndex:1,minHeight:0},
     card: {width:'100%',maxWidth:isWide?'460px':'none',background:'var(--surface)',borderRadius:'18px',padding:isWide?'34px 30px 28px':'26px 22px 22px',boxShadow:'0 12px 34px rgba(0,0,0,0.28)',boxSizing:'border-box'},
     label:{display:'block',fontSize:'9px',color:'var(--muted)',margin:'0 0 6px',fontWeight:900,textTransform:'uppercase',letterSpacing:'1.5px'},
@@ -4666,7 +4666,7 @@ export default function App() {
 
   // ── styles ─────────────────────────────────────────────────────────────────
   const S={
-    wrap: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'430px',margin:'0 auto',background:'var(--page-bg)',fontFamily:'var(--app-font)',color:'var(--ink)',position:'relative',boxShadow:'0 0 60px rgba(0,0,0,0.14)',overflow:'hidden'},
+    wrap: {display:'flex',flexDirection:'column',height:'100dvh',maxWidth:'none',margin:'0 auto',background:'var(--page-bg)',fontFamily:'var(--app-font)',color:'var(--ink)',position:'relative',boxShadow:'0 0 60px rgba(0,0,0,0.14)',overflow:'hidden'},
     hdr:  {background:'var(--surface)',paddingTop:'calc(13px + env(safe-area-inset-top))',paddingRight:'18px',paddingBottom:'13px',paddingLeft:'18px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,zIndex:10},
     main: {flex:1,overflowY:'auto',overflowX:'hidden',overscrollBehaviorY:'contain',minWidth:0,scrollbarWidth:prefersCoarsePointer()?'none':'thin',msOverflowStyle:'none'},
     nav:  {background:'rgba(var(--surface-rgb),0.72)',backdropFilter:'blur(20px) saturate(1.5)',WebkitBackdropFilter:'blur(20px) saturate(1.5)',borderTop:'1px solid var(--border-2)',position:'absolute',bottom:0,width:'100%',paddingTop:'7px',paddingRight:'4px',paddingBottom:'calc(12px + env(safe-area-inset-bottom))',paddingLeft:'4px',display:'flex',justifyContent:'space-between',alignItems:'center',zIndex:20},
@@ -4910,7 +4910,7 @@ export default function App() {
   }
 
   return (
-    <div style={isWide ? {...S.wrap, maxWidth:'1180px', margin:'0 auto 0 250px'} : tabletP ? {...S.wrap, maxWidth:'820px'} : S.wrap}>
+    <div style={isWide ? {...S.wrap, maxWidth:'1180px', margin:'0 auto 0 calc(clamp(230px, calc(100vw - 870px), 250px) + env(safe-area-inset-left, 0px))', paddingRight:'env(safe-area-inset-right, 0px)'} : tabletP ? {...S.wrap, maxWidth:'820px'} : S.wrap}>
       <style>{`
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
         /* Hiding the scrollbar app-wide is right for the touch/mobile
@@ -6173,7 +6173,7 @@ export default function App() {
            position, since S.wrap keeps its own scroll/height behavior
            unchanged rather than being restructured into a row layout. ── */}
       {isWide&&(
-        <div className="no-print app-sidebar" style={{position:'fixed',top:0,left:0,bottom:0,width:'230px',zIndex:30,overflow:'hidden'}}>
+        <div className="no-print app-sidebar" style={{position:'fixed',top:0,left:0,bottom:0,width:'calc(230px + env(safe-area-inset-left, 0px))',paddingLeft:'env(safe-area-inset-left, 0px)',boxSizing:'border-box',zIndex:30,overflow:'hidden'}}>
           {/* Vibrancy material — a translucent, blurred navy over a soft
               glow tinted to whichever tab is active, rather than a flat
               fill. Nothing else sits behind this fixed column to blur (it's
