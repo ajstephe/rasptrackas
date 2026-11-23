@@ -71,7 +71,7 @@ export function FestiveVent({ wide }) {
         {/* lip of the cut-away and seams */}
         <rect x="14" y="62" width="246" height="3" fill="#8e97a2"/>
         {/* stencilled on the side */}
-        <text x="137" y="69.6" textAnchor="middle" fontSize="6.6" fontWeight="900" letterSpacing="2" fill="#2f353d" fontFamily="Arial, Helvetica, sans-serif">NAKATOMI INC</text>
+        <text x="137" y="69.6" textAnchor="middle" fontSize="6.6" fontWeight="900" letterSpacing="1.8" fill="#2f353d" fontFamily="Arial, Helvetica, sans-serif">NAKATOMI PLAZA</text>
         <path d="M70 16 V24 M190 16 V24 M250 16 V24" stroke="#6f7782" strokeWidth="1.2"/>
         {[22,58,82,118,142,178,202].map(x=><circle key={x} cx={x} cy="20" r="1.1" fill="#6f7782"/>)}
       </g>
