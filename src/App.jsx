@@ -55,6 +55,7 @@ import { useMountTransition, useLastTruthy } from './lib/useMountTransition.js';
 import { useFocusTrap } from './lib/useFocusTrap.js';
 import { haptic } from './lib/haptics.js';
 import { springValue } from './lib/spring.js';
+import { normaliseRecoveryWord, recoveryWordCandidates } from './lib/recoveryWord.js';
 // ── tabs are code-split, not bundled up front ───────────────────────────────
 // Only one of these six is ever on screen at a time (via `tab` state below),
 // so there's no reason all six ship in the initial JS payload — each becomes
@@ -612,19 +613,21 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     setScreen('signin');
   };
 
-  const recoveryTooCommon = RECOVERY_BLOCKLIST.includes(recoveryWord.toLowerCase());
+  const recoveryNorm = normaliseRecoveryWord(recoveryWord);
+  const recoveryTooCommon = RECOVERY_BLOCKLIST.includes(recoveryNorm);
+  const recoveryMatches = recoveryWord2.length>0 && normaliseRecoveryWord(recoveryWord2)===recoveryNorm;
 
   const handleRecoverySetup = async () => {
     setError('');
-    if (recoveryWord.length < RECOVERY_MIN_LENGTH) { setError(`Must be at least ${RECOVERY_MIN_LENGTH} characters`); return; }
+    if (recoveryNorm.length < RECOVERY_MIN_LENGTH) { setError(`Must be at least ${RECOVERY_MIN_LENGTH} characters`); return; }
     if (recoveryTooCommon) { setError('That word is too easy to guess. Try one of the ideas above.'); return; }
-    if (recoveryWord !== recoveryWord2) { setError('The two recovery words don\u2019t match'); return; }
+    if (!recoveryMatches) { setError('The two recovery words don\u2019t match'); return; }
     if (!wroteItDown) { setError('Tick the box to confirm you\u2019ve written it down'); return; }
     setBusy(true);
     try {
       const dek = await generateDataKey();
       const passWrap = await wrapDataKey(dek, password, PASSWORD_KDF_ITERATIONS);
-      const recWrap  = await wrapDataKey(dek, recoveryWord, RECOVERY_KDF_ITERATIONS);
+      const recWrap  = await wrapDataKey(dek, recoveryNorm, RECOVERY_KDF_ITERATIONS);
       const { data: sessionData } = await supabase.auth.getSession();
       const uid = sessionData.session.user.id;
       // This upsert also fires for an EXISTING account resetting its DEK
@@ -729,7 +732,13 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
         .select('wrapped_dek_recovery, recovery_salt, recovery_iterations')
         .eq('user_id', uid).maybeSingle();
       if (fetchErr || !keyRow) throw new Error('missing key row');
-      const dek = await unwrapDataKey(keyRow.wrapped_dek_recovery, keyRow.recovery_salt, recoveryWord, keyRow.recovery_iterations);
+      // Exact text first (words set before matching became forgiving), then
+      // the trimmed and normalised forms.
+      let dek = null;
+      for (const secret of recoveryWordCandidates(recoveryWord)) {
+        try { dek = await unwrapDataKey(keyRow.wrapped_dek_recovery, keyRow.recovery_salt, secret, keyRow.recovery_iterations); break; } catch (_) {}
+      }
+      if (!dek) throw new Error('recovery word did not unlock');
       const newPassWrap = await wrapDataKey(dek, password, PASSWORD_KDF_ITERATIONS);
       const { error: updateErr } = await supabase.from('user_keys').update({
         wrapped_dek: newPassWrap.wrapped,
@@ -886,7 +895,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
                     <span>{t}</span><span style={{color:'var(--quiet)',whiteSpace:'nowrap'}}>e.g. <b style={{fontWeight:800,color:'var(--muted)'}}>{eg}</b></span>
                   </li>))}
               </ul>
-              <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'8px',lineHeight:1.4}}>Don't use the examples above. Capitals and spaces count, so type it the same way each time.</div>
+              <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'8px',lineHeight:1.4}}>Don't use the examples above. Capitals don't matter.</div>
             </div>
 
             <label htmlFor="as-rw" style={AS.label}>Your recovery word</label>
@@ -897,9 +906,9 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             <label htmlFor="as-rw2" style={AS.label}>Type it again</label>
             <input id="as-rw2" style={AS.input} type={showRecovery?'text':'password'} placeholder="The same word" autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck={false} value={recoveryWord2} onChange={e=>setRecoveryWord2(e.target.value)}/>
             {(()=>{ const rows=[
-                [recoveryWord.length>=RECOVERY_MIN_LENGTH, `At least ${RECOVERY_MIN_LENGTH} characters`, recoveryWord.length>0&&recoveryWord.length<RECOVERY_MIN_LENGTH ? `${RECOVERY_MIN_LENGTH-recoveryWord.length} more to go` : ''],
-                [recoveryWord.length>0 && !recoveryTooCommon, 'Not an obvious word', recoveryTooCommon ? 'Too easy to guess. Try one of the ideas above.' : ''],
-                [recoveryWord2.length>0 && recoveryWord2===recoveryWord, 'Both boxes match', recoveryWord2.length>0 && recoveryWord2!==recoveryWord ? 'Not matching yet' : ''],
+                [recoveryNorm.length>=RECOVERY_MIN_LENGTH, `At least ${RECOVERY_MIN_LENGTH} characters`, recoveryNorm.length>0&&recoveryNorm.length<RECOVERY_MIN_LENGTH ? `${RECOVERY_MIN_LENGTH-recoveryNorm.length} more to go` : ''],
+                [recoveryNorm.length>0 && !recoveryTooCommon, 'Not an obvious word', recoveryTooCommon ? 'Too easy to guess. Try one of the ideas above.' : ''],
+                [recoveryMatches, 'Both boxes match', recoveryWord2.length>0 && !recoveryMatches ? 'Not matching yet' : ''],
               ];
               return <ul aria-live="polite" style={{listStyle:'none',margin:'-4px 0 16px',padding:0,display:'flex',flexDirection:'column',gap:'6px'}}>
                 {rows.map(([ok,t,why])=>{ const bad=!!why&&!ok&&t!=='At least '+RECOVERY_MIN_LENGTH+' characters';
