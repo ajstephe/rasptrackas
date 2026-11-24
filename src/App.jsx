@@ -484,6 +484,15 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
     if (window.location.search.includes('confirmed=1')) window.history.replaceState(null, '', window.location.pathname);
   }, [landing, supabase]);
 
+  // Where they are in sign-up: create, confirm email, recovery word.
+  const Steps = ({ at }) => (
+    <div aria-label={`Step ${at} of 3`} style={{display:'flex',gap:'6px',margin:'-4px 0 20px'}}>
+      {['Create account','Confirm email','Recovery word'].map((t,i)=>{ const n=i+1, done=n<at, cur=n===at;
+        return <div key={t} style={{flex:1,minWidth:0}}>
+          <div style={{height:'4px',borderRadius:'2px',background:done||cur?'var(--accent)':'var(--surface-2)',opacity:done?0.5:1,marginBottom:'6px'}}/>
+          <div style={{fontSize:'10.5px',fontWeight:cur?900:700,color:cur?'var(--ink)':'var(--quiet)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{done?'\u2713 ':''}{t}</div>
+        </div>; })}
+    </div>);
   const AS = {
     // Dark blue page — deliberately different from the rest of the app's
     // light theme, matching the brand-moment treatment requested for this
@@ -753,35 +762,63 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
           </div>
         </div>
 
-        {screen === 'signin' && (
+        {screen === 'signin' && landing==='sent' && (
           <>
+            <Steps at={2}/>
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center'}}>
+              <div style={{width:'64px',height:'64px',borderRadius:'50%',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'14px'}}><Ico n="mail" s={30} c="var(--text-blue-deep)" w={2}/></div>
+              <div style={{fontSize:'21px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Check your inbox</div>
+              <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,fontWeight:600}}>We've sent a confirmation email to</div>
+              <div style={{margin:'8px 0 18px',padding:'8px 14px',borderRadius:'999px',background:'var(--surface-2)',fontSize:'14px',fontWeight:800,color:'var(--ink)',maxWidth:'100%',overflowWrap:'anywhere'}}>{email}</div>
+            </div>
+            <ol style={{listStyle:'none',margin:'0 0 16px',padding:0,display:'flex',flexDirection:'column',gap:'10px'}}>
+              {[['Open the email from ',<b key="b">OT Tracker</b>,'.'],['Tap the ',<b key="b">confirm</b>,' link in it. It opens this app.'],['Tap ',<b key="b">Confirm my email</b>,', then sign in.']].map((t,i)=>(
+                <li key={i} style={{display:'flex',gap:'11px',alignItems:'center',fontSize:'13.5px',lineHeight:1.45,fontWeight:600,color:'var(--ink)'}}>
+                  <span style={{width:'24px',height:'24px',borderRadius:'50%',background:'var(--accent)',color:'#fff',fontSize:'12px',fontWeight:900,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{i+1}</span>
+                  <span>{t}</span>
+                </li>))}
+            </ol>
+            <div style={{display:'flex',gap:'9px',alignItems:'flex-start',background:'var(--tint-amber)',borderRadius:'12px',padding:'11px 12px',marginBottom:'18px',fontSize:'12.5px',lineHeight:1.45,fontWeight:600,color:'var(--text-amber-deep)'}}>
+              <span style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="warn" s={15} c="var(--text-amber-deep)" w={2.4}/></span>
+              <span><b>Not there after a few minutes?</b> Check your junk or spam folder.</span>
+            </div>
+            {error && <div role="alert" style={{...AS.err,margin:'0 0 14px'}}>{error}</div>}
+            <button style={AS.btnGhost} disabled={busy} onClick={()=>{ if(!resent) handleResend(); }}>{resent ? 'Sent again ✓' : busy ? 'Sending…' : 'Resend the email'}</button>
+            <div style={AS.linkRow}>Wrong address? <button type="button" style={AS.link} onClick={()=>{ setLanding(null); setScreen('signup'); setResent(false); setError(''); }}>Change it</button></div>
+            <div style={{...AS.linkRow,marginTop:'8px'}}><button type="button" style={AS.link} onClick={()=>{ setLanding(null); setResent(false); setError(''); }}>Back to sign in</button></div>
+          </>
+        )}
+
+        {screen === 'signin' && (landing==='confirm-pending' || landing==='reset-pending') && (
+          <>
+            {landing==='confirm-pending' && <Steps at={2}/>}
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center'}}>
+              <div style={{width:'64px',height:'64px',borderRadius:'50%',background:'var(--tint-blue)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'14px'}}><Ico n="mail" s={30} c="var(--text-blue-deep)" w={2}/></div>
+              <div style={{fontSize:'21px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>{landing==='confirm-pending' ? 'Confirm your email' : 'Reset your password'}</div>
+              <div style={{fontSize:'13.5px',color:'var(--muted)',lineHeight:1.5,fontWeight:600,marginBottom:'20px',maxWidth:'34ch'}}>{landing==='confirm-pending' ? 'Nearly there. Tap the button below to confirm your email address.' : 'Tap the button below to choose a new password.'}</div>
+            </div>
+            <button style={{...AS.btn,padding:'16px 0',fontSize:'15.5px',opacity:busy?0.7:1}} disabled={busy} onClick={handleLinkConfirm}>{busy ? 'Checking…' : landing==='confirm-pending' ? 'Confirm my email' : 'Choose a new password'}</button>
+            <div style={{fontSize:'11.5px',color:'var(--quiet)',lineHeight:1.5,fontWeight:600,textAlign:'center',marginTop:'12px'}}>This extra tap stops email security scanners using up your link before you do.</div>
+          </>
+        )}
+
+        {screen === 'signin' && landing!=='sent' && landing!=='confirm-pending' && landing!=='reset-pending' && (
+          <>
+            {landing==='confirmed' && <Steps at={3}/>}
             {landing==='confirmed' ? (
               <div role="status" style={{display:'flex',gap:'11px',alignItems:'flex-start',background:'var(--tint-green)',borderRadius:'13px',padding:'13px 14px',margin:'-4px 0 18px'}}>
                 <div style={{width:'30px',height:'30px',borderRadius:'50%',background:'var(--text-green-deep)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Ico n="check" s={16} c="#fff" w={3}/></div>
-                <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-green-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>Email confirmed</b>Your account is ready. Sign in with your password to finish setting up — you'll choose a recovery word next.</div>
+                <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-green-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>Email confirmed</b>Sign in below with the password you just made. Next, you'll choose a recovery word.</div>
               </div>
             ) : landing==='link-error' ? (
               <div role="alert" style={{display:'flex',gap:'11px',alignItems:'flex-start',background:'var(--tint-amber)',borderRadius:'13px',padding:'13px 14px',margin:'-4px 0 18px'}}>
                 <div style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="warn" s={18} c="var(--text-amber-deep)" w={2.4}/></div>
                 <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-amber-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>That link has expired or was already used</b>Sign in below. If your email still needs confirming, you can send a fresh link from there.</div>
               </div>
-            ) : landing==='confirm-pending' || landing==='reset-pending' ? (
-              <div role="status" style={{background:'var(--tint-blue)',borderRadius:'13px',padding:'14px',margin:'-4px 0 18px'}}>
-                <div style={{display:'flex',gap:'11px',alignItems:'flex-start',marginBottom:'12px'}}>
-                  <div style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="mail" s={18} c="var(--text-blue-deep)" w={2.2}/></div>
-                  <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-blue-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>{landing==='confirm-pending' ? 'One more tap' : 'Reset your password'}</b>{landing==='confirm-pending' ? 'Confirm your email address to finish creating your account.' : 'Tap below to choose a new password.'}</div>
-                </div>
-                <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleLinkConfirm}>{busy ? 'Checking\u2026' : landing==='confirm-pending' ? 'Confirm my email' : 'Choose a new password'}</button>
-              </div>
             ) : landing==='reset-error' ? (
               <div role="alert" style={{display:'flex',gap:'11px',alignItems:'flex-start',background:'var(--tint-amber)',borderRadius:'13px',padding:'13px 14px',margin:'-4px 0 18px'}}>
                 <div style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="warn" s={18} c="var(--text-amber-deep)" w={2.4}/></div>
                 <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-amber-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>That reset link's no longer valid</b>Reset links only work once, for a limited time. Tap Forgot password below to get a new one.</div>
-              </div>
-            ) : landing==='sent' ? (
-              <div role="status" style={{display:'flex',gap:'11px',alignItems:'flex-start',background:'var(--tint-blue)',borderRadius:'13px',padding:'13px 14px',margin:'-4px 0 18px'}}>
-                <div style={{flexShrink:0,display:'flex',paddingTop:'1px'}}><Ico n="mail" s={18} c="var(--text-blue-deep)" w={2.2}/></div>
-                <div style={{fontSize:'12.5px',lineHeight:1.5,color:'var(--text-blue-deep)',fontWeight:600}}><b style={{display:'block',fontSize:'14px',fontWeight:900}}>Check your email</b>We've sent a confirmation link to {email}. Open it, then sign in below. Not there? Check your junk folder for an email from OT Tracker.</div>
               </div>
             ) : (
               <div style={{fontSize:'13px',color:'var(--muted)',fontWeight:600,lineHeight:1.5,margin:'-8px 0 16px'}}>Track overtime, PA and TOIL, and see what you'll take home.</div>
@@ -793,8 +830,10 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             {error && <div role="alert" style={AS.err}>{error}</div>}
             {needsConfirm && <div style={{margin:'-6px 0 14px',fontSize:'12.5px',fontWeight:700,color:'var(--muted)'}}>{resent ? 'Sent. Check your inbox, and your junk folder for an email from OT Tracker.' : <button type="button" style={AS.link} onClick={handleResend} disabled={busy}>Resend the confirmation email</button>}</div>}
             <button style={{...AS.btn,opacity:busy?0.7:1}} disabled={busy} onClick={handleSignIn}>{busy?'Signing in…':'Sign in'}</button>
+            {landing!=='confirmed' && <>
             <div style={AS.divider}>or</div>
             <button style={AS.btnGhost} onClick={()=>{ setScreen('signup'); setError(''); setNeedsConfirm(false); }}>Create an account</button>
+            </>}
             <div style={AS.linkRow}><button type="button" style={AS.link} onClick={()=>{ setScreen('forgot'); setError(''); setForgotSent(false); setNeedsConfirm(false); }}>Forgot password?</button></div>
             <div style={{...AS.linkRow,fontSize:'11.5px',fontWeight:600,marginTop:'10px'}}>Need help? {SUPPORT_EMAIL}</div>
           </>
@@ -802,6 +841,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
 
         {screen === 'signup' && (
           <>
+            <Steps at={1}/>
             <label htmlFor="as-su-email" style={AS.label}>Email</label>
             <input id="as-su-email" style={AS.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} autoComplete="email"/>
             {/* Work email systems (the Met's included) tend to quarantine the
@@ -819,7 +859,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             <input id="as-su-pass2" style={AS.input} type="password" placeholder="Type it again" value={password2} onChange={e=>setPassword2(e.target.value)} autoComplete="new-password"/>
             <div style={AS.note}>
               <span>↻</span>
-              <span><b>You'll choose a recovery word next.</b> It protects your data if you ever forget your password.</span>
+              <span><b>After confirming your email, you'll choose a recovery word.</b> It protects your data if you ever forget your password.</span>
             </div>
             <label style={{display:'flex',alignItems:'flex-start',gap:'9px',marginBottom:'14px',cursor:'pointer'}}>
               <input type="checkbox" checked={agreedToPrivacy} onChange={e=>setAgreedToPrivacy(e.target.checked)} style={{marginTop:'2px',flexShrink:0,width:'16px',height:'16px',accentColor:'var(--accent)',cursor:'pointer'}}/>
@@ -833,6 +873,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
 
         {screen === 'recovery-setup' && (
           <>
+            <Steps at={3}/>
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Save your recovery word</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>If you ever forget your password, this word is the only other way back into your data. Nobody else has a copy of it — not even us.</div>
 
