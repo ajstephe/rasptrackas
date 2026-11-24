@@ -472,6 +472,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
   const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
   const [recoveryWord2, setRecoveryWord2] = useState('');
   const [wroteItDown, setWroteItDown] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(true);
   const [needsConfirm, setNeedsConfirm] = useState(false);
   const [resent, setResent] = useState(false);
   // Arriving from the confirmation email: say so, and fill in the email address.
@@ -616,7 +617,7 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
   const handleRecoverySetup = async () => {
     setError('');
     if (recoveryWord.length < RECOVERY_MIN_LENGTH) { setError(`Must be at least ${RECOVERY_MIN_LENGTH} characters`); return; }
-    if (recoveryTooCommon) { setError('Too common — choose something less predictable'); return; }
+    if (recoveryTooCommon) { setError('That word is too easy to guess. Try one of the ideas above.'); return; }
     if (recoveryWord !== recoveryWord2) { setError('The two recovery words don\u2019t match'); return; }
     if (!wroteItDown) { setError('Tick the box to confirm you\u2019ve written it down'); return; }
     setBusy(true);
@@ -877,13 +878,36 @@ function AuthScreens({ supabase, addToast, toasts, dismissToast, setAuthFlowBusy
             <div style={{fontSize:'19px',fontWeight:900,letterSpacing:'-0.5px',marginBottom:'6px'}}>Save your recovery word</div>
             <div style={{fontSize:'13px',color:'var(--muted)',lineHeight:1.5,marginBottom:'18px',fontWeight:600}}>If you ever forget your password, this word is the only other way back into your data. Nobody else has a copy of it — not even us.</div>
 
+            <div style={{background:'var(--surface-2)',borderRadius:'13px',padding:'12px 14px',marginBottom:'16px'}}>
+              <div style={{fontSize:'12.5px',fontWeight:900,color:'var(--ink)',marginBottom:'7px'}}>Ideas that work well</div>
+              <ul style={{margin:0,padding:0,listStyle:'none',display:'flex',flexDirection:'column',gap:'5px'}}>
+                {[['A first pet plus a year','biscuit1998'],['A first car plus a street','fiestaelmroad'],['Three random words','kettle moss orbit']].map(([t,eg])=>(
+                  <li key={t} style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',columnGap:'10px',fontSize:'12.5px',lineHeight:1.4,fontWeight:600,color:'var(--muted)'}}>
+                    <span>{t}</span><span style={{color:'var(--quiet)',whiteSpace:'nowrap'}}>e.g. <b style={{fontWeight:800,color:'var(--muted)'}}>{eg}</b></span>
+                  </li>))}
+              </ul>
+              <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'8px',lineHeight:1.4}}>Don't use the examples above. Capitals and spaces count, so type it the same way each time.</div>
+            </div>
+
             <label htmlFor="as-rw" style={AS.label}>Your recovery word</label>
-            <input id="as-rw" style={AS.input} type="text" placeholder="Something only you'd think of" autoComplete="off" autoCapitalize="off" spellCheck={false} value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
-            <div style={{fontSize:'12px',color:recoveryWord.length>=RECOVERY_MIN_LENGTH?'#16a34a':'var(--quiet)',margin:'-10px 0 12px',fontWeight:700}}>{recoveryWord.length} / {RECOVERY_MIN_LENGTH} characters minimum</div>
-            {recoveryTooCommon && recoveryWord.length>0 && <div style={AS.err}>Too common — choose something less predictable</div>}
+            <div style={{position:'relative'}}>
+              <input id="as-rw" style={{...AS.input,paddingRight:'78px'}} type={showRecovery?'text':'password'} placeholder="Type your recovery word" autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck={false} value={recoveryWord} onChange={e=>setRecoveryWord(e.target.value)}/>
+              <button type="button" onClick={()=>setShowRecovery(v=>!v)} aria-label={showRecovery?'Hide recovery word':'Show recovery word'} style={{position:'absolute',right:'8px',top:'6px',height:'34px',display:'flex',alignItems:'center',gap:'5px',padding:'0 9px',border:'none',borderRadius:'9px',background:'transparent',color:'var(--muted)',fontFamily:'inherit',fontSize:'12px',fontWeight:800,cursor:'pointer'}}><Ico n={showRecovery?'eye-off':'eye'} s={16} c="var(--muted)" w={2.2}/>{showRecovery?'Hide':'Show'}</button>
+            </div>
             <label htmlFor="as-rw2" style={AS.label}>Type it again</label>
-            <input id="as-rw2" style={AS.input} type="text" placeholder="The same word" autoComplete="off" autoCapitalize="off" spellCheck={false} value={recoveryWord2} onChange={e=>setRecoveryWord2(e.target.value)}/>
-            {recoveryWord2.length>0 && recoveryWord2!==recoveryWord && <div style={AS.err}>Doesn't match yet</div>}
+            <input id="as-rw2" style={AS.input} type={showRecovery?'text':'password'} placeholder="The same word" autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck={false} value={recoveryWord2} onChange={e=>setRecoveryWord2(e.target.value)}/>
+            {(()=>{ const rows=[
+                [recoveryWord.length>=RECOVERY_MIN_LENGTH, `At least ${RECOVERY_MIN_LENGTH} characters`, recoveryWord.length>0&&recoveryWord.length<RECOVERY_MIN_LENGTH ? `${RECOVERY_MIN_LENGTH-recoveryWord.length} more to go` : ''],
+                [recoveryWord.length>0 && !recoveryTooCommon, 'Not an obvious word', recoveryTooCommon ? 'Too easy to guess. Try one of the ideas above.' : ''],
+                [recoveryWord2.length>0 && recoveryWord2===recoveryWord, 'Both boxes match', recoveryWord2.length>0 && recoveryWord2!==recoveryWord ? 'Not matching yet' : ''],
+              ];
+              return <ul aria-live="polite" style={{listStyle:'none',margin:'-4px 0 16px',padding:0,display:'flex',flexDirection:'column',gap:'6px'}}>
+                {rows.map(([ok,t,why])=>{ const bad=!!why&&!ok&&t!=='At least '+RECOVERY_MIN_LENGTH+' characters';
+                  return <li key={t} style={{display:'flex',alignItems:'center',gap:'8px',fontSize:'12.5px',fontWeight:700,color:ok?'var(--text-green-deep)':bad?'var(--text-red-deep)':'var(--quiet)'}}>
+                    <span style={{width:'18px',height:'18px',borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',background:ok?'var(--text-green-deep)':'transparent',border:ok?'none':`1.5px solid ${bad?'var(--text-red-deep)':'var(--border)'}`}}>{ok&&<Ico n="check" s={11} c="#fff" w={3.4}/>}</span>
+                    <span>{t}{why&&!ok&&<span style={{fontWeight:600}}> · {why}</span>}</span>
+                  </li>; })}
+              </ul>; })()}
             <label style={{display:'flex',alignItems:'flex-start',gap:'9px',marginBottom:'14px',cursor:'pointer'}}>
               <input type="checkbox" checked={wroteItDown} onChange={e=>setWroteItDown(e.target.checked)} style={{marginTop:'2px',flexShrink:0,width:'16px',height:'16px',accentColor:'var(--accent)',cursor:'pointer'}}/>
               <span style={{fontSize:'12.5px',color:'var(--muted)',lineHeight:1.5,fontWeight:600}}><b style={{color:'var(--ink)'}}>I've written it down somewhere safe.</b> If I lose both it and my password, my data can't be recovered.</span>
