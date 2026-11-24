@@ -5086,6 +5086,16 @@ export default function App() {
            so this reads as a couple of clearly separated pulses instead of
            one long one. */
         .carms-pulse{animation:carmsPulse 1.6s ease-out 2;}
+        /* ── unsubmitted claim buttons on Log Overtime step 4 ("Submit
+             overtime" / "Submit PA…"): a soft red ring that keeps pulsing
+             while the claim is still outstanding, so the button is easy to
+             find. Arriving from Awaits Submission swaps in a bolder, quicker
+             beat (ring + slight grow) for a few pulses, then it settles back
+             to the soft one. ── */
+        @keyframes submitPulse{0%{box-shadow:0 0 0 0 rgba(220,38,38,0.45)}70%{box-shadow:0 0 0 8px rgba(220,38,38,0)}100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}}
+        @keyframes submitPulseStrong{0%{box-shadow:0 0 0 0 rgba(220,38,38,0.6);transform:scale(1)}35%{transform:scale(1.06)}70%{box-shadow:0 0 0 12px rgba(220,38,38,0);transform:scale(1)}100%{box-shadow:0 0 0 0 rgba(220,38,38,0);transform:scale(1)}}
+        .submit-pulse{animation:submitPulse 2s ease-out infinite;}
+        .submit-pulse-strong{animation:submitPulseStrong 0.95s ease-out infinite;}
         @keyframes navAddPulse{0%,100%{opacity:1}50%{opacity:0.45}}
         .nav-add-pulse{animation:navAddPulse 1.8s ease-in-out infinite;}
         /* ── sliding nav pill (bottom mobile nav) — position/width are set
@@ -5287,7 +5297,7 @@ export default function App() {
           .badge-pop{animation-duration:0.001ms}
           .tap-row{transition-duration:0.001ms}
           .toast-enter{animation-duration:0.001ms}
-          .upd-pulse,.toast-up{animation:none}
+          .upd-pulse,.toast-up,.submit-pulse,.submit-pulse-strong{animation:none}
           .toast-leave{animation-duration:0.001ms}
           .toast-bar{animation-duration:0.001ms}
           .alert-pop{animation-duration:0.001ms}
