@@ -328,6 +328,11 @@ export function TabSettings({
       ['export','Reports & export','share','var(--tint-amber)','#d97706',''],
       ['account','Account & data','user','var(--tint-blue)','#2563eb', session ? 'Signed in' : 'Not signed in', 'Sign-in, backup, restore, wipe data'],
     ]],
+    // Adam's other apps. They open in a new tab rather than as a page here.
+    ['Other useful apps', [
+      ['app-atoc','ATOC Zone Check','train','var(--tint-blue)','#2563eb','','Check your ATOC travel zones','https://zonetravel.vercel.app/'],
+      ['app-barclay','Barclaycard Expense Builder','card','var(--tint-green)','#059669','','Build your Barclaycard expense claims','https://raspbarclayexp.vercel.app/'],
+    ]],
     [isWide ? 'Support' : 'App & support', [
       ...(isWide ? [] : [['theme','Theme','sun','var(--tint-amber)',BRASS, themeLabel]]),
       ['help','Help & suggestions','mail','var(--tint-blue)','#2563eb',''],
@@ -362,7 +367,7 @@ export function TabSettings({
         <div key={title}>
           <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.07em',padding:gi?'14px 4px 6px':'2px 4px 6px'}}>{title}</div>
           <div style={{...S.card,padding:0,overflow:'hidden'}}>
-            {rows.map(([key,label,icon,tint,col,value,sub],ri)=>{
+            {rows.map(([key,label,icon,tint,col,value,sub,href],ri)=>{
               const on = split && page===key;
               const inner = (<>
                 {!compact&&<div style={{background:tint,padding:'7px',borderRadius:'10px',display:'flex',flexShrink:0}}><Ico n={icon} s={16} c={col}/></div>}
@@ -371,9 +376,10 @@ export function TabSettings({
                   {sub&&!compact&&<div style={{fontSize:'11px',fontWeight:600,color:'var(--quiet)',marginTop:'1px'}}>{sub}</div>}
                 </div>
                 {value&&!compact&&<span style={{fontSize:'12px',fontWeight:700,color:'var(--muted)',whiteSpace:'nowrap',maxWidth:'45%',overflow:'hidden',textOverflow:'ellipsis'}}>{value}</span>}
-                {!compact&&<span style={{display:'flex',transition:'transform 0.25s',transform:'none',opacity:split&&!on?0.5:1}}><Ico n="cR" s={14} c="var(--quiet)" w={2.4}/></span>}
+                {!compact&&<span style={{display:'flex',transition:'transform 0.25s',transform:'none',opacity:split&&!on?0.5:1}}><Ico n={href?'ext':'cR'} s={14} c="var(--quiet)" w={2.4}/></span>}
               </>);
               const rowStyle = {display:'flex',alignItems:'center',gap:'11px',width:'100%',padding:compact?'11px 12px':'12px 14px',background:on?'var(--tint-brass)':'none',border:'none',borderTop:ri?'1px solid var(--border-2)':'none',textAlign:'left',fontFamily:'inherit',cursor:'pointer',textDecoration:'none',boxShadow:on?`inset 3px 0 0 ${BRASS}`:'none'};
+              if (href) return <a key={key} href={href} target="_blank" rel="noopener noreferrer" className="tap-row" style={rowStyle}>{inner}</a>;
               return key==='help'
                 ? <a key={key} href="mailto:ajstephe@me.com?subject=Overtime%20%26%20Shift%20Tracker%20—%20Feedback" className="tap-row" style={rowStyle}>{inner}</a>
                 : <Fragment key={key}>
