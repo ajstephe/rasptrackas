@@ -328,15 +328,15 @@ export function TabSettings({
       ['export','Reports & export','share','var(--tint-amber)','#d97706',''],
       ['account','Account & data','user','var(--tint-blue)','#2563eb', session ? 'Signed in' : 'Not signed in', 'Sign-in, backup, restore, wipe data'],
     ]],
-    // Adam's other apps. They open in a new tab rather than as a page here.
-    ['Other useful apps', [
-      ['app-atoc','ATOC Zone Check','train','var(--tint-blue)','#2563eb','','Check your ATOC travel zones','https://zonetravel.vercel.app/'],
-      ['app-barclay','Barclaycard Expense Builder','card','var(--tint-green)','#059669','','Build your Barclaycard expense claims','https://raspbarclayexp.vercel.app/'],
-    ]],
     [isWide ? 'Support' : 'App & support', [
       ...(isWide ? [] : [['theme','Theme','sun','var(--tint-amber)',BRASS, themeLabel]]),
       ['help','Help & suggestions','mail','var(--tint-blue)','#2563eb',''],
       ['privacy','Privacy notice','shield','var(--tint-blue)','#2563eb',''],
+    ]],
+    // Adam's other apps. They open in a new tab rather than as a page here.
+    ['Other useful apps', [
+      ['app-atoc','ATOC Zone Check','train','var(--tint-blue)','#2563eb','','Check your ATOC travel zones','https://zonetravel.vercel.app/'],
+      ['app-barclay','Barclaycard Expense Builder','card','var(--tint-green)','#059669','','Build your Barclaycard expense claims','https://raspbarclayexp.vercel.app/'],
     ]],
   ];
   const TITLES = Object.fromEntries(ROW_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]])));
@@ -361,9 +361,12 @@ export function TabSettings({
         <div style={{fontSize:'11.5px',color:'var(--muted)',fontWeight:600,marginTop:'8px'}}>Cheers for the support!</div>
       </div>
   );
-  const moreList = (
+  // Other useful apps sits just above the thanks card: at the end of the
+  // list side by side, and at the top on its own above the card otherwise.
+  const APPS_GROUP = ROW_GROUPS[ROW_GROUPS.length-1];
+  const renderGroups = groups => (
     <div>
-      {ROW_GROUPS.map(([title, rows], gi)=>(
+      {groups.map(([title, rows], gi)=>(
         <div key={title}>
           <div style={{fontSize:'10px',fontWeight:900,color:'var(--quiet)',textTransform:'uppercase',letterSpacing:'0.07em',padding:gi?'14px 4px 6px':'2px 4px 6px'}}>{title}</div>
           <div style={{...S.card,padding:0,overflow:'hidden'}}>
@@ -391,6 +394,8 @@ export function TabSettings({
       ))}
     </div>
   );
+  const moreList = renderGroups(split ? ROW_GROUPS : ROW_GROUPS.slice(0,-1));
+  const appsList = <div style={{marginBottom:'14px'}}>{renderGroups([APPS_GROUP])}</div>;
   const placeDetail = node => node;
   // Above an opened page: ‹ More (phone) and the page's name.
   const pageHeader = page && (
@@ -432,6 +437,7 @@ export function TabSettings({
            both mobile and desktop now (it used to be split: folded
            into the Help & Suggestions box on mobile, and a separate
            card further down the grid on desktop). ── */}
+      {!split&&!page&&appsList}
       {!split&&!page&&thanksCard}
 
       {/* ── Appearance — not an accordion like the rest of this tab;
