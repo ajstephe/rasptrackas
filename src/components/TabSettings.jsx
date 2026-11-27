@@ -784,16 +784,15 @@ export function TabSettings({
               };
               return (
                 <div style={{background:'var(--surface-2)',borderRadius:'12px',padding:'11px 12px',marginBottom:'10px'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:'10px',flexWrap:'wrap'}}>
-                    <div style={{flex:'1 1 180px',minWidth:0}}>
-                      <div style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>Police pension</div>
-                      <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'1px',lineHeight:1.4}}>{outNow ? 'Opted out: none taken, so a little more tax' : 'Taken off before tax, worked out for you'}</div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px'}}>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>I've opted out of the police pension</div>
+                      <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'2px',lineHeight:1.4}}>{outNow ? 'No pension taken, so a little more tax' : 'Leave off if you pay into it. Your pension is taken off before tax automatically'}</div>
                     </div>
-                    <div role="group" aria-label="Police pension" style={{display:'flex',gap:'4px',background:'var(--surface)',borderRadius:'9px',padding:'3px',flex:'0 0 auto'}}>
-                      {[[true,'Paying in'],[false,'Opted out']].map(([on,l])=>(
-                        <button key={l} type="button" onClick={()=>pick(on)} aria-pressed={outNow!==on} style={{border:'none',borderRadius:'7px',padding:'6px 11px',fontSize:'11.5px',fontWeight:800,cursor:'pointer',fontFamily:'inherit',background:outNow!==on?BRASS:'transparent',color:outNow!==on?'#fff':'var(--muted)'}}>{l}</button>
-                      ))}
-                    </div>
+                    <button type="button" role="switch" aria-checked={outNow} aria-label="I've opted out of the police pension" onClick={()=>pick(outNow)}
+                      style={{flex:'0 0 auto',width:'46px',height:'28px',borderRadius:'14px',border:'none',padding:0,cursor:'pointer',position:'relative',background:outNow?BRASS:'var(--chip-bg)',transition:'background 0.2s'}}>
+                      <span style={{position:'absolute',top:'3px',left:outNow?'21px':'3px',width:'22px',height:'22px',borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}/>
+                    </button>
                   </div>
                   {sorted.length>0 && <div style={{marginTop:'8px'}}>
                     {sorted.map(c=>{
