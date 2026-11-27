@@ -67,10 +67,15 @@ export default function TaxWorkings({ v, kind, onClose, BRASS }) {
       </Step>
 
       <Step n={2} title="Take off what isn't taxed">
-        <Say>Your police pension comes off <b>before</b> tax. It's {pct(v.pensionRate)} of your pensionable pay (basic salary and London Weighting only, not overtime): {g(v.pensionable)} × {pct(v.pensionRate)} = {g(v.pension)}.{v.sacrifice > 0.005 ? ' Salary sacrifice (like Cycle2Work) comes off before tax too.' : ''}</Say>
+        <Say>{v.pension < 0.005
+          ? <>You've opted out of the police pension, so nothing comes off for it and all your pay is taxed.</>
+          : v.pensionRate > 0
+            ? <>Your police pension comes off <b>before</b> tax. It's {pct(v.pensionRate)} of your pensionable pay (basic salary and London Weighting only, not overtime): {g(v.pensionable)} × {pct(v.pensionRate)} = {g(v.pension)}.</>
+            : <>Your police pension came off <b>before</b> tax until you opted out: {g(v.pension)} in all. Nothing comes off for it after that.</>}
+          {v.sacrifice > 0.005 ? ' Salary sacrifice (like Cycle2Work) comes off before tax too.' : ''}</Say>
         <Sum lines={[
           ['Total pay', g(v.gross)],
-          ['Police pension', g(v.pension), '−'],
+          [v.pension < 0.005 ? 'Police pension (opted out)' : 'Police pension', g(v.pension), '−'],
           v.sacrifice > 0.005 && ['Salary sacrifice', g(v.sacrifice), '−'],
         ]} total={['Taxable pay', g(v.taxable)]}/>
         <Why>You don't pay tax on money paid into your pension. That's why it's taken off first.</Why>
@@ -135,7 +140,7 @@ export default function TaxWorkings({ v, kind, onClose, BRASS }) {
       <Step n={7} title="What reaches your bank">
         <Sum lines={[
           ['Total pay', g(v.gross), ''],
-          ['Police pension', g(v.pension), '−'],
+          [v.pension < 0.005 ? 'Police pension (opted out)' : 'Police pension', g(v.pension), '−'],
           v.sacrifice > 0.005 && ['Salary sacrifice', g(v.sacrifice), '−'],
           ['Income tax', g(b.totalTax), '−'],
           ['National Insurance', g(v.niMain + v.niUpper), '−'],

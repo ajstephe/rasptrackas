@@ -67,6 +67,13 @@ export const migrateSettings = s => {
     const r = x => Math.round(x*100)/100;
     out.payslipYtd = { month:y.month, taxable:r(y.taxable), tax:r(y.tax) };
   }
+  // Police pension opt-out (More › Monthly deductions): opted out, or back
+  // in, from a pay month onwards. Anyone with none of these pays into it.
+  if (Array.isArray(s.pensionOptOut)) {
+    const po = s.pensionOptOut.filter(c => c && typeof c === 'object' && typeof c.from === 'string' && /^[A-Za-z]+ \d{4}$/.test(c.from))
+      .slice(0, 12).map(c => ({ from:c.from, out: c.out !== false }));
+    if (po.length) out.pensionOptOut = po;
+  }
   // "Add it later" from setup's moved-forces step: Home reminds them.
   if (s.p45Later === true) out.p45Later = true;
   // Moved forces this tax year (More › Config): the switch and the P45's

@@ -229,3 +229,11 @@ describe('taxCodeChecked', () => {
     expect('taxCodeChecked' in migrateSettings({ taxCodeChecked: 'yes' })).toBe(false);
   });
 });
+
+describe('police pension opt-out setting', () => {
+  it('keeps valid opt-out months and drops anything else', () => {
+    const out = migrateSettings({ rank:'Constable', service:'PC 4', pensionOptOut:[{ from:'December 2026', out:true }, { from:'nonsense' }, { from:'March 2027', out:false }, 'x'] });
+    expect(out.pensionOptOut).toEqual([{ from:'December 2026', out:true }, { from:'March 2027', out:false }]);
+    expect(migrateSettings({ rank:'Constable', service:'PC 4' }).pensionOptOut).toBeUndefined();
+  });
+});

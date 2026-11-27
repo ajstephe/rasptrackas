@@ -361,3 +361,36 @@ describe('p45ForTaxYear', () => {
     expect(p45ForTaxYear({ forceMove:{ ...s.forceMove, on:false } }, '2026-04-06')).toBeNull();
   });
 });
+
+describe('police pension opt-out', () => {
+  const run = s => buildPayYear({ periods: PERIODS, entries: [], settings: { ...SETTINGS, ...s }, svcData: SVC });
+  const base = run({});
+
+  it('takes no pension, and taxes the pension pay instead, from the month they opt out', () => {
+    const y = run({ pensionOptOut: [{ from: 'December 2026', out: true }] });
+    const dec = PERIODS.findIndex(p => p.month === 'December 2026');
+    // Months before keep the pension.
+    expect(y[dec-1].periodPension).toBeCloseTo(base[dec-1].periodPension, 2);
+    expect(y[dec-1].monthNet).toBeCloseTo(base[dec-1].monthNet, 2);
+    // From December: no pension, more tax, same NI, more take-home.
+    const pen = base[dec].periodPension;
+    expect(pen).toBeGreaterThan(100);
+    expect(y[dec].periodPension).toBe(0);
+    expect(y[dec].pensionOut).toBe(true);
+    expect(y[dec].monthNI).toBeCloseTo(base[dec].monthNI, 2);
+    expect(y[dec].monthTax - base[dec].monthTax).toBeCloseTo(pen * 0.2, 0);
+    expect(y[dec].monthNet - base[dec].monthNet).toBeCloseTo(pen * 0.8, 0);
+  });
+
+  it('puts the pension back from the month they opt back in', () => {
+    const y = run({ pensionOptOut: [{ from: 'March 2027', out: false }, { from: 'December 2026', out: true }] });
+    const mar = PERIODS.findIndex(p => p.month === 'March 2027');
+    expect(y[mar-1].periodPension).toBe(0);
+    expect(y[mar].periodPension).toBeCloseTo(base[mar].periodPension, 2);
+  });
+
+  it('opting out from before this pay year takes no pension all year', () => {
+    const y = run({ pensionOptOut: [{ from: 'June 2025', out: true }] });
+    y.forEach(pb => expect(pb.periodPension).toBe(0));
+  });
+});

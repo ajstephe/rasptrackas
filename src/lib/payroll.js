@@ -96,6 +96,22 @@ export const ytdFor = (settings, month) => {
   return p ? { ...y, taxable: y.taxable + p.pay, tax: y.tax + p.tax } : y;
 };
 
+// Whether someone has opted out of the police pension for a pay month:
+// settings.pensionOptOut is a list of { from:'December 2026', out } changes,
+// the latest one on or before the month winning. None means they pay in.
+export const pensionOptedOut = (settings, month) => {
+  const h = settings && settings.pensionOptOut;
+  if (!Array.isArray(h) || !h.length || !month) return false;
+  const d = payDateOf({ month });
+  let pick = null;
+  for (const c of h) {
+    if (!c || !c.from || !MONTH_NUM[c.from.split(' ')[0]]) continue;
+    const cd = payDateOf({ month: c.from });
+    if (cd <= d && (!pick || cd >= pick.d)) pick = { d: cd, out: c.out !== false };
+  }
+  return pick ? pick.out : false;
+};
+
 // Runs the twelve payslips of one pay year (= one tax year) given each
 // month's overtime and PA. `svcData` pins one pay point (tests); otherwise
 // each month uses the pay point in force on its pay date.
@@ -116,7 +132,9 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     const m = prevForce ? { ...m0, salary:0, lw:0, la:0, base:0, pensionable:0, laParts:{ la1:0, la2:0, laVar:0 } } : m0;
     if (!prevForce && wasPrevForce) { const p45 = p45For(settings, p.month); if (p45) { cum = p45.pay; taxToDate = p45.tax; } }
     wasPrevForce = prevForce;
-    const pensionRate = svc ? pensionTierRate(m.annualPensionable) : 0;
+    // Opted out of the police pension: nothing taken, so no tax relief on it either.
+    const pensionOut = pensionOptedOut(settings, p.month);
+    const pensionRate = svc && !pensionOut ? pensionTierRate(m.annualPensionable) : 0;
     const periodPension = Math.round((m.pensionable * pensionRate + Number.EPSILON)*100)/100;
     // Salary sacrifice (deductions set to come off before tax and NI) lowers
     // the pay both are worked out on, and the amount itself comes off the
@@ -193,7 +211,7 @@ export const runPayYear = ({ periods, settings, svcData, money }) => {
     return {
       month:p.month, start:p.start, end:p.end, payDate, taxMonth, prevForce,
       baseAmt:m.base, niBase, sacrifice, salary:m.salary, salaryNet, lw:m.lw, lwNet, la:m.la, laNet,
-      pensionablePayThisPeriod:m.pensionable, pensionRate, periodPension,
+      pensionablePayThisPeriod:m.pensionable, pensionRate, periodPension, pensionOut,
       ot, pa, otResult, paResult, imported,
       combinedGross: ot+pa, combinedNet: otResult.net+paResult.net,
       cumBase, cumAfter: cum, parts, cumPrev, paidBefore,

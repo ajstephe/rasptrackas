@@ -2,7 +2,7 @@ import { themeInSeason } from '../seasonal.js';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CURRENT_FY_YEAR, PAY_PERIODS, generateFYPeriods, localDateStr, getUKTaxYearStart } from '../lib/payPeriods.js';
-import { payDateOf, grossForImportedNet } from '../lib/payroll.js';
+import { payDateOf, grossForImportedNet, pensionOptedOut } from '../lib/payroll.js';
 import { PAY_RATES } from '../lib/payRates.js';
 import { deductionFor, deductionsFor, DEDUCTION_PRESETS, PRE_TAX_PRESETS } from '../lib/deductions.js';
 import { taxCodeOn, LONDON_WEIGHTING, LONDON_ALLOWANCE } from '../lib/tax.js';
@@ -766,8 +766,52 @@ export function TabSettings({
             {/* Same note as setup, so nobody adds what payroll already takes. */}
             <div style={{display:'flex',alignItems:'flex-start',gap:'8px',background:'var(--tint-green)',border:'1px solid var(--border-2)',borderRadius:'11px',padding:'9px 11px',marginBottom:'10px'}}>
               <span style={{display:'flex',flexShrink:0,marginTop:'1px'}}><Ico n="check" s={14} c="#059669" w={2.6}/></span>
-              <span style={{fontSize:'12px',color:'var(--text-green-deep)',lineHeight:1.45,fontWeight:600}}>Your pension, income tax (PAYE) and National Insurance are worked out and taken off automatically, so there's no need to add them here.</span>
+              <span style={{fontSize:'12px',color:'var(--text-green-deep)',lineHeight:1.45,fontWeight:600}}>{pensionOptedOut(settings, curMonth) ? 'Income tax (PAYE) and National Insurance' : 'Your pension, income tax (PAYE) and National Insurance'} are worked out and taken off automatically, so there's no need to add them here.</span>
             </div>
+            {/* Police pension opt-out: off from a pay month, and back on
+                from a later one if they rejoin. Saved straight away. */}
+            {(()=>{
+              const ch = Array.isArray(settings.pensionOptOut) ? settings.pensionOptOut : [];
+              const outNow = pensionOptedOut(settings, curMonth);
+              const setCh = next => { const { pensionOptOut, ...rest } = settings; saveSett(next.length ? { ...rest, pensionOptOut:next } : rest); };
+              const sorted = [...ch].map((c,i)=>({...c,i})).sort((a,b)=>payDateOf({month:a.from}).localeCompare(payDateOf({month:b.from})));
+              const last = sorted[sorted.length-1];
+              const nextMonth = () => { const li = last ? PAY_PERIODS.findIndex(p=>p.month===last.from) : -1; return PAY_PERIODS[Math.min(11, Math.max(curIdx, li+1, 0))].month; };
+              const pick = (on) => {
+                if (on === !outNow) return;
+                if (!on) setCh([...ch, { from: curMonth, out: true }]);
+                else setCh(ch.length===1 ? [] : [...ch, { from: curMonth, out: false }]);
+              };
+              return (
+                <div style={{background:'var(--surface-2)',borderRadius:'12px',padding:'11px 12px',marginBottom:'10px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'10px',flexWrap:'wrap'}}>
+                    <div style={{flex:'1 1 180px',minWidth:0}}>
+                      <div style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>Police pension</div>
+                      <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'1px',lineHeight:1.4}}>{outNow ? 'Opted out: none taken, so a little more tax' : 'Taken off before tax, worked out for you'}</div>
+                    </div>
+                    <div role="group" aria-label="Police pension" style={{display:'flex',gap:'4px',background:'var(--surface)',borderRadius:'9px',padding:'3px',flex:'0 0 auto'}}>
+                      {[[true,'Paying in'],[false,'Opted out']].map(([on,l])=>(
+                        <button key={l} type="button" onClick={()=>pick(on)} aria-pressed={outNow!==on} style={{border:'none',borderRadius:'7px',padding:'6px 11px',fontSize:'11.5px',fontWeight:800,cursor:'pointer',fontFamily:'inherit',background:outNow!==on?BRASS:'transparent',color:outNow!==on?'#fff':'var(--muted)'}}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                  {sorted.length>0 && <div style={{marginTop:'8px'}}>
+                    {sorted.map(c=>{
+                      const opts = PAY_PERIODS.some(p=>p.month===c.from) ? PAY_PERIODS : [{ month:c.from, short:c.from }, ...PAY_PERIODS];
+                      const setC = patch => setCh(ch.map((x,k)=>k===c.i?{...x,...patch}:x));
+                      return (
+                        <div key={c.i} style={{display:'flex',alignItems:'center',gap:'6px',marginTop:'6px'}}>
+                          <span style={{fontSize:'12px',fontWeight:800,color:c.out?'var(--text-amber-deep)':'var(--text-green-deep)',flex:'0 0 auto',minWidth:'104px'}}>{c.out ? 'Opted out from' : 'Back in from'}</span>
+                          <select aria-label={c.out ? 'Opted out from pay month' : 'Back in from pay month'} value={c.from} onChange={e=>setC({from:e.target.value})} style={{...S.inp,flex:'1 1 auto',minWidth:0,background:'var(--surface)',padding:'8px 10px',fontSize:'14px'}}>
+                            {opts.map(p=><option key={p.month} value={p.month}>{PAY_PERIODS.includes(p) ? `${p.short.slice(0,3)} pay` : p.month}</option>)}
+                          </select>
+                          <button type="button" aria-label="Remove" onClick={()=>setCh(ch.filter((_,k)=>k!==c.i))} style={{background:'none',border:'none',padding:'6px',cursor:'pointer',display:'flex',flexShrink:0}}><Ico n="x" s={14} c="var(--quiet)"/></button>
+                        </div>);
+                    })}
+                    <button type="button" onClick={()=>setCh([...ch,{ from: nextMonth(), out: !last.out }])} style={{background:'none',border:'none',padding:'8px 0 0',fontSize:'12px',fontWeight:800,color:BRASS,cursor:'pointer',fontFamily:'inherit'}}>{last.out ? '+ Opted back in from a month' : '+ Opted out again from a month'}</button>
+                  </div>}
+                </div>);
+            })()}
             {list.length>0&&<div style={{display:'grid',gridTemplateColumns:isWide&&!compact?'repeat(2,minmax(0,1fr))':'minmax(0,1fr)',gap:'8px',alignItems:'start'}}>
               {list.map(d=>(
                 <div key={d.id} style={{background:'var(--surface-2)',borderRadius:'12px',padding:'10px'}}>

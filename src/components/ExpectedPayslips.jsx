@@ -57,7 +57,7 @@ function PayslipPanel({ months, pick, setPick, settings, saveSett, S, MONO, BRAS
       .map(d => [d.name || 'Deduction', deductionFor(d, pb.month), d.when === 'before'])
       .filter(([, a]) => a > 0.005);
     const deductions = [
-      [`Pension (${pct(pb.pensionRate || 0)})`, pb.periodPension],
+      [pb.pensionOut ? 'Pension (opted out)' : `Pension (${pct(pb.pensionRate || 0)})`, pb.periodPension],
       ['PAYE income tax', pb.monthTax],
       ['National Insurance', pb.monthNI],
       ...own.map(([n, a, pre]) => [pre ? `${n} (before tax)` : n, a]),
