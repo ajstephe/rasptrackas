@@ -783,14 +783,16 @@ export function TabSettings({
                 else setCh(ch.length===1 ? [] : [...ch, { from: curMonth, out: false }]);
               };
               return (
-                <div style={{background:'var(--surface-2)',borderRadius:'12px',padding:'11px 12px',marginBottom:'10px'}}>
+                <div style={{background:'var(--tint-blue)',border:'1.5px solid #2563eb',borderRadius:'14px',padding:'14px',margin:'2px 0 14px',boxShadow:'0 2px 10px rgba(37,99,235,0.12)'}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px'}}>
-                    <div style={{minWidth:0}}>
-                      <div style={{fontSize:'13px',fontWeight:900,color:'var(--ink)'}}>I've opted out of the police pension</div>
-                      <div style={{fontSize:'11.5px',fontWeight:600,color:'var(--quiet)',marginTop:'2px',lineHeight:1.4}}>{outNow ? 'No pension taken, so a little more tax' : 'Leave off if you pay into it. Your pension is taken off before tax automatically'}</div>
+                    <div style={{background:'var(--surface)',padding:'8px',borderRadius:'11px',display:'flex',flexShrink:0}}><Ico n="shield" s={20} c="#2563eb" w={2.2}/></div>
+                    <div style={{minWidth:0,flex:1}}>
+                      <div style={{fontSize:'10px',fontWeight:900,color:'#2563eb',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:'2px'}}>Police pension</div>
+                      <div style={{fontSize:'14.5px',fontWeight:900,color:'var(--ink)'}}>I've opted out of the police pension</div>
+                      <div style={{fontSize:'12px',fontWeight:600,color:'var(--muted)',marginTop:'2px',lineHeight:1.4}}>{outNow ? 'No pension taken, so a little more tax' : 'Leave off if you pay into it. Your pension is taken off before tax automatically'}</div>
                     </div>
                     <button type="button" role="switch" aria-checked={outNow} aria-label="I've opted out of the police pension" onClick={()=>pick(outNow)}
-                      style={{flex:'0 0 auto',width:'46px',height:'28px',borderRadius:'14px',border:'none',padding:0,cursor:'pointer',position:'relative',background:outNow?BRASS:'var(--chip-bg)',transition:'background 0.2s'}}>
+                      style={{flex:'0 0 auto',width:'46px',height:'28px',borderRadius:'14px',border:'none',padding:0,cursor:'pointer',position:'relative',background:outNow?BRASS:'#a8b4c4',transition:'background 0.2s'}}>
                       <span style={{position:'absolute',top:'3px',left:outNow?'21px':'3px',width:'22px',height:'22px',borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}/>
                     </button>
                   </div>
