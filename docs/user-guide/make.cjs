@@ -11,5 +11,7 @@ const { chromium } = require('playwright');
     return `p${i+1}: ${Math.round(limit - bottom)}px spare`;
   }).join('  ')));
   await p.pdf({ path: __dirname + '/Overtime-Shift-Tracker-User-Guide.pdf', preferCSSPageSize: true, printBackground: true });
+  // The copy the app links to (More › User guide), served at /user-guide.pdf.
+  require('fs').copyFileSync(__dirname + '/Overtime-Shift-Tracker-User-Guide.pdf', __dirname + '/../../public/user-guide.pdf');
   await b.close();
 })();

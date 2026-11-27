@@ -330,6 +330,7 @@ export function TabSettings({
     ]],
     [isWide ? 'Support' : 'App & support', [
       ...(isWide ? [] : [['theme','Theme','sun','var(--tint-amber)',BRASS, themeLabel]]),
+      ['guide','User guide (PDF)','doc','var(--tint-blue)','#2563eb','','How to use every part of the app','/user-guide.pdf'],
       ['help','Help & suggestions','mail','var(--tint-blue)','#2563eb',''],
       ['privacy','Privacy notice','shield','var(--tint-blue)','#2563eb',''],
     ]],

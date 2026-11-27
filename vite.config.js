@@ -40,6 +40,8 @@ export default defineConfig({
           options: { cacheName: 'exceljs', expiration: { maxEntries: 2 } },
         }],
         navigateFallback: '/index.html',
+        // The user guide PDF opens as itself, not the app.
+        navigateFallbackDenylist: [/\.pdf$/],
         cleanupOutdatedCaches: true,
       },
     }),

@@ -10,6 +10,8 @@ node docs/user-guide/make.cjs
 
 Prints the spare space on each page (negative means something spills past the footer) and writes the PDF next to this file. Fonts come from `public/fonts` via `fonts.css`.
 
+It also copies the PDF to `public/user-guide.pdf`, which the app links to from More › User guide (PDF) and serves at /user-guide.pdf.
+
 ## Retake the screenshots
 
 1. `npm run build && npx vite preview --port 4332` (a local build with no Supabase keys runs signed out, with local data only).
